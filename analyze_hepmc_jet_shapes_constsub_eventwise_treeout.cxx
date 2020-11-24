@@ -439,6 +439,7 @@ int main(int argc, char **argv) {
   TTree *jetprops = new TTree("jetprops","Jet properties");
   jetprops->Branch("ievt",&ievt,"ievt/I");
   jetprops->Branch("ijet",&ijet,"ijet/I");
+  // jetprops->Branch("pt_rank",&ptrank,"pt_rank/I"); // Index as ranked by pt (0 is leading)
   jetprops->Branch("evwt",&evwt,"evwt/F");
   jetprops->Branch("pt",&jet_pt,"pt/F");
   jetprops->Branch("eta",&jet_eta,"eta/F");
@@ -565,6 +566,9 @@ int main(int argc, char **argv) {
     }
     else
       corrected_jets = inclusiveJetsCh;
+    
+    // Sort corrected_jets by pt (vector<fastjet::PseudoJet>)
+
     // modification 12/05/2014
     jet_eta= 0;
     jet_phi= 0;

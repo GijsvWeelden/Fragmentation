@@ -8,6 +8,7 @@
  *    --nobkg: do not subtract background (for pp and JEWEL without recoil)
  *    --fulljets|--chargedjets: use all particles, or only charged particles for jet finding.
  *  Author: Marco van Leeuwen, Nikhef
+ *  Edited: Gijs van Weelden, Nikhef
  *
  */
 
@@ -56,7 +57,7 @@ using std::string;
 #include "getopt.h"
 
 // defaults, can be set with arguments --chargedjets --fulljets --nobkg
-int do_bkg = 2; // 0: no subtraction; 1: only jet energy; 2: energy and shape
+int do_bkg = 0; // 0: no subtraction; 1: only jet energy; 2: energy and shape
 int charged_jets = 0; 
 
 static const int debug = 0;
@@ -140,9 +141,9 @@ int is_stable_charged(const HepMC::GenParticle *part) {
 int is_charged(const HepMC::GenParticle *part) {
   int abs_kf = abs(part->pdg_id());
   
-  if (abs_kf==211 || abs_kf==321 || abs_kf==2212 || abs_kf==11 || abs_kf==13)
+  if (abs_kf==211 || abs_kf==321 || abs_kf==2212 || abs_kf==11 || abs_kf==13) // pi+, K+, p, e-, mu-
     return 1;
-  else if (abs_kf != 22 && abs_kf!=111 && abs_kf!=130 && abs_kf!=2112 && abs_kf!=311 && abs_kf!=12 && abs_kf !=14 && abs_kf!=16)
+  else if (abs_kf != 22 && abs_kf!=111 && abs_kf!=130 && abs_kf!=2112 && abs_kf!=311 && abs_kf!=12 && abs_kf !=14 && abs_kf!=16) // gamma, pi0, K0L, n, K0, nu-e, nu-mu, nu-tau
     cout << " Unexpected particle: kf=" << abs_kf << endl;
   return 0;
 }
@@ -358,7 +359,7 @@ int main(int argc, char **argv) {
   const double beta = 0;
 
   const double max_eta_jet = 2.0;
-  const double max_eta_track = 2.5;
+  const double max_eta_track = 2.4; // max_eta_track = max_eta_jet + jetR
 
   int c;
 
@@ -471,8 +472,8 @@ int main(int argc, char **argv) {
     
     float pt_lead = -1;
     float phi_lead = -100;
-    float max_eta_jet = 1.0;  
-    float max_eta_track = 1.6;  
+    float max_eta_jet = 2.0;  
+    float max_eta_track = 2.4;  
     float jetR = 0.4;
 
     int index = 0;

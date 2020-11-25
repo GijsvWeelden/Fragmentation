@@ -1,9 +1,10 @@
 # Hybrid_Model
 
+IMPORTANT: ALWAYS ACTIVATE THE ALICE ENVIRONMENT WITH `ali`
+
 Compile `<code>.cxx` with:
 
 ```
-ali
 make <code>
 ```
 

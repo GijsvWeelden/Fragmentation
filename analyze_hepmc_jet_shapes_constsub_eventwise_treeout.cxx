@@ -568,6 +568,7 @@ int main(int argc, char **argv) {
       corrected_jets = inclusiveJetsCh;
     
     // Sort corrected_jets by pt (vector<fastjet::PseudoJet>)
+    vector <fastjet::PseudoJet> pt_sorted_jets = sorted_by_pt(corrected_jets);
 
     // modification 12/05/2014
     jet_eta= 0;
@@ -577,19 +578,19 @@ int main(int argc, char **argv) {
     if (debug > 0)
       cout << corrected_jets.size() << " jets found" << endl;
  
-    for (unsigned int iJet = 0; iJet < corrected_jets.size(); iJet++)
+    for (unsigned int iJet = 0; iJet < pt_sorted_jets.size(); iJet++)
       {
-	if (!range.is_in_range(corrected_jets[iJet]))   
+	if (!range.is_in_range(pt_sorted_jets[iJet])) 
 	  continue;
         
-	jet_pt = corrected_jets[iJet].perp();
-	jet_eta = corrected_jets[iJet].eta();
-	float dphi_jh = dphi(corrected_jets[iJet].phi(),phi_lead);
+	jet_pt = pt_sorted_jets[iJet].perp();
+	jet_eta = pt_sorted_jets[iJet].eta();
+	float dphi_jh = dphi(pt_sorted_jets[iJet].phi(),phi_lead);
 
-	jet_phi = corrected_jets[iJet].phi();
+	jet_phi = pt_sorted_jets[iJet].phi();
 
 	if (jet_pt > min_jet_pt) {
-	  fastjet::PseudoJet &jet = corrected_jets[iJet];
+	  fastjet::PseudoJet &jet = pt_sorted_jets[iJet];
 	  float eta_jet = jet.eta();
 
 	  //float rm, rs, r2m, r2s, zs, rz, r2z;

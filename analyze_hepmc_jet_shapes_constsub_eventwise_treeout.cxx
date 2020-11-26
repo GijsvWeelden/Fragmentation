@@ -432,18 +432,18 @@ int main(int argc, char **argv) {
   hPtChTrackEta->Sumw2();
 
   Int_t ievt = 0, ijet = 0;
-  Float_t evwt = 0, jet_eta=0, jet_phi=0, jet_pt=0;
+  Float_t evwt = 0, jet_eta=0, jet_phi=0, jet_pt=0, jet_dphi=0;
   Float_t zg=0, Rg=0, mass=0, mz2 = 0, mr = 0, mr2 = 0, rz = 0, r2z = 0;
   Int_t nconst=0, nSD=0;
 
   TTree *jetprops = new TTree("jetprops","Jet properties");
   jetprops->Branch("ievt",&ievt,"ievt/I");
   jetprops->Branch("ijet",&ijet,"ijet/I");
-  // jetprops->Branch("pt_rank",&ptrank,"pt_rank/I"); // Index as ranked by pt (0 is leading)
   jetprops->Branch("evwt",&evwt,"evwt/F");
   jetprops->Branch("pt",&jet_pt,"pt/F");
   jetprops->Branch("eta",&jet_eta,"eta/F");
   jetprops->Branch("phi",&jet_phi,"phi/F");
+  jetprops->Branch("dphi",&jet_dphi,"dphi/F");
   jetprops->Branch("nconst",&nconst,"nconst/I");
   jetprops->Branch("zg",&zg,"zg/F");
   jetprops->Branch("Rg",&Rg,"Rg/F");
@@ -574,6 +574,7 @@ int main(int argc, char **argv) {
     jet_eta= 0;
     jet_phi= 0;
     jet_pt= 0;
+    float_t jet_phi_leading = 0;
         
     if (debug > 0)
       cout << corrected_jets.size() << " jets found" << endl;
@@ -586,8 +587,12 @@ int main(int argc, char **argv) {
 	jet_pt = pt_sorted_jets[iJet].perp();
 	jet_eta = pt_sorted_jets[iJet].eta();
 	float dphi_jh = dphi(pt_sorted_jets[iJet].phi(),phi_lead);
-
 	jet_phi = pt_sorted_jets[iJet].phi();
+
+        if (iJet == 0) // Jets are pt-sorted
+          jet_phi_leading = jet_phi;
+        
+        jet_dphi = dphi(jet_phi,jet_phi_leading);
 
 	if (jet_pt > min_jet_pt) {
 	  fastjet::PseudoJet &jet = pt_sorted_jets[iJet];
@@ -691,7 +696,7 @@ int main(int argc, char **argv) {
   }
 
   fout.Write();
-
+  cout << "Simulation finished";
   fout.Close();
 
   return 0;

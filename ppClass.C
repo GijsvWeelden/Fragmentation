@@ -33,10 +33,11 @@ void ppClass::Loop()
 
    Long64_t nentries = fChain->GetEntriesFast();
    float_t ptL = 0;
-   TH1F *h_dphi = new TH1F("Hist_dphi","Acoplanarity: dphi (weighted)",100,0,3.2);
-   //TCanvas *C = new TCanvas();
-   //TString outname = "pp2tev76_dphi.png";
-   //TFile *output = new TFile(outname,"RECREATE");
+   //TH1F *h_dphi = new TH1F("Hist_dphi_highpt","Acoplanarity dphi: ptL> 120 GeV, ptS> 30 GeV, |eta_jet|<2",100,0,3.2);
+   //TH1F *h_dphi = new TH1F("Hist_dphi_highpt","Acoplanarity dphi (weighted): ptL> 120 GeV, ptS> 30 GeV, |eta_jet|<2",100,0,3.2);
+   //TH1F *h_dphi = new TH1F("Hist_dphi_lowpt","Acoplanarity dphi: ptL> 35 GeV, ptS> 10 GeV, |eta_jet|<2",100,0,3.2);
+   TH1F *h_dphi = new TH1F("Hist_dphi_lowpt","Acoplanarity dphi (weighted): ptL> 35 GeV, ptS> 10 GeV, |eta_jet|<2",100,0,3.2);
+
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
@@ -58,12 +59,19 @@ void ppClass::Loop()
         continue;
       }
       // Kinematic cuts on subleading jets
+      /*
       else if(ptL>120 && pt>30){
         //cout << "Acoplanarity: " << abs(dphi) << "\n";
+        h_dphi->Fill(abs(dphi));
+        //h_dphi->Fill(abs(dphi),evwt);
+      }
+      */
+      else if(ptL>35 && pt>10){
+        //h_dphi->Fill(abs(dphi));
         h_dphi->Fill(abs(dphi),evwt);
       }
    }
    h_dphi->Draw();
+   // TODO: write the histogram to its own .root file
    //h_dphi->Write();
-   //output->Close();
 }

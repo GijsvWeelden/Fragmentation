@@ -33,11 +33,10 @@ void ppClass::Loop()
 
    Long64_t nentries = fChain->GetEntriesFast();
    float_t ptL = 0;
-   TH1F *h_dphi; // = TH1F("Hist_dphi","Acoplanarity: dphi",100,0,3.2);
+   TH1F *h_dphi = new TH1F("Hist_dphi","Acoplanarity: dphi (weighted)",100,0,3.2);
    //TCanvas *C = new TCanvas();
    //TString outname = "pp2tev76_dphi.png";
    //TFile *output = new TFile(outname,"RECREATE");
-   cout << "Start";
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
@@ -55,17 +54,16 @@ void ppClass::Loop()
       // Identify leading jet
       if(ijet==0){
         ptL = pt;
-        cout << "Leading jet ievt(pt): " << ievt << "(" << pt << ")\n";
+        //cout << "Leading jet ievt(pt): " << ievt << "(" << pt << ")\n";
         continue;
       }
       // Kinematic cuts on subleading jets
       else if(ptL>120 && pt>30){
         //cout << "Acoplanarity: " << abs(dphi) << "\n";
-        h_dphi->Fill(dphi);
+        h_dphi->Fill(abs(dphi),evwt);
       }
    }
-   cout << "Success!";
-   //h_dphi->Draw("colz");
+   h_dphi->Draw();
    //h_dphi->Write();
    //output->Close();
 }

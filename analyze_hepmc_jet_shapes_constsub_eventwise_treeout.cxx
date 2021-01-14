@@ -575,21 +575,23 @@ int main(int argc, char **argv) {
     jet_phi= 0;
     jet_pt= 0;
     float_t jet_phi_leading = 0;
+    int n_jets_selected = 0; // Label for saved jet
         
     if (debug > 0)
       cout << corrected_jets.size() << " jets found" << endl;
  
     for (unsigned int iJet = 0; iJet < pt_sorted_jets.size(); iJet++)
       {
+	// Checks if jet in eta, phi range
 	if (!range.is_in_range(pt_sorted_jets[iJet])) 
 	  continue;
-        
+
 	jet_pt = pt_sorted_jets[iJet].perp();
 	jet_eta = pt_sorted_jets[iJet].eta();
 	float dphi_jh = dphi(pt_sorted_jets[iJet].phi(),phi_lead);
-	jet_phi = pt_sorted_jets[iJet].phi();
+	jet_phi = pt_sorted_jets[iJet].phi(); 
 
-        if (iJet == 0) // Jets are pt-sorted
+        if (n_jets_selected == 0) // Jets are pt-sorted
           jet_phi_leading = jet_phi;
         
         jet_dphi = dphi(jet_phi,jet_phi_leading);
@@ -673,8 +675,9 @@ int main(int argc, char **argv) {
 	    hJetPtEtaRsubdist[iR]->Fill(jet_pt_bgsub,eta_jet,Rsubdist,evt->weights()[0]);
 	    }
 	  */
-	  ijet = iJet;
-	  nconst = jet.constituents().size();
+	  ijet = n_jets_selected;
+	  n_jets_selected++;
+          nconst = jet.constituents().size();
 	  jetprops->Fill();
 	}
       }

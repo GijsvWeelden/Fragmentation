@@ -1,0 +1,13 @@
+# This is an example parameter file.
+# Let's write output to another file:
+LOGFILE example.log
+HEPMCFILE example.hepmc
+NEVENT 1000000
+NJOB #njob#
+# Let's change the generation phase space:
+PTMIN 8.
+PTMAX 250.
+ETAMAX 2.5
+SQRTS 2760.
+# And we also want to change the medium parameters:
+# MEDIUMPARAMS medium.example.dat

@@ -1,0 +1,12 @@
+# This is the parameter file for the medium model.
+
+# parameters from Raghav/Will
+TAUI 0.4d0
+TI 0.440d0
+SIGMANN 7.2
+A 208
+
+TC 0.170d0
+CENTRMIN 0.d0
+CENTRMAX 10.d0
+WOODSSAXON .TRUE.

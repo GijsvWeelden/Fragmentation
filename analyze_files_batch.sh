@@ -45,7 +45,8 @@ do
 
   # without bkg subtraction
   # ./analyze_hepmc_jet_shapes_constsub_eventwise --chargedjets --nobkg $indir/$ifile/$infile $outdir/jet_shapes_constsub_eventwise_${ifile} 
-  ./analyze_hepmc_jet_shapes_constsub_eventwise_treeout --chargedjets --nobkg $indir/$ifile/$infile $outdir/jet_shapes_constsub_eventwise_tree_${ifile} 
+  #./analyze_hepmc_jet_shapes_constsub_eventwise_treeout --chargedjets --nobkg $indir/$ifile/$infile $outdir/jet_shapes_constsub_eventwise_tree_${ifile} 
+  ./analyze_hepmc_jet_shapes_constsub_eventwise_treeout --fulljets --nobkg $indir/$ifile/$infile $outdir/jet_shapes_constsub_eventwise_tree_${ifile} 
   # ./analyze_hepmc_hjet --gammajet --fulljets --nobkg $inpathfile $outdir/gjet_hists_${ifile}
   # ./analyze_hepmc_jet_frag --fulljets --nobkg $indir/$ifile/$infile $outdir/jet_frag_$ifile
   # ./analyze_hepmc_jet_strangeness --fulljets --nobkg $indir/$ifile/$infile $outdir/jet_frag_strangeness_$ifile

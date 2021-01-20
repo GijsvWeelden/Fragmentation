@@ -16,7 +16,7 @@ Simulate events with jewel with:
 ```
 This will output `jet_tree_pp5tev<settings>.root` (with `<settings>` "`_nobkg`" etc).
 
-# ppClass
+# ppClass and macros
 The `ppClass.C` will extract the important information from the simulation `.root` file and save it in histograms. It uses the `MakeClass` method.
 
 To make a class:
@@ -32,3 +32,5 @@ root –l MyClass.C
 MyClass m
 m.Loop()
 ```
+
+Other macros can be used similarly: `root -l <macro>.C`

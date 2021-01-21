@@ -133,17 +133,31 @@ void plot_jet_variables(void) {
     }
   }
 
-  // Draw histograms
-  // Make canvases
+  // Normalise histograms
+  hmass_pp->Scale(1./hmass_pp->Integral());
+  hmass_AA->Scale(1./hmass_AA->Integral());
+
+  // Make canvases and draw histograms
   TCanvas *c1 = new TCanvas("c1","c1: mass",600,600);
-  hmass_pp->SetMarkerStyle(kFullDotLarge);
+  hmass_pp->SetMarkerStyle(kFullDotMedium);
   hmass_pp->SetMarkerColor(kRed);
   hmass_pp->SetLineColor(kRed);
-  hmass_AA->DrawNormalized("E1");
-  hmass_pp->DrawNormalized("E1,SAMES");
+
+  hmass_AA->GetXaxis()->SetTitle("mass");
+  hmass_AA->GetYaxis()->SetTitle("fraction");
+
+  hmass_AA->Draw("E1");
+  hmass_pp->Draw("E1,SAMES");
   //hmass_AA->SetAxisRange(0, 3.5e-6, "Y");
   //hmass_pp->SetAxisRange(0, 3.5e-6, "Y");
   //TFile hmass_save("hmass.root","RECREATE");
   //hmass->Write();
 
+  // Compute ratio of histograms
+  auto massratio = new TRatioPlot(hmass_AA, hmass_pp);
+  massratio->Draw();
+  //massratio->GetLowerRefYaxis()->SetNDivisions(10);
+  massratio->GetLowerRefYaxis()->SetRangeUser(-0.2,2.);
+  //c1->SetTicky(1);
+  c1->Update();
 }

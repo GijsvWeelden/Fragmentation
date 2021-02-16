@@ -16,6 +16,12 @@ Simulate events with jewel with:
 ```
 This will output `jet_tree_pp5tev<settings>.root` (with `<settings>` "`_nobkg`" etc).
 
+This code can be ran on the cluster with the `submit_files.sh` and `analyze_files_batch.sh` scripts.
+
+```
+./submit_files.sh /dcache/alice/marcovl/jewel/<set> <start_index> <end_index> <dirs_per_job>
+```
+
 # ppClass and macros
 The `ppClass.C` will extract the important information from the simulation `.root` file and save it in histograms. It uses the `MakeClass` method.
 

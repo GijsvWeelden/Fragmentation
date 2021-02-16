@@ -32,7 +32,10 @@ void make_hists(TChain *chain, string setting, vector<string> obs, vector<double
           TString::Format("Jet %s (%s), pt #in [%.f_%.f), R = 0.4",
             obs[iobs].c_str(), setting.c_str() ,ptBins[ipt], ptBins[ipt+1]).Data(),
           100,0,0.5);
-      if (obs[iobs] == "nconst" || obs[iobs] == "nSD" || obs[iobs] == "mass"){
+      if (obs[iobs] == "dphi"){
+        hist->SetBins(100,0,3.2);
+      }
+      else if (obs[iobs] == "nconst" || obs[iobs] == "nSD" || obs[iobs] == "mass"){
         hist->SetBins(100,0,100);
       }
       chain->Draw(TString::Format("%s>>%s_h%s_pt%.f_%.f",
@@ -46,14 +49,22 @@ void make_hists(TChain *chain, string setting, vector<string> obs, vector<double
   }
 }
 
+//-------------------------------------------------------------
+//
+// Main Function
+//
+//-------------------------------------------------------------
 void jetprops_hists(void){
   double time = clock();
 
+  // pt bins and observables
   std::vector<double> ptBins = {0,20,40,60,80,100,120,160,200};
-  std::vector<string> obs = {"nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z"};
+  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z"};
 
+  // Declare output file
   TFile *outFile = new TFile("test.root","RECREATE");
   outFile->cd();
+
   //-------------------------------------------------------------
   //
   // AA (no recoil)
@@ -122,25 +133,43 @@ void jetprops_hists(void){
   chain->SetBranchAddress("rz", &rz, &b_rz);
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
 
-  Long64_t nentries = chain->GetEntries();
-  Long64_t nbytes = 0, nb = 0;
-
   make_hists(chain, "AA_norecoil", obs, ptBins);
-  /*
-  // Declare lists
-  TList* massList = new TList();
-  massList->SetName("Mass");
-  massList->SetOwner(true);
 
-  for (auto ipt=0; ipt<ptBins.size()-1; ipt++){
-  TH1F *hmass = new TH1F(TString::Format("hmass_pt%.f_%.f",ptBins[ipt],ptBins[ipt+1]).Data(),
-  TString::Format("Jet mass, pt #in [%.f_%.f), R = 0.4",ptBins[ipt],ptBins[ipt+1]).Data(),
-  100, 0, 100);
-  chain->Draw(TString::Format("mass>>hmass_pt%.f_%.f",ptBins[ipt],ptBins[ipt+1]).Data(),
-  TString::Format("evwt*(pt>%.f && pt<%.f)",ptBins[ipt],ptBins[ipt+1]).Data());
-  massList->Add(hmass);
-  }
-  massList->Write("mass",1);
+  /*
+  //-------------------------------------------------------------
+  //
+  // AA (recoil)
+  //
+  //-------------------------------------------------------------
+
+  // TChain AA recoil
+  // int numFiles_pp = 1;
+  chain->Reset();
+  for (int fileNum = 1; fileNum <= numFiles_pp; fileNum++) {
+TODO: file name
+chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_.root", fileNum));
+}
+
+  // Reset branch addresses
+  chain->SetBranchAddress("ievt", &ievt, &b_ievt);
+  chain->SetBranchAddress("ijet", &ijet, &b_ijet);
+  chain->SetBranchAddress("evwt", &evwt, &b_evwt);
+  chain->SetBranchAddress("pt", &pt, &b_pt);
+  chain->SetBranchAddress("eta", &eta, &b_eta);
+  chain->SetBranchAddress("phi", &phi, &b_phi);
+  chain->SetBranchAddress("dphi", &dphi, &b_dphi);
+  chain->SetBranchAddress("nconst", &nconst, &b_nconst);
+  chain->SetBranchAddress("zg", &zg, &b_zg);
+  chain->SetBranchAddress("Rg", &Rg, &b_Rg);
+  chain->SetBranchAddress("nSD", &nSD, &b_nSD);
+  chain->SetBranchAddress("mass", &mass, &b_mass);
+  chain->SetBranchAddress("mz2", &mz2, &b_mz2);
+  chain->SetBranchAddress("mr", &mr, &b_mr);
+  chain->SetBranchAddress("mr2", &mr2, &b_mr2);
+  chain->SetBranchAddress("rz", &rz, &b_rz);
+  chain->SetBranchAddress("r2z", &r2z, &b_r2z);
+
+  make_hists(chain, "AA_recoil", obs, ptBins);
    */
 
   //-------------------------------------------------------------
@@ -178,7 +207,14 @@ void jetprops_hists(void){
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
 
   make_hists(chain, "pp", obs, ptBins);
+
+  //-------------------------------------------------------------
+  //
+  // End of file
+  //
+  //-------------------------------------------------------------
+
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << endl;
   outFile->Close();
-}
+  }

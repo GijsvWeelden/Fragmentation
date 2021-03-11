@@ -32,6 +32,7 @@ void make_hists(TChain *chain, string setting, vector<string> obs, vector<double
           TString::Format("Jet %s (%s), pt #in [%.f_%.f), R = 0.4",
             obs[iobs].c_str(), setting.c_str() ,ptBins[ipt], ptBins[ipt+1]).Data(),
           100,0,0.5);
+      hist->Sumw2();
       if (obs[iobs] == "dphi"){
         hist->SetBins(100,0,3.2);
       }
@@ -61,8 +62,15 @@ void jetprops_hists(void){
   std::vector<double> ptBins = {0,20,40,60,80,100,120,160,200};
   std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z"};
 
+  // TODO: make these input from shell
+  int numFiles_AAnr = 20;
+  int numFiles_AAr = 0;
+  int numFiles_pp = 10;
+
   // Declare output file
-  TFile *outFile = new TFile("test.root","RECREATE");
+  // TODO: make this input from shell
+  string outName = "compare_2tev76_ppAAnr";
+  TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   outFile->cd();
 
   //-------------------------------------------------------------
@@ -72,9 +80,8 @@ void jetprops_hists(void){
   //-------------------------------------------------------------
 
   // TChain AA
-  int numFiles = 20;
   TChain *chain = new TChain("jetprops");
-  for (int fileNum = 1; fileNum <= numFiles; fileNum++) {
+  for (int fileNum = 1; fileNum <= numFiles_AAnr; fileNum++) {
     chain->AddFile(Form("../run_AA_2tev76_norecoil/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
   }
 
@@ -133,9 +140,8 @@ void jetprops_hists(void){
   chain->SetBranchAddress("rz", &rz, &b_rz);
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
 
-  make_hists(chain, "AA_norecoil", obs, ptBins);
+  if (numFiles_AAnr != 0) make_hists(chain, "AA_norecoil", obs, ptBins);
 
-  /*
   //-------------------------------------------------------------
   //
   // AA (recoil)
@@ -145,10 +151,9 @@ void jetprops_hists(void){
   // TChain AA recoil
   // int numFiles_pp = 1;
   chain->Reset();
-  for (int fileNum = 1; fileNum <= numFiles_pp; fileNum++) {
-TODO: file name
-chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_.root", fileNum));
-}
+  for (int fileNum = 1; fileNum <= numFiles_AAr; fileNum++) {
+    chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_full.root", fileNum));
+  }
 
   // Reset branch addresses
   chain->SetBranchAddress("ievt", &ievt, &b_ievt);
@@ -170,7 +175,6 @@ chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
 
   make_hists(chain, "AA_recoil", obs, ptBins);
-   */
 
   //-------------------------------------------------------------
   //
@@ -179,13 +183,11 @@ chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_
   //-------------------------------------------------------------
 
   // TChain pp
-  int numFiles_pp = 1;
   chain->Reset();
-  chain->AddFile("../run_pp_2tev76/jet_tree_pp2tev76_full_nobkg.root");
-  //for (int fileNum = 1; fileNum <= numFiles_pp; fileNum++) {
-  //chain->AddFile(Form("../run_pp_2tev76/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
-  //}
-
+  //chain->AddFile("../run_pp_2tev76/jet_tree_pp2tev76_full_nobkg.root");
+  for (int fileNum = 1; fileNum <= numFiles_pp; fileNum++) {
+    chain->AddFile(Form("../run_pp_2tev76/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
+  }
 
   // Reset branch addresses
   chain->SetBranchAddress("ievt", &ievt, &b_ievt);
@@ -217,4 +219,4 @@ chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << endl;
   outFile->Close();
-  }
+}

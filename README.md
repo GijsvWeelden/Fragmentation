@@ -22,6 +22,15 @@ This code can be ran on the cluster with the `submit_files.sh` and `analyze_file
 ./submit_files.sh /dcache/alice/marcovl/jewel/<set> <start_index> <end_index> <dirs_per_job>
 ```
 
+# Accessing TH1 from a TList
+In files with many histograms, `TList` objects are used to create structure. When in a root file, they can be accessed by:
+
+```
+TFile *f = TFile::Open("sample.root");
+TList *myList = (TList*)f->Get("list");
+TH1F *hist = (TH1F*)myList->FindObject("hist");
+```
+
 # ppClass and macros
 The `ppClass.C` will extract the important information from the simulation `.root` file and save it in histograms. It uses the `MakeClass` method.
 

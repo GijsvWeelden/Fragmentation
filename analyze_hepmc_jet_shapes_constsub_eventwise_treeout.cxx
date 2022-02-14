@@ -706,7 +706,7 @@ int main(int argc, char **argv) {
         }
         else t3t2 = -1.;
         if (tau3 > 0){
-          for (int i = 0; i < t3dist.size(); ++i){
+          for (int i = 0; i < sizeof(t3dist)/sizeof(t3dist[0]); ++i){
             t3dist[i] = R3subdist[i];
           }
         }

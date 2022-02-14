@@ -671,14 +671,15 @@ int main(int argc, char **argv) {
 
         std::vector<fastjet::PseudoJet> SubJets_Axes = shape_tau3.currentAxes();
         Double_t R3subdist[3] = {-5, -5, -5};
+
         if (SubJets_Axes.size() > 1){
-          fastjet::PseudoJet SubJet1_Axis = SubJet_Axes[0];
+          fastjet::PseudoJet SubJet1_Axis = SubJets_Axes[0];
           Double_t SubJet1_Eta=SubJet1_Axis.pseudorapidity();
           Double_t SubJet1_Phi=SubJet1_Axis.phi();
-          fastjet::PseudoJet SubJet2_Axis = SubJet_Axes[1];
+          fastjet::PseudoJet SubJet2_Axis = SubJets_Axes[1];
           Double_t SubJet2_Eta=SubJet2_Axis.pseudorapidity();
           Double_t SubJet2_Phi=SubJet2_Axis.phi();
-          fastjet::PseudoJet SubJet3_Axis = SubJet_Axes[2];
+          fastjet::PseudoJet SubJet3_Axis = SubJets_Axes[2]; // FIXME: This gives segfault! Why?
           Double_t SubJet3_Eta=SubJet3_Axis.pseudorapidity();
           Double_t SubJet3_Phi=SubJet3_Axis.phi();
 

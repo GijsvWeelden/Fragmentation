@@ -58,7 +58,7 @@ using std::string;
 
 // defaults, can be set with arguments --chargedjets --fulljets --nobkg
 int do_bkg = 0; // 0: no subtraction; 1: only jet energy; 2: energy and shape
-int charged_jets = 0; 
+int charged_jets = 0;
 
 static const int debug = 0;
 //static const int charged_constituents = 1; // This does not work yet for jet shapes!
@@ -66,35 +66,35 @@ static const float ptcut = 0.0; // GeV
 static const float min_jet_pt = 10; // GeV; for shape histos
 
 int is_stable(const HepMC::GenParticle *part) {
-  // copied from AliStack::IsStable()	 
+  // copied from AliStack::IsStable()
   int pdg = abs(part->pdg_id());
   if(pdg>1000000000)return kTRUE;
 
   const Int_t kNstable = 18;
   Int_t i;
-  
+
 
   Int_t pdgStable[kNstable] = {
 			       kGamma,             // Photon
 			       kElectron,          // Electron
-			       kMuonPlus,          // Muon 
+			       kMuonPlus,          // Muon
 			       kPiPlus,            // Pion
 			       kKPlus,             // Kaon
 			       kK0Short,           // K0s
 			       kK0Long,            // K0l
-			       kProton,            // Proton 
+			       kProton,            // Proton
 			       kNeutron,           // Neutron
 			       kLambda0,           // Lambda_0
 			       kSigmaMinus,        // Sigma Minus
 			       kSigmaPlus,         // Sigma Plus
-			       3312,               // Xsi Minus 
-			       3322,               // Xsi 
+			       3312,               // Xsi Minus
+			       3322,               // Xsi
 			       3334,               // Omega
-			       kNuE,               // Electron Neutrino 
+			       kNuE,               // Electron Neutrino
 			       kNuMu,              // Muon Neutrino
 			       kNuTau              // Tau Neutrino
   };
-    
+
   Bool_t isStable = kFALSE;
   for (i = 0; i < kNstable; i++) {
     if (pdg == abs(pdgStable[i])) {
@@ -102,31 +102,31 @@ int is_stable(const HepMC::GenParticle *part) {
       break;
     }
   }
-  
+
   return isStable;
 }
 
 int is_stable_charged(const HepMC::GenParticle *part) {
-  // copied from AliStack::IsStable()	 
+  // copied from AliStack::IsStable()
   int pdg = abs(part->pdg_id());
   if(pdg>1000000000)return kTRUE;
 
   const Int_t kNstableCharged = 9;
   Int_t i;
-  
+
 
   Int_t pdgStableCharged[kNstableCharged] = {
 					     kElectron,          // Electron
-					     kMuonPlus,          // Muon 
+					     kMuonPlus,          // Muon
 					     kPiPlus,            // Pion
 					     kKPlus,             // Kaon
-					     kProton,            // Proton 
+					     kProton,            // Proton
 					     kSigmaMinus,        // Sigma Minus
 					     kSigmaPlus,         // Sigma Plus
-					     3312,               // Xsi Minus 
+					     3312,               // Xsi Minus
 					     3334                // Omega
   };
-    
+
   Bool_t isStable = kFALSE;
   for (i = 0; i < kNstableCharged; i++) {
     if (pdg == abs(pdgStableCharged[i])) {
@@ -134,13 +134,13 @@ int is_stable_charged(const HepMC::GenParticle *part) {
       break;
     }
   }
-  
+
   return isStable;
 }
 
 int is_charged(const HepMC::GenParticle *part) {
   int abs_kf = abs(part->pdg_id());
-  
+
   if (abs_kf==211 || abs_kf==321 || abs_kf==2212 || abs_kf==11 || abs_kf==13) // pi+, K+, p, e-, mu-
     return 1;
   else if (abs_kf != 22 && abs_kf!=111 && abs_kf!=130 && abs_kf!=2112 && abs_kf!=311 && abs_kf!=12 && abs_kf !=14 && abs_kf!=16) // gamma, pi0, K0L, n, K0, nu-e, nu-mu, nu-tau
@@ -365,7 +365,7 @@ int main(int argc, char **argv) {
 
   int nopt_parsed = 0;
   while (1) {
-        
+
     static struct option long_options[] =
       {
        /* These options set a flag. */
@@ -373,11 +373,11 @@ int main(int argc, char **argv) {
        {"fulljets",   no_argument,       &charged_jets, 0},
        {"nobkg",   no_argument,       &do_bkg, 0},
        /* it is also possible to have options that do not directly set a flag
-	* Not used for now */
+	      * Not used for now */
        {0, 0, 0, 0}
       };
     /* getopt_long stores the option index here. */
-    int option_index = 1;        
+    int option_index = 1;
     c = getopt_long (argc, argv, "",
 		     long_options, &option_index);
     //cout << "c " << c << " option_index " << option_index << endl;
@@ -388,18 +388,17 @@ int main(int argc, char **argv) {
   }
 
   /* Print any remaining command line arguments (not options). */
-  nopt_parsed++; 
+  nopt_parsed++;
   cout << "option_index " << nopt_parsed << endl;
-  if (nopt_parsed + 2 > argc)
-    {
-      cerr << "Need two more arguments: infile outfile" << endl << "infile is HEPMC ascii format; outfile will be root format" << endl;
-      return 1;
-    }
-  
+  if (nopt_parsed + 2 > argc){
+    cerr << "Need two more arguments: infile outfile" << endl << "infile is HEPMC ascii format; outfile will be root format" << endl;
+    return 1;
+  }
+
   char *inname = argv[nopt_parsed];
   // specify an input file
   HepMC::IO_GenEvent ascii_in(inname,std::ios::in);
-  
+
   // Make histos
 
   string outname(argv[nopt_parsed+1]);
@@ -417,7 +416,7 @@ int main(int argc, char **argv) {
   const Float_t minPtJet = 0;
   const Float_t maxPtJet = 200;
   const Int_t useHarryZgBinning = 1;
-  
+
   TFile fout(outname.c_str(),"RECREATE");
 
   TH1F *hNEvent = new TH1F("hNEvent","number of events; N",1,0,1);
@@ -433,7 +432,8 @@ int main(int argc, char **argv) {
 
   Int_t ievt = 0, ijet = 0;
   Float_t evwt = 0, jet_eta=0, jet_phi=0, jet_pt=0, jet_dphi=0;
-  Float_t zg=0, Rg=0, mass=0, mz2 = 0, mr = 0, mr2 = 0, rz = 0, r2z = 0;
+  Float_t zg=0, Rg=0, mass=0, mz2 = 0, mr = 0, mr2 = 0, rz = 0, r2z = 0, ptD = 0, t2t1 = 0, t3t2 = 0;
+  Float_t t3dist[3];
   Int_t nconst=0, nSD=0;
 
   TTree *jetprops = new TTree("jetprops","Jet properties");
@@ -454,67 +454,66 @@ int main(int argc, char **argv) {
   jetprops->Branch("mr2",&mr2,"mr2/F");
   jetprops->Branch("rz",&rz,"rz/F");
   jetprops->Branch("r2z",&r2z,"r2z/F");
+  jetprops->Branch("ptD",&ptD,"ptD/F");
+  jetprops->Branch("t2t1",&t2t1,"t2t1/F");
+  jetprops->Branch("t3t2",&t3t2,"t3t2/F");
+  jetprops->Branch("t2dist",&t2dist,"t2dist/F");
+  jetprops->Branch("t3dist",&t3dist,"t3dist[3]/F");
 
   // get the first event
   HepMC::GenEvent* evt = ascii_in.read_next_event();
-  if (!evt) 
+  if (!evt)
     cerr << "Input file not found " << inname << endl;
 
   // loop until we run out of events
   while ( evt ) {
-    
     // analyze the event
     if (debug)
       cout << "Event " << endl;
-    
+
     evwt = evt->weights()[0]; // set event weight to fill in tree
     hNEvent->Fill(0.5,evwt); // count events
     // from example_UsingIterators.cc
-    
+
     float pt_lead = -1;
     float phi_lead = -100;
-    float max_eta_jet = 2.0;  
-    float max_eta_track = 2.4;  
+    float max_eta_jet = 2.0;
+    float max_eta_track = 2.4;
     float jetR = 0.4;
 
     int index = 0;
     std::vector <fastjet::PseudoJet> fjInputs;
-    for ( HepMC::GenEvent::particle_iterator pit = evt->particles_begin();
-	  pit != evt->particles_end(); ++pit )
-      {
-	const HepMC::GenParticle *p = *pit;
-	if (!p->end_vertex() && p->status()==1 && (!charged_jets || is_charged(p))) 
-	  { // final state charged particle
-	    hPtPartEta->Fill(p->momentum().perp(), p->momentum().eta(),evt->weights()[0]);
-	    if (is_charged(p))
-	      hPtChTrackEta->Fill(p->momentum().perp(), p->momentum().eta(),evt->weights()[0]);
+    for (HepMC::GenEvent::particle_iterator pit = evt->particles_begin(); pit != evt->particles_end(); ++pit){
+      const HepMC::GenParticle *p = *pit;
+      if (!p->end_vertex() && p->status()==1 && (!charged_jets || is_charged(p))){ // final state charged particle
+        hPtPartEta->Fill(p->momentum().perp(), p->momentum().eta(),evt->weights()[0]);
+        if (is_charged(p))
+          hPtChTrackEta->Fill(p->momentum().perp(), p->momentum().eta(),evt->weights()[0]);
 
-	    if ( fabs(p->momentum().eta()) < max_eta_track && p->momentum().perp() > ptcut)
-	      {
-		if (p->momentum().perp() > pt_lead)
-		  {
-		    pt_lead = p->momentum().perp();
-		    phi_lead = p->momentum().phi();
-		  }
-		double mom = sqrt(p->momentum().x()*p->momentum().x() + 
-				  p->momentum().y()*p->momentum().y() +
-				  p->momentum().z()*p->momentum().z());
-		//fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),mom);
-		fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),p->momentum().e());  // need masses for E-scheme
-		jInp.set_user_index(index);
-		fjInputs.push_back(jInp);
-		index++;
-	      }
-	  }
-      }   
+        if ( fabs(p->momentum().eta()) < max_eta_track && p->momentum().perp() > ptcut){
+          if (p->momentum().perp() > pt_lead){
+            pt_lead = p->momentum().perp();
+            phi_lead = p->momentum().phi();
+          }
+          double mom = sqrt(p->momentum().x()*p->momentum().x() +
+                            p->momentum().y()*p->momentum().y() +
+                            p->momentum().z()*p->momentum().z());
+          //fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),mom);
+          fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),p->momentum().e());  // need masses for E-scheme
+          jInp.set_user_index(index);
+          fjInputs.push_back(jInp);
+          index++;
+        }
+      }
+    }
 
     // Do jet finding
     // Need R =0.2 and R=0.4 later on...
     fastjet::GhostedAreaSpec ghostSpec(max_eta_track,1,0.01);
-    fastjet::Strategy               strategy = fastjet::Best;
+    fastjet::Strategy strategy = fastjet::Best;
     //fastjet::RecombinationScheme    recombScheme = fastjet::BIpt_scheme;
-    fastjet::RecombinationScheme    recombScheme = fastjet::E_scheme; // need E scheme for jet mass
-    fastjet::AreaType areaType =   fastjet::active_area; 
+    fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
+    fastjet::AreaType areaType = fastjet::active_area;
     fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType,ghostSpec);
     fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(fastjet::active_area,ghostSpec);
 
@@ -524,8 +523,8 @@ int main(int argc, char **argv) {
     fastjet::ClusterSequenceArea clustSeqCh(fjInputs, jetDefCh, areaDef);
 
     vector <fastjet::PseudoJet> inclusiveJetsCh = clustSeqCh.inclusive_jets();
-      
-    fastjet::JetMedianBackgroundEstimator bge;  //.......... Background Sutraction event by event   
+
+    fastjet::JetMedianBackgroundEstimator bge;  //.......... Background Sutraction event by event
     fastjet::ClusterSequenceArea *clustSeqBG = 0;
     fastjet::JetDefinition jetDefBG(fastjet::kt_algorithm, jetR, recombScheme, strategy);
 
@@ -534,23 +533,22 @@ int main(int argc, char **argv) {
 
     if (do_bkg) {
       fastjet::Selector  BGSelector = fastjet::SelectorStrip(2*jetR);  //.......... Background Sutraction event by event
-
-      clustSeqBG = new fastjet::ClusterSequenceArea(fjInputs, jetDefBG,areaDef);//............
+      clustSeqBG = new fastjet::ClusterSequenceArea(fjInputs, jetDefBG,areaDef); //............
       vector <fastjet::PseudoJet> BGJets = clustSeqBG->inclusive_jets();
-	  
+
       bge.set_selector(BGSelector);
       bge.set_jets(BGJets);
 
       // Check for zero area jets
       Int_t nZeroArea = 0;
       for (vector<fastjet::PseudoJet>::const_iterator it=BGJets.begin(); it!=BGJets.end(); it++) {
-	if (it->area() == 0) {
-	  cout << "Found zero area jet pt " << it->perp() << " eta " << it->eta() << endl;
-	  nZeroArea++;
-	}
+        if (it->area() == 0) {
+          cout << "Found zero area jet pt " << it->perp() << " eta " << it->eta() << endl;
+          nZeroArea++;
+        }
       }
       if (nZeroArea != 0)
-	cout << "Found " << nZeroArea << " jets with zero area" << endl;
+	      cout << "Found " << nZeroArea << " jets with zero area" << endl;
 
       fastjet::contrib::ConstituentSubtractor subtractor(&bge);
       // this sets the same background estimator to be used for deltaMass density, rho_m, as for pt density, rho:
@@ -559,14 +557,14 @@ int main(int argc, char **argv) {
       subtractor.set_max_standardDeltaR(jetR);
       vector<fastjet::PseudoJet> corrected_event = subtractor.subtract_event(fjInputs,max_eta_track);
       if (debug > 0) {
-	cout << "Event had " << fjInputs.size() << " tracks; " << corrected_event.size() << " after bkg sub" << endl;
+        cout << "Event had " << fjInputs.size() << " tracks; " << corrected_event.size() << " after bkg sub" << endl;
       }
       clust_seq_corr = new fastjet::ClusterSequenceArea(corrected_event, jetDefCh, areaDefShape);
       corrected_jets = clust_seq_corr->inclusive_jets();
     }
     else
       corrected_jets = inclusiveJetsCh;
-    
+
     // Sort corrected_jets by pt (vector<fastjet::PseudoJet>)
     vector <fastjet::PseudoJet> pt_sorted_jets = sorted_by_pt(corrected_jets);
 
@@ -576,111 +574,149 @@ int main(int argc, char **argv) {
     jet_pt= 0;
     float_t jet_phi_leading = 0;
     int n_jets_selected = 0; // Label for saved jet
-        
+
     if (debug > 0)
       cout << corrected_jets.size() << " jets found" << endl;
- 
-    for (unsigned int iJet = 0; iJet < pt_sorted_jets.size(); iJet++)
-      {
-	// Checks if jet in eta, phi range
-	if (!range.is_in_range(pt_sorted_jets[iJet])) 
-	  continue;
 
-	jet_pt = pt_sorted_jets[iJet].perp();
-	jet_eta = pt_sorted_jets[iJet].eta();
-	float dphi_jh = dphi(pt_sorted_jets[iJet].phi(),phi_lead);
-	jet_phi = pt_sorted_jets[iJet].phi(); 
+    for (unsigned int iJet = 0; iJet < pt_sorted_jets.size(); iJet++){
+      // Checks if jet in eta, phi range
+      if (!range.is_in_range(pt_sorted_jets[iJet]))
+        continue;
 
-        if (n_jets_selected == 0) // Jets are pt-sorted
-          jet_phi_leading = jet_phi;
-        
-        jet_dphi = dphi(jet_phi,jet_phi_leading);
+      jet_pt = pt_sorted_jets[iJet].perp();
+      jet_eta = pt_sorted_jets[iJet].eta();
+      float dphi_jh = dphi(pt_sorted_jets[iJet].phi(),phi_lead);
+      jet_phi = pt_sorted_jets[iJet].phi();
 
-	if (jet_pt > min_jet_pt) {
-	  fastjet::PseudoJet &jet = pt_sorted_jets[iJet];
-	  float eta_jet = jet.eta();
+      if (n_jets_selected == 0) // Jets are pt-sorted
+        jet_phi_leading = jet_phi;
 
-	  //float rm, rs, r2m, r2s, zs, rz, r2z;
-	  float zs;
-	  getmassangularities(jet, mr, mr2, zs, mz2, rz, r2z);
-	  mass = jet.m();
+      jet_dphi = dphi(jet_phi,jet_phi_leading);
 
-	  fastjet::contrib::SoftDrop sd(beta,zcut,jetR);
-	  fastjet::contrib::SoftDrop sd_kt(beta,zcut,jetR);
-	  fastjet::contrib::Recluster reclust_kt(fastjet::kt_algorithm, fastjet::JetDefinition::max_allowable_R);
-	  sd_kt.set_reclustering(true, &reclust_kt);
-	  fastjet::contrib::SoftDrop sd_akt(beta,zcut,jetR);
-	  fastjet::contrib::Recluster reclust_akt(fastjet::antikt_algorithm, fastjet::JetDefinition::max_allowable_R);
-	  sd_akt.set_reclustering(true, &reclust_akt);
-	  fastjet::contrib::ModifiedMassDropTagger mMDT(zcut);
+      if (jet_pt > min_jet_pt) {
+        fastjet::PseudoJet &jet = pt_sorted_jets[iJet];
+        float eta_jet = jet.eta();
 
-	  if (debug > 1)
-	    cout << "Softdrop " << jet.constituents().size() << " constituents " << endl;
+        //float rm, rs, r2m, r2s, zs, rz, r2z;
+        float zs;
+        getmassangularities(jet, mr, mr2, zs, mz2, rz, r2z);
+        mass = jet.m();
+        ptD = pTD(jet);
 
-	  zg = -0.1;
-	  Rg = -0.1;
-	  nSD = 0;
+        fastjet::contrib::SoftDrop sd(beta,zcut,jetR);
+        fastjet::contrib::SoftDrop sd_kt(beta,zcut,jetR);
+        fastjet::contrib::Recluster reclust_kt(fastjet::kt_algorithm, fastjet::JetDefinition::max_allowable_R);
+        sd_kt.set_reclustering(true, &reclust_kt);
+        fastjet::contrib::SoftDrop sd_akt(beta,zcut,jetR);
+        fastjet::contrib::Recluster reclust_akt(fastjet::antikt_algorithm, fastjet::JetDefinition::max_allowable_R);
+        sd_akt.set_reclustering(true, &reclust_akt);
+        fastjet::contrib::ModifiedMassDropTagger mMDT(zcut);
 
-	  if (jet.has_associated_cluster_sequence()) {
-	    if (jet.has_pieces()) {
-	      fastjet::PseudoJet groomed_jet = sd(jet);
-	      if (groomed_jet.has_structure_of<fastjet::contrib::SoftDrop>()) {
-		zg = groomed_jet.structure_of<fastjet::contrib::SoftDrop>().symmetry();  // or mu() or delta_R()
-		Rg = groomed_jet.structure_of<fastjet::contrib::SoftDrop>().delta_R();  // or mu() or delta_R()
-		// iterate to get nSD
-		fastjet::PseudoJet j1 = groomed_jet, j2;
-		while (j1.has_parents(j1,j2)) {
-		  if (j1.perp() < j2.perp()) std::swap(j1,j2);
-		  Double_t zg_cur = j2.perp()/(j1.perp()+j2.perp()); 
-		  if (zg_cur >= 0.1)
-		    nSD++;
-		}
-	      }
-	      else 
-		cout << "No groomed jet structure for jet with  pt " << jet.perp() <<  " E " << jet.E() << " eta " << jet.eta() << " :  " << jet.constituents().size() << " constituents; jet.has_structure(): " << jet.has_structure() << endl;
-	      if (debug > 2)
-		cout << "z_g " << zg << " nSD " << nSD << endl;
+        if (debug > 1)
+          cout << "Softdrop " << jet.constituents().size() << " constituents " << endl;
 
-	    }
-	  }
-	  else cout << "No substructure stored with jet" << endl;
-	  /*
-	    const Float_t Beta = 1;
-	    fastjet::contrib::Nsubjettiness shape_tau1(1,fastjet::contrib::KT_Axes(), fastjet::contrib::NormalizedMeasure(Beta,jetR)); // tau1
-	    fastjet::contrib::Nsubjettiness shape_tau2(2,fastjet::contrib::KT_Axes(), fastjet::contrib::NormalizedMeasure(Beta,jetR)); // tau2
-	    Double_t tau1 = shape_tau1(jet);
-	    Double_t tau2 = shape_tau2(jet);
-	    std::vector<fastjet::PseudoJet>  SubJet_Axes=shape_tau2.currentAxes(); //Reclustered Axes reesult
-	    //SubJets=shape_tau2.currentSubjets(); //Resclustered Subjets Result
-	    Double_t Rsubdist = -5;
+        zg = -0.1;
+        Rg = -0.1;
+        nSD = 0;
 
-	    if (SubJet_Axes.size()>1){ //this should always be true
-	    fastjet::PseudoJet SubJet1_Axis=SubJet_Axes[0];	
-	    Double_t SubJet1_Eta=SubJet1_Axis.pseudorapidity();
-	    Double_t SubJet1_Phi=SubJet1_Axis.phi();
-	    fastjet::PseudoJet SubJet2_Axis=SubJet_Axes[1];
-	    Double_t SubJet2_Eta=SubJet2_Axis.pseudorapidity();
-	    Double_t SubJet2_Phi=SubJet2_Axis.phi();
-	    Double_t DeltaPhi=SubJet1_Phi-SubJet2_Phi; //Delta Phi between the two axis of reclustering
-	    if(DeltaPhi < -1*TMath::Pi()) DeltaPhi += (2*TMath::Pi());
-	    else if (DeltaPhi > TMath::Pi()) DeltaPhi -= (2*TMath::Pi());
-	    Rsubdist = TMath::Sqrt(DeltaPhi*DeltaPhi + (SubJet2_Eta-SubJet1_Eta)*(SubJet2_Eta-SubJet1_Eta));
-	    }
-	    hJetPtEtaTau1[iR]->Fill(jet_pt_bgsub,eta_jet,tau1,evt->weights()[0]);
-	    hJetPtEtaTau2[iR]->Fill(jet_pt_bgsub,eta_jet,tau2,evt->weights()[0]);
-	    if (tau1 > 0) {
-	    hJetPtEtaTau2Tau1[iR]->Fill(jet_pt_bgsub,eta_jet,tau2/tau1,evt->weights()[0]);
-	    }
-	    if (Rsubdist > 0) {
-	    hJetPtEtaRsubdist[iR]->Fill(jet_pt_bgsub,eta_jet,Rsubdist,evt->weights()[0]);
-	    }
-	  */
-	  ijet = n_jets_selected;
-	  n_jets_selected++;
-          nconst = jet.constituents().size();
-	  jetprops->Fill();
-	}
+        if (jet.has_associated_cluster_sequence()) {
+          if (jet.has_pieces()) {
+            fastjet::PseudoJet groomed_jet = sd(jet);
+            if (groomed_jet.has_structure_of<fastjet::contrib::SoftDrop>()) {
+              zg = groomed_jet.structure_of<fastjet::contrib::SoftDrop>().symmetry();  // or mu() or delta_R()
+              Rg = groomed_jet.structure_of<fastjet::contrib::SoftDrop>().delta_R();  // or mu() or delta_R()
+              // iterate to get nSD
+              fastjet::PseudoJet j1 = groomed_jet, j2;
+              while (j1.has_parents(j1,j2)) {
+                if (j1.perp() < j2.perp()) std::swap(j1,j2);
+                Double_t zg_cur = j2.perp()/(j1.perp()+j2.perp());
+                if (zg_cur >= 0.1)
+                  nSD++;
+              }
+            }
+            else
+              cout << "No groomed jet structure for jet with  pt " << jet.perp() <<  " E " << jet.E() << " eta " << jet.eta() << " :  " << jet.constituents().size() << " constituents; jet.has_structure(): " << jet.has_structure() << endl;
+            if (debug > 2)
+              cout << "z_g " << zg << " nSD " << nSD << endl;
+
+          }
+        }
+        else cout << "No substructure stored with jet" << endl;
+
+        const Float_t Beta = 1;
+        fastjet::contrib::Nsubjettiness shape_tau1(1,fastjet::contrib::KT_Axes(), fastjet::contrib::NormalizedMeasure(Beta,jetR)); // tau1
+        fastjet::contrib::Nsubjettiness shape_tau2(2,fastjet::contrib::KT_Axes(), fastjet::contrib::NormalizedMeasure(Beta,jetR)); // tau2
+        fastjet::contrib::Nsubjettiness shape_tau3(3,fastjet::contrib::KT_Axes(), fastjet::contrib::NormalizedMeasure(Beta,jetR)); // tau3
+        Double_t tau1 = shape_tau1(jet);
+        Double_t tau2 = shape_tau2(jet);
+        Double_t tau3 = shape_tau3(jet);
+
+        // Distance between subjets
+        std::vector<fastjet::PseudoJet>  SubJet_Axes=shape_tau2.currentAxes(); //Reclustered Axes result
+        //SubJets=shape_tau2.currentSubjets(); //Resclustered Subjets Result
+        Double_t R2subdist = -5;
+        if (SubJet_Axes.size()>1){ //this should always be true
+          fastjet::PseudoJet SubJet1_Axis=SubJet_Axes[0];
+          Double_t SubJet1_Eta=SubJet1_Axis.pseudorapidity();
+          Double_t SubJet1_Phi=SubJet1_Axis.phi();
+          fastjet::PseudoJet SubJet2_Axis=SubJet_Axes[1];
+          Double_t SubJet2_Eta=SubJet2_Axis.pseudorapidity();
+          Double_t SubJet2_Phi=SubJet2_Axis.phi();
+          Double_t DeltaPhi=SubJet1_Phi-SubJet2_Phi; //Delta Phi between the two axis of reclustering
+          if(DeltaPhi < -1*TMath::Pi()) DeltaPhi += (2*TMath::Pi());
+          else if (DeltaPhi > TMath::Pi()) DeltaPhi -= (2*TMath::Pi());
+          R2subdist = TMath::Sqrt(DeltaPhi*DeltaPhi + (SubJet2_Eta-SubJet1_Eta)*(SubJet2_Eta-SubJet1_Eta));
+        }
+
+        std::vector<fastjet::PseudoJet> SubJets_Axes = shape_tau3.currentAxes();
+        Double_t R3subdist = {-5, -5, -5};
+        if (SubJets_Axes.size() > 1){
+          fastjet::PseudoJet SubJet1_Axis = SubJet_Axes[0];
+          Double_t SubJet1_Eta=SubJet1_Axis.pseudorapidity();
+          Double_t SubJet1_Phi=SubJet1_Axis.phi();
+          fastjet::PseudoJet SubJet2_Axis = SubJet_Axes[1];
+          Double_t SubJet2_Eta=SubJet2_Axis.pseudorapidity();
+          Double_t SubJet2_Phi=SubJet2_Axis.phi();
+          fastjet::PseudoJet SubJet3_Axis = SubJet_Axes[2];
+          Double_t SubJet3_Eta=SubJet3_Axis.pseudorapidity();
+          Double_t SubJet3_Phi=SubJet3_Axis.phi();
+
+          Double_t DeltaPhi12 = SubJet1_Phi - SubJet2_Phi;
+          if(DeltaPhi12 < -1*TMath::Pi()) DeltaPhi12 += (2*TMath::Pi());
+          else if (DeltaPhi12 > TMath::Pi()) DeltaPhi12 -= (2*TMath::Pi());
+          R3subdist[0] = TMath::Sqrt(DeltaPhi12*DeltaPhi12 + (SubJet2_Eta-SubJet1_Eta)*(SubJet2_Eta-SubJet1_Eta));
+
+          Double_t DeltaPhi13 = SubJet1_Phi - SubJet3_Phi;
+          if(DeltaPhi13 < -1*TMath::Pi()) DeltaPhi13 += (2*TMath::Pi());
+          else if (DeltaPhi13 > TMath::Pi()) DeltaPhi13 -= (2*TMath::Pi());
+          R3subdist[1] = TMath::Sqrt(DeltaPhi13*DeltaPhi13 + (SubJet2_Eta-SubJet1_Eta)*(SubJet2_Eta-SubJet1_Eta));
+
+          Double_t DeltaPhi23 = SubJet2_Phi - SubJet3_Phi;
+          if(DeltaPhi23 < -1*TMath::Pi()) DeltaPhi23 += (2*TMath::Pi());
+          else if (DeltaPhi23 > TMath::Pi()) DeltaPhi23 -= (2*TMath::Pi());
+          R3subdist[2] = TMath::Sqrt(DeltaPhi23*DeltaPhi23 + (SubJet2_Eta-SubJet1_Eta)*(SubJet2_Eta-SubJet1_Eta));
+        }
+
+        if (tau1 > 0) t2t1 = tau2 / tau1;
+        else t2t1 = -1.;
+        if (tau2 > 0){
+          t3t2 = tau3 / tau2;
+          t2dist = Rsubdist;
+        }
+        else t3t2 = -1.;
+        if (tau3 > 0){
+          for (int i = 0; i < t3dist.size(); ++i){
+            t3dist[i] = R3subdist[i];
+          }
+        }
+
+
+        ijet = n_jets_selected;
+        n_jets_selected++;
+        nconst = jet.constituents().size();
+        jetprops->Fill();
       }
+    }
     if (clustSeqBG) {
       delete clustSeqBG;
       clustSeqBG = 0;
@@ -688,13 +724,13 @@ int main(int argc, char **argv) {
     if (clust_seq_corr) {
       delete clust_seq_corr;
       clust_seq_corr = 0;
-    }	
-	
-   
+    }
+
+
     // delete the created event from memory
     delete evt;
     // read the next event
-    ascii_in >> evt;    
+    ascii_in >> evt;
     ievt++;
   }
 

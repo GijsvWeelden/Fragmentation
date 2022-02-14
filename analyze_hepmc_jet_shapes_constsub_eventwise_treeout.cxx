@@ -56,7 +56,7 @@ using std::vector;
 using std::string;
 #include "getopt.h"
 
-// defaults, can be set with arguments --chargedjets --fulljets --nobkg
+// defaults, can be set with arguments --chargedjets --fulljets --nobkg --bkg
 int do_bkg = 0; // 0: no subtraction; 1: only jet energy; 2: energy and shape
 int charged_jets = 0;
 
@@ -369,9 +369,10 @@ int main(int argc, char **argv) {
     static struct option long_options[] =
       {
        /* These options set a flag. */
-       {"chargedjets", no_argument,       &charged_jets, 1},
-       {"fulljets",   no_argument,       &charged_jets, 0},
-       {"nobkg",   no_argument,       &do_bkg, 0},
+       {"chargedjets", no_argument, &charged_jets, 1},
+       {"fulljets",    no_argument, &charged_jets, 0},
+       {"nobkg",       no_argument, &do_bkg, 0},
+       {"bkg",         no_argument, &do_bkg, 2},
        /* it is also possible to have options that do not directly set a flag
 	      * Not used for now */
        {0, 0, 0, 0}
@@ -726,7 +727,6 @@ int main(int argc, char **argv) {
       clust_seq_corr = 0;
     }
 
-
     // delete the created event from memory
     delete evt;
     // read the next event
@@ -737,7 +737,6 @@ int main(int argc, char **argv) {
   fout.Write();
   cout << "Simulation finished";
   fout.Close();
-
   return 0;
 }
 

@@ -1,6 +1,6 @@
 # Hybrid_Model
 
-IMPORTANT: ALWAYS ACTIVATE THE ALICE ENVIRONMENT WITH `ali`
+IMPORTANT: ALWAYS ACTIVATE THE ALICE ENVIRONMENT WITH `ali=alienv enter VO_ALICE@AliPhysics::vAN-20200108_ROOT6-1,VO_ALICE@HepMC::HEPMC_02_06_10-1`
 
 Compile `<code>.cxx` with:
 
@@ -12,7 +12,7 @@ make <code>
 Simulate events with jewel with:
 
 ```
-./analyze_hepmc_jet_shapes_constsub_eventwise_treeout user/marcovl/jewel/run_pp_5tev02/1/example.hepmc jet_tree_pp5tev
+./analyze_hepmc_jet_shapes_constsub_eventwise_treeout /user/marcovl/jewel/run_pp_5tev02/1/example.hepmc jet_tree_pp5tev
 ```
 This will output `jet_tree_pp5tev<settings>.root` (with `<settings>` "`_nobkg`" etc).
 

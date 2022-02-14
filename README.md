@@ -1,6 +1,11 @@
 # Hybrid_Model
 
-IMPORTANT: ALWAYS ACTIVATE THE ALICE ENVIRONMENT WITH `ali=alienv enter VO_ALICE@AliPhysics::vAN-20200108_ROOT6-1,VO_ALICE@HepMC::HEPMC_02_06_10-1`
+IMPORTANT: ALWAYS ACTIVATE THE ALICE ENVIRONMENT WITH `ali`, where `.zshrc` should contain:
+
+```
+source /cvmfs/alice.cern.ch/etc/login.sh
+ali=alienv enter VO_ALICE@AliPhysics::vAN-20200108_ROOT6-1,VO_ALICE@HepMC::HEPMC_02_06_10-1
+```
 
 Compile `<code>.cxx` with:
 

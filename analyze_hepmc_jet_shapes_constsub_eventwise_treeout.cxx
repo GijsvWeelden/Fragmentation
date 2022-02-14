@@ -433,7 +433,7 @@ int main(int argc, char **argv) {
 
   Int_t ievt = 0, ijet = 0;
   Float_t evwt = 0, jet_eta=0, jet_phi=0, jet_pt=0, jet_dphi=0;
-  Float_t zg=0, Rg=0, mass=0, mz2 = 0, mr = 0, mr2 = 0, rz = 0, r2z = 0, ptD = 0, t2t1 = 0, t3t2 = 0;
+  Float_t zg=0, Rg=0, mass=0, mz2 = 0, mr = 0, mr2 = 0, rz = 0, r2z = 0, ptD = 0, t2t1 = 0, t2dist = 0; t3t2 = 0;
   Float_t t3dist[3];
   Int_t nconst=0, nSD=0;
 
@@ -670,7 +670,7 @@ int main(int argc, char **argv) {
         }
 
         std::vector<fastjet::PseudoJet> SubJets_Axes = shape_tau3.currentAxes();
-        Double_t R3subdist = {-5, -5, -5};
+        Double_t R3subdist[3] = {-5, -5, -5};
         if (SubJets_Axes.size() > 1){
           fastjet::PseudoJet SubJet1_Axis = SubJet_Axes[0];
           Double_t SubJet1_Eta=SubJet1_Axis.pseudorapidity();
@@ -702,7 +702,7 @@ int main(int argc, char **argv) {
         else t2t1 = -1.;
         if (tau2 > 0){
           t3t2 = tau3 / tau2;
-          t2dist = Rsubdist;
+          t2dist = R2subdist;
         }
         else t3t2 = -1.;
         if (tau3 > 0){

@@ -54,3 +54,41 @@ m.Loop()
 ```
 
 Other macros can be used similarly: `root -l <macro>.C`
+
+
+# Directory Structure
+
+## Plots
+`ppAAnr`, `ppAAr`, `ppAAnrAAr`: compares different settings
+`awayside/pp`, `AA_recoil`, `AA_norecoil`: compares leading/awayside jets in a single setting
+`awayside/Awayside`, `Leading`: compares leading or awayside jets across different settings
+
+## Macros
+`plotting_macros/jetprops_2dhists.C`:
+Reads in trees from `run*/jet_shapes*.root` and saves the different variables in 2D histograms of type (pt,observable) in `2dhists_*.root`. When looking into single variables across pt bins and/or settings (pp, AA), this is much faster than reading in the whole tree.
+
+`plotting_macros/plot_jetprops.C`:
+Reads histograms from `compare_*.root` and plots them for pp, AA. It also plots the ratios AA/pp. The plots are saved in the `plots` directory. Should be absorbed in other plotting macro.
+
+`plotting_macros/awayside_jetprops_hists.C`:
+Reads in the trees from `run*/jet_shapes*.root` and saves the different variables in 1D histograms, for leading and awayside jets separately. The histograms are saved in `awayside_*.root`.
+
+`plotting_macros/jetprops_hists.C`:
+Reads in trees from `run*/jet_shapes*.root` for various settings and saves the different variables in various pt bins in 1D histograms in the `compare_*.root` files.
+
+`plotting_macros/plot_awayside_jetprops_jetwise.C`:
+Reads histograms from `awayside_*.root` and plots variables in various pt bins, comparing pp, AAnr and AAr.
+
+`plotting_macros/plot_awayside_jetprops_settingwise.C`:
+Reads histograms from `awayside_*.root` and plots variables in various pt bins, comparing leading, awayside and full jets. The plots are saved in `plots/<setting>`, distinguishing plots containing the full sample (ALF) and plots only containing leading and awayside jets (AL).
+
+## Marco's macros
+`jewel_plot_utils.C`
+`legend_utils.C`
+`zplot_shapes.C`
+`plot_zg.C`
+`style.C`
+
+## Old/junk macros
+`plot_jet_variables.C`: Deprecated and terrible, don't use! Should be deleted.
+`test.C`: For quick tests only.

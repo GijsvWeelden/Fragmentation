@@ -1,3 +1,4 @@
 *.log
 *.root
 plots/
+**/test.C

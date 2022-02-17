@@ -11,11 +11,8 @@
 
 //-------------------------------------------------------------
 //
-// plot_wayside_jetprops.C compares the contribution of
-// leading and wayside jets to the full jet spectrum for
-// various jet properties
-// it also shows the ratio of the full and leading spectra
-// to the wayside spectrum
+// plot_awayside_jetprops_settingwise.C
+// Compares leading, awayside jets. Treats pp, AAnr, AAr separately.
 //
 //-------------------------------------------------------------
 
@@ -33,7 +30,7 @@ void plot_histograms(TH1F *hA, TH1F *hL, TH1F *hF, string setting, string obs, d
       abs(hF->Integral() - 1.0) > 0.01){
     cout << "WARNING: NORMALISATION PROBLEM!" << endl
       << TString::Format("%s for pt %.0f-%.0f GeV/c", obs.c_str(), min_pt, max_pt).Data() << endl
-      << "Wayside = " << hA->Integral() << " (" << hA->Integral()-1.0  << ")" << endl 
+      << "Wayside = " << hA->Integral() << " (" << hA->Integral()-1.0  << ")" << endl
       << "Leading = " << hL->Integral() << " (" << hL->Integral()-1.0 << ")" << endl
       << "Full = " << hF->Integral() << " (" << hF->Integral()-1.0 << ")" << endl;
   }

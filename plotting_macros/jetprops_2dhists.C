@@ -1,6 +1,6 @@
 
-#include <vector> 
-#include <iostream> 
+#include <vector>
+#include <iostream>
 #include <time.h>
 
 #include "TFile.h"
@@ -11,7 +11,11 @@
 //-------------------------------------------------------------
 //
 // jetprops_hists.C extracts data from trees (chains),
-// and stores it in 2d histograms
+// and stores it in 2d histograms (pt - obs).
+// This code distinguishes between leading and away-side jets (dphi > pi/2)
+//
+// If you want to look at a single variable, using the histograms
+// is much faster than reading in the whole tree
 //
 //-------------------------------------------------------------
 
@@ -57,7 +61,7 @@ void make_hists(TChain *chain, string setting, vector<string> obs, TList *list){
     list->Add(hL);
     list->Add(hS);
   }
-  cout << TString::Format("Name: %s", setting.c_str()).Data() << endl; 
+  cout << TString::Format("Name: %s", setting.c_str()).Data() << endl;
 }
 
 //-------------------------------------------------------------
@@ -69,7 +73,7 @@ void jetprops_2dhists(void){
   double time = clock();
 
   // pt bins and observables
-  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z"};
+  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","t2t1","t3t2","t2dist","t3dist"};
 
   // TODO: make these input from shell
   int numFiles_AAnr = 20;
@@ -81,18 +85,6 @@ void jetprops_2dhists(void){
   string outName = "2dhists_2tev76_ppAAnrAAr";
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   outFile->cd();
-
-  //-------------------------------------------------------------
-  //
-  // AA (no recoil)
-  //
-  //-------------------------------------------------------------
-
-  // TChain AA_norecoil
-  TChain *chain = new TChain("jetprops");
-  for (int fileNum = 1; fileNum <= numFiles_AAnr; fileNum++) {
-    chain->AddFile(Form("../run_AA_2tev76_norecoil/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
-  }
 
   // Declaration of leaf types
   Int_t           ievt;
@@ -112,24 +104,44 @@ void jetprops_2dhists(void){
   Float_t         mr2;
   Float_t         rz;
   Float_t         r2z;
+  Float_t         t2t1;
+  Float_t         t3t2;
+  Float_t         t2dist;
+  Float_t         t3dist[3];
   // List of branches
   TBranch        *b_ievt;   //!
   TBranch        *b_ijet;   //!
   TBranch        *b_evwt;   //!
-  TBranch        *b_pt;   //!
-  TBranch        *b_eta;   //!
-  TBranch        *b_phi;   //!
+  TBranch        *b_pt;     //!
+  TBranch        *b_eta;    //!
+  TBranch        *b_phi;    //!
   TBranch        *b_dphi;   //!
-  TBranch        *b_nconst;   //!
-  TBranch        *b_zg;   //!
-  TBranch        *b_Rg;   //!
-  TBranch        *b_nSD;   //!
+  TBranch        *b_nconst; //!
+  TBranch        *b_zg;     //!
+  TBranch        *b_Rg;     //!
+  TBranch        *b_nSD;    //!
   TBranch        *b_mass;   //!
-  TBranch        *b_mz2;   //!
-  TBranch        *b_mr;   //!
-  TBranch        *b_mr2;   //!
-  TBranch        *b_rz;   //!
-  TBranch        *b_r2z;   //!
+  TBranch        *b_mz2;    //!
+  TBranch        *b_mr;     //!
+  TBranch        *b_mr2;    //!
+  TBranch        *b_rz;     //!
+  TBranch        *b_r2z;    //!
+  TBranch        *b_t2t1;   //!
+  TBranch        *b_t3t2;   //!
+  TBranch        *b_t2dist; //!
+  TBranch        *b_t3dist; //!
+
+  //-------------------------------------------------------------
+  //
+  // AA (no recoil)
+  //
+  //-------------------------------------------------------------
+
+  // TChain AA_norecoil
+  TChain *chain = new TChain("jetprops");
+  for (int fileNum = 1; fileNum <= numFiles_AAnr; fileNum++) {
+    chain->AddFile(Form("../run_AA_2tev76_norecoil/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
+  }
   // Set branch addresses
   chain->SetBranchAddress("ievt", &ievt, &b_ievt);
   chain->SetBranchAddress("ijet", &ijet, &b_ijet);
@@ -148,8 +160,10 @@ void jetprops_2dhists(void){
   chain->SetBranchAddress("mr2", &mr2, &b_mr2);
   chain->SetBranchAddress("rz", &rz, &b_rz);
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
-
-  //if (numFiles_AAnr != 0) make_hists(chain, "AA_norecoil", obs);
+  chain->SetBranchAddress("t2t1", &t2t1, &b_t2t1);
+  chain->SetBranchAddress("t3t2", &t3t2, &b_t3t2);
+  chain->SetBranchAddress("t2dist", &t2dist, &b_t2dist);
+  chain->SetBranchAddress("t3dist", &t3dist, &b_t3dist);
 
   if (numFiles_AAnr != 0){
     TList *list = new TList();
@@ -160,21 +174,15 @@ void jetprops_2dhists(void){
     delete list;
   }
 
-
-
   //-------------------------------------------------------------
   //
   // AA (recoil)
   //
   //-------------------------------------------------------------
-
-  // TChain AA recoil
-  // int numFiles_pp = 1;
   chain->Reset();
   for (int fileNum = 1; fileNum <= numFiles_AAr; fileNum++) {
-    chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_full.root", fileNum));
+    chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
   }
-
   // Reset branch addresses
   chain->SetBranchAddress("ievt", &ievt, &b_ievt);
   chain->SetBranchAddress("ijet", &ijet, &b_ijet);
@@ -193,8 +201,10 @@ void jetprops_2dhists(void){
   chain->SetBranchAddress("mr2", &mr2, &b_mr2);
   chain->SetBranchAddress("rz", &rz, &b_rz);
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
-
-  //if (numFiles_AAr != 0) make_hists(chain, "AA_recoil", obs);
+  chain->SetBranchAddress("t2t1", &t2t1, &b_t2t1);
+  chain->SetBranchAddress("t3t2", &t3t2, &b_t3t2);
+  chain->SetBranchAddress("t2dist", &t2dist, &b_t2dist);
+  chain->SetBranchAddress("t3dist", &t3dist, &b_t3dist);
 
   if (numFiles_AAr != 0){
     TList *list = new TList();
@@ -210,14 +220,10 @@ void jetprops_2dhists(void){
   // pp
   //
   //-------------------------------------------------------------
-
-  // TChain pp
   chain->Reset();
-  //chain->AddFile("../run_pp_2tev76/jet_tree_pp2tev76_full_nobkg.root");
   for (int fileNum = 1; fileNum <= numFiles_pp; fileNum++) {
     chain->AddFile(Form("../run_pp_2tev76/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
   }
-
   // Reset branch addresses
   chain->SetBranchAddress("ievt", &ievt, &b_ievt);
   chain->SetBranchAddress("ijet", &ijet, &b_ijet);
@@ -236,6 +242,10 @@ void jetprops_2dhists(void){
   chain->SetBranchAddress("mr2", &mr2, &b_mr2);
   chain->SetBranchAddress("rz", &rz, &b_rz);
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
+  chain->SetBranchAddress("t2t1", &t2t1, &b_t2t1);
+  chain->SetBranchAddress("t3t2", &t3t2, &b_t3t2);
+  chain->SetBranchAddress("t2dist", &t2dist, &b_t2dist);
+  chain->SetBranchAddress("t3dist", &t3dist, &b_t3dist);
 
   if (numFiles_pp != 0){
     TList *list = new TList();

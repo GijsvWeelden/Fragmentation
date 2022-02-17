@@ -2,3 +2,5 @@
 *.root
 plots/
 **/test.C
+.DS_Store
+*.sh

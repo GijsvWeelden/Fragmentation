@@ -200,7 +200,7 @@ void plot_awayside_jetprops_settingwise(void){
   }
 
   std::vector<double> ptBins = {0.,20.,40.,60.,80.,100.,120.,160.,200.};
-  std::vector<string> obs = {"nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z"};
+  std::vector<string> obs = {"nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","t2t1","t3t2","t2dist","t3dist"};
 
   for (int iobs=0; iobs<obs.size(); iobs++){
     cout << "Plotting " << obs[iobs] << endl;

@@ -31,7 +31,7 @@ void plot_hists(TH1F *hpp, TH1F *hAAnr, TH1F *hAAr, string setting, string obs, 
     cout << "WARNING: NORMALISATION PROBLEM!" << endl
       << TString::Format("%s, %s for pt %.0f-%.0f GeV/c",
           setting.c_str(), obs.c_str(), min_pt, max_pt).Data() << endl
-      << "pp = " << hpp->Integral() << " (" << hpp->Integral()-1.0  << ")" << endl 
+      << "pp = " << hpp->Integral() << " (" << hpp->Integral()-1.0  << ")" << endl
       << "AA_norecoil = " << hAAnr->Integral() << " (" << hAAnr->Integral()-1.0 << ")" << endl
       << "AA_recoil = " << hAAr->Integral() << " (" << hAAr->Integral()-1.0 << ")" << endl;
   }
@@ -42,7 +42,7 @@ void plot_hists(TH1F *hpp, TH1F *hAAnr, TH1F *hAAr, string setting, string obs, 
   hpp->SetLineColor(kBlue);
   hpp->SetMarkerColor(kBlue);
   hpp->SetTitle(TString::Format("%s jet %s, pt #in [%.0f,%.0f) GeV/c, R = %.1f",
-        setting.c_str(), obs.c_str(), min_pt, max_pt, jetR).Data());
+        setting.c_str(), obs.c_str(), min_pt, max_pt, jetR).Data()); // TODO: add setting in title
   //hpp->GetXaxis()->SetRange(0,XmaxBin);
   hpp->GetYaxis()->SetTitle(TString::Format("#frac{1}{N_{jets}} #frac{dN}{d %s}",
         obs.c_str()).Data());
@@ -192,7 +192,7 @@ void plot_awayside_jetprops_jetwise(void){
   bool away = true;
 
   bool pp = true; // Don't change pp
-  bool AAnr = false;
+  bool AAnr = true;
   bool AAr = true;
 
   // File containing leading/wayside histograms
@@ -201,10 +201,10 @@ void plot_awayside_jetprops_jetwise(void){
   if(!wayFile){
     cout << "File " << wayFile << " not found. Aborting program." << endl;
     return;
-  } 
+  }
 
   std::vector<double> ptBins = {0.,20.,40.,60.,80.,100.,120.,160.,200.};
-  std::vector<string> obs = {"nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z"};
+  std::vector<string> obs = {"nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","t2t1","t3t2","t2dist","t3dist"};
 
   for (int iobs=0; iobs<obs.size(); iobs++){
     cout << "Plotting " << obs[iobs] << endl;

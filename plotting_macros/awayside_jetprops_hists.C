@@ -1,6 +1,6 @@
 
-#include <vector> 
-#include <iostream> 
+#include <vector>
+#include <iostream>
 #include <time.h>
 
 #include "TFile.h"
@@ -10,10 +10,10 @@
 
 //-------------------------------------------------------------
 //
-// wayside_jetprops_hists.C extracts data from trees (chains),
+// awayside_jetprops_hists.C extracts data from trees (chains),
 // and stores it in histograms, for several pt bins
 //
-// It distinguishes between leading and wayside jets
+// It distinguishes between leading and awayside jets
 //
 //-------------------------------------------------------------
 
@@ -33,17 +33,17 @@ void make_hists(TChain *chain, string setting, vector<string> obs, vector<double
 
     // Loop over pt bins
     for (auto ipt=0; ipt<ptBins.size()-1; ipt++){
-      string hW_Name = TString::Format("%s_Wayside_%s_pt%.f_%.f",
+      string hW_Name = TString::Format("%s_Awayside_%s_pt%.f_%.f",
           setting.c_str(), obs[iobs].c_str(), ptBins[ipt], ptBins[ipt+1]).Data();
       string hL_Name = TString::Format("%s_Leading_%s_pt%.f_%.f",
           setting.c_str(), obs[iobs].c_str(), ptBins[ipt], ptBins[ipt+1]).Data();
 
-      string hW_Title = TString::Format("Wayside jet %s (%s), pt #in [%.f_%.f), dphi>#pi/2, R = 0.4",
+      string hW_Title = TString::Format("Awayside jet %s (%s), pt #in [%.f_%.f), dphi>#pi/2, R = 0.4",
           obs[iobs].c_str(), setting.c_str() ,ptBins[ipt], ptBins[ipt+1]).Data();
       string hL_Title = TString::Format("Leading jet %s (%s), pt #in [%.f_%.f), R = 0.4",
           obs[iobs].c_str(), setting.c_str() ,ptBins[ipt], ptBins[ipt+1]).Data();
 
-      // Wayside jet histogram
+      // Awayside jet histogram
       TH1F *hW = new TH1F(TString::Format("%s", hW_Name.c_str()).Data(),
           TString::Format("%s", hW_Title.c_str()).Data(),
           100,0,0.5);
@@ -90,12 +90,12 @@ void make_hists(TChain *chain, string setting, vector<string> obs, vector<double
 // Main Function
 //
 //-------------------------------------------------------------
-void wayside_jetprops_hists(void){
+void awayside_jetprops_hists(void){
   double time = clock();
 
   // pt bins and observables
   std::vector<double> ptBins = {0,20,40,60,80,100,120,160,200};
-  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z"};
+  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","t2t1","t3t2","t2dist","t3dist"};
 
   // TODO: make these input from shell
   int numFiles_AAnr = 20;
@@ -104,7 +104,7 @@ void wayside_jetprops_hists(void){
 
   // Declare output file
   // TODO: make this input from shell
-  string outName = "wayside_2tev76_";
+  string outName = "awayside_2tev76_";
   if (numFiles_pp != 0) outName.append("pp");
   if (numFiles_AAnr != 0) outName.append("AAnr");
   if (numFiles_AAr != 0) outName.append("AAr");
@@ -193,7 +193,7 @@ void wayside_jetprops_hists(void){
   // int numFiles_pp = 1;
   chain->Reset();
   for (int fileNum = 1; fileNum <= numFiles_AAr; fileNum++) {
-    chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_full.root", fileNum));
+    chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
   }
 
   // Reset branch addresses

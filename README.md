@@ -67,14 +67,14 @@ Other macros can be used similarly: `root -l <macro>.C`
 `plotting_macros/jetprops_2dhists.C`:
 Reads in trees from `run*/jet_shapes*.root` and saves the different variables in 2D histograms of type (pt,observable) in `2dhists_*.root`. When looking into single variables across pt bins and/or settings (pp, AA), this is much faster than reading in the whole tree.
 
-`plotting_macros/plot_jetprops.C`:
-Reads histograms from `compare_*.root` and plots them for pp, AA. It also plots the ratios AA/pp. The plots are saved in the `plots` directory. Should be absorbed in other plotting macro.
-
 `plotting_macros/awayside_jetprops_hists.C`:
 Reads in the trees from `run*/jet_shapes*.root` and saves the different variables in 1D histograms, for leading and awayside jets separately. The histograms are saved in `awayside_*.root`.
 
 `plotting_macros/jetprops_hists.C`:
 Reads in trees from `run*/jet_shapes*.root` for various settings and saves the different variables in various pt bins in 1D histograms in the `compare_*.root` files.
+
+`plotting_macros/plot_jetprops.C`:
+Reads histograms from `compare_*.root` and plots them for pp, AA. It also plots the ratios AA/pp. The plots are saved in the `plots` directory. Should be absorbed in other plotting macro.
 
 `plotting_macros/plot_awayside_jetprops_jetwise.C`:
 Reads histograms from `awayside_*.root` and plots variables in various pt bins, comparing pp, AAnr and AAr.

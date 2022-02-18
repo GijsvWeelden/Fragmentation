@@ -1,6 +1,6 @@
 
-#include <vector> 
-#include <iostream> 
+#include <vector>
+#include <iostream>
 #include <time.h>
 
 #include "TFile.h"
@@ -10,8 +10,10 @@
 
 //-------------------------------------------------------------
 //
-// jetprops_hists.C extracts data from trees (chains),
-// and stores it in histograms, for several pt bins
+// jetprops_hists.C
+// Extracts data from trees (chains),
+// and stores it in 1D histograms, for several pt bins
+// Saves in compare_*.root file
 //
 //-------------------------------------------------------------
 
@@ -60,16 +62,16 @@ void jetprops_hists(void){
 
   // pt bins and observables
   std::vector<double> ptBins = {0,20,40,60,80,100,120,160,200};
-  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z"};
+  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","t2t1","t3t2","t2dist","t3dist"};
 
   // TODO: make these input from shell
-  int numFiles_AAnr = 20;
-  int numFiles_AAr = 0;
-  int numFiles_pp = 10;
+  int numFiles_AAnr = 20; // Max 20
+  int numFiles_AAr = 20;  // Max 20
+  int numFiles_pp = 10;   // Max 10
 
   // Declare output file
   // TODO: make this input from shell
-  string outName = "compare_2tev76_ppAAnr";
+  string outName = "compare_2tev76_ppAAnrAAr";
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   outFile->cd();
 
@@ -103,24 +105,32 @@ void jetprops_hists(void){
   Float_t         mr2;
   Float_t         rz;
   Float_t         r2z;
+  Float_t         t2t1;
+  Float_t         t3t2;
+  Float_t         t2dist;
+  Float_t         t3dist[3];
   // List of branches
   TBranch        *b_ievt;   //!
   TBranch        *b_ijet;   //!
   TBranch        *b_evwt;   //!
-  TBranch        *b_pt;   //!
-  TBranch        *b_eta;   //!
-  TBranch        *b_phi;   //!
+  TBranch        *b_pt;     //!
+  TBranch        *b_eta;    //!
+  TBranch        *b_phi;    //!
   TBranch        *b_dphi;   //!
-  TBranch        *b_nconst;   //!
-  TBranch        *b_zg;   //!
-  TBranch        *b_Rg;   //!
-  TBranch        *b_nSD;   //!
+  TBranch        *b_nconst; //!
+  TBranch        *b_zg;     //!
+  TBranch        *b_Rg;     //!
+  TBranch        *b_nSD;    //!
   TBranch        *b_mass;   //!
-  TBranch        *b_mz2;   //!
-  TBranch        *b_mr;   //!
-  TBranch        *b_mr2;   //!
-  TBranch        *b_rz;   //!
-  TBranch        *b_r2z;   //!
+  TBranch        *b_mz2;    //!
+  TBranch        *b_mr;     //!
+  TBranch        *b_mr2;    //!
+  TBranch        *b_rz;     //!
+  TBranch        *b_r2z;    //!
+  TBranch        *b_t2t1;   //!
+  TBranch        *b_t3t2;   //!
+  TBranch        *b_t2dist; //!
+  TBranch        *b_t3dist; //!
   // Set branch addresses
   chain->SetBranchAddress("ievt", &ievt, &b_ievt);
   chain->SetBranchAddress("ijet", &ijet, &b_ijet);
@@ -139,6 +149,10 @@ void jetprops_hists(void){
   chain->SetBranchAddress("mr2", &mr2, &b_mr2);
   chain->SetBranchAddress("rz", &rz, &b_rz);
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
+  chain->SetBranchAddress("t2t1", &t2t1, &b_t2t1);
+  chain->SetBranchAddress("t3t2", &t3t2, &b_t3t2);
+  chain->SetBranchAddress("t2dist", &t2dist, &b_t2dist);
+  chain->SetBranchAddress("t3dist", &t3dist, &b_t3dist);
 
   if (numFiles_AAnr != 0) make_hists(chain, "AA_norecoil", obs, ptBins);
 
@@ -152,7 +166,7 @@ void jetprops_hists(void){
   // int numFiles_pp = 1;
   chain->Reset();
   for (int fileNum = 1; fileNum <= numFiles_AAr; fileNum++) {
-    chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_full.root", fileNum));
+    chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
   }
 
   // Reset branch addresses
@@ -173,6 +187,10 @@ void jetprops_hists(void){
   chain->SetBranchAddress("mr2", &mr2, &b_mr2);
   chain->SetBranchAddress("rz", &rz, &b_rz);
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
+  chain->SetBranchAddress("t2t1", &t2t1, &b_t2t1);
+  chain->SetBranchAddress("t3t2", &t3t2, &b_t3t2);
+  chain->SetBranchAddress("t2dist", &t2dist, &b_t2dist);
+  chain->SetBranchAddress("t3dist", &t3dist, &b_t3dist);
 
   make_hists(chain, "AA_recoil", obs, ptBins);
 
@@ -207,6 +225,10 @@ void jetprops_hists(void){
   chain->SetBranchAddress("mr2", &mr2, &b_mr2);
   chain->SetBranchAddress("rz", &rz, &b_rz);
   chain->SetBranchAddress("r2z", &r2z, &b_r2z);
+  chain->SetBranchAddress("t2t1", &t2t1, &b_t2t1);
+  chain->SetBranchAddress("t3t2", &t3t2, &b_t3t2);
+  chain->SetBranchAddress("t2dist", &t2dist, &b_t2dist);
+  chain->SetBranchAddress("t3dist", &t3dist, &b_t3dist);
 
   make_hists(chain, "pp", obs, ptBins);
 

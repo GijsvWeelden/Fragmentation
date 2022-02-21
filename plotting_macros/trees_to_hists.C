@@ -27,7 +27,7 @@ void trees_to_hists(void){
   int numFiles_AAnr = 20;
   int numFiles_AAr = 0;//20;
   int numFiles_pp = 0;//10;
-  string outName = "test";//"2dhists_2tev76_ppAAnrAAr";
+  string outName = "2dhists_2tev76_ppAAnrAAr";
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   outFile->cd();
 

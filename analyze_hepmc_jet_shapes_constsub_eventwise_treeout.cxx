@@ -433,8 +433,8 @@ int main(int argc, char **argv) {
 
   Int_t ievt = 0, ijet = 0;
   Float_t evwt = 0, jet_eta=0, jet_phi=0, jet_pt=0, jet_dphi=0;
-  Float_t zg=0, Rg=0, mass=0, mz2 = 0, mr = 0, mr2 = 0, rz = 0, r2z = 0, ptD = 0, t2t1 = 0, t2dist = 0, t3t2 = 0;
-  Float_t t3dist[3];
+  Float_t zg=0, Rg=0, mass=0, mz2 = 0, mr = 0, mr2 = 0, rz = 0, r2z = 0, ptD = 0, t2t1 = -1., t2dist = -1., t3t2 = -1.;
+  Float_t t3dist[3] = {-1., -1., -1.};
   Int_t nconst=0, nSD=0;
 
   TTree *jetprops = new TTree("jetprops","Jet properties");
@@ -679,7 +679,7 @@ int main(int argc, char **argv) {
           fastjet::PseudoJet SubJet2_Axis = SubJets_Axes[1];
           Double_t SubJet2_Eta=SubJet2_Axis.pseudorapidity();
           Double_t SubJet2_Phi=SubJet2_Axis.phi();
-          fastjet::PseudoJet SubJet3_Axis = SubJets_Axes[2]; // FIXME: This gives segfault! Why?
+          fastjet::PseudoJet SubJet3_Axis = SubJets_Axes[2];
           Double_t SubJet3_Eta=SubJet3_Axis.pseudorapidity();
           Double_t SubJet3_Phi=SubJet3_Axis.phi();
 
@@ -700,12 +700,12 @@ int main(int argc, char **argv) {
         }
 
         if (tau1 > 0) t2t1 = tau2 / tau1;
-        else t2t1 = -1.;
+        // else t2t1 = -1.;
         if (tau2 > 0){
           t3t2 = tau3 / tau2;
           t2dist = R2subdist;
         }
-        else t3t2 = -1.;
+        // else t3t2 = -1.;
         if (tau3 > 0){
           for (int i = 0; i < sizeof(t3dist)/sizeof(t3dist[0]); ++i){
             t3dist[i] = R3subdist[i];

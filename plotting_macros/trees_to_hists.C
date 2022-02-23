@@ -25,8 +25,8 @@ void trees_to_hists(void){
  std::vector<string> observables = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","ptD","t2t1","t3t2","t2dist","t3dist"};
   // TODO: make these input from shell
   int numFiles_AAnr = 20;
-  int numFiles_AAr = 0;//20;
-  int numFiles_pp = 0;//10;
+  int numFiles_AAr = 20;
+  int numFiles_pp = 10;
   string outName = "2dhists_2tev76_ppAAnrAAr";
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   outFile->cd();
@@ -180,7 +180,7 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
                                 setting.c_str(),
                                 obs[iobs].c_str()
                                 ).Data(),
-                                TString::Format("(evwt*(ijet>0 && dphi>%f))",
+                                TString::Format("(evwt*(ijet>0 && dphi>%f))", // TODO: Should be abs(dphi)
                                                 TMath::PiOver2()).Data()
     );
     list->Add(hComp);
@@ -253,6 +253,12 @@ TH2F *make_hists(string name, string title, string obs){
   }
   else if (obs == "nconst" || obs == "nSD" || obs == "mass"){
     hist->SetBins(100, 0, 100, 200, 0, 200);
+  }
+  else if (obs == "t2dist" || obs == "t3dist"){
+    hist->SetBins(100, 0, 2, 200, 0, 200);
+  }
+  else if (obs == "ptD" || obs == "t2dist" || obs == "t3dist[0]" || obs == "t3dist[1]" || obs == "t3dist[2]"){
+    hist->SetBins(100, 0, 1, 200, 0, 200);
   }
   return hist;
 }

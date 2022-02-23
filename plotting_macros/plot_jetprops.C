@@ -18,148 +18,248 @@
 //
 //-------------------------------------------------------------
 
-void plot_histograms(TH1F *h_pp, TH1F *h_AA_nr, TH1F *h_AA_r, string obs, double min_pt, double max_pt){
-  double jetR = 0.4;
-  h_pp->Scale(1./h_pp->Integral());
-  h_AA_nr->Scale(1./h_AA_nr->Integral());
-  h_AA_r->Scale(1./h_AA_r->Integral());
+void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, double max_pt, string setting, string type);
 
+void plot_jetprops(void){
+  double time = clock();
+
+  // TODO: make user input
+  string inName = "2dhists_2tev76_ppAAnrAAr";
+  TFile *inFile = TFile::Open(TString::Format("./%s.root",inName.c_str()).Data());
+  if(!inFile){
+    std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
+    return;
+  }
+  std::vector<double> ptBins = {0.,20.,40.,60.,80.,100.,120.,160.,200.};
+  std::vector<string> obs = {"nconst","zg"};//{"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","ptD","t2t1","t3t2","t2dist","t3dist"};
+
+  TList *ppList = (TList*)inFile->Get("pp");
+  if (!ppList){
+    std::cout << "Error: pp not found! Is necessary for baseline. Aborting program." << std::endl;
+    return;
+  }
+  TList *AA_nrList = (TList*)inFile->Get("AA_norecoil");
+  if (!AA_nrList) std::cout << "Warning: AA_norecoil not found!" << std::endl;
+  TList *AA_rList = (TList*)inFile->Get("AA_recoil");
+  if (!AA_rList) cout << "Warning: AA_recoil not found!" << std::endl;
+
+  TH2F *hpp, *hpp_L, *hpp_A, *hAA_nr, *hAA_nr_L, *hAA_nr_A, *hAA_r, *hAA_r_L, *hAA_r_A;
+
+  for (int iobs=0; iobs<obs.size(); iobs++){
+    if (obs[iobs] == "t3dist") continue; // Is an array, treated separately
+    std::cout << "Plotting " << obs[iobs] << std::endl;
+    if (ppList){
+      std::cout << "Constructing hpp" << std::endl;
+      hpp = (TH2F*)ppList->FindObject(TString::Format("pp_%s",
+                                                      obs[iobs].c_str()).Data());
+      hpp_L = (TH2F*)ppList->FindObject(TString::Format("pp_%s_leading",
+                                                        obs[iobs].c_str()).Data());
+      hpp_A = (TH2F*)ppList->FindObject(TString::Format("pp_%s_awayside",
+                                                        obs[iobs].c_str()).Data());
+    }
+    if (AA_nrList){
+      std::cout << "Constructing hAAnr" << std::endl;
+      hAA_nr = (TH2F*)AA_nrList->FindObject(TString::Format("AA_norecoil_%s",
+                                                            obs[iobs].c_str()).Data());
+      hAA_nr_L = (TH2F*)AA_nrList->FindObject(TString::Format("AA_norecoil_%s_leading",
+                                                              obs[iobs].c_str()).Data());
+      hAA_nr_A = (TH2F*)AA_nrList->FindObject(TString::Format("AA_norecoil_%s_awayside",
+                                                              obs[iobs].c_str()).Data());
+    }
+    if (AA_rList){
+      std::cout << "Constructing hAAr" << std::endl;
+      hAA_r = (TH2F*)AA_rList->FindObject(TString::Format("AA_recoil_%s",
+                                                          obs[iobs].c_str()).Data());
+      hAA_r_L = (TH2F*)AA_rList->FindObject(TString::Format("AA_recoil_%s_leading",
+                                                            obs[iobs].c_str()).Data());
+      hAA_r_A = (TH2F*)AA_rList->FindObject(TString::Format("AA_recoil_%s_awayside",
+                                                            obs[iobs].c_str()).Data());
+    }
+
+    plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[0], ptBins.back(), "", "");
+    plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[0], ptBins.back(), "", "leading");
+    plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "", "away");
+    plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[0], ptBins.back(), "pp", "all");
+    plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[0], ptBins.back(), "AA_nr", "all");
+    plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "AA_r", "all");
+    for (int ipt=0; ipt<2; ++ipt){//ipt<ptBins.size()-1; ipt++){
+      std::cout << "Calling plot" << std::endl;
+      plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "");
+      plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "leading");
+      plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "away");
+      plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "pp", "all");
+      plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_nr", "all");
+      plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_r", "all");
+    }
+  }
+  time = (clock() - time)/CLOCKS_PER_SEC;
+  cout << "Time taken: " << time << " seconds." << endl;
+  // Do not close the file, it will delete the ratio histogram
+  //inFile->Close();
+}
+
+void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, double max_pt, string setting, string type){
+  double jetR = 0.4; // TODO: Should be taken from tree
+  // Project with pt cut
+  hB->GetYaxis()->SetRangeUser(min_pt, max_pt);
+  TH1F *hBase = (TH1F*)hB->ProjectionX();
+  h1->GetYaxis()->SetRangeUser(min_pt, max_pt);
+  TH1F *hX = (TH1F*)h1->ProjectionX();
+  h2->GetYaxis()->SetRangeUser(min_pt, max_pt);
+  TH1F *hY = (TH1F*)h2->ProjectionX();
+
+  // Normalise
+  hBase->Scale(1./hBase->Integral());
+  hX->Scale(1./hX->Integral());
+  hY->Scale(1./hY->Integral());
   // Check normalisation within precision
-  if (abs(h_pp->Integral() -  1.0) > 0.01
+  if (abs(hBase->Integral() -  1.0) > 0.01
       ||
-      abs(h_AA_nr->Integral() - 1.0) > 0.01
+      abs(hX->Integral() - 1.0) > 0.01
       ||
-      abs(h_AA_r->Integral() - 1.0) > 0.01){
+      abs(hY->Integral() - 1.0) > 0.01){
     cout << "WARNING: NORMALISATION PROBLEM!" << endl
       << TString::Format("%s for pt %.0f-%.0f GeV/c", obs.c_str(), min_pt, max_pt).Data() << endl
-      << "pp = " << h_pp->Integral() << " (" << h_pp->Integral()-1.0  << ")" << endl
-      << "AA_norecoil = " << h_AA_nr->Integral() << " (" << h_AA_nr->Integral()-1.0 << ")" << endl
-      << "AA_recoil = " << h_AA_r->Integral() << " (" << h_AA_r->Integral()-1.0 << ")" << endl;
+      << "Base = " << hBase->Integral() << " (" << hBase->Integral()-1.0  << ")" << endl
+      << "X = " << hX->Integral() << " (" << hX->Integral()-1.0 << ")" << endl
+      << "Y = " << hY->Integral() << " (" << hY->Integral()-1.0 << ")" << endl;
   }
 
   // Top plot settings
-  h_pp->SetStats(0);
-  h_pp->SetMarkerStyle(kPlus);
-  h_pp->SetLineColor(kBlue);
-  h_pp->SetMarkerColor(kBlue);
-  h_pp->SetTitle(TString::Format("Jet %s, pt #in [%.0f,%.0f) GeV/c, R = %.1f",
-        obs.c_str(), min_pt, max_pt, jetR).Data());
-  //h_pp->GetXaxis()->SetRange(0,XmaxBin);
-  h_pp->GetYaxis()->SetTitle(TString::Format("#frac{1}{N_{jets}} #frac{dN}{d %s}",
-        obs.c_str()).Data());
-  h_pp->GetYaxis()->SetTitleFont(43);
-  h_pp->GetYaxis()->SetTitleSize(20);
-  h_pp->GetYaxis()->SetTitleOffset(2.5);
-  h_pp->GetYaxis()->SetLabelFont(43);
-  h_pp->GetYaxis()->SetLabelSize(14);
-
-  h_AA_nr->SetStats(0);
-  h_AA_nr->SetMarkerStyle(kMultiply);
-  h_AA_nr->SetLineColor(kRed);
-  h_AA_nr->SetMarkerColor(kRed);
-
-  h_AA_r->SetStats(0);
-  h_AA_r->SetMarkerStyle(kStar);
-  h_AA_r->SetLineColor(kMagenta);
-  h_AA_r->SetMarkerColor(kMagenta);
-
-  // Ratio plot settings
-  TH1F *ratio_pp = (TH1F*)h_pp->Clone("Ratio pp/pp");
-  ratio_pp->Divide(h_pp);
-  ratio_pp->SetTitle("");
-  // TODO: Add units?
-  ratio_pp->GetXaxis()->SetTitle(TString::Format("%s", obs.c_str()).Data());
-  ratio_pp->GetXaxis()->SetTitleFont(43);
-  ratio_pp->GetXaxis()->SetTitleSize(20);
-  ratio_pp->GetXaxis()->SetTitleOffset(2.5);
-  ratio_pp->GetXaxis()->SetLabelFont(43);
-  ratio_pp->GetXaxis()->SetLabelSize(14);
-  ratio_pp->GetYaxis()->SetTitle("Ratio");
-  ratio_pp->GetYaxis()->SetTitleFont(43);
-  ratio_pp->GetYaxis()->SetTitleSize(20);
-  ratio_pp->GetYaxis()->SetTitleOffset(2.5);
-  ratio_pp->GetYaxis()->SetLabelFont(43);
-  ratio_pp->GetYaxis()->SetLabelSize(14);
-
-  TH1F *ratio_AA_nr = (TH1F*)h_AA_nr->Clone("Ratio AA_norecoil/pp");
-  ratio_AA_nr->Divide(h_pp);
-
-  TH1F *ratio_AA_r = (TH1F*)h_AA_r->Clone("Ratio AA_recoil/pp");
-  ratio_AA_r->Divide(h_pp);
-
-  // Set plot ranges
-  int XmaxBinR = ratio_pp->FindLastBinAbove(0,1);
-  double Ymax = max({h_pp->GetMaximum(),
-      h_AA_nr->GetMaximum(),
-      h_AA_r->GetMaximum()});
-  double YminR = min({ratio_pp->GetMinimum(),
-      ratio_AA_nr->GetMinimum(),
-      ratio_AA_r->GetMinimum()});
-  double YmaxR = max({ratio_pp->GetMaximum(),
-      ratio_AA_nr->GetMaximum(),
-      ratio_AA_r->GetMaximum()});
-
-
-  if (obs == "dphi"){
-    h_pp->GetXaxis()->SetRangeUser(0.1,h_pp->GetBinLowEdge(XmaxBinR));
-    ratio_pp->GetXaxis()->SetRangeUser(0.1,h_pp->GetBinLowEdge(XmaxBinR));
-    h_AA_nr->GetXaxis()->SetRangeUser(0.1,h_pp->GetBinLowEdge(XmaxBinR));
-    h_AA_r->GetXaxis()->SetRangeUser(0.1,h_pp->GetBinLowEdge(XmaxBinR));
-    Ymax = max({h_pp->GetMaximum(),
-        h_AA_nr->GetMaximum(),
-        h_AA_r->GetMaximum()});
-  }
-  else if (obs == "zg"){
-    h_pp->GetXaxis()->SetRangeUser(0.1,h_pp->GetBinLowEdge(XmaxBinR));
-    ratio_pp->GetXaxis()->SetRangeUser(0.1,h_pp->GetBinLowEdge(XmaxBinR));
-    ratio_AA_nr->GetXaxis()->SetRangeUser(0.1,h_pp->GetBinLowEdge(XmaxBinR));
-    ratio_AA_r->GetXaxis()->SetRangeUser(0.1,h_pp->GetBinLowEdge(XmaxBinR));
-    YminR = min({ratio_pp->GetMinimum(),
-        //ratio_AA_nr->GetMinimum(),
-        ratio_AA_r->GetMinimum()});
-    YmaxR = max({ratio_pp->GetMaximum(),
-        //ratio_AA_nr->GetMaximum(),
-        ratio_AA_r->GetMaximum()});
-  }
-  else if (obs == "mr2"){
-    h_pp->GetXaxis()->SetRangeUser(0,0.3);
-    ratio_pp->GetXaxis()->SetRangeUser(0,0.3);
-  }
-  else if (obs == "mz2"){
-    h_pp->GetXaxis()->SetRangeUser(0,0.2);
-    ratio_pp->GetXaxis()->SetRangeUser(0,0.2);
+  hBase->SetStats(0);
+  hBase->SetMarkerStyle(kPlus);
+  hBase->SetLineColor(kBlue);
+  hBase->SetMarkerColor(kBlue);
+  if (type == "all"){
+    hBase->SetTitle(TString::Format("Jet %s, pt #in [%.0f,%.0f) GeV/c, R = %.1f %s",
+                                    obs.c_str(), min_pt, max_pt, jetR, setting.c_str()).Data());
   }
   else{
-    h_pp->GetXaxis()->SetRange(0,XmaxBinR);
-    ratio_pp->GetXaxis()->SetRange(0,XmaxBinR);
+    hBase->SetTitle(TString::Format("Jet %s, pt #in [%.0f,%.0f) GeV/c, R = %.1f %s",
+                                    obs.c_str(), min_pt, max_pt, jetR, type.c_str()).Data());
   }
-  h_pp->GetYaxis()->SetRangeUser(0,1.1*Ymax);
-  ratio_pp->GetYaxis()->SetRangeUser(0.9*YminR,1.1*YmaxR);
+  hBase->GetYaxis()->SetTitle(TString::Format("#frac{1}{N_{jets}} #frac{dN}{d %s}",
+                                              obs.c_str()).Data());
+  hBase->GetYaxis()->SetTitleFont(43);
+  hBase->GetYaxis()->SetTitleSize(20);
+  hBase->GetYaxis()->SetTitleOffset(2.5);
+  hBase->GetYaxis()->SetLabelFont(43);
+  hBase->GetYaxis()->SetLabelSize(14);
 
-  // Draw histograms
+  hX->SetStats(0);
+  hX->SetMarkerStyle(kMultiply);
+  hX->SetLineColor(kRed);
+  hX->SetMarkerColor(kRed);
+
+  hY->SetStats(0);
+  hY->SetMarkerStyle(kStar);
+  hY->SetLineColor(kMagenta);
+  hY->SetMarkerColor(kMagenta);
+
+  // Ratio plot settings
+  TH1F *ratioBase = (TH1F*)hBase->Clone("Ratio Base/Base");
+  ratioBase->Divide(hBase);
+  ratioBase->SetTitle("");
+  ratioBase->GetXaxis()->SetTitle(TString::Format("%s", obs.c_str()).Data());
+  ratioBase->GetXaxis()->SetTitleFont(43);
+  ratioBase->GetXaxis()->SetTitleSize(20);
+  ratioBase->GetXaxis()->SetTitleOffset(2.5);
+  ratioBase->GetXaxis()->SetLabelFont(43);
+  ratioBase->GetXaxis()->SetLabelSize(14);
+  ratioBase->GetYaxis()->SetTitle("Ratio");
+  ratioBase->GetYaxis()->SetTitleFont(43);
+  ratioBase->GetYaxis()->SetTitleSize(20);
+  ratioBase->GetYaxis()->SetTitleOffset(2.5);
+  ratioBase->GetYaxis()->SetLabelFont(43);
+  ratioBase->GetYaxis()->SetLabelSize(14);
+
+  TH1F *ratioX = (TH1F*)hX->Clone("Ratio X/Base");
+  ratioX->Divide(hBase);
+
+  TH1F *ratioY = (TH1F*)hY->Clone("Ratio Y/Base");
+  ratioY->Divide(hBase);
+
+  // Set plot ranges TODO: Change these to make more sense
+  int XmaxBinR = ratioBase->FindLastBinAbove(0,1);
+  double Ymax = max({hBase->GetMaximum(),
+      hX->GetMaximum(),
+      hY->GetMaximum()});
+  double YminR = min({ratioBase->GetMinimum(),
+      ratioX->GetMinimum(),
+      ratioY->GetMinimum()});
+  double YmaxR = max({ratioBase->GetMaximum(),
+      ratioX->GetMaximum(),
+      ratioY->GetMaximum()});
+
+  if (obs == "dphi"){
+    hBase->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
+    ratioBase->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
+    hX->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
+    hY->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
+    Ymax = max({hBase->GetMaximum(),
+        hX->GetMaximum(),
+        hY->GetMaximum()});
+  }
+  else if (obs == "zg"){
+    hBase->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
+    ratioBase->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
+    ratioX->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
+    ratioY->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
+    YminR = min({ratioBase->GetMinimum(),
+        //ratioX->GetMinimum(),
+        ratioY->GetMinimum()});
+    YmaxR = max({ratioBase->GetMaximum(),
+        //ratioX->GetMaximum(),
+        ratioY->GetMaximum()});
+  }
+  else if (obs == "mr2"){
+    hBase->GetXaxis()->SetRangeUser(0,0.3);
+    ratioBase->GetXaxis()->SetRangeUser(0,0.3);
+  }
+  else if (obs == "mz2"){
+    hBase->GetXaxis()->SetRangeUser(0,0.2);
+    ratioBase->GetXaxis()->SetRangeUser(0,0.2);
+  }
+  else{
+    hBase->GetXaxis()->SetRange(0,XmaxBinR);
+    ratioBase->GetXaxis()->SetRange(0,XmaxBinR);
+  }
+  hBase->GetYaxis()->SetRangeUser(0,1.1*Ymax);
+  ratioBase->GetYaxis()->SetRangeUser(0.9*YminR,1.1*YmaxR);
+
   TCanvas *c_obs = new TCanvas(TString::Format("c_%s_pt_%.0f_%.0f",
-        obs.c_str(), min_pt, max_pt).Data(),
-      TString::Format("%s_pt_%.0f_%.0f",
-        obs.c_str(), min_pt, max_pt).Data(),600,900);
+                                               obs.c_str(), min_pt, max_pt).Data(),
+                               TString::Format("%s_pt_%.0f_%.0f",
+                                               obs.c_str(), min_pt, max_pt).Data(),600,900);
   TPad *pad1 = new TPad("pad1","pad1",0,0.4,1,1);
   pad1->SetBottomMargin(0);
   pad1->SetLeftMargin(0.15);
   pad1->Draw();
   pad1->cd();
 
-  h_pp->Draw();
-  if (h_AA_nr->GetEntries() != 0) h_AA_nr->Draw("same");
-  if (h_AA_r->GetEntries() != 0)  h_AA_r->Draw("same");
+  hBase->Draw();
+  if (hX->GetEntries() != 0) hX->Draw("same");
+  if (hY->GetEntries() != 0)  hY->Draw("same");
+  if (type == "all"){
+    hBase->Reset();
+  }
 
-  // if (obs != "dphi"){
   auto legend = new TLegend(0.7,0.8,0.9,0.9); // Top right corner
   if (obs == "dphi"){
     delete legend;
     auto legend = new TLegend(0.15,0.8,0.35,0.9); // Top left corner
   }
-  legend->AddEntry(h_pp,"pp");
-  if (h_AA_nr->GetEntries() != 0) legend->AddEntry(h_AA_nr,"AA_norecoil");
-  if (h_AA_r->GetEntries() != 0) legend->AddEntry(h_AA_r,"AA_recoil");
+
+  if (type == "all"){
+    legend->AddEntry(hBase,"Full set");
+    if (hX->GetEntries() != 0) legend->AddEntry(hX,"Leading");
+    if (hY->GetEntries() != 0) legend->AddEntry(hY,"Awayside");
+  }
+  else{
+    legend->AddEntry(hBase,"pp");
+    if (hX->GetEntries() != 0) legend->AddEntry(hX,"AA_norecoil");
+    if (hY->GetEntries() != 0) legend->AddEntry(hY,"AA_recoil");
+  }
   legend->Draw();
 
   c_obs->cd();
@@ -170,76 +270,17 @@ void plot_histograms(TH1F *h_pp, TH1F *h_AA_nr, TH1F *h_AA_r, string obs, double
   pad2->Draw();
   pad2->cd();
 
-  ratio_pp->Draw();
-  if (ratio_AA_nr->GetEntries() != 0) ratio_AA_nr->Draw("same");
-  if (ratio_AA_r->GetEntries() != 0)  ratio_AA_r->Draw("same");
+  ratioBase->Draw();
+  if (ratioX->GetEntries() != 0) ratioX->Draw("same");
+  if (ratioY->GetEntries() != 0)  ratioY->Draw("same");
   c_obs->cd();
-  c_obs->SaveAs(TString::Format("../plots/%s_pt%.0f-%.0f.pdf",
-        obs.c_str(), min_pt, max_pt).Data());
-}
-
-//-------------------------------------------------------------
-//
-// Main function
-//
-//-------------------------------------------------------------
-
-void plot_jetprops(void){
-  double time = clock();
-
-  // TODO: make user input
-  string inName = "compare_2tev76_ppAAnrAAr";
-  TFile *inFile = TFile::Open(TString::Format("./%s.root",inName.c_str()).Data());
-  if(!inFile){
-    cout << "File " << inFile << " not found. Aborting program." << endl;
-    return;
+  // TODO: Fix save path later
+  if (type == "all"){
+    c_obs->SaveAs(TString::Format("../plots/%s_%s_pt%.0f-%.0f.pdf",
+                                  setting.c_str(), obs.c_str(), min_pt, max_pt).Data());
   }
-
-  std::vector<double> ptBins = {0.,20.,40.,60.,80.,100.,120.,160.,200.};
-  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","ptD","t2t1","t3t2","t2dist"};
-  //int ipt = 3;
-
-  for (int iobs=0; iobs<obs.size(); iobs++){
-    cout << "Plotting " << obs[iobs] << endl;
-
-    string ppName = TString::Format("pp_%s", obs[iobs].c_str()).Data();
-    string AA_nrName = TString::Format("AA_norecoil_%s", obs[iobs].c_str()).Data();
-    string AA_rName = TString::Format("AA_recoil_%s", obs[iobs].c_str()).Data();
-
-    TList *ppList = (TList*)inFile->Get(TString::Format("%s",
-          ppName.c_str()).Data());
-    if (!ppList) cout << TString::Format("WARNING: %s not found!",
-        ppName.c_str()).Data() << endl;
-    TList *AA_nrList = (TList*)inFile->Get(TString::Format("%s",
-          AA_nrName.c_str()).Data());
-    if (!AA_nrList) cout << TString::Format("WARNING: %s not found!",
-        AA_nrName.c_str()).Data() << endl;
-    TList *AA_rList = (TList*)inFile->Get(TString::Format("%s",
-          AA_rName.c_str()).Data());
-    if (!AA_rList) cout << TString::Format("WARNING: %s not found!",
-        AA_rName.c_str()).Data() << endl;
-
-    for (int ipt=0; ipt<ptBins.size()-1; ipt++){
-      TH1F *hpp = new TH1F();
-      if (ppList){
-        hpp = (TH1F*)ppList->FindObject(TString::Format("pp_h%s_pt%.0f_%.0f",
-              obs[iobs].c_str(), ptBins[ipt], ptBins[ipt+1]).Data());
-      }
-      TH1F *hAA_nr = new TH1F();
-      if (AA_nrList){
-        hAA_nr = (TH1F*)AA_nrList->FindObject(TString::Format("AA_norecoil_h%s_pt%.0f_%.0f",
-              obs[iobs].c_str(), ptBins[ipt], ptBins[ipt+1]).Data());
-      }
-      TH1F *hAA_r = new TH1F();
-      if (AA_rList){
-        hAA_r = (TH1F*)AA_rList->FindObject(TString::Format("AA_recoil_h%s_pt%.0f_%.0f",
-              obs[iobs].c_str(), ptBins[ipt], ptBins[ipt+1]).Data());
-      }
-      plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[ipt], ptBins[ipt+1]);
-    }
+  else{ // TODO: what if setting is empty?
+    c_obs->SaveAs(TString::Format("../plots/%s_%s_pt%.0f-%.0f.pdf",
+                                  type.c_str(), obs.c_str(), min_pt, max_pt).Data());
   }
-  time = (clock() - time)/CLOCKS_PER_SEC;
-  cout << "Time taken: " << time << " seconds." << endl;
-  // Do not close the file, it will delete the ratio histogram
-  //inFile->Close();
 }

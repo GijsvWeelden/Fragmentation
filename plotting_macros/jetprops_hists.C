@@ -33,10 +33,13 @@ void make_hists(TChain *chain, string setting, vector<string> obs, vector<double
             setting.c_str(), obs[iobs].c_str(), ptBins[ipt], ptBins[ipt+1]).Data(),
           TString::Format("Jet %s (%s), pt #in [%.f_%.f), R = 0.4",
             obs[iobs].c_str(), setting.c_str() ,ptBins[ipt], ptBins[ipt+1]).Data(),
-          100,0,0.5);
+          100,0,0.5); // TODO: Check if these bounds are okay
       hist->Sumw2();
       if (obs[iobs] == "dphi"){
         hist->SetBins(100,0,3.2);
+      }
+      else if (obs[iobs] == "ptD"){
+        hist->SetBins(100,0,1.);
       }
       else if (obs[iobs] == "nconst" || obs[iobs] == "nSD" || obs[iobs] == "mass"){
         hist->SetBins(100,0,100);

@@ -22,8 +22,6 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
 
 void plot_jetprops(void){
   double time = clock();
-
-  // TODO: make user input
   string inName = "2dhists_2tev76_ppAAnrAAr";
   TFile *inFile = TFile::Open(TString::Format("./%s.root",inName.c_str()).Data());
   if(!inFile){
@@ -31,7 +29,8 @@ void plot_jetprops(void){
     return;
   }
   std::vector<double> ptBins = {0.,20.,40.,60.,80.,100.,120.,160.,200.};
-  std::vector<string> obs = {"nconst","zg"};//{"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","ptD","t2t1","t3t2","t2dist","t3dist"};
+  std::vector<string> obs = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z",
+                             "ptD","t2t1","t3t2","t2dist","t3dist[0]","t3dist[1]","t3dist[2]"};
 
   TList *ppList = (TList*)inFile->Get("pp");
   if (!ppList){
@@ -46,10 +45,8 @@ void plot_jetprops(void){
   TH2F *hpp, *hpp_L, *hpp_A, *hAA_nr, *hAA_nr_L, *hAA_nr_A, *hAA_r, *hAA_r_L, *hAA_r_A;
 
   for (int iobs=0; iobs<obs.size(); iobs++){
-    if (obs[iobs] == "t3dist") continue; // Is an array, treated separately
     std::cout << "Plotting " << obs[iobs] << std::endl;
     if (ppList){
-      std::cout << "Constructing hpp" << std::endl;
       hpp = (TH2F*)ppList->FindObject(TString::Format("pp_%s",
                                                       obs[iobs].c_str()).Data());
       hpp_L = (TH2F*)ppList->FindObject(TString::Format("pp_%s_leading",
@@ -58,7 +55,6 @@ void plot_jetprops(void){
                                                         obs[iobs].c_str()).Data());
     }
     if (AA_nrList){
-      std::cout << "Constructing hAAnr" << std::endl;
       hAA_nr = (TH2F*)AA_nrList->FindObject(TString::Format("AA_norecoil_%s",
                                                             obs[iobs].c_str()).Data());
       hAA_nr_L = (TH2F*)AA_nrList->FindObject(TString::Format("AA_norecoil_%s_leading",
@@ -67,7 +63,6 @@ void plot_jetprops(void){
                                                               obs[iobs].c_str()).Data());
     }
     if (AA_rList){
-      std::cout << "Constructing hAAr" << std::endl;
       hAA_r = (TH2F*)AA_rList->FindObject(TString::Format("AA_recoil_%s",
                                                           obs[iobs].c_str()).Data());
       hAA_r_L = (TH2F*)AA_rList->FindObject(TString::Format("AA_recoil_%s_leading",
@@ -82,8 +77,8 @@ void plot_jetprops(void){
     plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[0], ptBins.back(), "pp", "all");
     plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[0], ptBins.back(), "AA_nr", "all");
     plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "AA_r", "all");
-    for (int ipt=0; ipt<2; ++ipt){//ipt<ptBins.size()-1; ipt++){
-      std::cout << "Calling plot" << std::endl;
+    for (int ipt=0; ipt<ptBins.size()-1; ipt++){
+      std::cout << "pt bin: " << ptBins[ipt] << "-" << ptBins[ipt+1] << std::endl;
       plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "");
       plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "leading");
       plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "away");
@@ -103,14 +98,12 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
   // Project with pt cut
   hB->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hBase = (TH1F*)hB->ProjectionX();
+  hBase->Scale(1./hBase->Integral());
   h1->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hX = (TH1F*)h1->ProjectionX();
+  hX->Scale(1./hX->Integral());
   h2->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hY = (TH1F*)h2->ProjectionX();
-
-  // Normalise
-  hBase->Scale(1./hBase->Integral());
-  hX->Scale(1./hX->Integral());
   hY->Scale(1./hY->Integral());
   // Check normalisation within precision
   if (abs(hBase->Integral() -  1.0) > 0.01
@@ -181,6 +174,7 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
 
   // Set plot ranges TODO: Change these to make more sense
   int XmaxBinR = ratioBase->FindLastBinAbove(0,1);
+  int XminBinR = ratioBase->FindFirstBinAbove(0,1);
   double Ymax = max({hBase->GetMaximum(),
       hX->GetMaximum(),
       hY->GetMaximum()});
@@ -206,10 +200,10 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
     ratioX->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
     ratioY->GetXaxis()->SetRangeUser(0.1,hBase->GetBinLowEdge(XmaxBinR));
     YminR = min({ratioBase->GetMinimum(),
-        //ratioX->GetMinimum(),
+        ratioX->GetMinimum(),
         ratioY->GetMinimum()});
     YmaxR = max({ratioBase->GetMaximum(),
-        //ratioX->GetMaximum(),
+        ratioX->GetMaximum(),
         ratioY->GetMaximum()});
   }
   else if (obs == "mr2"){
@@ -220,12 +214,18 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
     hBase->GetXaxis()->SetRangeUser(0,0.2);
     ratioBase->GetXaxis()->SetRangeUser(0,0.2);
   }
+  else if (obs == "ptD"){
+    hBase->GetXaxis()->SetRangeUser(hBase->GetBinLowEdge(XminBinR),1.);
+    ratioBase->GetXaxis()->SetRangeUser(hBase->GetBinLowEdge(XminBinR),1.);
+  }
   else{
     hBase->GetXaxis()->SetRange(0,XmaxBinR);
     ratioBase->GetXaxis()->SetRange(0,XmaxBinR);
   }
+  if (YmaxR > 3) YmaxR = 3;
+  else YmaxR *= 1.1;
   hBase->GetYaxis()->SetRangeUser(0,1.1*Ymax);
-  ratioBase->GetYaxis()->SetRangeUser(0.9*YminR,1.1*YmaxR);
+  ratioBase->GetYaxis()->SetRangeUser(0.9*YminR,YmaxR);
 
   TCanvas *c_obs = new TCanvas(TString::Format("c_%s_pt_%.0f_%.0f",
                                                obs.c_str(), min_pt, max_pt).Data(),
@@ -241,11 +241,11 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
   if (hX->GetEntries() != 0) hX->Draw("same");
   if (hY->GetEntries() != 0)  hY->Draw("same");
   if (type == "all"){
-    hBase->Reset();
+    hBase->Reset(); // Only use for ratio
   }
 
   auto legend = new TLegend(0.7,0.8,0.9,0.9); // Top right corner
-  if (obs == "dphi"){
+  if (obs == "dphi" || obs == "t3t2" || obs == "t2t1"){
     delete legend;
     auto legend = new TLegend(0.15,0.8,0.35,0.9); // Top left corner
   }
@@ -274,12 +274,11 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
   if (ratioX->GetEntries() != 0) ratioX->Draw("same");
   if (ratioY->GetEntries() != 0)  ratioY->Draw("same");
   c_obs->cd();
-  // TODO: Fix save path later
   if (type == "all"){
     c_obs->SaveAs(TString::Format("../plots/%s_%s_pt%.0f-%.0f.pdf",
                                   setting.c_str(), obs.c_str(), min_pt, max_pt).Data());
   }
-  else{ // TODO: what if setting is empty?
+  else{
     c_obs->SaveAs(TString::Format("../plots/%s_%s_pt%.0f-%.0f.pdf",
                                   type.c_str(), obs.c_str(), min_pt, max_pt).Data());
   }

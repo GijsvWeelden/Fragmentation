@@ -13,7 +13,7 @@ then
   exit 1
 fi
 # outdir=/dcache/alice/marcovl/jewel_analysis/`basename $1`
-outdir=/user/gweelden/jewel/analysis/Hybrid_Model/`basename $1`
+outdir=/user/gweelden/Hybrid_Model/`basename $1`
 firstfile=$2
 lastfile=$3
 nfile=${4:-10}

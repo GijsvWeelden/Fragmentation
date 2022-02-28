@@ -1,3 +1,4 @@
+
 /*
  *  Program to analyse hepmc files and calculate jet shape variables.
  *     Output is stored a ROOT Tree (jetprops below)
@@ -524,6 +525,7 @@ int main(int argc, char **argv) {
     fastjet::ClusterSequenceArea clustSeqCh(fjInputs, jetDefCh, areaDef);
 
     vector <fastjet::PseudoJet> inclusiveJetsCh = clustSeqCh.inclusive_jets();
+    if (inclusiveJetsCh.size() <= 0) continue; // Skip events without jets
 
     fastjet::JetMedianBackgroundEstimator bge;  //.......... Background Sutraction event by event
     fastjet::ClusterSequenceArea *clustSeqBG = 0;
@@ -740,5 +742,3 @@ int main(int argc, char **argv) {
   fout.Close();
   return 0;
 }
-
-

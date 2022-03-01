@@ -27,7 +27,7 @@ void trees_to_hists(void){
   int numFiles_AAnr = 20;
   int numFiles_AAr = 20;
   int numFiles_pp = 10;
-  string outName = "2dhists_2tev76_ppAAnrAAr";
+  string outName = "2dhists_2tev76_ppAAnrAAr_full_nobkg";
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   outFile->cd();
 
@@ -140,6 +140,7 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
   list->SetOwner(true);
 
   for (auto iobs=0; iobs<obs.size(); iobs++){
+    if (obs[iobs] == "dphi") continue; // Need absolute value. Handled separately
     if (obs[iobs] == "t3dist") continue; // Is an array. Handled separately
     TH2F *hComp = make_hists(TString::Format("%s_%s",
                                        setting.c_str(), obs[iobs].c_str()).Data(),
@@ -180,7 +181,7 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
                                 setting.c_str(),
                                 obs[iobs].c_str()
                                 ).Data(),
-                                TString::Format("(evwt*(ijet>0 && dphi>%f))", // TODO: Should be abs(dphi)
+                                TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))", // TODO: Should be abs(dphi)
                                                 TMath::PiOver2()).Data()
     );
     list->Add(hComp);
@@ -228,7 +229,7 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
                                 setting.c_str(),
                                 obs.c_str()
                                 ).Data(),
-                                TString::Format("(evwt*(ijet>0 && dphi>%f))",
+                                TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))",
                                                 TMath::PiOver2()
                                                 ).Data()
                 );
@@ -236,6 +237,46 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
     list->Add(hLead);
     list->Add(hAway);
   }
+  TH2F *hComp = make_hists(TString::Format("%s_dphi",
+                                      setting.c_str()).Data(),
+                      TString::Format("Jet dphi (%s)",
+                                      setting.c_str()).Data(),
+                      "dphi"
+                      );
+  TH2F *hLead = make_hists(TString::Format("%s_dphi_leading",
+                                      setting.c_str()).Data(),
+                      TString::Format("Leading jet dphi (%s)",
+                                      setting.c_str()).Data(),
+                      "dphi"
+                      );
+  TH2F *hAway = make_hists(TString::Format("%s_dphi_awayside",
+                                      setting.c_str()).Data(),
+                      TString::Format("Awayside jet dphi (%s)",
+                                      setting.c_str()).Data(),
+                      "dphi"
+                      );
+  // Draw hComp
+  chain->Draw(TString::Format("pt:abs(dphi)>>%s_dphi",
+                              setting.c_str()
+                              ).Data()
+              );
+  // Draw hLead
+  chain->Draw(TString::Format("pt:abs(dphi)>>%s_dphi_leading",
+                              setting.c_str()
+                              ).Data(),
+                              "(evwt*(ijet==0))"
+              );
+  // Draw hAway
+  chain->Draw(TString::Format("pt:abs(dphi)>>%s_dphi_awayside",
+                              setting.c_str()
+                              ).Data(),
+                              TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))",
+                                              TMath::PiOver2()).Data()
+  );
+  list->Add(hComp);
+  list->Add(hLead);
+  list->Add(hAway);
+
   cout << TString::Format("Name: %s", setting.c_str()).Data() << endl;
   list->Write(setting.c_str(),1);
   delete list;

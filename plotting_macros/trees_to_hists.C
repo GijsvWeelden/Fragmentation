@@ -21,20 +21,21 @@ void save_hists(TChain *chain, string setting, vector<string> obs);
 TH2F *make_hists(string name, string title, string obs);
 
 void trees_to_hists(void){
- double time = clock();
- std::vector<string> observables = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","ptD","t2t1","t3t2","t2dist","t3dist"};
+  double time = clock();
+  std::vector<string> observables = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","ptD","t2t1","t3t2","t2dist","t3dist"};
+  string settings = {"full"}; // charged/full, nobkg/<nothing>
   // TODO: make these input from shell
   int numFiles_AAnr = 20;
   int numFiles_AAr = 20;
   int numFiles_pp = 10;
-  string outName = "2dhists_2tev76_ppAAnrAAr_full_nobkg";
-  TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
+  string outName = "2dhists_2tev76_ppAAnrAAr";
+  TFile *outFile = new TFile(Form("%s_%s.root", outName.c_str(), settings.c_str()),"RECREATE");
   outFile->cd();
 
   TChain *chain = new TChain("jetprops");
   if (numFiles_AAnr > 0){
     for (int fileNum = 1; fileNum <= numFiles_AAnr; fileNum++) {
-      chain->AddFile(Form("../run_AA_2tev76_norecoil/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
+      chain->AddFile(Form("../run_AA_2tev76_norecoil/jet_shapes_constsub_eventwise_tree_%d_%s.root", fileNum, settings.c_str()));
     }
     read_chain(chain, "AA_norecoil", observables);
   }
@@ -42,7 +43,7 @@ void trees_to_hists(void){
   chain->Reset();
   if (numFiles_AAr > 0){
     for (int fileNum = 1; fileNum <= numFiles_AAr; fileNum++) {
-      chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
+      chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_%s.root", fileNum, settings.c_str()));
     }
     read_chain(chain, "AA_recoil", observables);
   }
@@ -50,7 +51,7 @@ void trees_to_hists(void){
   chain->Reset();
   if (numFiles_pp > 0){
     for (int fileNum = 1; fileNum <= numFiles_pp; fileNum++) {
-      chain->AddFile(Form("../run_pp_2tev76/jet_shapes_constsub_eventwise_tree_%d_full_nobkg.root", fileNum));
+      chain->AddFile(Form("../run_pp_2tev76/jet_shapes_constsub_eventwise_tree_%d_%s.root", fileNum, settings.c_str()));
     }
     read_chain(chain, "pp", observables);
   }
@@ -140,8 +141,7 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
   list->SetOwner(true);
 
   for (auto iobs=0; iobs<obs.size(); iobs++){
-    if (obs[iobs] == "dphi") continue; // Need absolute value. Handled separately
-    if (obs[iobs] == "t3dist") continue; // Is an array. Handled separately
+    if (obs[iobs] == "dphi" || obs[iobs] == "t3dist") continue;
     TH2F *hComp = make_hists(TString::Format("%s_%s",
                                        setting.c_str(), obs[iobs].c_str()).Data(),
                        TString::Format("Jet %s (%s)",
@@ -181,7 +181,7 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
                                 setting.c_str(),
                                 obs[iobs].c_str()
                                 ).Data(),
-                                TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))", // TODO: Should be abs(dphi)
+                                TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))",
                                                 TMath::PiOver2()).Data()
     );
     list->Add(hComp);

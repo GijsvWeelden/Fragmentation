@@ -23,7 +23,8 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
 void plot_jetprops(void){
   double time = clock();
   string inName = "2dhists_2tev76_ppAAnrAAr";
-  TFile *inFile = TFile::Open(TString::Format("./%s.root",inName.c_str()).Data());
+  string suffix = "full_nobkg";
+  TFile *inFile = TFile::Open(TString::Format("./%s_%s.root", inName.c_str(), suffix.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
     return;
@@ -172,7 +173,7 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
   TH1F *ratioY = (TH1F*)hY->Clone("Ratio Y/Base");
   ratioY->Divide(hBase);
 
-  // Set plot ranges TODO: Change these to make more sense
+  // Set plot ranges TODO: Change these to make more sensee
   int XmaxBinR = ratioBase->FindLastBinAbove(0,1);
   int XminBinR = ratioBase->FindFirstBinAbove(0,1);
   double Ymax = max({hBase->GetMaximum(),

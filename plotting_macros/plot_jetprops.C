@@ -18,7 +18,7 @@
 //
 //-------------------------------------------------------------
 
-void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, double max_pt, string setting, string type);
+void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, double max_pt, string setting, string type, string suff);
 
 void plot_jetprops(void){
   double time = clock();
@@ -72,20 +72,20 @@ void plot_jetprops(void){
                                                             obs[iobs].c_str()).Data());
     }
 
-    plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[0], ptBins.back(), "", "");
-    plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[0], ptBins.back(), "", "leading");
-    plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "", "away");
-    plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[0], ptBins.back(), "pp", "all");
-    plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[0], ptBins.back(), "AA_nr", "all");
-    plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "AA_r", "all");
+    plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[0], ptBins.back(), "", "", suffix);
+    plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[0], ptBins.back(), "", "leading", suffix);
+    plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "", "away", suffix);
+    plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[0], ptBins.back(), "pp", "all", suffix);
+    plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[0], ptBins.back(), "AA_nr", "all", suffix);
+    plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "AA_r", "all", suffix);
     for (int ipt=0; ipt<ptBins.size()-1; ipt++){
       std::cout << "pt bin: " << ptBins[ipt] << "-" << ptBins[ipt+1] << std::endl;
-      plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "");
-      plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "leading");
-      plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "away");
-      plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "pp", "all");
-      plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_nr", "all");
-      plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_r", "all");
+      plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "", suffix);
+      plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "leading", suffix);
+      plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "away", suffix);
+      plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "pp", "all", suffix);
+      plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_nr", "all", suffix);
+      plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_r", "all", suffix);
     }
   }
   time = (clock() - time)/CLOCKS_PER_SEC;
@@ -94,7 +94,7 @@ void plot_jetprops(void){
   //inFile->Close();
 }
 
-void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, double max_pt, string setting, string type){
+void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, double max_pt, string setting, string type, string suff){
   double jetR = 0.4; // TODO: Should be taken from tree
   // Project with pt cut
   hB->GetYaxis()->SetRangeUser(min_pt, max_pt);
@@ -276,11 +276,11 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
   if (ratioY->GetEntries() != 0)  ratioY->Draw("same");
   c_obs->cd();
   if (type == "all"){
-    c_obs->SaveAs(TString::Format("../plots/%s_%s_pt%.0f-%.0f.pdf",
-                                  setting.c_str(), obs.c_str(), min_pt, max_pt).Data());
+    c_obs->SaveAs(TString::Format("../plots/2tev76_%s/%s_%s_pt%.0f-%.0f.pdf",
+                                  suff.c_str(), setting.c_str(), obs.c_str(), min_pt, max_pt).Data());
   }
   else{
-    c_obs->SaveAs(TString::Format("../plots/%s_%s_pt%.0f-%.0f.pdf",
-                                  type.c_str(), obs.c_str(), min_pt, max_pt).Data());
+    c_obs->SaveAs(TString::Format("../plots/2tev76_%s/%s_%s_pt%.0f-%.0f.pdf",
+                                  suff.c_str(), type.c_str(), obs.c_str(), min_pt, max_pt).Data());
   }
 }

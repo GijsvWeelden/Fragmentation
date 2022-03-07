@@ -295,11 +295,14 @@ TH2F *make_hists(string name, string title, string obs){
   else if (obs == "nconst" || obs == "nSD" || obs == "mass"){
     hist->SetBins(100, 0, 100, 200, 0, 200);
   }
-  else if (obs == "t2dist" || obs == "t3dist"){
-    hist->SetBins(100, 0, 2, 200, 0, 200);
-  }
+  //else if (obs == "t2dist" || obs == "t3dist"){
+  //  hist->SetBins(100, 0, 2, 200, 0, 200);
+  //}
   else if (obs == "ptD" || obs == "t2dist" || obs == "t3dist[0]" || obs == "t3dist[1]" || obs == "t3dist[2]"){
     hist->SetBins(100, 0, 1, 200, 0, 200);
+  }
+  else if (obs == "t2t1" || obs == "t3t2"){
+    hist->SetBins(100, 0, 1.5, 200, 0, 200);
   }
   return hist;
 }

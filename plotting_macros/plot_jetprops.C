@@ -22,8 +22,9 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
 
 void plot_jetprops(void){
   double time = clock();
+  gROOT->SetBatch();
   string inName = "2dhists_2tev76_ppAAnrAAr";
-  string suffix = "full_nobkg";
+  string suffix = "charged";
   TFile *inFile = TFile::Open(TString::Format("./%s_%s.root", inName.c_str(), suffix.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -247,8 +248,8 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
 
   auto legend = new TLegend(0.7,0.8,0.9,0.9); // Top right corner
   if (obs == "dphi" || obs == "t3t2" || obs == "t2t1"){
-    delete legend;
-    auto legend = new TLegend(0.15,0.8,0.35,0.9); // Top left corner
+    //delete legend; // gives segfault (?), because legend only defined in this scope (?)
+    //auto legend = new TLegend(0.15,0.8,0.35,0.9); // Top left corner
   }
 
   if (type == "all"){

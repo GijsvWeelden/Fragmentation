@@ -23,7 +23,7 @@ TH2F *make_hists(string name, string title, string obs);
 void trees_to_hists(void){
   double time = clock();
   std::vector<string> observables = {"dphi","nconst","zg","Rg","nSD","mass","mz2","mr","mr2","rz","r2z","ptD","t2t1","t3t2","t2dist","t3dist"};
-  string suffix = {"full"}; // charged/full, nobkg/<nothing>
+  string suffix = "full"; // charged/full, nobkg/<nothing>
   // TODO: make these input from shell
   int numFiles_AAnr = 20;
   int numFiles_AAr = 20;
@@ -35,7 +35,7 @@ void trees_to_hists(void){
   TChain *chain = new TChain("jetprops");
   if (numFiles_AAnr > 0){
     for (int fileNum = 1; fileNum <= numFiles_AAnr; fileNum++) {
-      chain->AddFile(Form("../run_AA_2tev76_norecoil/jet_shapes_constsub_eventwise_tree_%d_%s.root", fileNum, suffix.c_str()));
+      chain->AddFile(Form("../run_AA_2tev76_norecoil/jet_shapes_constsub_eventwise_%d_%s.root", fileNum, suffix.c_str()));
     }
     read_chain(chain, "AA_norecoil", observables);
   }
@@ -43,7 +43,7 @@ void trees_to_hists(void){
   chain->Reset();
   if (numFiles_AAr > 0){
     for (int fileNum = 1; fileNum <= numFiles_AAr; fileNum++) {
-      chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_tree_%d_%s.root", fileNum, suffix.c_str()));
+      chain->AddFile(Form("../run_AA_2tev76_recoil/jet_shapes_constsub_eventwise_%d_%s.root", fileNum, suffix.c_str()));
     }
     read_chain(chain, "AA_recoil", observables);
   }
@@ -51,7 +51,7 @@ void trees_to_hists(void){
   chain->Reset();
   if (numFiles_pp > 0){
     for (int fileNum = 1; fileNum <= numFiles_pp; fileNum++) {
-      chain->AddFile(Form("../run_pp_2tev76/jet_shapes_constsub_eventwise_tree_%d_%s.root", fileNum, suffix.c_str()));
+      chain->AddFile(Form("../run_pp_2tev76/jet_shapes_constsub_eventwise_%d_%s.root", fileNum, suffix.c_str()));
     }
     read_chain(chain, "pp", observables);
   }
@@ -165,7 +165,8 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
                                 obs[iobs].c_str(),
                                 setting.c_str(),
                                 obs[iobs].c_str()
-                                ).Data()
+                                ).Data(),
+                                "evwt"
                 );
     // Draw hLead
     chain->Draw(TString::Format("pt:%s>>%s_%s_leading",
@@ -259,7 +260,8 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
   // Draw hComp
   chain->Draw(TString::Format("pt:abs(dphi)>>%s_dphi",
                               setting.c_str()
-                              ).Data()
+                              ).Data(),
+                              "evwt"
               );
   // Draw hLead
   chain->Draw(TString::Format("pt:abs(dphi)>>%s_dphi_leading",

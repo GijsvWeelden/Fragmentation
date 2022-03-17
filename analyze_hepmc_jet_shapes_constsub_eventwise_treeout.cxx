@@ -525,7 +525,14 @@ int main(int argc, char **argv) {
     fastjet::ClusterSequenceArea clustSeqCh(fjInputs, jetDefCh, areaDef);
 
     vector <fastjet::PseudoJet> inclusiveJetsCh = clustSeqCh.inclusive_jets();
-    if (inclusiveJetsCh.size() <= 0) continue; // Skip events without jets
+    if (inclusiveJetsCh.size() <= 0){ // Skip events without jets
+      // delete the created event from memory
+      delete evt;
+      // read the next event
+      ascii_in >> evt;
+      ievt++;
+      continue;
+    }
 
     fastjet::JetMedianBackgroundEstimator bge;  //.......... Background Sutraction event by event
     fastjet::ClusterSequenceArea *clustSeqBG = 0;

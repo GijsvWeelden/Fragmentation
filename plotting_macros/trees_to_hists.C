@@ -213,7 +213,8 @@ void save_hists(TChain *chain, string setting, vector<string> obs){
                                 obs.c_str(),
                                 setting.c_str(),
                                 obs.c_str()
-                                ).Data()
+                                ).Data(),
+                                "evwt"
                 );
     // Draw hLead
     chain->Draw(TString::Format("pt:%s>>%s_%s_leading",

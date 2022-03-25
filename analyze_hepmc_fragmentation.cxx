@@ -66,17 +66,20 @@ static const int debug = 0;
 static const float ptcut = 0.0; // GeV
 static const float min_jet_pt = 10; // GeV; for shape histos
 
-void charge_fragmentation(const fastjet::PseudoJet &jet, std::vector<Float_t> frag)
+void charge_fragmentation(const fastjet::PseudoJet &jet, std::vector<Float_t> frag, std::vector<Float_t> orth)
 {
   if (!jet.has_constituents())
     return;
   frag.clear();
+  orth.clear();
   std::vector<fastjet::PseudoJet> constits = jet.constituents();
-  Double_t z;
+  Double_t z, perp;
   for(UInt_t ic = 0; ic < constits.size(); ++ic) {
     z = constits[ic].px() * jet.px() + constits[ic].py() * jet.py() + constits[ic].pz() * jet.pz();
     z /= (jet.p() * jet.p());
     frag.push_back(z);
+    perp = TMath::Sqrt(1 - z^2);
+    orth.push_back(perp);
   }
   return;
 }
@@ -450,7 +453,8 @@ int main(int argc, char **argv) {
   Int_t ievt = 0, ijet = 0;
   Float_t evwt = 0, jet_eta=0, jet_phi=0, jet_pt=0, jet_dphi=0;
   Float_t zg=0, Rg=0, mass=0, mz2 = 0, mr = 0, mr2 = 0, rz = 0, r2z = 0, ptD = 0, t2t1 = -1., t2dist = -1., t3t2 = -1.;
-  Float_t t3dist[3] = {-1., -1., -1.}, frag;
+  Float_t t3dist[3] = {-1., -1., -1.};
+  std::vector<Float_t> frag, orth;
   Int_t nconst=0, nSD=0;
 
   TTree *jetprops = new TTree("jetprops","Jet properties");
@@ -476,6 +480,8 @@ int main(int argc, char **argv) {
   jetprops->Branch("t3t2",&t3t2,"t3t2/F");
   jetprops->Branch("t2dist",&t2dist,"t2dist/F");
   jetprops->Branch("t3dist",&t3dist,"t3dist[3]/F");
+  jetprops->Branch("frag", "std::vector<Float_t>", &frag);
+  jetprops->Branch("orth", "std::vector<Float_t>", &orth);
 
   // get the first event
   HepMC::GenEvent* evt = ascii_in.read_next_event();
@@ -620,6 +626,7 @@ int main(int argc, char **argv) {
         getmassangularities(jet, mr, mr2, zs, mz2, rz, r2z);
         mass = jet.m();
         ptD = pTD(jet);
+        charge_fragmentation(jet, frag, orth);
 
         fastjet::contrib::SoftDrop sd(beta,zcut,jetR);
         fastjet::contrib::SoftDrop sd_kt(beta,zcut,jetR);

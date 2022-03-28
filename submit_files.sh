@@ -28,6 +28,9 @@ fi
 
 for ((ifile=$firstfile;ifile<=$lastfile;ifile+=$nfile))
 do
-  qsub -N analyse_files_batch -q long -o log -e log -v indir=$indir,outdir=$outdir,infile=example.hepmc,firstfile=$ifile,nfile=$nfile analyze_files_batch.sh
+  # Jetprops
+  #qsub -N analyse_files_batch_jetprops -q long -o log -e log -v indir=$indir,outdir=$outdir,infile=example.hepmc,firstfile=$ifile,nfile=$nfile analyze_files_batch_jetprops.sh
+  # Fragmentation
+  qsub -N analyse_files_batch_fragmentation -q long -o log -e log -v indir=$indir,outdir=$outdir,infile=example.hepmc,firstfile=$ifile,nfile=$nfile analyze_files_batch_fragmentation.sh
 done
 

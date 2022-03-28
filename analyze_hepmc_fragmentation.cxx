@@ -66,19 +66,20 @@ static const int debug = 0;
 static const float ptcut = 0.0; // GeV
 static const float min_jet_pt = 10; // GeV; for shape histos
 
-void charge_fragmentation(const fastjet::PseudoJet &jet, std::vector<Float_t> frag, std::vector<Float_t> orth)
+void charge_fragmentation(const fastjet::PseudoJet &jet, std::vector<Float_t> &frag, std::vector<Float_t> &orth)
 {
   if (!jet.has_constituents())
     return;
   frag.clear();
   orth.clear();
   std::vector<fastjet::PseudoJet> constits = jet.constituents();
+  Double_t p2 = jet.modp2(); //jet.px() * jet.px() + jet.py() * jet.py() + jet.pz() *jet.pz();
   Double_t z, perp;
   for(UInt_t ic = 0; ic < constits.size(); ++ic) {
     z = constits[ic].px() * jet.px() + constits[ic].py() * jet.py() + constits[ic].pz() * jet.pz();
-    z /= (jet.p() * jet.p());
+    z /= p2;
     frag.push_back(z);
-    perp = TMath::Sqrt(1 - z^2);
+    perp = TMath::Sqrt(1 - z*z);
     orth.push_back(perp);
   }
   return;
@@ -103,7 +104,7 @@ int is_stable(const HepMC::GenParticle *part) {
 			       kK0Long,            // K0l
 			       kProton,            // Proton
 			       kNeutron,           // Neutron
-			       kLambda0,           // Lambda_0
+			       kLambda0,           // Lambda_0 // Lambda_c = 4122
 			       kSigmaMinus,        // Sigma Minus
 			       kSigmaPlus,         // Sigma Plus
 			       3312,               // Xsi Minus
@@ -362,6 +363,7 @@ float LeSub(const fastjet::PseudoJet &jet) {
 }
 
 int main(int argc, char **argv) {
+  // TODO: Should only take charged jets? Can we also do fragmentation after grooming?
   //
   // Takes two arguments: infile (HEPMC format) outfile (base name, ROOT format)
   // additional options: --nobkg --chargedjet|--fulljet
@@ -466,20 +468,20 @@ int main(int argc, char **argv) {
   jetprops->Branch("phi",&jet_phi,"phi/F");
   jetprops->Branch("dphi",&jet_dphi,"dphi/F");
   jetprops->Branch("nconst",&nconst,"nconst/I");
-  jetprops->Branch("zg",&zg,"zg/F");
-  jetprops->Branch("Rg",&Rg,"Rg/F");
-  jetprops->Branch("nSD",&nSD,"nSD/I");
-  jetprops->Branch("mass",&mass,"mass/F");
-  jetprops->Branch("mz2",&mz2,"mz2/F");
-  jetprops->Branch("mr",&mr,"mr/F");
-  jetprops->Branch("mr2",&mr2,"mr2/F");
-  jetprops->Branch("rz",&rz,"rz/F");
-  jetprops->Branch("r2z",&r2z,"r2z/F");
-  jetprops->Branch("ptD",&ptD,"ptD/F");
-  jetprops->Branch("t2t1",&t2t1,"t2t1/F");
-  jetprops->Branch("t3t2",&t3t2,"t3t2/F");
-  jetprops->Branch("t2dist",&t2dist,"t2dist/F");
-  jetprops->Branch("t3dist",&t3dist,"t3dist[3]/F");
+  //jetprops->Branch("zg",&zg,"zg/F");
+  //jetprops->Branch("Rg",&Rg,"Rg/F");
+  //jetprops->Branch("nSD",&nSD,"nSD/I");
+  //jetprops->Branch("mass",&mass,"mass/F");
+  //jetprops->Branch("mz2",&mz2,"mz2/F");
+  //jetprops->Branch("mr",&mr,"mr/F");
+  //jetprops->Branch("mr2",&mr2,"mr2/F");
+  //jetprops->Branch("rz",&rz,"rz/F");
+  //jetprops->Branch("r2z",&r2z,"r2z/F");
+  //jetprops->Branch("ptD",&ptD,"ptD/F");
+  //jetprops->Branch("t2t1",&t2t1,"t2t1/F");
+  //jetprops->Branch("t3t2",&t3t2,"t3t2/F");
+  //jetprops->Branch("t2dist",&t2dist,"t2dist/F");
+  //jetprops->Branch("t3dist",&t3dist,"t3dist[3]/F");
   jetprops->Branch("frag", "std::vector<Float_t>", &frag);
   jetprops->Branch("orth", "std::vector<Float_t>", &orth);
 
@@ -622,12 +624,13 @@ int main(int argc, char **argv) {
         float eta_jet = jet.eta();
 
         //float rm, rs, r2m, r2s, zs, rz, r2z;
-        float zs;
-        getmassangularities(jet, mr, mr2, zs, mz2, rz, r2z);
-        mass = jet.m();
-        ptD = pTD(jet);
+        //float zs;
+        //getmassangularities(jet, mr, mr2, zs, mz2, rz, r2z);
+        //mass = jet.m();
+        //ptD = pTD(jet);
         charge_fragmentation(jet, frag, orth);
 
+        /*
         fastjet::contrib::SoftDrop sd(beta,zcut,jetR);
         fastjet::contrib::SoftDrop sd_kt(beta,zcut,jetR);
         fastjet::contrib::Recluster reclust_kt(fastjet::kt_algorithm, fastjet::JetDefinition::max_allowable_R);
@@ -735,7 +738,7 @@ int main(int argc, char **argv) {
             t3dist[i] = R3subdist[i];
           }
         }
-
+        */
 
         ijet = n_jets_selected;
         n_jets_selected++;

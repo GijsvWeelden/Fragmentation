@@ -14,14 +14,20 @@ make <code>
 ```
 
 # Jewel simulation
-Simulate events with jewel with:
+Analyse jetprops with:
 
 ```
-./analyze_hepmc_jet_shapes_constsub_eventwise_treeout /user/marcovl/jewel/run_pp_5tev02/1/example.hepmc jet_tree_pp5tev
+./analyze_hepmc_jet_shapes_constsub_eventwise_treeout /user/marcovl/jewel/run_pp_5tev02/1/example.hepmc jet_tree_pp5tev02
 ```
 This will output `jet_tree_pp5tev<settings>.root` (with `<settings>` "`_nobkg`" etc).
 
-This code can be ran on the cluster with the `submit_files.sh` and `analyze_files_batch.sh` scripts.
+Similarly for fragmentation:
+
+```
+./analyze_hepmc_fragmentation /user/marcovl/jewel/run_pp_5tev02/1/example.hepmc jet_frag_pp5tev02
+```
+
+This code can be ran on the cluster with the `submit_files.sh` and `analyze_files_batch_jetprops.sh` or `analyze_files_batch_fragmentation.sh` scripts (alter the `submit_files.sh` to choose which analysis to run).
 
 ```
 ./submit_files.sh /dcache/alice/marcovl/jewel/<set> <start_index> <end_index> <dirs_per_job>

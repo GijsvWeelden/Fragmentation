@@ -104,7 +104,7 @@ int is_stable(const HepMC::GenParticle *part) {
 			       kK0Long,            // K0l
 			       kProton,            // Proton
 			       kNeutron,           // Neutron
-			       kLambda0,           // Lambda_0 // Lambda_c = 4122
+			       kLambda0,           // Lambda_0 = Lambda_s
 			       kSigmaMinus,        // Sigma Minus
 			       kSigmaPlus,         // Sigma Plus
 			       3312,               // Xsi Minus

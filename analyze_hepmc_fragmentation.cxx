@@ -79,7 +79,7 @@ void charge_fragmentation(const fastjet::PseudoJet &jet, std::vector<Float_t> &f
     z = constits[ic].px() * jet.px() + constits[ic].py() * jet.py() + constits[ic].pz() * jet.pz();
     z /= p2;
     frag.push_back(z);
-    perp = TMath::Sqrt(1 - z*z);
+    perp = TMath::Sqrt(constits[ic].modp2()/p2 - z*z);
     orth.push_back(perp);
   }
   return;
@@ -493,8 +493,8 @@ int main(int argc, char **argv) {
   // loop until we run out of events
   while ( evt ) {
     // analyze the event
-    if (debug)
-      cout << "Event " << endl;
+    //if (debug)
+      cout << "Event " << ievt << ", time " << clock() << endl;
 
     evwt = evt->weights()[0]; // set event weight to fill in tree
     hNEvent->Fill(0.5,evwt); // count events
@@ -548,7 +548,14 @@ int main(int argc, char **argv) {
     fastjet::ClusterSequenceArea clustSeqCh(fjInputs, jetDefCh, areaDef);
 
     vector <fastjet::PseudoJet> inclusiveJetsCh = clustSeqCh.inclusive_jets();
-    if (inclusiveJetsCh.size() <= 0) continue; // Skip events without jets
+    if (inclusiveJetsCh.size() <= 0){
+      // delete the created event from memory
+      delete evt;
+      // read the next event
+      ascii_in >> evt;
+      ievt++;
+      continue; // Skip events without jets
+    }
 
     fastjet::JetMedianBackgroundEstimator bge;  //.......... Background Sutraction event by event
     fastjet::ClusterSequenceArea *clustSeqBG = 0;
@@ -601,7 +608,7 @@ int main(int argc, char **argv) {
     float_t jet_phi_leading = 0;
     int n_jets_selected = 0; // Label for saved jet
 
-    if (debug > 0)
+    //if (debug > 0)
       cout << corrected_jets.size() << " jets found" << endl;
 
     for (unsigned int iJet = 0; iJet < pt_sorted_jets.size(); iJet++){
@@ -619,6 +626,7 @@ int main(int argc, char **argv) {
 
       jet_dphi = dphi(jet_phi,jet_phi_leading);
 
+      std::cout << "Before jet pt check" << std::endl;
       if (jet_pt > min_jet_pt) {
         fastjet::PseudoJet &jet = pt_sorted_jets[iJet];
         float eta_jet = jet.eta();
@@ -743,6 +751,7 @@ int main(int argc, char **argv) {
         ijet = n_jets_selected;
         n_jets_selected++;
         nconst = jet.constituents().size();
+        std::cout << "Before filling" << std::endl;
         jetprops->Fill();
       }
     }
@@ -755,9 +764,11 @@ int main(int argc, char **argv) {
       clust_seq_corr = 0;
     }
 
+    std::cout << "Before deleting event" << std::endl;
     // delete the created event from memory
     delete evt;
     // read the next event
+    std::cout << "Before moving on" << std::endl;
     ascii_in >> evt;
     ievt++;
   }

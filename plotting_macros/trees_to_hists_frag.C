@@ -18,64 +18,64 @@
 //-------------------------------------------------------------
 
 void read_chain(TChain *chain, string setting, vector<string> obs);
-void save_hists(TTree *tree, string outName, string setting, vector<string> obs);
+void save_hists(TTree *tree, string setting, vector<string> obs, TFile *outFile);
 TH2F *make_hists(string name, string title, string obs, string secondary);
 
 void trees_to_hists_frag(void){
   gROOT->SetBatch();
   double time = clock();
-  string suffix = "charged_nobkg"; // charged/full, nobkg/<nothing>
+  string jetType = "charged";
+  string suffix = jetType + "_nobkg"; // charged/full, nobkg/<nothing>
   string sNN = "5tev02"; // e.g. 5tev02
   string settings = "ppAAnrAAr";
   std::vector<string> observables = {"frag", "orth"};
 
-  TFile ppFile(TString::Format("../run_pp_%s/jet_frag_%s.root", sNN.c_str(), suffix.c_str()).Data(),"read");
+  string outName = "2dhists_frag_" + sNN + "_" + jetType; //suffix;
+  TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
+  if (outFile) std::cout << "Output file: " << outName << ".root" << std::endl;
+  else{
+    std::cout << "ERROR: Output file not created. Aborting" << std::endl;
+    return;
+  }
+
+  TFile ppFile(TString::Format("../run_pp_%s/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(),"read");
   TTree *ppT = (TTree*)ppFile.Get("jetprops");
-  save_hists(ppT, "2dhists_frag_" + sNN + suffix, "pp", observables);
+  //save_hists(ppT, "2dhists_frag_" + sNN + "_" + suffix, "pp", observables, outFile);
+  save_hists(ppT, "pp", observables, outFile);
   delete ppT;
   ppFile.Close();
 
-  TFile nrFile(TString::Format("../run_AA_%s_norecoil/jet_frag_%s.root", sNN.c_str(), suffix.c_str()).Data(),"read");
+  TFile nrFile(TString::Format("../run_AA_%s_norecoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(),"read");
   TTree *nrT = (TTree*)nrFile.Get("jetprops");
-  save_hists(nrT, "2dhists_frag_" + sNN + suffix, "AAnr", observables);
+  //save_hists(nrT, "2dhists_frag_" + sNN + "_" + suffix, "AAnr", observables);
+  save_hists(nrT, "AAnr", observables, outFile);
   delete nrT;
   nrFile.Close();
 
-  TFile rFile(TString::Format("../run_AA_%s_recoil/jet_frag_%s.root", sNN.c_str(), suffix.c_str()).Data(),"read");
-  TTree *rT = (TTree*)rFile.Get("jetprops");
-  save_hists(rT, "2dhists_frag_" + sNN + "_" + suffix, "AAr", observables);
-  delete rT;
-  rFile.Close();
+  TFile rNoBkgFile(TString::Format("../run_AA_%s_recoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(),"read");
+  TTree *rNoBkgT = (TTree*)rNoBkgFile.Get("jetprops");
+  //save_hists(rT, "2dhists_frag_" + sNN + "_" + suffix, "AAr", observables);
+  save_hists(rNoBkgT, "AAr_nobkg", observables, outFile);
+  delete rNoBkgT;
+  rNoBkgFile.Close();
 
-  /*
-  TChain *chain = new TChain("jetprops");
-  if (numFiles_AAnr > 0){
-    for (int fileNum = 1; fileNum <= numFiles_AAnr; fileNum++) {
-      //chain->AddFile(Form("../run_AA_%s_norecoil/jet_frag_%d_%s.root", sNN.c_str(), fileNum, suffix.c_str()));
-      chain->AddFile(TString::Format("../run_AA_5tev02_norecoil/jet_frag_%d_%s.root", fileNum, suffix.c_str()).Data());
-    }
-    read_chain(chain, "AA_norecoil", observables);
-  }
-  */
-  //std::cout << "outFile: " << outName << std::endl;
+  TFile rBkgFile(TString::Format("../run_AA_%s_recoil/jet_frag_%s.root", sNN.c_str(), jetType.c_str()).Data(),"read");
+  TTree *rBkgT = (TTree*)rBkgFile.Get("jetprops");
+  //save_hists(rT, "2dhists_frag_" + sNN + "_" + suffix, "AAr", observables);
+  save_hists(rBkgT, "AAr_bkg", observables, outFile);
+  delete rBkgT;
+  rBkgFile.Close();
+
   time = (clock() - time)/CLOCKS_PER_SEC;
   std::cout << "Time taken: " << time << std::endl;
   //outFile->Close();
 }
 
-void save_hists(TTree *tree, string outName, string setting, vector<string> obs){
-  //TH2F *hist = new TH2F("name", "title", 100, 0, 1, 200, 0, 200);
-  //tree->Draw("pt:frag>>name");
-  // We can't just draw frag, because it is a vector
-  //string newName = "5tev02_frag_test"; //5tev02_ppAAnrAAr";
-  TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
+void save_hists(TTree *tree, string setting, vector<string> obs, TFile *outFile){
   outFile->cd();
   TList *list = new TList();
   list->SetName(setting.c_str());
   list->SetOwner(true);
-  //list->Add(hist);
-  //list->Write(setting.c_str(),1);
-  //return;
   std::cout << "made list" << std::endl;
   for (auto iobs=0; iobs<obs.size(); iobs++){
     TH2F *hIncl = make_hists(TString::Format("%s_%s",
@@ -99,7 +99,7 @@ void save_hists(TTree *tree, string outName, string setting, vector<string> obs)
                              obs[iobs].c_str(),
                              "pt"
                              );
-  std::cout << "before draw" << std::endl;
+    std::cout << "before draw" << std::endl;
 
     // Draw hIncl
     tree->Draw(TString::Format("pt:%s>>%s_%s",
@@ -126,14 +126,14 @@ void save_hists(TTree *tree, string outName, string setting, vector<string> obs)
                                 TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))",
                                                 TMath::PiOver2()).Data()
     );
-  std::cout << "before list add" << std::endl;
+    std::cout << "before list add" << std::endl;
     list->Add(hIncl);
     list->Add(hLead);
     list->Add(hAway);
   }
   std::cout << "before nconst loop" << std::endl;
   for (auto iobs=0; iobs<obs.size(); iobs++){
-  std::cout << "more hists" << std::endl;
+    std::cout << "more hists" << std::endl;
     TH2F *hIncl = make_hists(TString::Format("%s_%s",
                                              setting.c_str(), obs[iobs].c_str()).Data(),
                              TString::Format("Jet %s (%s)",
@@ -188,13 +188,12 @@ void save_hists(TTree *tree, string outName, string setting, vector<string> obs)
   std::cout << TString::Format("Name: %s", setting.c_str()).Data() << std::endl;
   list->Write(setting.c_str(),1);
   delete list;
-  outFile->Close();
 }
 
 TH2F *make_hists(string name, string title, string obs, string secondary){
   TH2F *hist = new TH2F(name.c_str(), title.c_str(), 100, 0, 1.0, 200, 0, 200); // Assuming frag, pt
   hist->Sumw2();
-  hist->GetYaxis()->SetTitle(TString::Format("%s", secondary.c_str()).Data()); //"pt");
+  hist->GetYaxis()->SetTitle(TString::Format("%s", secondary.c_str()).Data());
   hist->GetXaxis()->SetTitle(TString::Format("%s", obs.c_str()).Data());
 
   if (obs == "orth"){

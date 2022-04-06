@@ -24,13 +24,14 @@ TH2F *make_hists(string name, string title, string obs, string secondary);
 void trees_to_hists_frag(void){
   gROOT->SetBatch();
   double time = clock();
+  double t2, dt;
   string jetType = "charged";
   string suffix = jetType + "_nobkg"; // charged/full, nobkg/<nothing>
   string sNN = "5tev02"; // e.g. 5tev02
   string settings = "ppAAnrAAr";
   std::vector<string> observables = {"frag", "orth"};
 
-  string outName = "2dhists_frag_" + sNN + "_" + jetType; //suffix;
+  string outName = "2dhist_test"; //"2dhists_frag_" + sNN + "_" + jetType; //suffix;
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   if (outFile) std::cout << "Output file: " << outName << ".root" << std::endl;
   else{
@@ -40,34 +41,41 @@ void trees_to_hists_frag(void){
 
   TFile ppFile(TString::Format("../run_pp_%s/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(),"read");
   TTree *ppT = (TTree*)ppFile.Get("jetprops");
-  //save_hists(ppT, "2dhists_frag_" + sNN + "_" + suffix, "pp", observables, outFile);
   save_hists(ppT, "pp", observables, outFile);
   delete ppT;
   ppFile.Close();
+  dt = (clock() - time)/CLOCKS_PER_SEC;
+  std::cout << "Time taken for pp: " << dt << std::endl;
+  t2 = clock();
 
   TFile nrFile(TString::Format("../run_AA_%s_norecoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(),"read");
   TTree *nrT = (TTree*)nrFile.Get("jetprops");
-  //save_hists(nrT, "2dhists_frag_" + sNN + "_" + suffix, "AAnr", observables);
   save_hists(nrT, "AAnr", observables, outFile);
   delete nrT;
   nrFile.Close();
+  dt = (clock() - t2)/CLOCKS_PER_SEC;
+  std::cout << "Time taken for NR: " << dt << std::endl;
+  t2 = clock();
 
   TFile rNoBkgFile(TString::Format("../run_AA_%s_recoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(),"read");
   TTree *rNoBkgT = (TTree*)rNoBkgFile.Get("jetprops");
-  //save_hists(rT, "2dhists_frag_" + sNN + "_" + suffix, "AAr", observables);
   save_hists(rNoBkgT, "AAr_nobkg", observables, outFile);
   delete rNoBkgT;
   rNoBkgFile.Close();
+  dt = (clock() - t2)/CLOCKS_PER_SEC;
+  std::cout << "Time taken for R_nobkg: " << dt << std::endl;
+  t2 = clock();
 
   TFile rBkgFile(TString::Format("../run_AA_%s_recoil/jet_frag_%s.root", sNN.c_str(), jetType.c_str()).Data(),"read");
   TTree *rBkgT = (TTree*)rBkgFile.Get("jetprops");
-  //save_hists(rT, "2dhists_frag_" + sNN + "_" + suffix, "AAr", observables);
   save_hists(rBkgT, "AAr_bkg", observables, outFile);
   delete rBkgT;
   rBkgFile.Close();
+  dt = (clock() - t2)/CLOCKS_PER_SEC;
+  std::cout << "Time taken for R_bkg: " << dt << std::endl;
 
   time = (clock() - time)/CLOCKS_PER_SEC;
-  std::cout << "Time taken: " << time << std::endl;
+  std::cout << "Total time taken: " << time << "seconds" << std::endl;
   //outFile->Close();
 }
 

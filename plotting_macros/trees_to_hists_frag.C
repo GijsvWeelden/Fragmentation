@@ -78,9 +78,9 @@ void trees_to_hists_frag(void){
   t2 = clock();
 
   //TFile rNoBkgFile(TString::Format("../run_AA_%s_recoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(),"read");
-  TFile* rNoBkgFile = TFile::Open(TString::Format("../run_AA_%srecoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(), "read");
-  if (rNoBkgfile){
-    TTree *rNoBkgT = (TTree*)rNoBkgFile.Get("jetprops");
+  TFile* rNoBkgFile = TFile::Open(TString::Format("../run_AA_%s_recoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(), "read");
+  if (rNoBkgFile){
+    TTree *rNoBkgT = (TTree*)rNoBkgFile->Get("jetprops");
     outFile->cd();
     TList* L = new TList();
     L->SetName("AAr_nobkg");
@@ -96,9 +96,9 @@ void trees_to_hists_frag(void){
   t2 = clock();
 
   //TFile rBkgFile(TString::Format("../run_AA_%s_recoil/jet_frag_%s.root", sNN.c_str(), jetType.c_str()).Data(),"read");
-  TFile* rBkgFile = TFile::Open(TString::Format("../run_AA_%srecoil/jet_frag_%s.root", sNN.c_str(), jetType.c_str()).Data(), "read");
+  TFile* rBkgFile = TFile::Open(TString::Format("../run_AA_%s_recoil/jet_frag_%s.root", sNN.c_str(), jetType.c_str()).Data(), "read");
   if (rBkgFile){
-    TTree *rBkgT = (TTree*)rBkgFile.Get("jetprops");
+    TTree *rBkgT = (TTree*)rBkgFile->Get("jetprops");
     outFile->cd();
     TList* L = new TList();
     L->SetName("AAr_bkg");
@@ -113,8 +113,8 @@ void trees_to_hists_frag(void){
   std::cout << "Time taken for R_bkg: " << dt << std::endl;
 
   time = (clock() - time)/CLOCKS_PER_SEC;
-  std::cout << "Total time taken: " << time << "seconds" << std::endl;
-  //outFile->Close();
+  std::cout << "Total time taken: " << time << " seconds" << std::endl;
+  outFile->Close();
 }
 
 void save_hists(TTree *tree, string setting, vector<string> obs, TList* L){//TFile *outFile){

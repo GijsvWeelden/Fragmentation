@@ -19,7 +19,7 @@
 //-------------------------------------------------------------
 
 void read_chain(TChain *chain, string setting, vector<string> obs);
-void save_hists(TTree *tree, string setting, vector<string> obs, TList* L);//TFile *outFile);
+void save_hists(TTree *tree, string setting, vector<string> obs, string jetType, TList* L);//TFile *outFile);
 void hadron_frag(TTree *tree, string setting, string jetType, TList* L); //TFile *outFile);
 TH2F *make_hists(string name, string title, string obs, string secondary);
 
@@ -27,13 +27,13 @@ void trees_to_hists_frag(void){
   gROOT->SetBatch();
   double time = clock();
   double t2, dt;
-  string jetType = "full"; //"charged";
-  string suffix = jetType + "_nobkg"; // charged/full, nobkg/<nothing>
+  string jetType = "full"; // charged/full;
+  string suffix = jetType + "_nobkg"; // nobkg/<nothing>
   string sNN = "5tev02"; // e.g. 5tev02
   string settings = "ppAAnrAAr";
   std::vector<string> observables = {"frag"}; //{"frag", "orth"};
 
-  string outName = "2dhist_test"; //"2dhists_frag_" + sNN + "_" + jetType; //suffix;
+  string outName = "2dhists_frag_" + sNN + "_pp_hadron_" + jetType; //suffix;
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   if (outFile) std::cout << "Output file: " << outName << ".root" << std::endl;
   else{
@@ -46,19 +46,20 @@ void trees_to_hists_frag(void){
     TTree *ppT = (TTree*)ppFile->Get("jetprops");
     outFile->cd();
     TList *L = new TList();
-    L->SetName("pp");//setting.c_str());
+    L->SetName(TString::Format("pp_%s", jetType.c_str()).Data());//setting.c_str());
     L->SetOwner(true);
-    //hadron_frag(ppT, "pp", jetType, L);
-    //save_hists(ppT, "pp", observables, L);
-    L->Write("pp",1);
+    hadron_frag(ppT, "pp", jetType, L);
+    save_hists(ppT, "pp", observables, jetType, L);
+    L->Write(TString::Format("pp_%s", jetType.c_str()).Data(),1);
     delete L;
     delete ppT;
     ppFile->Close();
   }
-  dt = (clock() - time)/CLOCKS_PER_SEC;
-  std::cout << "Time taken for pp: " << dt << std::endl;
-  t2 = clock();
+  //dt = (clock() - time)/CLOCKS_PER_SEC;
+  //std::cout << "Time taken for pp: " << dt << std::endl;
+  //t2 = clock();
 
+  /*
   //TFile nrFile(TString::Format("../run_AA_%s_norecoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(),"read");
   TFile* nrFile = TFile::Open(TString::Format("../run_AA_%s_norecoil/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(), "read");
   if (nrFile){
@@ -67,7 +68,7 @@ void trees_to_hists_frag(void){
     TList* L = new TList();
     L->SetName("AAnr");
     L->SetOwner(true);
-    //hadron_frag(nrT, "AAnr", jetType, L);
+    hadron_frag(nrT, "AAnr", jetType, L);
     //save_hists(nrT, "AAnr", observables, L);
     delete L;
     delete nrT;
@@ -111,112 +112,90 @@ void trees_to_hists_frag(void){
   }
   dt = (clock() - t2)/CLOCKS_PER_SEC;
   std::cout << "Time taken for R_bkg: " << dt << std::endl;
+  */
 
   time = (clock() - time)/CLOCKS_PER_SEC;
   std::cout << "Total time taken: " << time << " seconds" << std::endl;
   outFile->Close();
 }
 
-void save_hists(TTree *tree, string setting, vector<string> obs, TList* L){//TFile *outFile){
+void save_hists(TTree *tree, string setting, vector<string> obs, string jetType, TList* L){//TFile *outFile){
   std::cout << "Save hists " << setting << std::endl;
   for (auto iobs=0; iobs<obs.size(); iobs++){
-    TH2F *hIncl = make_hists(TString::Format("%s_%s",
-          setting.c_str(), obs[iobs].c_str()).Data(),
-        TString::Format("Jet %s (%s)",
-          obs[iobs].c_str(), setting.c_str()).Data(),
-        obs[iobs].c_str(),
-        "pt"
-        );
-    TH2F *hLead = make_hists(TString::Format("%s_%s_leading",
-          setting.c_str(), obs[iobs].c_str()).Data(),
-        TString::Format("Leading jet %s (%s)",
-          obs[iobs].c_str(), setting.c_str()).Data(),
-        obs[iobs].c_str(),
-        "pt"
-        );
-    TH2F *hAway = make_hists(TString::Format("%s_%s_awayside",
-          setting.c_str(), obs[iobs].c_str()).Data(),
-        TString::Format("Awayside jet %s (%s)",
-          obs[iobs].c_str(), setting.c_str()).Data(),
-        obs[iobs].c_str(),
-        "pt"
-        );
+    string histName = setting + "_" + jetType + "_" + obs[iobs];
+    TH2F *hIncl = make_hists(TString::Format("%s",
+                                            histName.c_str()).Data(),
+                             TString::Format("Jet %s (%s)",
+                                             obs[iobs].c_str(), setting.c_str()).Data(),
+                             obs[iobs].c_str(),
+                             "pt"
+                             );
+    TH2F *hLead = make_hists(TString::Format("%s_leading",
+                                             histName.c_str()).Data(),
+                             TString::Format("Leading jet %s (%s)",
+                                             obs[iobs].c_str(), setting.c_str()).Data(),
+                             obs[iobs].c_str(),
+                             "pt"
+                             );
+    TH2F *hAway = make_hists(TString::Format("%s_awayside",
+                                             histName.c_str()).Data(),
+                             TString::Format("Awayside jet %s (%s)",
+                                             obs[iobs].c_str(), setting.c_str()).Data(),
+                             obs[iobs].c_str(),
+                             "pt"
+                             );
     // Draw hIncl
-    tree->Draw(TString::Format("pt:%s>>%s_%s",
-          obs[iobs].c_str(),
-          setting.c_str(),
-          obs[iobs].c_str()
-          ).Data(),
-        "evwt"
-        );
+    tree->Draw(TString::Format("pt:%s>>%s",
+                               obs[iobs].c_str(), histName.c_str()).Data(),
+               "evwt"
+               );
     // Draw hLead
-    tree->Draw(TString::Format("pt:%s>>%s_%s_leading",
-          obs[iobs].c_str(),
-          setting.c_str(),
-          obs[iobs].c_str()
-          ).Data(),
-        "(evwt*(ijet==0))"
-        );
+    tree->Draw(TString::Format("pt:%s>>%s_leading",
+               obs[iobs].c_str(), histName.c_str()).Data(),
+               "(evwt*(ijet==0))"
+               );
     // Draw hAway
-    tree->Draw(TString::Format("pt:%s>>%s_%s_awayside",
-          obs[iobs].c_str(),
-          setting.c_str(),
-          obs[iobs].c_str()
-          ).Data(),
-        TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))",
-          TMath::PiOver2()).Data()
-        );
+    tree->Draw(TString::Format("pt:%s>>%s_awayside",
+                               obs[iobs].c_str(), histName.c_str()).Data(),
+               TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))",
+                               TMath::PiOver2()).Data()
+               );
     L->Add(hIncl);
     L->Add(hLead);
     L->Add(hAway);
   }
   for (auto iobs=0; iobs<obs.size(); iobs++){
-    TH2F *hIncl = make_hists(TString::Format("%s_%s",
-          setting.c_str(), obs[iobs].c_str()).Data(),
-        TString::Format("Jet %s (%s)",
-          obs[iobs].c_str(), setting.c_str()).Data(),
-        obs[iobs].c_str(),
-        "nconst"
-        );
-    TH2F *hLead = make_hists(TString::Format("%s_%s_leading",
-          setting.c_str(), obs[iobs].c_str()).Data(),
-        TString::Format("Leading jet %s (%s)",
-          obs[iobs].c_str(), setting.c_str()).Data(),
-        obs[iobs].c_str(),
-        "nconst"
-        );
-    TH2F *hAway = make_hists(TString::Format("%s_%s_awayside",
-          setting.c_str(), obs[iobs].c_str()).Data(),
-        TString::Format("Awayside jet %s (%s)",
-          obs[iobs].c_str(), setting.c_str()).Data(),
-        obs[iobs].c_str(),
-        "nconst"
-        );
+    string histName = setting + "_" + jetType + "_" + obs[iobs];
+    TH2F *hIncl = make_hists(TString::Format("%s", histName.c_str()).Data(),
+                             TString::Format("Jet %s (%s)",
+                                             obs[iobs].c_str(), setting.c_str()).Data(),
+                             obs[iobs].c_str(),
+                             "nconst"
+                             );
+    TH2F *hLead = make_hists(TString::Format("%s_leading", histName.c_str()).Data(),
+                             TString::Format("Leading jet %s (%s)",
+                                             obs[iobs].c_str(), setting.c_str()).Data(),
+                             obs[iobs].c_str(),
+                             "nconst"
+                             );
+    TH2F *hAway = make_hists(TString::Format("%s_awayside", histName.c_str()).Data(),
+                             TString::Format("Awayside jet %s (%s)",
+                                             obs[iobs].c_str(), setting.c_str()).Data(),
+                             obs[iobs].c_str(),
+                             "nconst"
+                             );
     // Draw hIncl
-    tree->Draw(TString::Format("nconst:%s>>%s_%s",
-          obs[iobs].c_str(),
-          setting.c_str(),
-          obs[iobs].c_str()
-          ).Data(),
-        "evwt"
-        );
+    tree->Draw(TString::Format("nconst:%s>>", obs[iobs].c_str(), histName.c_str()).Data(),
+               "evwt"
+               );
     // Draw hLead
-    tree->Draw(TString::Format("nconst:%s>>%s_%s_leading",
-          obs[iobs].c_str(),
-          setting.c_str(),
-          obs[iobs].c_str()
-          ).Data(),
-        "(evwt*(ijet==0))"
-        );
+    tree->Draw(TString::Format("nconst:%s>>%s_leading", obs[iobs].c_str(), histName.c_str()).Data(),
+               "(evwt*(ijet==0))"
+               );
     // Draw hAway
-    tree->Draw(TString::Format("nconst:%s>>%s_%s_awayside",
-          obs[iobs].c_str(),
-          setting.c_str(),
-          obs[iobs].c_str()
-          ).Data(),
-        TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))",
-          TMath::PiOver2()).Data()
-        );
+    tree->Draw(TString::Format("nconst:%s>>%s_awayside", obs[iobs].c_str(), histName.c_str()).Data(),
+               TString::Format("(evwt*(ijet>0 && abs(dphi)>%f))", TMath::PiOver2()).Data()
+               );
     L->Add(hIncl);
     L->Add(hLead);
     L->Add(hAway);
@@ -271,14 +250,15 @@ void hadron_frag(TTree *tree, string setting, string jetType, TList* L){//TFile 
   for (int i = 0; i < chHadrons.size(); i++){
     string hadron = chHadrons[i];
     int code = chPDG[i];
+    string histName = setting + "_" + jetType + "_" + hadron;
     std::cout << hadron << " = " << code << std::endl;
-    TH2F *hFrag = make_hists(TString::Format("%s_%s_frag", setting.c_str(), hadron.c_str()).Data(),
+    TH2F *hFrag = make_hists(TString::Format("%s_frag", histName.c_str()).Data(),
         TString::Format("%s fragmentation (%s)", hadron.c_str(), setting.c_str()).Data(),
         "frag", "pt");
     //TH2F *orth = make_hists(TString::Format("%s_%s_orth", setting.c_str(), hadron.c_str()).Data(),
     //                        TString::Format("%s #it{j}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
     //                        "orth", "pt");
-    tree->Draw(TString::Format("pt:frag>>%s_%s_frag", setting.c_str(), hadron.c_str()).Data(),
+    tree->Draw(TString::Format("pt:frag>>%s_frag", histName.c_str()).Data(),
         TString::Format("evwt*(abs(pdg) == %d)", code).Data());
     L->Add(hFrag);
   }
@@ -286,8 +266,9 @@ void hadron_frag(TTree *tree, string setting, string jetType, TList* L){//TFile 
   for (int i = 0; i < nHadrons.size(); i++){
     string hadron = nHadrons[i];
     int code = nPDG[i];
+    string histName = setting + "_" + jetType + "_" + hadron;
     std::cout << hadron << " = " << code << std::endl;
-    TH2F *hFrag = make_hists(TString::Format("%s_%s_frag", setting.c_str(), hadron.c_str()).Data(),
+    TH2F *hFrag = make_hists(TString::Format("%s_frag", histName.c_str()).Data(),
         TString::Format("%s fragmentation (%s)", hadron.c_str(), setting.c_str()).Data(),
         "frag", "pt");
     //TH2F *orth = make_hists(TString::Format("%s_%s_orth", setting.c_str(), hadron.c_str()).Data(),

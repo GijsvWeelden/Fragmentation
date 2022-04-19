@@ -23,8 +23,8 @@ void plot_histograms(TH2F *hB, TH2F *h1, TH2F *h2, string obs, double min_pt, do
 void plot_jetprops(void){
   double time = clock();
   gROOT->SetBatch();
-  string inName = "2dhists_2tev76_ppAAnrAAr";
-  string suffix = "charged";
+  string inName = "2dhists_5tev02_pp";//"2dhists_2tev76_ppAAnrAAr";
+  string suffix = "charged_nobkg";
   TFile *inFile = TFile::Open(TString::Format("./%s_%s.root", inName.c_str(), suffix.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -77,16 +77,16 @@ void plot_jetprops(void){
     plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[0], ptBins.back(), "", "leading", suffix);
     plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "", "away", suffix);
     plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[0], ptBins.back(), "pp", "all", suffix);
-    plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[0], ptBins.back(), "AA_nr", "all", suffix);
-    plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "AA_r", "all", suffix);
+    if (AA_nrList) plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[0], ptBins.back(), "AA_nr", "all", suffix);
+    if (AA_rList) plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[0], ptBins.back(), "AA_r", "all", suffix);
     for (int ipt=0; ipt<ptBins.size()-1; ipt++){
       std::cout << "pt bin: " << ptBins[ipt] << "-" << ptBins[ipt+1] << std::endl;
       plot_histograms(hpp, hAA_nr, hAA_r, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "", suffix);
       plot_histograms(hpp_L, hAA_nr_L, hAA_r_L, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "leading", suffix);
       plot_histograms(hpp_A, hAA_nr_A, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "", "away", suffix);
       plot_histograms(hpp, hpp_L, hpp_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "pp", "all", suffix);
-      plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_nr", "all", suffix);
-      plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_r", "all", suffix);
+      if (AA_nrList) plot_histograms(hAA_nr, hAA_nr_L, hAA_nr_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_nr", "all", suffix);
+      if (AA_rList) plot_histograms(hAA_r, hAA_r_L, hAA_r_A, obs[iobs], ptBins[ipt], ptBins[ipt+1], "AA_r", "all", suffix);
     }
   }
   time = (clock() - time)/CLOCKS_PER_SEC;

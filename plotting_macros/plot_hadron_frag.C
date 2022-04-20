@@ -26,10 +26,10 @@ void plot_hadron_frag(void){
   string inName = "new_2dhists_frag";
   string sNN = "5tev02";
   std::vector<double> ptBins = {40.,60.,80.,100.,120.,160.,200.};
-  std::vector<string> obs = {"frag"};//,"orth"};
-  std::vector<string> hadrons = {"pi", "K", "p"};
-  //std::vector<string> chHadrons = {"pi", "K", "p"};
-  //std::vector<string> nHadrons = {"pi0", "K0L", "K0S", "K0", "Lambda0"};
+  std::vector<string> observables = {"frag"};
+  // std::vector<string> hadrons = {"pi", "K", "p"};
+  std::vector<string> chHadrons = {"pi", "K", "p"};
+  std::vector<string> nHadrons = {"pi0", "K0L", "K0S", "K0", "Lambda0"};
 
 
   //new_2dhists_frag_5tev02_pp_hadron_charged.root
@@ -77,20 +77,22 @@ void plot_hadron_frag(void){
 */
 
   // /*
-  for (int iobs=0; iobs<obs.size(); iobs++){
-    std::cout << "Plotting " << obs[iobs] << std::endl;
-    hC = (TH2F*)chList->FindObject(TString::Format("pp_%s", obs[iobs].c_str()).Data());
-    hF = (TH2F*)fList->FindObject(TString::Format("pp_%s", obs[iobs].c_str()).Data());
-    charged_VS_full(hF, hC, obs[iobs], ptBins[0], ptBins.back(), "pp", "", "");
+  //for (int iobs=0; iobs<obs.size(); iobs++){
+  for (auto obs : observables){
+    std::cout << "Plotting " << obs << std::endl;
+    hC = (TH2F*)chList->FindObject(TString::Format("pp_%s", obs.c_str()).Data());
+    hF = (TH2F*)fList->FindObject(TString::Format("pp_%s", obs.c_str()).Data());
+    charged_VS_full(hF, hC, obs, ptBins[0], ptBins.back(), "pp", "", "");
     for (int ipt=0; ipt<ptBins.size()-1; ++ipt){
-      //charged_VS_full(hF, hC, obs[iobs], ptBins[ipt], ptBins.[ipt+1], "pp", "", "");
+      //charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins.[ipt+1], "pp", "", "");
     }
-    for (int ihad = 0; ihad < hadrons.size(); ihad++){
-      hC = (TH2F*)chList->FindObject(TString::Format("pp_charged_%s_%s", hadrons[ihad].c_str(), obs[iobs].c_str()).Data());
-      hF = (TH2F*)fList->FindObject(TString::Format("pp_full_%s_%s", hadrons[ihad].c_str(), obs[iobs].c_str()).Data());
-      charged_VS_full(hF, hC, "frag", ptBins[0], ptBins.back(), "pp", "", hadrons[ihad]);
+    // for (int ihad = 0; ihad < hadrons.size(); ihad++){
+    for (auto had : chHadrons){
+      hC = (TH2F*)chList->FindObject(TString::Format("pp_charged_%s_%s", hadron.c_str(), obs.c_str()).Data());
+      hF = (TH2F*)fList->FindObject(TString::Format("pp_full_%s_%s", hadron.c_str(), obs.c_str()).Data());
+      charged_VS_full(hF, hC, "frag", ptBins[0], ptBins.back(), "pp", "", hadron);
       for (int ipt = 0; ipt < ptBins.size()-1; ++ipt){
-        //charged_VS_full(hF, hC, obs[iobs], ptBins[ipt], ptBins[ipt+1], "pp", "", "");
+        //charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins[ipt+1], "pp", "", "");
       }
     }
   }
@@ -143,6 +145,7 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   hC->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hCharged = (TH1F*)hC->ProjectionX();
   //hCharged->Scale(1./hCharged->Integral());
+  /* // Use unnormalised spectra for hadrons
   if (abs(hFull->Integral() -  1.0) > 0.01){
     cout << "WARNING: NORMALISATION PROBLEM!" << endl
       << TString::Format("%s for pt %.0f-%.0f GeV/c", obs.c_str(), min_pt, max_pt).Data() << endl
@@ -153,6 +156,7 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
       << TString::Format("%s for pt %.0f-%.0f GeV/c", obs.c_str(), min_pt, max_pt).Data() << endl
       << "Charged = " << hCharged->Integral() << " (" << hCharged->Integral()-1.0 << ")" << endl;
   }
+  // */
 
   // Top plot settings
   hFull->SetStats(0);

@@ -11,10 +11,7 @@
 
 //-------------------------------------------------------------
 //
-// plot_jetprops.C normalises and plots histograms against
-// each other and compares them by taking their ratio
-// it can do this for either 2 or 3 histograms and takes the
-// pp as a reference
+// Compares fragmentation spectra in charged and full jets
 //
 //-------------------------------------------------------------
 
@@ -23,16 +20,13 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
 void plot_hadron_frag(void){
   double time = clock();
   gROOT->SetBatch();
-  string inName = "new_2dhists_frag";
+  string inName = "partial_2dhists_frag";
   string sNN = "5tev02";
   std::vector<double> ptBins = {40.,60.,80.,100.,120.,160.,200.};
-  std::vector<string> observables = {"frag"};
-  // std::vector<string> hadrons = {"pi", "K", "p"};
+  std::vector<string> observables = {"frag", "orth"};
   std::vector<string> chHadrons = {"pi", "K", "p"};
   std::vector<string> nHadrons = {"pi0", "K0L", "K0S", "K0", "Lambda0"};
 
-
-  //new_2dhists_frag_5tev02_pp_hadron_charged.root
   TFile *inFile = TFile::Open(TString::Format("./%s_%s_pp_hadron.root", inName.c_str(), sNN.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -52,19 +46,18 @@ void plot_hadron_frag(void){
   TH2F *hC, *hF;
   for (auto obs : observables){
     std::cout << "Plotting " << obs << std::endl;
-    hC = (TH2F*)chList->FindObject(TString::Format("pp_%s", obs.c_str()).Data());
-    hF = (TH2F*)fList->FindObject(TString::Format("pp_%s", obs.c_str()).Data());
+    hC = (TH2F*)chList->FindObject(TString::Format("pp_charged_%s", obs.c_str()).Data());
+    hF = (TH2F*)fList->FindObject(TString::Format("pp_full_%s", obs.c_str()).Data());
     charged_VS_full(hF, hC, obs, ptBins[0], ptBins.back(), "pp", "", "");
     for (int ipt=0; ipt<ptBins.size()-1; ++ipt){
-      //charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins.[ipt+1], "pp", "", "");
+      charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins[ipt+1], "pp", "", "");
     }
-    // for (int ihad = 0; ihad < hadrons.size(); ihad++){
-    for (auto had : chHadrons){
+    for (auto hadron : chHadrons){
       hC = (TH2F*)chList->FindObject(TString::Format("pp_charged_%s_%s", hadron.c_str(), obs.c_str()).Data());
       hF = (TH2F*)fList->FindObject(TString::Format("pp_full_%s_%s", hadron.c_str(), obs.c_str()).Data());
       charged_VS_full(hF, hC, "frag", ptBins[0], ptBins.back(), "pp", "", hadron);
       for (int ipt = 0; ipt < ptBins.size()-1; ++ipt){
-        //charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins[ipt+1], "pp", "", "");
+        charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins[ipt+1], "pp", "", hadron);
       }
     }
   }
@@ -81,8 +74,8 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   hC->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hCharged = (TH1F*)hC->ProjectionX();
   if (obs == "orth"){
-    hFull->Scale(1.,"width");
-    hCharged->Scale(1.,"width");
+    hFull->Scale(1./hFull->Integral(),"width");
+    hCharged->Scale(1./hCharged->Integral(),"width");
   }
 
   // Top plot settings
@@ -182,5 +175,6 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
 
   c_obs->SaveAs(TString::Format("../plots/fragmentation/ChargedVsFull/%s_%s_%s_pt_%.0f_%.0f.pdf",
                                 setting.c_str(), hadron.c_str(), obs.c_str(), min_pt, max_pt).Data());
+  delete c_obs;
 }
 

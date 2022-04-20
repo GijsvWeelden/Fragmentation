@@ -12,9 +12,12 @@
 //-------------------------------------------------------------
 //
 // Reads in tree with jet data. Saves the variables in 2D hists of type pt:observable
-// Distinguishes between leading and away-side jets and also considers the complete jet sample
+// Distinguishes between leading and away-side jets and also considers the inclusive jet sample
 // Note that this requires all data be combined into one file with the hadd command
-// See the notes for more details
+//
+// jetType = charged/full
+// sNN = 5tev02
+// observables = {"frag", "orth"}
 //
 //-------------------------------------------------------------
 
@@ -26,13 +29,11 @@ void trees_to_hists_frag(void){
   gROOT->SetBatch();
   double time = clock();
   double t2, dt;
-  string jetType = "full"; // charged/full;
-  string suffix = jetType + "_nobkg"; // nobkg/<nothing>
-  string sNN = "5tev02"; // e.g. 5tev02
-  string settings = "ppAAnrAAr";
-  std::vector<string> observables = {"frag"}; //{"frag", "orth"};
+  string jetType = "charged";
+  string sNN = "5tev02";
+  std::vector<string> observables = {"frag", "orth"};
 
-  string outName = "new_2dhists_frag_" + sNN + "_pp_hadron_" + jetType;
+  string outName = "partial_2dhists_frag_" + sNN + "_pp_hadron_" + jetType;
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   if (outFile) std::cout << "Output file: " << outName << ".root" << std::endl;
   else{
@@ -40,7 +41,7 @@ void trees_to_hists_frag(void){
     return;
   }
 
-  TFile* ppFile = TFile::Open(TString::Format("../run_pp_%s/jet_frag_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(), "read");
+  TFile* ppFile = TFile::Open(TString::Format("../run_pp_%s/jet_frag_1_%s_nobkg.root", sNN.c_str(), jetType.c_str()).Data(), "read");
   if (ppFile){
     TTree *ppT = (TTree*)ppFile->Get("jetprops");
     outFile->cd();
@@ -172,7 +173,7 @@ void save_hists(TTree *tree, string setting, vector<string> observables, string 
                              "nconst"
                              );
     // Draw hIncl
-    tree->Draw(TString::Format("nconst:%s>>", obs.c_str(), histName.c_str()).Data(),
+    tree->Draw(TString::Format("nconst:%s>>%s", obs.c_str(), histName.c_str()).Data(),
                "evwt"
                );
     // Draw hLead
@@ -197,16 +198,16 @@ TH2F *make_hists(string name, string title, string obs, string secondary){
   hist->GetXaxis()->SetTitle(obs.c_str());
   // std::cout << "After making the hist." << std::endl;
 
-  int nx = 48;
-  int ny1 = 101;
-  int ny2 = ny1 + 100;
-  const double x[nx] = {1e-5,
+  const double x[48] = {1e-5,
     2e-4, 3e-4, 4e-4, 5e-4, 6e-4, 7e-4, 8e-4, 9e-4, 1e-3,
     2e-3, 3e-3, 4e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3, 1e-2,
     2e-2, 3e-2, 4e-2, 5e-2, 6e-2, 7e-2, 8e-2, 9e-2, 1e-1,
     2e-1, 3e-1, 4e-1, 5e-1, 6e-1, 7e-1, 8e-1, 9e-1, 1,
     2, 3, 4, 5, 6, 7, 8, 9, 10,
     20, 30};
+  int nx = (sizeof(x)/sizeof(*x));
+  int ny1 = 101;
+  int ny2 = ny1 + 100;
   double y1[ny1];
   double y2[ny2];
   for (int i = 0; i <= ny1; ++i){

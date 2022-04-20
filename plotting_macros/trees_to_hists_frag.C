@@ -32,7 +32,7 @@ void trees_to_hists_frag(void){
   string settings = "ppAAnrAAr";
   std::vector<string> observables = {"frag"}; //{"frag", "orth"};
 
-  string outName = "2dhists_frag_" + sNN + "_pp_hadron_" + jetType;
+  string outName = "new_2dhists_frag_" + sNN + "_pp_hadron_" + jetType;
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
   if (outFile) std::cout << "Output file: " << outName << ".root" << std::endl;
   else{
@@ -218,10 +218,10 @@ TH2F *make_hists(string name, string title, string obs, string secondary){
   if (obs == "orth"){
     if (secondary == "nconst")
       //hist->SetBins(26, *x, 100, 0, 100);
-      hist->SetBins(47, x, 100, y1);
+      hist->SetBins(nx - 1, x, ny1 - 1, y1);
     else
       //hist->SetBins(26, *x, 200, 0, 200);
-      hist->SetBins(47, x, 200, y2);
+      hist->SetBins(nx - 1, x, ny2 - 1, y2);
   }
   else if (secondary == "nconst"){
     hist->SetBins(100, 0, 1.0, 100, 0, 100);
@@ -245,12 +245,15 @@ void hadron_frag(TTree *tree, string setting, string jetType, TList* L){
     TH2F *hFrag = make_hists(TString::Format("%s_frag", histName.c_str()).Data(),
                              TString::Format("%s fragmentation (%s)", hadron.c_str(), setting.c_str()).Data(),
                              "frag", "pt");
-    //TH2F *orth = make_hists(TString::Format("%s_%s_orth", setting.c_str(), hadron.c_str()).Data(),
-    //                        TString::Format("%s #it{j}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
-    //                        "orth", "pt");
+    TH2F *hOrth = make_hists(TString::Format("%s_%s_orth", setting.c_str(), hadron.c_str()).Data(),
+                             TString::Format("%s #it{j}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
+                             "orth", "pt");
     tree->Draw(TString::Format("pt:frag>>%s_frag", histName.c_str()).Data(),
                TString::Format("evwt*(abs(pdg) == %d)", code).Data());
+    tree->Draw(TString::Format("pt:orth>>%s_orth", histName.c_str()).Data(),
+               TString::Format("evwt*(abs(pdg) == %d)", code).Data());
     L->Add(hFrag);
+    L->Add(hOrth);
   }
   if (jetType == "charged") return;
   for (int i = 0; i < nHadrons.size(); i++){
@@ -259,14 +262,17 @@ void hadron_frag(TTree *tree, string setting, string jetType, TList* L){
     string histName = setting + "_" + jetType + "_" + hadron;
     std::cout << hadron << " = " << code << std::endl;
     TH2F *hFrag = make_hists(TString::Format("%s_frag", histName.c_str()).Data(),
-        TString::Format("%s fragmentation (%s)", hadron.c_str(), setting.c_str()).Data(),
-        "frag", "pt");
-    //TH2F *orth = make_hists(TString::Format("%s_%s_orth", setting.c_str(), hadron.c_str()).Data(),
-    //                        TString::Format("%s #it{j}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
-    //                        "orth", "pt");
+                             TString::Format("%s fragmentation (%s)", hadron.c_str(), setting.c_str()).Data(),
+                             "frag", "pt");
+    TH2F *hOrth = make_hists(TString::Format("%s_%s_orth", setting.c_str(), hadron.c_str()).Data(),
+                             TString::Format("%s #it{j}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
+                             "orth", "pt");
     tree->Draw(TString::Format("pt:frag>>%s_%s_frag", setting.c_str(), hadron.c_str()).Data(),
-        TString::Format("evwt*(abs(pdg) == %d)", code).Data());
+               TString::Format("evwt*(abs(pdg) == %d)", code).Data());
+    tree->Draw(TString::Format("pt:orth>>%s_orth", histName.c_str()).Data(),
+               TString::Format("evwt*(abs(pdg) == %d)", code).Data());
     L->Add(hFrag);
+    L->Add(hOrth);
   }
 }
 

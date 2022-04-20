@@ -116,29 +116,29 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
 
   int XmaxBinR = ratioFull->FindLastBinAbove(0,1);
   int XminBinR = ratioFull->FindFirstBinAbove(0,1);
-  double Ymin = 0;
-  double Ymax = max({hFull->GetMaximum(),
-      hCharged->GetMaximum()
-      });
-  double YminR = min({ratioFull->GetMinimum(),
-      ratioCharged->GetMinimum()
-      });
-  double YmaxR = max({ratioFull->GetMaximum(),
-      ratioCharged->GetMaximum()
-      });
+  double Ymin = min({hFull->GetMinimum(), hCharged->GetMinimum()});
+  Ymin *= 0.5;
+  double Ymax = max({hFull->GetMaximum(), hCharged->GetMaximum()});
+  Ymax *= 2;
+  double YminR = min({ratioFull->GetMinimum(), ratioCharged->GetMinimum()});
+  YminR *= 0.9;
+  double YmaxR = max({ratioFull->GetMaximum(), ratioCharged->GetMaximum()});
+  if (YmaxR > 3) YmaxR = 3;
+  else YmaxR *= 1.1;
 
   hFull->GetXaxis()->SetRange(0,XmaxBinR);
   ratioFull->GetXaxis()->SetRange(0,XmaxBinR);
-  if (YmaxR > 3) YmaxR = 3;
-  else YmaxR *= 1.1;
+
+  /*
   if (obs == "frag"){
     if (hadron == "p") Ymin = 1e-9; //min({hFull->GetMinimum(), hCharged->GetMinimum()});
     else Ymin = 1e-8;
   }
   else if (obs == "orth") Ymin = 1e-11;
+  */
 
-  hFull->GetYaxis()->SetRangeUser(Ymin, 2*Ymax);
-  ratioFull->GetYaxis()->SetRangeUser(0.9*YminR,YmaxR);
+  hFull->GetYaxis()->SetRangeUser(Ymin, Ymax);
+  ratioFull->GetYaxis()->SetRangeUser(YminR,YmaxR);
 
   TCanvas *c_obs = new TCanvas(TString::Format("c_%s_pt_%.0f_%.0f", obs.c_str(), min_pt, max_pt).Data(),
                                TString::Format("%s_pt_%.0f_%.0f", obs.c_str(), min_pt, max_pt).Data(),

@@ -50,34 +50,6 @@ void plot_hadron_frag(void){
   }
 
   TH2F *hC, *hF;
-  //TH1F *hCharged, *hFull;
-
-  //TCanvas *c1 = new TCanvas("name", "title", 900, 600);
-  //c1->cd();
-
-  //hC->GetYaxis()->SetRangeUser(ptBins[0], ptBins.back());
-  /*
-  hCharged = (TH1F*)hC->ProjectionX();
-  hCharged->Scale(1./hCharged->Integral()); // Use option "width" to divide by bin width for jT
-  hCharged->SetStats(0);
-  //hCharged->SetMarkerStyle(kCircle);
-  //hCharged->SetLineColor(kOrange+7);
-  //hCharged->SetMarkerColor(kOrange+7);
-
-  hF->GetYaxis()->SetRangeUser(ptBins[0], ptBins.back());
-  hFull = (TH1F*)hF->ProjectionX();
-  hFull->Scale(1./hFull->Integral());
-  hFull->SetStats(0);
-  hFull->SetMarkerStyle(kCircle);
-  hFull->SetLineColor(kOrange+7);
-  hFull->SetMarkerColor(kOrange+7);
-
-  hCharged->Draw();
-  hFull->Draw("same");
-*/
-
-  // /*
-  //for (int iobs=0; iobs<obs.size(); iobs++){
   for (auto obs : observables){
     std::cout << "Plotting " << obs << std::endl;
     hC = (TH2F*)chList->FindObject(TString::Format("pp_%s", obs.c_str()).Data());
@@ -96,86 +68,31 @@ void plot_hadron_frag(void){
       }
     }
   }
-  // */
-  //hC = (TH2F*)chList->FindObject("pp_charged_pi_frag");
-  //hF = (TH2F*)fList->FindObject("pp_full_pi_frag");
-
-  /*
-  std::cout << "Charged: " << hC->Integral() << std::endl
-    << "Full: " << hF->Integral() << std::endl;
-
-  double min_pt = ptBins[0];
-  double max_pt = ptBins.back();
-  hF->GetYaxis()->SetRangeUser(min_pt, max_pt);
-  TH1F *hFull = (TH1F*)hF->ProjectionX();
-  //hFull->Scale(1./hFull->Integral());
-  hC->GetYaxis()->SetRangeUser(min_pt, max_pt);
-  TH1F *hCharged = (TH1F*)hC->ProjectionX();
-  //hCharged->Scale(2./hCharged->Integral());
-  std::cout << "Charged: " << hC->Integral() << std::endl
-    << "Full: " << hF->Integral() << std::endl;
-
-  hCharged->SetStats(0);
-  hCharged->SetMarkerStyle(kMultiply);
-  hCharged->SetLineColor(kRed);
-  hCharged->SetMarkerColor(kRed);
-  */
-
-  //TCanvas *cC = new TCanvas("charged", "charged", 400, 400);
-  //cC->cd();
-  //hFull->Draw();
-  //TCanvas *cF = new TCanvas("full", "full", 400, 400);
-  //cF->cd();
-  //hCharged->Draw("same");
-  //charged_VS_full(hF, hC, "frag", ptBins[0], ptBins.back(), "pp", "", "pi");
-
 
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
-  //chFile->Close();
-  //nFile->Close();
 }
 
 void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_pt, string setting, string type, string hadron){
   double jetR = 0.4;
-  // Project with pt cut
+  if (hadron == "") hadron = "jet";
   hF->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hFull = (TH1F*)hF->ProjectionX();
-  //hFull->Scale(1./hFull->Integral());
   hC->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hCharged = (TH1F*)hC->ProjectionX();
-  //hCharged->Scale(1./hCharged->Integral());
-  /* // Use unnormalised spectra for hadrons
-  if (abs(hFull->Integral() -  1.0) > 0.01){
-    cout << "WARNING: NORMALISATION PROBLEM!" << endl
-      << TString::Format("%s for pt %.0f-%.0f GeV/c", obs.c_str(), min_pt, max_pt).Data() << endl
-      << "Full = " << hFull->Integral() << " (" << hFull->Integral()-1.0  << ")" << endl;
+  if (obs == "orth"){
+    hFull->Scale(1.,"width");
+    hCharged->Scale(1.,"width");
   }
-  if (abs(hCharged->Integral() - 1.0) > 0.01){
-    cout << "WARNING: NORMALISATION PROBLEM!" << endl
-      << TString::Format("%s for pt %.0f-%.0f GeV/c", obs.c_str(), min_pt, max_pt).Data() << endl
-      << "Charged = " << hCharged->Integral() << " (" << hCharged->Integral()-1.0 << ")" << endl;
-  }
-  // */
 
   // Top plot settings
   hFull->SetStats(0);
-  //hFull->SetMarkerStyle(kPlus);
-  //hFull->SetLineColor(kBlue);
-  //hFull->SetMarkerColor(kBlue);
-  if (type == "all"){
-    hFull->SetTitle(TString::Format("Jet %s, pt #in [%.0f,%.0f) GeV/c, R = %.1f %s",
-                                    obs.c_str(), min_pt, max_pt, jetR, setting.c_str()).Data());
-  }
-  else{
-    hFull->SetTitle(TString::Format("%s %s, pt #in [%.0f,%.0f) GeV/c, R = %.1f %s",
-                                    hadron.c_str(), obs.c_str(), min_pt, max_pt, jetR, type.c_str()).Data());
-  }
-  hFull->GetYaxis()->SetTitle(TString::Format("#frac{dN}{d %s}",
-                                              obs.c_str()).Data());
+  hFull->SetTitle(TString::Format("%s %s, pt #in [%.0f,%.0f) GeV/c, R = %.1f %s",
+                                  hadron.c_str(), obs.c_str(), min_pt, max_pt, jetR, setting.c_str()).Data());
+  hFull->GetYaxis()->SetTitle(TString::Format("#frac{dN}{d %s}", obs.c_str()).Data());
   hFull->GetYaxis()->SetTitleFont(43);
   hFull->GetYaxis()->SetTitleSize(20);
-  hFull->GetYaxis()->SetTitleOffset(1.5);//2.5);
+  hFull->GetYaxis()->SetTitleOffset(1.5);
   hFull->GetYaxis()->SetLabelFont(43);
   hFull->GetYaxis()->SetLabelSize(14);
 
@@ -222,7 +139,7 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   if (YmaxR > 3) YmaxR = 3;
   else YmaxR *= 1.1;
   if (obs == "frag"){
-    if (hadron == "p") Ymin = 1e-9; //min({hFull->GetMinimum(), hCharged->GetMinimum()}); //1e-6;
+    if (hadron == "p") Ymin = 1e-9; //min({hFull->GetMinimum(), hCharged->GetMinimum()});
     else Ymin = 1e-8;
   }
   else if (obs == "orth") Ymin = 1e-11;
@@ -230,11 +147,9 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   hFull->GetYaxis()->SetRangeUser(Ymin, 2*Ymax);
   ratioFull->GetYaxis()->SetRangeUser(0.9*YminR,YmaxR);
 
-  TCanvas *c_obs = new TCanvas(TString::Format("c_%s_pt_%.0f_%.0f",
-                                               obs.c_str(), min_pt, max_pt).Data(),
-                               TString::Format("%s_pt_%.0f_%.0f",
-                                               obs.c_str(), min_pt, max_pt).Data(),
-                               900, 600); //600, 900);
+  TCanvas *c_obs = new TCanvas(TString::Format("c_%s_pt_%.0f_%.0f", obs.c_str(), min_pt, max_pt).Data(),
+                               TString::Format("%s_pt_%.0f_%.0f", obs.c_str(), min_pt, max_pt).Data(),
+                               900, 600);
   TPad *pad1 = new TPad("pad1","pad1",0,0.4,1,1);
   pad1->SetBottomMargin(0);
   pad1->SetLeftMargin(0.15);
@@ -248,14 +163,8 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
 
   auto legend = new TLegend(0.6,0.7,0.9,0.9); // Top right corner
 
-  if (type == "all"){
-    legend->AddEntry(hFull,"Full set");
-    if (hCharged->GetEntries() != 0) legend->AddEntry(hCharged,"Leading");
-  }
-  else{
-    legend->AddEntry(hFull,"Full jets");
-    if (hCharged->GetEntries() != 0) legend->AddEntry(hCharged, "Charged jets");
-  }
+  legend->AddEntry(hFull,"Full jets");
+  if (hCharged->GetEntries() != 0) legend->AddEntry(hCharged, "Charged jets");
   legend->Draw();
 
   c_obs->cd();
@@ -272,6 +181,6 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   c_obs->cd();
 
   c_obs->SaveAs(TString::Format("../plots/fragmentation/ChargedVsFull/%s_%s_%s_pt_%.0f_%.0f.pdf",
-                                hadron.c_str(), setting.c_str(), obs.c_str(), min_pt, max_pt).Data());
+                                setting.c_str(), hadron.c_str(), obs.c_str(), min_pt, max_pt).Data());
 }
 

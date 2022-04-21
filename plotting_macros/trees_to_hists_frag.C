@@ -152,6 +152,7 @@ void save_hists(TTree *tree, string setting, vector<string> observables, string 
     L->Add(hLead);
     L->Add(hAway);
   }
+  /*
   for (auto obs : observables){
     string histName = setting + "_" + jetType + "_" + obs;
     TH2F *hIncl = make_hists(TString::Format("%s", histName.c_str()).Data(),
@@ -188,6 +189,7 @@ void save_hists(TTree *tree, string setting, vector<string> observables, string 
     L->Add(hLead);
     L->Add(hAway);
   }
+  */
   std::cout << TString::Format("Name: %s", setting.c_str()).Data() << std::endl;
 }
 
@@ -217,12 +219,14 @@ TH2F *make_hists(string name, string title, string obs, string secondary){
   }
 
   if (obs == "orth"){
-    if (secondary == "nconst")
+    if (secondary == "nconst"){
       //hist->SetBins(26, *x, 100, 0, 100);
       hist->SetBins(nx - 1, x, ny1 - 1, y1);
-    else
+    }
+    else{
       //hist->SetBins(26, *x, 200, 0, 200);
       hist->SetBins(nx - 1, x, ny2 - 1, y2);
+    }
   }
   else if (secondary == "nconst"){
     hist->SetBins(100, 0, 1.0, 100, 0, 100);
@@ -268,7 +272,7 @@ void hadron_frag(TTree *tree, string setting, string jetType, TList* L){
     TH2F *hOrth = make_hists(TString::Format("%s_orth", histName.c_str()).Data(),
                              TString::Format("%s #it{j}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
                              "orth", "pt");
-    tree->Draw(TString::Format("pt:frag>>%s_%s_frag", histName.c_str()).Data(),
+    tree->Draw(TString::Format("pt:frag>>%s_frag", histName.c_str()).Data(),
                TString::Format("evwt*(abs(pdg) == %d)", code).Data());
     tree->Draw(TString::Format("pt:orth>>%s_orth", histName.c_str()).Data(),
                TString::Format("evwt*(abs(pdg) == %d)", code).Data());

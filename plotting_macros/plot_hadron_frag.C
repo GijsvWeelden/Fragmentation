@@ -123,7 +123,7 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   if (Ymin == 0){
     double tmpFull = hFull->FindLastBinAbove(0,1);
     double tmpCharged = hCharged->FindLastBinAbove(0,1);
-    Ymin = min({hFull->GetBinContent(tmpFull)}, hCharged->GetBinContent(tmpCharged));
+    Ymin = min({hFull->GetBinContent(tmpFull), hCharged->GetBinContent(tmpCharged)});
   }
   double YminR = min({ratioFull->GetMinimum(), ratioCharged->GetMinimum()});
   YminR *= 0.9;

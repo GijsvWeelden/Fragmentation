@@ -31,7 +31,7 @@ void trees_to_hists_frag(void){
   double t2, dt;
   string jetType = "charged";
   string sNN = "5tev02";
-  std::vector<string> observables = {"track_pt"}; //{"frag", "orth", "track_pt"};
+  std::vector<string> observables = {"frag", "orth", "track_pt"};
 
   string outName = "partial_2dhists_frag_" + sNN + "_pp_hadron_" + jetType;
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
@@ -123,7 +123,7 @@ void save_hists(TTree *tree, string setting, vector<string> observables, string 
   // std::cout << "Save hists " << setting << std::endl;
   for (auto obs : observables){
     string histName = setting + "_" + jetType + "_" + obs;
-    if (obs == "track_pt") obs == "pt*frag";
+    if (obs == "track_pt") obs = "pt*frag";
     TH2F *hIncl = make_hists(histName.c_str(),
                              TString::Format("Jet %s (%s)", obs.c_str(), setting.c_str()).Data(),
                              obs.c_str(),
@@ -255,12 +255,18 @@ void hadron_frag(TTree *tree, string setting, string jetType, TList* L){
     TH2F *hOrth = make_hists(TString::Format("%s_orth", histName.c_str()).Data(),
                              TString::Format("%s #it{j}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
                              "orth", "pt");
+    TH2F *hTrack = make_hists(TString::Format("%s_track_pt", histName.c_str()).Data(),
+                              TString::Format("%s #it{p}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
+                              "pt*frag", "pt");
     tree->Draw(TString::Format("pt:frag>>%s_frag", histName.c_str()).Data(),
                TString::Format("evwt*(abs(pdg) == %d)", code).Data());
     tree->Draw(TString::Format("pt:orth>>%s_orth", histName.c_str()).Data(),
                TString::Format("evwt*(abs(pdg) == %d)", code).Data());
+    tree->Draw(TString::Format("pt:pt*frag>>%s_track_pt", histName.c_str()).Data(),
+               TString::Format("evwt*(abs(pdg) == %d)", code).Data());
     L->Add(hFrag);
     L->Add(hOrth);
+    L->Add(hTrack);
   }
   if (jetType == "charged") return;
   for (int i = 0; i < nHadrons.size(); i++){
@@ -274,12 +280,18 @@ void hadron_frag(TTree *tree, string setting, string jetType, TList* L){
     TH2F *hOrth = make_hists(TString::Format("%s_orth", histName.c_str()).Data(),
                              TString::Format("%s #it{j}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
                              "orth", "pt");
+    TH2F *hTrack = make_hists(TString::Format("%s_track_pt", histName.c_str()).Data(),
+                              TString::Format("%s #it{p}_{T} (%s)", hadron.c_str(), setting.c_str()).Data(),
+                              "pt*frag", "pt");
     tree->Draw(TString::Format("pt:frag>>%s_frag", histName.c_str()).Data(),
                TString::Format("evwt*(abs(pdg) == %d)", code).Data());
     tree->Draw(TString::Format("pt:orth>>%s_orth", histName.c_str()).Data(),
                TString::Format("evwt*(abs(pdg) == %d)", code).Data());
+    tree->Draw(TString::Format("pt:pt*frag>>%s_track_pt", histName.c_str()).Data(),
+               TString::Format("evwt*(abs(pdg) == %d)", code).Data());
     L->Add(hFrag);
     L->Add(hOrth);
+    L->Add(hTrack);
   }
 }
 

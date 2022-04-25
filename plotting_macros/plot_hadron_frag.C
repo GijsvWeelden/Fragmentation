@@ -55,7 +55,7 @@ void plot_hadron_frag(void){
     for (auto hadron : chHadrons){
       hC = (TH2F*)chList->FindObject(TString::Format("pp_charged_%s_%s", hadron.c_str(), obs.c_str()).Data());
       hF = (TH2F*)fList->FindObject(TString::Format("pp_full_%s_%s", hadron.c_str(), obs.c_str()).Data());
-      charged_VS_full(hF, hC, "frag", ptBins[0], ptBins.back(), "pp", "", hadron);
+      charged_VS_full(hF, hC, obs, ptBins[0], ptBins.back(), "pp", "", hadron);
       for (int ipt = 0; ipt < ptBins.size()-1; ++ipt){
         charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins[ipt+1], "pp", "", hadron);
       }
@@ -69,7 +69,7 @@ void plot_hadron_frag(void){
 void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_pt, string setting, string type, string hadron){
   double jetR = 0.4;
   if (hadron == "") hadron = "jet";
-  hF->GetYaxis()->SetRangeUser(min_pt, max_pt);
+  hF->GetYaxis()->SetRangeUser((3/2)*min_pt, (3/2)*max_pt);
   TH1F *hFull = (TH1F*)hF->ProjectionX();
   hC->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hCharged = (TH1F*)hC->ProjectionX();
@@ -80,7 +80,7 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
 
   // Top plot settings
   hFull->SetStats(0);
-  hFull->SetTitle(TString::Format("%s %s, pt #in [%.0f,%.0f) GeV/c, R = %.1f %s",
+  hFull->SetTitle(TString::Format("%s %s, pt_{ch} #in [%.0f,%.0f) GeV/c, R = %.1f %s",
                                   hadron.c_str(), obs.c_str(), min_pt, max_pt, jetR, setting.c_str()).Data());
   hFull->GetYaxis()->SetTitle(TString::Format("#frac{dN}{d %s}", obs.c_str()).Data());
   hFull->GetYaxis()->SetTitleFont(43);
@@ -160,7 +160,10 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   if (hCharged->GetEntries() != 0) hCharged->Draw("same");
 
   auto legend = new TLegend(0.6,0.7,0.9,0.9); // Top right corner
-
+  if (obs == "orth"){
+    delete legend;
+    legend = new TLegend(0.4, 0, 0.7, 0.2); // Bottom middle
+  }
   legend->AddEntry(hFull,"Full jets");
   if (hCharged->GetEntries() != 0) legend->AddEntry(hCharged, "Charged jets");
   legend->Draw();
@@ -178,7 +181,7 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   if (ratioCharged->GetEntries() != 0) ratioCharged->Draw("same");
   c_obs->cd();
 
-  c_obs->SaveAs(TString::Format("../plots/fragmentation/ChargedVsFull/%s_%s_%s_pt_%.0f_%.0f.pdf",
+  c_obs->SaveAs(TString::Format("../plots/fragmentation/ChargedVsFull/%s_%s_%s_ptch_%.0f_%.0f.pdf",
                                 setting.c_str(), hadron.c_str(), obs.c_str(), min_pt, max_pt).Data());
   delete c_obs;
 }

@@ -31,7 +31,7 @@ void trees_to_hists_frag(void){
   double t2, dt;
   string jetType = "charged";
   string sNN = "5tev02";
-  std::vector<string> observables = {"frag", "orth"};
+  std::vector<string> observables = {"track_pt"}; //{"frag", "orth", "track_pt"};
 
   string outName = "partial_2dhists_frag_" + sNN + "_pp_hadron_" + jetType;
   TFile *outFile = new TFile(Form("%s.root", outName.c_str()),"RECREATE");
@@ -123,6 +123,7 @@ void save_hists(TTree *tree, string setting, vector<string> observables, string 
   // std::cout << "Save hists " << setting << std::endl;
   for (auto obs : observables){
     string histName = setting + "_" + jetType + "_" + obs;
+    if (obs == "track_pt") obs == "pt*frag";
     TH2F *hIncl = make_hists(histName.c_str(),
                              TString::Format("Jet %s (%s)", obs.c_str(), setting.c_str()).Data(),
                              obs.c_str(),
@@ -152,6 +153,7 @@ void save_hists(TTree *tree, string setting, vector<string> observables, string 
     L->Add(hLead);
     L->Add(hAway);
   }
+
   /*
   for (auto obs : observables){
     string histName = setting + "_" + jetType + "_" + obs;
@@ -220,18 +222,18 @@ TH2F *make_hists(string name, string title, string obs, string secondary){
 
   if (obs == "orth"){
     if (secondary == "nconst"){
-      //hist->SetBins(26, *x, 100, 0, 100);
       hist->SetBins(nx - 1, x, ny1 - 1, y1);
     }
     else{
-      //hist->SetBins(26, *x, 200, 0, 200);
       hist->SetBins(nx - 1, x, ny2 - 1, y2);
     }
+  }
+  else if (obs == "pt*frag"){
+    hist->SetBins(400, 0, 200, 200, 0, 200);
   }
   else if (secondary == "nconst"){
     hist->SetBins(100, 0, 1.0, 100, 0, 100);
   }
-  // std::cout << "After rebinning." << std::endl;
   return hist;
 }
 

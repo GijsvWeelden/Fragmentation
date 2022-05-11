@@ -1,0 +1,114 @@
+{
+  gROOT->LoadMacro("~/macros/utils.C");
+  set_legend_font(62,0.05);
+
+  //Char_t *fname_base="output/pythia_jets_%.0f_%.0f_all.root";
+  Char_t *fname_base="output/pythia_full_jet_ff_5020GeV_%.0f_%.0f_all.root";
+  Float_t pthard[]={5,15,25,40,100};
+
+  const Int_t do_scaling = 1;
+
+  Int_t npthardbins = sizeof(pthard)/sizeof(Float_t)-1;
+  cout << npthardbins << endl;
+ 
+  TLatex *ltx = new TLatex;
+  ltx->SetNDC();
+
+  Float_t ptjetmin = 15;
+  Float_t ptjetmax = 20;
+  Float_t etajetmax[] = {1,2,3,4};
+  Int_t netabins = sizeof(etajetmax)/sizeof(etajetmax[0]);
+
+
+  TH3F *hsum_pion = 0;
+  TH3F *hsum_gamma = 0;
+  TH3F *hsum_jet = 0;
+
+  for (Int_t ipthbin = 0; ipthbin < npthardbins; ipthbin++) {
+    TFile *fin = new TFile(Form(fname_base,pthard[ipthbin],pthard[ipthbin+1]));
+    cout << "pthard " << pthard[ipthbin] << " - " << pthard[ipthbin+1]<< " xsec " << hXSec->GetBinContent(1) << " events " << hNEvent->GetBinContent(1) << endl;
+    Float_t scale = hXSec->GetBinContent(1)/hNEvent->GetBinContent(1);
+
+    hEtaPtJetPtPion = (TH3F*) fin->Get("hEtaPtJetPtPion");
+    hEtaPtJetPtPion->Sumw2();
+    hEtaPtJetPtPion->Scale(scale);
+
+    hEtaPtJetPtGamma = (TH3F*) fin->Get("hEtaPtJetPtGamma");
+    hEtaPtJetPtGamma->Sumw2();
+    hEtaPtJetPtGamma->Scale(scale);
+
+    hJetPtEtaPhi = (TH3F*) fin->Get("hJetPtEtaPhi");
+    hJetPtEtaPhi->Sumw2();
+    hJetPtEtaPhi->Scale(scale);
+
+    if (ipthbin == 0) {
+      hsum_jet = new TH3F(*hJetPtEtaPhi);
+      hsum_jet->SetName("hsum_jet");
+
+      hsum_pion = new TH3F(*hEtaPtJetPtPion);
+      hsum_pion->SetName("hsum_pion");
+      hsum_gamma = new TH3F(*hEtaPtJetPtGamma);
+      hsum_gamma->SetName("hsum_gamma");
+    }
+    else {
+      hsum_jet->Add(hJetPtEtaPhi);
+      hsum_pion->Add(hEtaPtJetPtPion);
+      hsum_gamma->Add(hEtaPtJetPtGamma);
+    }
+  }
+
+  TCanvas *c1 = new TCanvas("c1","pt",800,600);
+  c1->Divide(2,1);
+
+  gPad->SetLogy();
+
+  Int_t minptbin = hsum_pion->GetYaxis()->FindBin(ptjetmin+0.0001);
+  Int_t maxptbin = hsum_pion->GetYaxis()->FindBin(ptjetmax-0.0001);
+
+  hsum_pion->GetYaxis()->SetRange(minptbin, maxptbin);
+  hsum_gamma->GetYaxis()->SetRange(minptbin, maxptbin);
+  hsum_jet->GetXaxis()->SetRange(minptbin, maxptbin);
+
+  hjet_eta = hsum_jet->Project3D("y_jets");
+
+  THStack *hpions = new THStack("hpions","pions in jets");
+  THStack *hgamma = new THStack("hgamma","gammas in jets");
+
+  for (Int_t ietabin = 0; ietabin < netabins; ietabin++) {
+    Float_t min_eta = 0;
+    if (ietabin > 0)
+      min_eta = etajetmax[ietabin-1];
+    Int_t minetabin = hsum_pion->GetXaxis()->FindBin(min_eta+0.001);
+    Int_t maxetabin = hsum_pion->GetXaxis()->FindBin(etajetmax[ietabin]-0.001);
+    cout << "minetabin " << minetabin << " max " << maxetabin << endl;
+    hsum_pion->GetXaxis()->SetRange(minetabin, maxetabin);
+
+    px = hsum_pion->Project3D(Form("z_%d",ietabin));
+    //px->Scale(1./hjet_eta->Integral(minetabin, maxetabin));
+    px->SetLineColor(ietabin+1);
+    hpions->Add(px);
+
+    hsum_gamma->GetXaxis()->SetRange(minetabin, maxetabin);
+
+    px = hsum_gamma->Project3D(Form("z_%d",ietabin));
+    //px->Scale(1./hjet_eta->Integral(minetabin, maxetabin));
+    px->SetLineColor(ietabin+1);
+    hgamma->Add(px);
+
+  }
+    
+  c1->cd(1);
+  gPad->SetLogy();
+  hpions->Draw("nostack");
+  hpions->GetXaxis()->SetRangeUser(0,ptjetmax);
+  ltx->DrawLatex(0.5,0.8,Form("%.0f < p_{T,jet} < %.f GeV",ptjetmin,ptjetmax));
+  ltx->DrawLatex(0.7,0.7,"#pi^{#pm}");
+
+  c1->cd(2);
+  gPad->SetLogy();
+  hgamma->Draw("nostack");
+  hgamma->GetXaxis()->SetRangeUser(0,ptjetmax);
+  ltx->DrawLatex(0.5,0.8,Form("%.0f < p_{T,jet} < %.f GeV",ptjetmin,ptjetmax));
+  ltx->DrawLatex(0.7,0.7,"#gamma");
+
+}

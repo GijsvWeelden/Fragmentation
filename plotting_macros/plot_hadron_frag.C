@@ -16,15 +16,16 @@ using std::endl;
 
 //-------------------------------------------------------------
 //
-// Compares fragmentation spectra in charged and full jets
-// both for inclusive sample as for specific hadron species
+// * Compares fragmentation spectra in charged and full jets
+// both for inclusive sample as for specific hadron species,
+// and fits those spectra
+// * Compares hadron spectra and shows their ratios for various
+// jet pt bins
 //
 //-------------------------------------------------------------
 
 void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_pt, string setting, string hadron);
-// void spectra_ratio(TH2F *hB, string baryon, TH2F* hM, string meson, string obs, std::vector<double> ptBins, string setting);
 void spectra_ratio(TH2F *hN, string sNum, TH2F* hD, string sDen, std::vector<double> ptBins, string setting);
-// TH1F* make_ratio(TH2F* hBaryon, string baryon, TH2F* hMeson, string meson, double min_pt, double max_pt);
 TH1F* make_ratio(TH2F* hNum, string sNum, TH2F* hDen, string sDen, double min_pt, double max_pt);
 void fit_spectra(TH1F* hFull, TH1F* hCharged, string obs, string hadron);
 
@@ -69,18 +70,18 @@ void plot_hadron_frag(void){
       std::cout << "Plotting " << obs << std::endl;
       hC = (TH2F*)chList->FindObject(TString::Format("pp_charged_%s", obs.c_str()).Data());
       hF = (TH2F*)fList->FindObject(TString::Format("pp_full_%s", obs.c_str()).Data());
-      // charged_VS_full(hF, hC, obs, ptBins[0], ptBins.back(), "pp", "");
-      for (int ipt=0; ipt < 2; ++ipt){ //ipt < ptBins.size()-1; ++ipt){
+      charged_VS_full(hF, hC, obs, ptBins[0], ptBins.back(), "pp", "");
+      for (int ipt=0; ipt < ptBins.size()-1; ++ipt){
         charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins[ipt+1], "pp", "");
       }
-      // for (auto hadron : chHadrons){
-      //   hC = (TH2F*)chList->FindObject(TString::Format("pp_charged_%s_%s", hadron.c_str(), obs.c_str()).Data());
-      //   hF = (TH2F*)fList->FindObject(TString::Format("pp_full_%s_%s", hadron.c_str(), obs.c_str()).Data());
-      //   charged_VS_full(hF, hC, obs, ptBins[0], ptBins.back(), "pp", hadron);
-      //   for (int ipt = 0; ipt < ptBins.size()-1; ++ipt){
-      //     charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins[ipt+1], "pp", hadron);
-      //   }
-      // }
+      for (auto hadron : chHadrons){
+        hC = (TH2F*)chList->FindObject(TString::Format("pp_charged_%s_%s", hadron.c_str(), obs.c_str()).Data());
+        hF = (TH2F*)fList->FindObject(TString::Format("pp_full_%s_%s", hadron.c_str(), obs.c_str()).Data());
+        charged_VS_full(hF, hC, obs, ptBins[0], ptBins.back(), "pp", hadron);
+        for (int ipt = 0; ipt < ptBins.size()-1; ++ipt){
+          charged_VS_full(hF, hC, obs, ptBins[ipt], ptBins[ipt+1], "pp", hadron);
+        }
+      }
     }
   }
 
@@ -114,11 +115,16 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   hC->GetYaxis()->SetRangeUser(min_pt, max_pt);
   TH1F *hCharged = (TH1F*)hC->ProjectionX();
   if (obs == "orth"){
-    hFull->Scale(1./hFull->Integral(),"width");
-    hCharged->Scale(1./hCharged->Integral(),"width");
+    hFull->Scale(1./hFull->Integral(), "width");
+    hCharged->Scale(1./hCharged->Integral(), "width");
   }
 
   // fit_spectra(hFull, hCharged, "frag", "pi");
+  double fitmin = 0.4;
+  double fitmax = 0.8;
+  TFitResultPtr fitFull =  hFull->Fit("expo", "S", "", fitmin, fitmax);
+  TFitResultPtr fitCharged = hCharged->Fit("expo", "S", "", fitmin, fitmax);
+  // return;
 
   // Top plot settings
   hFull->SetStats(0);
@@ -198,8 +204,11 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
     delete legend;
     legend = new TLegend(0.4, 0, 0.7, 0.2); // Bottom middle
   }
-  legend->AddEntry(hFull,"Full jets");
-  if (hCharged->GetEntries() != 0) legend->AddEntry(hCharged, "Charged jets");
+  auto paramsFull = fitFull->Parameters();
+  auto paramsCharged = fitCharged->Parameters();
+  legend->AddEntry(hFull, TString::Format("Full: exp(%.1f+%.1f x)", paramsCharged[0], paramsCharged[1]).Data());
+  if (hCharged->GetEntries() != 0) legend->AddEntry(hCharged, TString::Format("Charged: exp(%.1f+%.1f x)", paramsFull[0], paramsFull[1]).Data());
+  // legend->AddEntry(fitFull, TString::Format("exp(%.1f+%.1fx)", paramsFull[0], paramsFull[1]).Data())
   legend->Draw();
 
   c_obs->cd();
@@ -215,9 +224,9 @@ void charged_VS_full(TH2F *hF, TH2F *hC, string obs, double min_pt, double max_p
   if (ratioCharged->GetEntries() != 0) ratioCharged->Draw("same");
   c_obs->cd();
 
-  // c_obs->SaveAs(TString::Format("../plots/fragmentation/ChargedVsFull/%s_%s_%s_ptch_%.0f_%.0f.pdf",
-                                // setting.c_str(), hadron.c_str(), obs.c_str(), min_pt, max_pt).Data());
-  // delete c_obs;
+  c_obs->SaveAs(TString::Format("../plots/fragmentation/ChargedVsFull/%s_%s_%s_ptch_%.0f_%.0f.pdf",
+                                setting.c_str(), hadron.c_str(), obs.c_str(), min_pt, max_pt).Data());
+  delete c_obs;
 }
 
 void spectra_ratio(TH2F* hNum, string sNum, TH2F* hDen, string sDen, std::vector<double> ptBins, string setting){
@@ -341,3 +350,8 @@ void fit_spectra(TH1F* hFull, TH1F* hCharged, string obs, string hadron){
   cout << endl;
   return;
 }
+
+// TFitResultPtr* fit_spectrum(TH1F* hist, xmin, xmax){
+//   TFitResultPtr fit = hist->Fit("expo", "S", "", xmin, xmax);
+//   return fit;
+// }

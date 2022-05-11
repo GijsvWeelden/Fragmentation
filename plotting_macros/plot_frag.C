@@ -11,10 +11,8 @@
 
 //-------------------------------------------------------------
 //
-// plot_jetprops.C normalises and plots histograms against
-// each other and compares them by taking their ratio
-// it can do this for either 2 or 3 histograms and takes the
-// pp as a reference
+// Plot fragmentation in pp, AAnr, AAr with and without
+// background subtraction
 //
 //-------------------------------------------------------------
 

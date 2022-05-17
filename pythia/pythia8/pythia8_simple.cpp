@@ -4,10 +4,10 @@
 
 #include "Pythia8/Pythia.h"
 
-// #include "fastjet/PseudoJet.hh"
-// #include "fastjet/ClusterSequence.hh"
-// #include "fastjet/ClusterSequenceArea.hh"
-// #include "fastjet/ClusterSequenceAreaBase.hh"
+#include "fastjet/PseudoJet.hh"
+#include "fastjet/ClusterSequence.hh"
+#include "fastjet/ClusterSequenceArea.hh"
+#include "fastjet/ClusterSequenceAreaBase.hh"
 
 // #include "fastjet/tools/Subtractor.hh"
 // #include "fastjet/contrib/ConstituentSubtractor.hh"

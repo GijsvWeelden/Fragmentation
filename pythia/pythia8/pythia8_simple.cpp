@@ -26,7 +26,7 @@
 
 using namespace Pythia8;
 
-std::vector <fastjet::PseudoJet> do_jet_finding();
+// std::vector <fastjet::PseudoJet> do_jet_finding();
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -40,8 +40,8 @@ int main(int /*argc*/, char** /*argv*/)
 	Float_t ptHatMax=-1; //100;
 
 	int nCharged = 3, nNeutral = 5;
-	int PDG[nCharged + nNeutral] = {211, 321, 2212, 111, 130, 310, 311, 3122};
-	string Hadrons[nCharged + nNeutral] = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
+	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
+	std::vector<string> Hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
 
 	// Generator. Process selection. LHC initialization. Histogram.
 	Pythia pythia;
@@ -82,10 +82,10 @@ int main(int /*argc*/, char** /*argv*/)
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",40,-2,2,50,0,10);
 	TH1F* hists[nCharged + nNeutral];
 	for (int i = 0; i < nCharged + nNeutral; i++){
-		TH1F *hPt = new TH2F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
-												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i]).Data(),
+		TH1F *hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
+												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
 												 50,0,10);
-		hists[i] = *hPt;
+		hists[i] = hPt;
 	}
 
 	float pt_lead = -1;
@@ -107,7 +107,7 @@ int main(int /*argc*/, char** /*argv*/)
 			if (!part.isFinal()) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
 			for (int i = 0; i < nCharged + nNeutral; i++){
-				if (part.pdg_id() == PDG[i]){
+				if (part.id() == PDG[i]){
 					hists[i]->Fill(part.pT());
 				}
 			}

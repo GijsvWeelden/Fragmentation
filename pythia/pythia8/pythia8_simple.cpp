@@ -4,17 +4,17 @@
 
 #include "Pythia8/Pythia.h"
 
-#include "fastjet/PseudoJet.hh"
-#include "fastjet/ClusterSequence.hh"
-#include "fastjet/ClusterSequenceArea.hh"
-#include "fastjet/ClusterSequenceAreaBase.hh"
+// #include "fastjet/PseudoJet.hh"
+// #include "fastjet/ClusterSequence.hh"
+// #include "fastjet/ClusterSequenceArea.hh"
+// #include "fastjet/ClusterSequenceAreaBase.hh"
 
-#include "fastjet/tools/Subtractor.hh"
-#include "fastjet/contrib/ConstituentSubtractor.hh"
-#include "fastjet/contrib/Nsubjettiness.hh"
-#include "fastjet/contrib/SoftDrop.hh"
-#include "fastjet/contrib/ModifiedMassDropTagger.hh"
-#include "fastjet/contrib/Recluster.hh"
+// #include "fastjet/tools/Subtractor.hh"
+// #include "fastjet/contrib/ConstituentSubtractor.hh"
+// #include "fastjet/contrib/Nsubjettiness.hh"
+// #include "fastjet/contrib/SoftDrop.hh"
+// #include "fastjet/contrib/ModifiedMassDropTagger.hh"
+// #include "fastjet/contrib/Recluster.hh"
 
 #include "TPDGCode.h"
 
@@ -128,6 +128,7 @@ int main(int /*argc*/, char** /*argv*/)
 	outFile->Close();
 }
 
+/*
 std::vector <fastjet::PseudoJet> do_jet_finding(){ // Takes in pythia event
 	std::vector <fastjet::PseudoJet> particlesSig;
 	int nPart = pythia.event.size();
@@ -147,7 +148,6 @@ std::vector <fastjet::PseudoJet> do_jet_finding(){ // Takes in pythia event
 			// 	jInp.set_user_index(part.pdg_id());//index);
 			// 	fjInputs.push_back(jInp);
 			// }
-			// */
 			nPartPythia++;
 	}
 
@@ -184,3 +184,4 @@ std::vector <fastjet::PseudoJet> do_jet_finding(){ // Takes in pythia event
       continue; // Skip events without jets
     }
 }
+*/

@@ -61,7 +61,9 @@ int main(int /*argc*/, char** /*argv*/)
 		pythia.readString(name.Data());
 	}
 
+	pythia.readString("111:mayDecay  = off"); //pi0
 	pythia.readString("310:mayDecay  = off"); //K0s
+	pythia.readString("311:mayDecay  = off"); //K0
 	pythia.readString("3122:mayDecay = off"); //labda0
 	pythia.readString("3112:mayDecay = off"); //sigma-
 	pythia.readString("3212:mayDecay = off"); //sigma0

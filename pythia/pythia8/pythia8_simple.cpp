@@ -104,21 +104,20 @@ int main(int /*argc*/, char** /*argv*/)
 		int nPart = pythia.event.size();
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
-			if (part.isFinal()){
-				hEtaPt->Fill(part.eta(),part.pT());
-				for (int i = 0; i < nCharged + nNeutral; i++){
-					if (part.pdg_id() == PDG[i]){
-						hists[i]->Fill(part.pT());
-					}
+			if (!part.isFinal()) continue;
+			hEtaPt->Fill(part.eta(),part.pT());
+			for (int i = 0; i < nCharged + nNeutral; i++){
+				if (part.pdg_id() == PDG[i]){
+					hists[i]->Fill(part.pT());
 				}
-				// if (part.eta() < max_eta_track && part.pT() > min_track_pt){
-				// 	fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),p->momentum().e());  // need masses for E-scheme
-				// 	jInp.set_user_index(part.pdg_id());//index);
-				// 	fjInputs.push_back(jInp);
-				// }
-				// */
-				nPartPythia++;
 			}
+			// if (part.eta() < max_eta_track && part.pT() > min_track_pt){
+			// 	fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),p->momentum().e());  // need masses for E-scheme
+			// 	jInp.set_user_index(part.pdg_id());//index);
+			// 	fjInputs.push_back(jInp);
+			// }
+			// */
+			nPartPythia++;
 		}
 		if ((iEvent%1000)==0)
 				cout << "Pythia event: " << nPartPythia << " particles" << endl;

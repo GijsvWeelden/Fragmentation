@@ -148,11 +148,11 @@ int main(int /*argc*/, char** /*argv*/)
 int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt){
 	Particle mother1, mother2;
 	Particle part = particle;
-  int i = 0;
-  while (i < pythia.event.size() +10){
-	//for (int i = 0; i < event.size() + 10; i++){
+  // int i = 0;
+  // while (i < pythia.event.size() +10){
+	for (int i = 0; i < 2 * event.size(); i++){
 	// while (true){ // Could this loop infinitely?
-    i++;
+    // i++;
 		mother1 = pythia.event[part.mother1()];
 		mother2 = pythia.event[part.mother2()];
 		if (abs(mother1.status()) == 23){
@@ -164,6 +164,10 @@ int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt){
 		else if (mother1.index() == 1 || mother1.index() == 2 || mother2.index() == 1 || mother2.index() == 2){
 			// Particle originates from beam
 			return -1;
+		}
+		if (iEvt == 0){
+		cout << "(particle, mother1, mother2) = (" << part.index() << ", "
+			<< mother1.index() << ", " << mother2.index() << ")" << endl;
 		}
 		part = mother1; // Had to choose one to avoid branching. Is this smart?
 	}

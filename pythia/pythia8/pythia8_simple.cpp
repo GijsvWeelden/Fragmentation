@@ -103,6 +103,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		Double_t ptSumPythia = 0;
 		Int_t nMatriarchs = 0;
+		Int_t matriarchID = -1;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
 
@@ -110,7 +111,7 @@ int main(int /*argc*/, char** /*argv*/)
     	const Particle &part = pythia.event[iPart];
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
 				nMatriarchs++;
-        if (iEvent%1000 == 0) cout << "Found Initial particle: " << part.index() << endl;
+        if (iEvent%1000 == 0) cout << "Found Initial particle: " << part.index() << ": " << part.id() << endl;
 				if (nMatriarchs > 2){
 					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
 					continue;
@@ -126,6 +127,8 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
+			matriarchID = find_matriarch(pythia.event, part);
+			if (iEvent%1000 == 0 && nPartPythia%10 == 0) cout << "Matriarch found: " << matriarchID << endl;
 			nPartPythia++;
 		}
 		if ((iEvent%1000)==0){
@@ -142,6 +145,23 @@ int main(int /*argc*/, char** /*argv*/)
 }
 
 int find_matriarch(const Event& event, const Particle& particle){
+	Particle mother1, mother2;
+	Particle part = particle;
+	while (true){ // Could this loop infinitely?
+		mother1 = event[part.mother1()];
+		mother2 = event[part.mother2()];
+		if (abs(mother1.status()) == 23){
+			return mother1.id();
+		}
+		else if (abs(mother2.status()) == 23){
+			return mother2.id();
+		}
+		else if (mother1.id() == 1 || mother1.id() == 2 || mother2.id() == 1 || mother2.id() == 2){
+			// Particle originates from beam
+			return -1;
+		}
+		part = mother1; // Had to choose one to avoid branching. Is this smart?
+	}
 }
 
 /*

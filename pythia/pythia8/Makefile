@@ -1,5 +1,5 @@
-CXXFLAGS:=$(shell root-config --cflags) -I$(PYTHIA8)/include
-    # $(shell root-config --libs) -L$(PYTHIA8)/lib -lpythia8
+CXXFLAGS:=$(shell root-config --cflags) -I$(PYTHIA8)/include \
+     $(shell root-config --libs) -L$(PYTHIA8)/lib -lpythia8
 
 # Define directory paths
 FASTJETCONFIG := fastjet-config

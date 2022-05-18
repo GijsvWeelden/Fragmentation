@@ -100,7 +100,9 @@ int main(int /*argc*/, char** /*argv*/)
 	for (int iEvent = 0; iEvent < nEvents; iEvent++){
 		if (!pythia.next()) continue;
 		double fourvec[4];
-		Particle& initialParticles[2];
+		//Particle
+    std::vector<Particle> initialParticles;
+    //Particle initialParticles[2];
 
 		Double_t ptSumPythia = 0;
 		Int_t nInitialParticles = 0;
@@ -111,14 +113,21 @@ int main(int /*argc*/, char** /*argv*/)
     	const Particle &part = pythia.event[iPart];
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
 				nInitialParticles++;
+        if (iEvent%1000 == 0) cout << "Found Initial particle" << endl;
 				if (nInitialParticles > 2){
-					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
-					continue;
+					//cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
+					//continue;
 				}
-				initialParticles[nInitialParticles] = part;
+       // Particle tmp(part);
+        initialParticles.push_back(part);
+				//initialParticles[nInitialParticles - 1] = tmp;
+        //initialParticles[nInitialParticles] = part.e();
+        //double E = part.e();
+        //initialParticles[nInitialParticles] = part.e();
 				continue;
 			}
 			if (!part.isFinal()) continue; // No decays yet
+      //else continue;
 			// if (part.eta() > max_eta_track || part.pT() < min_track_pt) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
 			for (int i = 0; i < nCharged + nNeutral; i++){
@@ -136,9 +145,9 @@ int main(int /*argc*/, char** /*argv*/)
 		}
 		if ((iEvent%1000)==0){
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
-			cout << "Outgoing partons from hard scattering:" << endl
-				<< initialParticles[0].p() << endl
-				<< initialParticles[1].p() << endl;
+			//cout << nInitialParticles << " outgoing partons from hard scattering:" << endl
+			//	<< initialParticles[0].id() << " " << initialParticles[0].p() << endl
+			//	<< initialParticles[0].id() << " " << initialParticles[1].p() << endl;
 		}
 	}
 	//End event loop

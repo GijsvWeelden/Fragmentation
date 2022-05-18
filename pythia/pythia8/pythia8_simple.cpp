@@ -27,6 +27,7 @@
 using namespace Pythia8;
 
 // std::vector <fastjet::PseudoJet> do_jet_finding();
+int find_matriarch(const Event& event, const Particle& particle);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -39,11 +40,9 @@ int main(int /*argc*/, char** /*argv*/)
 	Float_t ptHatMin=-1; //80;
 	Float_t ptHatMax=-1; //100;
 
-	float pt_lead = -1;
-	float phi_lead = -100;
-	float max_eta_jet = 2.0;
-	float max_eta_track = 2.4;
-	float jetR = 0.4;
+	float max_eta_track = 2, min_pt_track = 0., max_pt_track = 10.;
+	float max_eta_jet = 2.0, min_pt_jet = 10, max_pt_jet = 200, jetR = 0.4;
+	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200;
 
 	int nCharged = 3, nNeutral = 5;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
@@ -87,7 +86,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 	// Output histograms
 	TFile* outFile = new TFile("PythiaResult.root","RECREATE");
-	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",40,-2,2,50,0,10);
+	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)", 40, -2, 2, 50, 0, 10);
 	TH1F* hists[nCharged + nNeutral];
 	for (int i = 0; i < nCharged + nNeutral; i++){
 		TH1F *hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
@@ -100,34 +99,26 @@ int main(int /*argc*/, char** /*argv*/)
 	for (int iEvent = 0; iEvent < nEvents; iEvent++){
 		if (!pythia.next()) continue;
 		double fourvec[4];
-		//Particle
-    std::vector<Particle> initialParticles;
-    //Particle initialParticles[2];
+    std::vector<Particle> matriarchs; // Outgoing particles from initial hard scattering
 
 		Double_t ptSumPythia = 0;
-		Int_t nInitialParticles = 0;
+		Int_t nMatriarchs = 0;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
 
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
-				nInitialParticles++;
-        if (iEvent%1000 == 0) cout << "Found Initial particle" << endl;
-				if (nInitialParticles > 2){
-					//cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
-					//continue;
+				nMatriarchs++;
+        if (iEvent%1000 == 0) cout << "Found Initial particle: " << part.index() << endl;
+				if (nMatriarchs > 2){
+					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
+					continue;
 				}
-       // Particle tmp(part);
-        initialParticles.push_back(part);
-				//initialParticles[nInitialParticles - 1] = tmp;
-        //initialParticles[nInitialParticles] = part.e();
-        //double E = part.e();
-        //initialParticles[nInitialParticles] = part.e();
+        matriarchs.push_back(part);
 				continue;
 			}
 			if (!part.isFinal()) continue; // No decays yet
-      //else continue;
 			// if (part.eta() > max_eta_track || part.pT() < min_track_pt) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
 			for (int i = 0; i < nCharged + nNeutral; i++){
@@ -135,25 +126,22 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
-			// if (part.eta() < max_eta_track && part.pT() > min_track_pt){
-			// 	fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),p->momentum().e());  // need masses for E-scheme
-			// 	jInp.set_user_index(part.pdg_id());//index);
-			// 	fjInputs.push_back(jInp);
-			// }
-			// */
 			nPartPythia++;
 		}
 		if ((iEvent%1000)==0){
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
-			//cout << nInitialParticles << " outgoing partons from hard scattering:" << endl
-			//	<< initialParticles[0].id() << " " << initialParticles[0].p() << endl
-			//	<< initialParticles[0].id() << " " << initialParticles[1].p() << endl;
+			//cout << nMatriarchs << " outgoing partons from hard scattering:" << endl
+			//	<< matriarchs[0].id() << " " << matriarchs[0].p() << endl
+			//	<< matriarchs[0].id() << " " << matriarchs[1].p() << endl;
 		}
 	}
 	//End event loop
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;
 	outFile->Close();
+}
+
+int find_matriarch(const Event& event, const Particle& particle){
 }
 
 /*

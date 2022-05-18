@@ -112,7 +112,12 @@ int main(int /*argc*/, char** /*argv*/)
       matriarchIndex = 0;
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
 				nMatriarchs++;
-        if (iEvent%1000 == 0) cout << "Found Initial particle: " << part.index() << ": " << part.id() << endl;
+        if (iEvent%1000 == 0){
+          cout << "Found Initial particle: " << part.index() << ": " << part.id() << endl;
+          std::vector<int> vec = part.daughterList();
+          for (auto num : vec) cout << num << ", ";
+          cout << endl;
+        }
 				if (nMatriarchs > 2){
 					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
 					continue;
@@ -128,8 +133,41 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
-			matriarchIndex = find_matriarch(pythia, part, iEvent);
-			if (iEvent%10000 == 0) cout << "Matriarch found: " << matriarchIndex << endl;
+			//matriarchIndex = find_matriarch(pythia, part, iEvent);
+      if (iEvent > 1) continue;
+      //Particle mother1, mother2;
+      Particle particle(part);
+      cout << "Part = " << part.index() << endl
+        << "Particle = " << particle.index() << endl;
+      std::vector<int> vec = part.daughterList();
+      for ( auto num : vec) cout << num << ", ";
+      cout << endl;
+      /*
+      for (int i = 0; i < 2 * nPart; i++){
+        cout << "Particle = " << particle.index() << endl;
+        mother1 = pythia.event[part.mother1()];
+        mother2 = pythia.event[part.mother2()];
+        if (abs(mother1.status()) == 23){
+          matriarchIndex = mother1.index();
+          break;
+        }
+        else if (abs(mother2.status()) == 23){
+          matriarchIndex = mother2.index();
+          break;
+        }
+        else if (mother1.index() == 1 || mother1.index() == 2 || mother2.index() == 1 || mother2.index() == 2){
+          // Particle originates from beam
+          matriarchIndex = -1;
+          break;
+        }
+        //if (iEvt == 0){
+        //cout << "(particle, mother1, mother2) = (" << part.index() << ", "
+        //  << mother1.index() << ", " << mother2.index() << ")" << endl;
+        //}
+        particle = mother1; // Had to choose one to avoid branching. Is this smart?
+
+      }*/
+			//if (iEvent%10000 == 0) cout << "Matriarch found: " << matriarchIndex << endl;
 			nPartPythia++;
 		}
 		if ((iEvent%1000)==0){
@@ -148,9 +186,13 @@ int main(int /*argc*/, char** /*argv*/)
 int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt){
 	Particle mother1, mother2;
 	Particle part = particle;
+  cout << "Part = " << part.index() << endl;
+  cout << part.p() << endl;
+  return -1;
+  /*
   // int i = 0;
   // while (i < pythia.event.size() +10){
-	for (int i = 0; i < 2 * event.size(); i++){
+	for (int i = 0; i < 2 * pythia.event.size(); i++){
 	// while (true){ // Could this loop infinitely?
     // i++;
 		mother1 = pythia.event[part.mother1()];
@@ -171,9 +213,10 @@ int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt){
 		}
 		part = mother1; // Had to choose one to avoid branching. Is this smart?
 	}
-  if (iEvt % 10000 == 0)
-    cout << i << endl;
+  //if (iEvt % 10000 == 0)
+  //  cout << i << endl;
 	return -2;
+  */
 }
 
 /*

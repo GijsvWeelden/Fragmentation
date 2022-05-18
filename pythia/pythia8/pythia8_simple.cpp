@@ -27,7 +27,7 @@
 using namespace Pythia8;
 
 // std::vector <fastjet::PseudoJet> do_jet_finding();
-int find_matriarch(const Event& event, const Particle& particle, int iEvt);
+int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -128,7 +128,7 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
-			matriarchIndex = find_matriarch(pythia.event, part, iEvent);
+			matriarchIndex = find_matriarch(pythia, part, iEvent);
 			if (iEvent%10000 == 0) cout << "Matriarch found: " << matriarchIndex << endl;
 			nPartPythia++;
 		}
@@ -145,16 +145,16 @@ int main(int /*argc*/, char** /*argv*/)
 	outFile->Close();
 }
 
-int find_matriarch(const Event& event, const Particle& particle, int iEvt){
+int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt){
 	Particle mother1, mother2;
 	Particle part = particle;
   int i = 0;
-  while (i < event.size() +10){
+  while (i < pythia.event.size() +10){
 	//for (int i = 0; i < event.size() + 10; i++){
 	// while (true){ // Could this loop infinitely?
     i++;
-		mother1 = event[part.mother1()];
-		mother2 = event[part.mother2()];
+		mother1 = pythia.event[part.mother1()];
+		mother2 = pythia.event[part.mother2()];
 		if (abs(mother1.status()) == 23){
 			return mother1.index();
 		}

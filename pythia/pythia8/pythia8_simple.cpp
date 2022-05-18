@@ -9,12 +9,12 @@
 #include "fastjet/ClusterSequenceArea.hh"
 #include "fastjet/ClusterSequenceAreaBase.hh"
 
-// #include "fastjet/tools/Subtractor.hh"
-// #include "fastjet/contrib/ConstituentSubtractor.hh"
-// #include "fastjet/contrib/Nsubjettiness.hh"
-// #include "fastjet/contrib/SoftDrop.hh"
-// #include "fastjet/contrib/ModifiedMassDropTagger.hh"
-// #include "fastjet/contrib/Recluster.hh"
+#include "fastjet/tools/Subtractor.hh"
+#include "fastjet/contrib/ConstituentSubtractor.hh"
+#include "fastjet/contrib/Nsubjettiness.hh"
+#include "fastjet/contrib/SoftDrop.hh"
+#include "fastjet/contrib/ModifiedMassDropTagger.hh"
+#include "fastjet/contrib/Recluster.hh"
 
 #include "TPDGCode.h"
 
@@ -38,6 +38,12 @@ int main(int /*argc*/, char** /*argv*/)
 
 	Float_t ptHatMin=-1; //80;
 	Float_t ptHatMax=-1; //100;
+
+	float pt_lead = -1;
+	float phi_lead = -100;
+	float max_eta_jet = 2.0;
+	float max_eta_track = 2.4;
+	float jetR = 0.4;
 
 	int nCharged = 3, nNeutral = 5;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
@@ -90,23 +96,30 @@ int main(int /*argc*/, char** /*argv*/)
 		hists[i] = hPt;
 	}
 
-	float pt_lead = -1;
-	float phi_lead = -100;
-	float max_eta_jet = 2.0;
-	float max_eta_track = 2.4;
-	float jetR = 0.4;
-
 	//Begin event loop
 	for (int iEvent = 0; iEvent < nEvents; iEvent++){
-		double fourvec[4];
 		if (!pythia.next()) continue;
+		double fourvec[4];
+		Particle& initialParticles[2];
 
 		Double_t ptSumPythia = 0;
+		Int_t nInitialParticles = 0;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
+
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
-			if (!part.isFinal()) continue;
+			if (part.status() == -23){ // TODO: Should also include 22 and 24?
+				nInitialParticles++;
+				if (nInitialParticles > 2){
+					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
+					continue;
+				}
+				initialParticles[nInitialParticles] = part;
+				continue;
+			}
+			if (!part.isFinal()) continue; // No decays yet
+			// if (part.eta() > max_eta_track || part.pT() < min_track_pt) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
 			for (int i = 0; i < nCharged + nNeutral; i++){
 				if (part.id() == PDG[i]){
@@ -121,8 +134,12 @@ int main(int /*argc*/, char** /*argv*/)
 			// */
 			nPartPythia++;
 		}
-		if ((iEvent%1000)==0)
-				cout << "Pythia event: " << nPartPythia << " particles" << endl;
+		if ((iEvent%1000)==0){
+			cout << "Pythia event: " << nPartPythia << " particles" << endl;
+			cout << "Outgoing partons from hard scattering:" << endl
+				<< initialParticles[0].p() << endl
+				<< initialParticles[1].p() << endl;
+		}
 	}
 	//End event loop
 	outFile->Write();

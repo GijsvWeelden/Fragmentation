@@ -128,7 +128,7 @@ int main(int /*argc*/, char** /*argv*/)
 				}
 			}
 			matriarchIndex = find_matriarch(pythia.event, part);
-			if (iEvent%1000 == 0 && nPartPythia%10 == 0) cout << "Matriarch found: " << matriarchID << endl;
+			if (iEvent%1000 == 0 && nPartPythia%10 == 0) cout << "Matriarch found: " << matriarchIndex << endl;
 			nPartPythia++;
 		}
 		if ((iEvent%1000)==0){

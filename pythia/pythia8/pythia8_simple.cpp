@@ -103,7 +103,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		Double_t ptSumPythia = 0;
 		Int_t nMatriarchs = 0;
-		Int_t matriarchID = -1;
+		Int_t matriarchIndex = -1;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
 
@@ -127,7 +127,7 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
-			matriarchID = find_matriarch(pythia.event, part);
+			matriarchIndex = find_matriarch(pythia.event, part);
 			if (iEvent%1000 == 0 && nPartPythia%10 == 0) cout << "Matriarch found: " << matriarchID << endl;
 			nPartPythia++;
 		}
@@ -147,17 +147,17 @@ int main(int /*argc*/, char** /*argv*/)
 int find_matriarch(const Event& event, const Particle& particle){
 	Particle mother1, mother2;
 	Particle part = particle;
-	for (int i = 0; i < event.size(); i++){
+	for (int i = 0; i < event.size() + 10; i++){
 	// while (true){ // Could this loop infinitely?
 		mother1 = event[part.mother1()];
 		mother2 = event[part.mother2()];
 		if (abs(mother1.status()) == 23){
-			return mother1.id();
+			return mother1.index();
 		}
 		else if (abs(mother2.status()) == 23){
-			return mother2.id();
+			return mother2.index();
 		}
-		else if (mother1.id() == 1 || mother1.id() == 2 || mother2.id() == 1 || mother2.id() == 2){
+		else if (mother1.index() == 1 || mother1.index() == 2 || mother2.index() == 1 || mother2.index() == 2){
 			// Particle originates from beam
 			return -1;
 		}

@@ -88,11 +88,16 @@ int main(int /*argc*/, char** /*argv*/)
 	TFile* outFile = new TFile("PythiaResult.root","RECREATE");
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)", 40, -2, 2, 50, 0, 10);
 	TH1F* hists[nCharged + nNeutral];
+	TH2F* frags[nCharged + nNeutral];
 	for (int i = 0; i < nCharged + nNeutral; i++){
-		TH1F *hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
+		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
 												 50,0,10);
 		hists[i] = hPt;
+		TH2F* hFrag = new TH2F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
+													 TString::Format("Pt vs D(z) for all %s;p^{mat}_{T} (GeV/c);z", Hadrons[i]).Data(),
+													 200, 0, 200, 100, 0, 1);
+		frags[i] = hFrag;
 	}
 
 	//Begin event loop
@@ -112,12 +117,12 @@ int main(int /*argc*/, char** /*argv*/)
       matriarchIndex = 0;
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
 				nMatriarchs++;
-        if (iEvent%1000 == 0){
-          cout << "Found Initial particle: " << part.index() << ": " << part.id() << endl;
-          std::vector<int> vec = part.daughterList();
-          for (auto num : vec) cout << num << ", ";
-          cout << endl;
-        }
+        // if (iEvent%1000 == 0){
+          // cout << "Found Initial particle: " << part.index() << ": " << part.id() << endl;
+          // std::vector<int> vec = part.daughterList();
+          // for (auto num : vec) cout << num << ", ";
+          // cout << endl;
+        // }
 				if (nMatriarchs > 2){
 					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
 					continue;
@@ -133,15 +138,17 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
-			//matriarchIndex = find_matriarch(pythia, part, iEvent);
-      if (iEvent > 1) continue;
-      //Particle mother1, mother2;
-      Particle particle(part);
-      cout << "Part = " << part.index() << endl
-        << "Particle = " << particle.index() << endl;
-      std::vector<int> vec = part.daughterList();
-      for ( auto num : vec) cout << num << ", ";
-      cout << endl;
+      if (iEvent != 0) continue;
+			int a = 0; b = 0;
+			int inda = matriarchs[0].index();
+			int indb = matriarchs[1].index();
+      if (part.isAncestor(inda)){
+				a++;
+			}
+			if (part.isAncestor(indb)){
+				b++;
+			}
+			cout << "Out of " << nPart << " particles, " << a << " originate from particle " << matriarchs[0].index() << " and " << b << " originate from particle " << matriarchs[1].index() << ", leaving " << nPart - a - b << " particles from the beam" << endl;
       /*
       for (int i = 0; i < 2 * nPart; i++){
         cout << "Particle = " << particle.index() << endl;

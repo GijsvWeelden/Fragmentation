@@ -27,7 +27,7 @@
 using namespace Pythia8;
 
 // std::vector <fastjet::PseudoJet> do_jet_finding();
-int find_matriarch(const Event& event, const Particle& particle);
+int find_matriarch(const Event& event, const Particle& particle, int iEvt);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -109,6 +109,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
+      matriarchIndex = 0;
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
 				nMatriarchs++;
         if (iEvent%1000 == 0) cout << "Found Initial particle: " << part.index() << ": " << part.id() << endl;
@@ -127,8 +128,8 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
-			matriarchIndex = find_matriarch(pythia.event, part);
-			if (iEvent%1000 == 0 && nPartPythia%10 == 0) cout << "Matriarch found: " << matriarchIndex << endl;
+			matriarchIndex = find_matriarch(pythia.event, part, iEvent);
+			if (iEvent%10000 == 0) cout << "Matriarch found: " << matriarchIndex << endl;
 			nPartPythia++;
 		}
 		if ((iEvent%1000)==0){
@@ -144,11 +145,14 @@ int main(int /*argc*/, char** /*argv*/)
 	outFile->Close();
 }
 
-int find_matriarch(const Event& event, const Particle& particle){
+int find_matriarch(const Event& event, const Particle& particle, int iEvt){
 	Particle mother1, mother2;
 	Particle part = particle;
-	for (int i = 0; i < event.size() + 10; i++){
+  int i = 0;
+  while (i < event.size() +10){
+	//for (int i = 0; i < event.size() + 10; i++){
 	// while (true){ // Could this loop infinitely?
+    i++;
 		mother1 = event[part.mother1()];
 		mother2 = event[part.mother2()];
 		if (abs(mother1.status()) == 23){
@@ -163,6 +167,8 @@ int find_matriarch(const Event& event, const Particle& particle){
 		}
 		part = mother1; // Had to choose one to avoid branching. Is this smart?
 	}
+  if (iEvt % 10000 == 0)
+    cout << i << endl;
 	return -2;
 }
 

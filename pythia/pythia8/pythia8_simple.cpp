@@ -147,7 +147,8 @@ int main(int /*argc*/, char** /*argv*/)
 int find_matriarch(const Event& event, const Particle& particle){
 	Particle mother1, mother2;
 	Particle part = particle;
-	while (true){ // Could this loop infinitely?
+	for (int i = 0; i < event.size(); i++){
+	// while (true){ // Could this loop infinitely?
 		mother1 = event[part.mother1()];
 		mother2 = event[part.mother2()];
 		if (abs(mother1.status()) == 23){
@@ -162,6 +163,7 @@ int find_matriarch(const Event& event, const Particle& particle){
 		}
 		part = mother1; // Had to choose one to avoid branching. Is this smart?
 	}
+	return -2;
 }
 
 /*

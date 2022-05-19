@@ -89,24 +89,24 @@ int main(int /*argc*/, char** /*argv*/)
 	TFile* outFile = new TFile("PythiaResult.root","RECREATE");
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)", 40, -2, 2, 50, 0, 10);
 	TH1F* hists[nCharged + nNeutral];
-	TH2F* frags[nCharged + nNeutral];
+	TH1F* frags[nCharged + nNeutral];
 	for (int i = 0; i < nCharged + nNeutral; i++){
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
 												 50,0,10);
 		hists[i] = hPt;
-		//TH2F* hFrag = new TH2F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
-		//											 TString::Format("Pt vs D(z) for all %s;p^{mat}_{T} (GeV/c);z", Hadrons[i]).Data(),
-		//											 200, 0, 200, 100, 0, 1);
-		//frags[i] = hFrag;
+		TH1F* hFrag = new TH2F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
+													 TString::Format("D(z) for all %s;z", Hadrons[i]).Data(),
+													 100, 0, 1);
+		frags[i] = hFrag;
 	}
 
 	//Begin event loop
 	for (int iEvent = 0; iEvent < nEvents; iEvent++){
 		if (!pythia.next()) continue;
 		double fourvec[4];
-    // const Particle* matriarch1;
-    // const Particle* matriarch2;
+		std::vector<int> family1;
+		std::vector<int> family2;
 
 		Double_t ptSumPythia = 0;
 		Int_t nMatriarchs = 0;
@@ -122,22 +122,25 @@ int main(int /*argc*/, char** /*argv*/)
         if (nMatriarchs == 1){
 					cout << "Matriarch1: " << part.index() << " " << part.p() << endl;
           matriarch1Index = part.index();
-          std::vector<int> vec = part.daughterListRecursive();
-          for (auto ele : vec) cout << ele << ", ";
+					family1 = pythia.event[matriarch1Index].daughterListRecursive();
+          for (auto ele : family1) cout << ele << ", ";
           cout << endl;
-          int key = 86;
-          if (std::find(vec.begin(), vec.end(), key) != vec.end()) cout << "Found key " << key << " in daughter list" << endl;
-          else cout << "Key " << key << " not in daughter list" << endl;
+          // int key = 86;
+          // if (std::find(vec.begin(), vec.end(), key) != vec.end()) cout << "Found key " << key << " in daughter list" << endl;
+          // else cout << "Key " << key << " not in daughter list" << endl;
         }
         else if (nMatriarchs == 2){
 					cout << "Matriarch2: " << part.index() << " " << part.p() << endl;
           matriarch2Index = part.index();
+					family2 = pythia.event[matriarch2Index].daughterListRecursive();
         }
         else if (nMatriarchs > 2){
 					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
 				}
 				continue;
 			}
+			cout << "family1[3]: " << family1[3] << endl;
+			cout << "family2[3]: " << family2[3] << endl;
       // if (iEvent != 0) continue;
       // if (iPart > 50) continue;
 			if (!part.isFinal()) continue; // No decays yet
@@ -149,11 +152,37 @@ int main(int /*argc*/, char** /*argv*/)
 				}
 			}
 			int a = 0; int b = 0;
-      if (part.isAncestor(5)){
+			double px = part.px();
+			double py = part.py();
+			double pz = part.pz();
+			double p2 = px * px + py * py + pz * pz;
+      if (std::find(family1.begin(), family1.end(), part.index()) != family1.end()){
 				a++;
+				double pxM = pythia.event[matriarch1Index].px();
+				double pyM = pythia.event[matriarch1Index].py();
+				double pzM = pythia.event[matriarch1Index].pz();
+				double p2M = pxM * pxM + pyM * pyM + pzM * pzM;
+				double z = (px * pxM + py * pyM + pz * pzM)/p2M;
+				for (int i = 0; i < nCharged + nNeutral; i++){
+					if (part.id() == PDG[i]){
+						frags[i]->Fill(z);
+						break;
+					}
+				}
 			}
-			if (part.isAncestor(6)){
+			else if (std::find(family2.begin(), family2.end(), part.index()) != family2.end()){
 				b++;
+				double pxM = pythia.event[matriarch2Index].px();
+				double pyM = pythia.event[matriarch2Index].py();
+				double pzM = pythia.event[matriarch2Index].pz();
+				double p2M = pxM * pxM + pyM * pyM + pzM * pzM;
+				double z = (px * pxM + py * pyM + pz * pzM)/p2M
+				for (int i = 0; i < nCharged + nNeutral; i++){
+					if (part.id() == PDG[i]){
+						hists[i]->Fill(z);
+						break;
+					}
+				}
 			}
 			nPartPythia++;
       if (iPart == nPart - 1){
@@ -164,12 +193,7 @@ int main(int /*argc*/, char** /*argv*/)
 		}
 		if ((iEvent%1000)==0){
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
-			//cout << nMatriarchs << " outgoing partons from hard scattering:" << endl
-			//	<< matriarchs[0].id() << " " << matriarchs[0].p() << endl
-			//	<< matriarchs[0].id() << " " << matriarchs[1].p() << endl;
 		}
-    //delete matriarch1;
-    //delete matriarch2;
 	}
 	//End event loop
 	outFile->Write();

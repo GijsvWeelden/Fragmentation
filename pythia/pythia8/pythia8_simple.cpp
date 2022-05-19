@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include "Pythia8/Pythia.h"
 
@@ -116,12 +117,17 @@ int main(int /*argc*/, char** /*argv*/)
 
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
-			if (nMatriarchs == 0) continue;
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
 				nMatriarchs++;
         if (nMatriarchs == 1){
 					cout << "Matriarch1: " << part.index() << " " << part.p() << endl;
           matriarch1Index = part.index();
+          std::vector<int> vec = part.daughterListRecursive();
+          for (auto ele : vec) cout << ele << ", ";
+          cout << endl;
+          int key = 86;
+          if (std::find(vec.begin(), vec.end(), key) != vec.end()) cout << "Found key " << key << " in daughter list" << endl;
+          else cout << "Key " << key << " not in daughter list" << endl;
         }
         else if (nMatriarchs == 2){
 					cout << "Matriarch2: " << part.index() << " " << part.p() << endl;
@@ -143,16 +149,18 @@ int main(int /*argc*/, char** /*argv*/)
 				}
 			}
 			int a = 0; int b = 0;
-      if (part.isAncestor(matriarch1Index)){
+      if (part.isAncestor(5)){
 				a++;
 			}
-			if (part.isAncestor(matriarch2Index)){
+			if (part.isAncestor(6)){
 				b++;
 			}
 			nPartPythia++;
-			cout << "Out of " << nPartPythia << " particles, " << a << " originate from particle " << matriarch1->index() << " and " << b << " originate from particle " << matriarch2->index() << ", leaving " << nPart - a - b << " particles from the beam" << endl;
-			cout << "Matriarch1: " << matriarch1Index << " " << pythia.event[matriarch1Index].p() << endl;
-			cout << "Matriarch1: " << matriarch2Index << " " << pythia.event[matriarch2Index].p() << endl;
+      if (iPart == nPart - 1){
+        cout << "Out of " << nPartPythia << " particles, " << a << " originate from particle " << pythia.event[matriarch1Index].index() << " and " << b << " originate from particle " << pythia.event[matriarch2Index].index() << ", leaving " << nPartPythia - a - b << " particles from the beam" << endl;
+        cout << "Matriarch1: " << matriarch1Index << " " << pythia.event[matriarch1Index].p() << endl;
+        cout << "Matriarch1: " << matriarch2Index << " " << pythia.event[matriarch2Index].p() << endl;
+      }
 		}
 		if ((iEvent%1000)==0){
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;

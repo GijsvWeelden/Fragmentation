@@ -104,76 +104,36 @@ int main(int /*argc*/, char** /*argv*/)
 	for (int iEvent = 0; iEvent < nEvents; iEvent++){
 		if (!pythia.next()) continue;
 		double fourvec[4];
-    //std::vector<Particle> matriarchs; // Outgoing particles from initial hard scattering
-    const Particle* matriarch1;
-    const Particle* matriarch2;
+    // const Particle* matriarch1;
+    // const Particle* matriarch2;
 
 		Double_t ptSumPythia = 0;
 		Int_t nMatriarchs = 0;
-		//Int_t matriarchIndex = -1;
+		Int_t matriarch1Index = -1;
+		Int_t matriarch2Index = -1;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
 
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
-      //matriarchIndex = 0;
+			if (nMatriarchs == 0) continue;
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
 				nMatriarchs++;
         if (nMatriarchs == 1){
-          matriarch1 = &part;
-          matriarch1->daughterList();
+					cout << "Matriarch1: " << part.index() << " " << part.p() << endl;
+          matriarch1Index = part.index();
         }
         else if (nMatriarchs == 2){
-          matriarch2 = &part;
-          matriarch2->daughterList();
+					cout << "Matriarch2: " << part.index() << " " << part.p() << endl;
+          matriarch2Index = part.index();
         }
         else if (nMatriarchs > 2){
 					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
-					//continue;
 				}
-        if (iEvent%1000 == 0){
-          cout << "Found Initial particle: " << part.index() << ": " << part.id() << " ( ";
-          std::vector<int> vec = part.daughterList();
-          for (auto num : vec) cout << num << ", ";
-          cout << ") " << part.p() << endl;
-
-          if (nMatriarchs == 1){
-            cout << "Matriarch 1: " << matriarch1->index() << ": " << matriarch1->id() << " ( ";
-            std::vector<int> matvec = matriarch1->daughterList();
-            for (auto num : matvec) cout << num << ", ";
-            cout << ") " << matriarch1->p() << endl;
-          }
-          else if (nMatriarchs == 2){
-            cout << "Matriarch 2: " << matriarch2->index() << ": " << matriarch2->id() << " ( ";
-            std::vector<int> matvec = matriarch2->daughterList();
-            for (auto num : matvec) cout << num << ", ";
-            cout << ") " << matriarch2->p() << endl;
-          }
-        }
-        cout << "Inside if: ";
-        if (matriarch1) cout << "found matriarch1";//matriarch1->index();
-        else cout << "no matriarch1!";
-        cout << endl;
-        //matriarchs.push_back(part);
 				continue;
 			}
-      if (iEvent != 0) continue;
-      if (iPart > 50) continue;
-      cout << "Outside if: ";
-      if (matriarch1) cout << "found matriarch1";//matriarch1->index();
-      else cout << "no matriarch1!";
-      cout << endl;
-      //continue;
-//cout << "Index of particle, matriarch1 and matriarch2:" << endl;
-      cout << part.index() << ", descendant of 5? " << part.isAncestor(5) << endl;
-      cout << part.index() << ", descendant of 6? " << part.isAncestor(6) << endl;
-      //cout << matriarch1->index() << ", ";
-      //cout << matriarch2->index() << endl;
-      //if (part.isAncestor(matriarch1->index())) cout << "Particle " << part.index() << " is descendant of 1" << endl;
-      //if (part.isAncestor(matriarch2->index())) cout << "Particle " << part.index() << " is descendant of 1" << endl;
-      //if (matriarch1->isAncestor(part.index())) cout << "1 is descendant of " << part.index() << endl;
-      //if (matriarch2->isAncestor(part.index())) cout << "2 is descendant of " << part.index() << endl;
-      continue;
+      // if (iEvent != 0) continue;
+      // if (iPart > 50) continue;
 			if (!part.isFinal()) continue; // No decays yet
 			// if (part.eta() > max_eta_track || part.pT() < min_track_pt) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
@@ -182,44 +142,17 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
-      if (iEvent != 0) continue;
 			int a = 0; int b = 0;
-			int inda = 5;//matriarchs[0].index();
-			int indb = 6;//matriarchs[1].index();
-      if (part.isAncestor(inda)){
+      if (part.isAncestor(matriarch1Index)){
 				a++;
 			}
-			if (part.isAncestor(indb)){
+			if (part.isAncestor(matriarch2Index)){
 				b++;
 			}
-			cout << "Out of " << nPart << " particles, " << a << " originate from particle " << matriarch1->index() << " and " << b << " originate from particle " << matriarch2->index() << ", leaving " << nPart - a - b << " particles from the beam" << endl;
-      /*
-      for (int i = 0; i < 2 * nPart; i++){
-        cout << "Particle = " << particle.index() << endl;
-        mother1 = pythia.event[part.mother1()];
-        mother2 = pythia.event[part.mother2()];
-        if (abs(mother1.status()) == 23){
-          matriarchIndex = mother1.index();
-          break;
-        }
-        else if (abs(mother2.status()) == 23){
-          matriarchIndex = mother2.index();
-          break;
-        }
-        else if (mother1.index() == 1 || mother1.index() == 2 || mother2.index() == 1 || mother2.index() == 2){
-          // Particle originates from beam
-          matriarchIndex = -1;
-          break;
-        }
-        //if (iEvt == 0){
-        //cout << "(particle, mother1, mother2) = (" << part.index() << ", "
-        //  << mother1.index() << ", " << mother2.index() << ")" << endl;
-        //}
-        particle = mother1; // Had to choose one to avoid branching. Is this smart?
-
-      }*/
-			//if (iEvent%10000 == 0) cout << "Matriarch found: " << matriarchIndex << endl;
 			nPartPythia++;
+			cout << "Out of " << nPartPythia << " particles, " << a << " originate from particle " << matriarch1->index() << " and " << b << " originate from particle " << matriarch2->index() << ", leaving " << nPart - a - b << " particles from the beam" << endl;
+			cout << "Matriarch1: " << matriarch1Index << " " << pythia.event[matriarch1Index].p() << endl;
+			cout << "Matriarch1: " << matriarch2Index << " " << pythia.event[matriarch2Index].p() << endl;
 		}
 		if ((iEvent%1000)==0){
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;

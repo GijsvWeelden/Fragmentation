@@ -115,7 +115,7 @@ int main(int /*argc*/, char** /*argv*/)
 		Int_t matriarch2Index = -1;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
-    int a = 0; int b = 0;
+    int a = 0; int b = 0; int c = 0;
 
     double pxM1 = 0, pyM1 = 0, pzM1 = 0, p2M1 = 0, pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0;
 
@@ -128,19 +128,19 @@ int main(int /*argc*/, char** /*argv*/)
 					cout << "Matriarch1: " << part.index() << " " << part.p() << endl;
           matriarch1Index = part.index();
 					family1 = part.daughterListRecursive();
-          // pxM1 = part.px();
-          // pyM1 = part.py();
-          // pzM1 = part.pz();
-          // p2M1 = part.pAbs2();
+          pxM1 = part.px();
+          pyM1 = part.py();
+          pzM1 = part.pz();
+          p2M1 = part.pAbs2();
         }
         else if (nMatriarchs == 2){
 					cout << "Matriarch2: " << part.index() << " " << part.p() << endl;
           matriarch2Index = part.index();
 					family2 = part.daughterListRecursive();
-          // pxM2 = part.px();
-          // pyM2 = part.py();
-          // pzM2 = part.pz();
-          // p2M2 = part.pAbs2();
+          pxM2 = part.px();
+          pyM2 = part.py();
+          pzM2 = part.pz();
+          p2M2 = part.pAbs2();
         }
         else if (nMatriarchs > 2){
 					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
@@ -151,16 +151,16 @@ int main(int /*argc*/, char** /*argv*/)
       // if (iEvent != 0) continue;
       // if (iPart > 50) continue;
 			if (!part.isFinal()) continue; // No decays yet
-			cout << "Before family check" << endl;
-			cout << "family1[3]: " << family1[3] << endl;
-			cout << "family2[3]: " << family2[3] << endl;
+			// cout << "Before family check" << endl;
+			// cout << "family1[3]: " << family1[3] << endl;
+			// cout << "family2[3]: " << family2[3] << endl;
 			// if (part.eta() > max_eta_track || part.pT() < min_track_pt) continue;
-			// hEtaPt->Fill(part.eta(),part.pT());
-			// for (int i = 0; i < nCharged + nNeutral; i++){
-			// 	if (part.id() == PDG[i]){
-			// 		hists[i]->Fill(part.pT());
-			// 	}
-			// }
+			hEtaPt->Fill(part.eta(),part.pT());
+			for (int i = 0; i < nCharged + nNeutral; i++){
+				if (part.id() == PDG[i]){
+					hists[i]->Fill(part.pT());
+				}
+			}
 			// double px = part.px();
 			// double py = part.py();
 			// double pz = part.pz();
@@ -190,6 +190,10 @@ int main(int /*argc*/, char** /*argv*/)
 				// 	}
 				// }
 			}
+			else{
+				cout << "Particle " << part.index() << " inside neither family" << endl;
+				c++;
+			}
       //cout << "After partidcle for loop " << endl;
 			nPartPythia++;
       if (iPart == nPart - 1){
@@ -199,7 +203,7 @@ int main(int /*argc*/, char** /*argv*/)
         cout << "2: ";
         for (auto ele : family2) cout << ele << ", ";
         cout << endl;
-        cout << "Out of " << nPartPythia << " particles, " << a << " originate from particle " << matriarch1Index << " and " << b << " originate from particle " << matriarch2Index << ", leaving " << nPartPythia - a - b << " particles from the beam" << endl;
+        cout << "Out of " << nPartPythia << " particles, " << a << " originate from particle " << matriarch1Index << " and " << b << " originate from particle " << matriarch2Index << ", leaving " << nPartPythia - a - b  << "(" << c << ")" << " particles from the beam" << endl;
         // cout << "Matriarch1: " << matriarch1Index << " " << pythia.event[matriarch1Index].p() << endl;
         // cout << "Matriarch1: " << matriarch2Index << " " << pythia.event[matriarch2Index].p() << endl;
       }

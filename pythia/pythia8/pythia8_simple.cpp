@@ -28,27 +28,16 @@
 
 using namespace Pythia8;
 
-// std::vector <fastjet::PseudoJet> do_jet_finding();
+std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> fjInputs, double max_eta_track, double max_eta_jet, double jetR);
 int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt);
 
 int main(int /*argc*/, char** /*argv*/)
 {
 //PYTHIA SETTINGS
-
 	TString name;
-
 	int mecorr=1;
-
 	Float_t ptHatMin = 80;
 	Float_t ptHatMax = 200;
-
-	float max_eta_track = 2, min_pt_track = 0., max_pt_track = 10.;
-	float max_eta_jet = 2.0, min_pt_jet = 10, max_pt_jet = 200, jetR = 0.4;
-	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200;
-
-	int nCharged = 3, nNeutral = 5;
-	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
-	std::vector<string> Hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
 
 	// Generator. Process selection. LHC initialization. Histogram.
 	Pythia pythia;
@@ -86,16 +75,24 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 	pythia.init();
 
+	// Settings for tracks and jets
+	float max_eta_track = 2, min_pt_track = 0., max_pt_track = 10.;
+	float max_eta_jet = 2.0, min_pt_jet = 10, max_pt_jet = 200, jetR = 0.4;
+	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200;
+	int nCharged = 3, nNeutral = 5;
+	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
+	std::vector<string> Hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
+
 	// Output histograms
 	TFile* outFile = new TFile("PythiaResult.root","RECREATE");
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",
 													nBins_eta_track, -1 * max_eta_track, max_eta_track,
 													nBins_pt_track, min_pt_track, max_pt_track);
-													//40, -2, 2, 50, 0, 10);
+													// 40, -2, 2, 50, 0, 10);
 	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
 														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
 														 nBins_pt_jet, min_pt_jet, max_pt_jet);
-														 //40, -2, 2, 200, 0, 200);
+														//  40, -2, 2, 200, 0, 200);
 	TH1F* hists[nCharged + nNeutral];
 	TH1F* frags[nCharged + nNeutral];
 	TH1F* jetFrags[nCharged + nNeutral];
@@ -103,11 +100,12 @@ int main(int /*argc*/, char** /*argv*/)
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
 												 nBins_pt_track, min_pt_track, max_pt_track);
+												// 50, 0, 10);
 		hists[i] = hPt;
 		TH1F* hFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
 													 TString::Format("D(z) for all %s;z", Hadrons[i].c_str()).Data(),
 													 100, 0., 1.);
-		jetFrags[i] = hFrag;
+		frags[i] = hFrag;
 		TH1F* hJetFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
 															TString::Format("D(z) for all %s;z", Hadrons[i].c_str()).Data(),
 															100, 0., 1.);
@@ -122,8 +120,8 @@ int main(int /*argc*/, char** /*argv*/)
 		Double_t ptSumPythia = 0;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
-    int a = 0; int b = 0; int c = 0; // For counting descendants
 
+    int a = 0; int b = 0; int c = 0; // For counting descendants
 		Int_t nMatriarchs = 0;
 		Int_t matriarch1Index = -1;
 		Int_t matriarch2Index = -1;
@@ -131,9 +129,11 @@ int main(int /*argc*/, char** /*argv*/)
 		double pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0, etaM2 = 0, phiM2 = 0;
 		double matchDist = 1.;
 
+		std::vector<fastjet::PseudoJet> fastjetInputs;
+
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
-			if (part.status() == -23){ // TODO: Should also include 22 and 24?
+			if (part.status() == -23){
 				nMatriarchs++;
         if (nMatriarchs == 1){
           matriarch1Index = part.index();
@@ -159,7 +159,7 @@ int main(int /*argc*/, char** /*argv*/)
 				continue;
 			}
 			if (!part.isFinal()) continue; // No decays yet
-			// if (part.eta() > max_eta_track || part.pT() < min_track_pt) continue;
+			if (abs( part.eta() ) > max_eta_track || part.pT() < min_pt_track) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
 			for (int i = 0; i < nCharged + nNeutral; i++){
 				if (part.id() == PDG[i]){
@@ -170,6 +170,10 @@ int main(int /*argc*/, char** /*argv*/)
 			double py = part.py();
 			double pz = part.pz();
 			double p2 = part.pAbs2();
+
+			fastjet::PseudoJet jInp(px, py, pz, part.e());
+			jInp.set_user_index(part.id());
+			fastjetInputs.push_back(jInp);
 
 			double deltaR1 = (part.eta() - etaM1) * (part.eta() - etaM1) + (part.phi() - phiM1) + (part.phi() - phiM1);
 			double deltaR2 = (part.eta() - etaM2) * (part.eta() - etaM2) + (part.phi() - phiM2) + (part.phi() - phiM2);
@@ -199,6 +203,7 @@ int main(int /*argc*/, char** /*argv*/)
 		if ((iEvent%1000)==0){
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
 		}
+		// Do jet finding and analysis here.
 	}
 	//End event loop
 	outFile->Write();
@@ -206,60 +211,19 @@ int main(int /*argc*/, char** /*argv*/)
 	outFile->Close();
 }
 
-/*
-std::vector <fastjet::PseudoJet> do_jet_finding(){ // Takes in pythia event
-	std::vector <fastjet::PseudoJet> particlesSig;
-	int nPart = pythia.event.size();
-	for (int iPart = 0; iPart < nPart; iPart++){
-		const Particle &part = pythia.event[iPart];
-		if (!part.isFinal())
-		if (part.eta() > max_eta_track)
-			continue; // Do we want this? Lambdas
-			hEtaPt->Fill(part.eta(),part.pT());
-			for (int i = 0; i < nCharged + nNeutral; i++){
-				if (part.pdg_id() == PDG[i]){
-					hists[i]->Fill(part.pT());
-				}
-			}
-			// if (part.eta() < max_eta_track && part.pT() > min_track_pt){
-			// 	fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),p->momentum().e());  // need masses for E-scheme
-			// 	jInp.set_user_index(part.pdg_id());//index);
-			// 	fjInputs.push_back(jInp);
-			// }
-			nPartPythia++;
-	}
+std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> fjInputs, double max_eta_track, double max_eta_jet, double jetR){
+	fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
+	fastjet::Strategy strategy = fastjet::Best;
+	fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
+	fastjet::AreaType areaType = fastjet::active_area;
+	fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType, ghostSpec);
+	fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
+		//fastjet::active_area, ghostSpec);
+	fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
+	fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
+	fastjet::ClusterSequenceArea clustSeq(fjInputs, jetDef, areaDef);
 
-
-	const HepMC::GenParticle *p = *pit; // for each particle
-		if ( fabs(p->momentum().eta()) < max_eta_track && p->momentum().perp() > ptcut){
-			fastjet::PseudoJet jInp(p->momentum().x(),p->momentum().y(),p->momentum().z(),p->momentum().e());  // need masses for E-scheme
-			jInp.set_user_index(p->pdg_id());//index);
-			fjInputs.push_back(jInp);
-			index++;
-		}
-	fastjet::ClusterSequenceArea csSig(particlesSig, jetDef, areaDef);
-	jetCollection jetCollection_Sig( sorted_by_pt( jet_selector( csSig.inclusive_jets(130.) ) ) );
-		fastjet::GhostedAreaSpec ghostSpec(max_eta_track,1,0.01);
-    fastjet::Strategy strategy = fastjet::Best;
-    //fastjet::RecombinationScheme    recombScheme = fastjet::BIpt_scheme;
-    fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
-    fastjet::AreaType areaType = fastjet::active_area;
-    fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType,ghostSpec);
-    fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(fastjet::active_area,ghostSpec);
-
-    fastjet::RangeDefinition range(-max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
-
-    fastjet::JetDefinition jetDefCh(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
-    fastjet::ClusterSequenceArea clustSeqCh(fjInputs, jetDefCh, areaDef);
-
-    vector <fastjet::PseudoJet> inclusiveJetsCh = clustSeqCh.inclusive_jets();
-    if (inclusiveJetsCh.size() <= 0){
-      // delete the created event from memory
-      delete evt;
-      // read the next event
-      ascii_in >> evt;
-      ievt++;
-      continue; // Skip events without jets
-    }
+	std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
+	vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
+	return ptSortedJets;
 }
-*/

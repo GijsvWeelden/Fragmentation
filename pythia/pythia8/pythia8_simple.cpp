@@ -38,8 +38,8 @@ int main(int /*argc*/, char** /*argv*/)
 
 	int mecorr=1;
 
-	Float_t ptHatMin=-1; //80;
-	Float_t ptHatMax=-1; //100;
+	Float_t ptHatMin = 80;
+	Float_t ptHatMax = 200;
 
 	float max_eta_track = 2, min_pt_track = 0., max_pt_track = 10.;
 	float max_eta_jet = 2.0, min_pt_jet = 10, max_pt_jet = 200, jetR = 0.4;
@@ -88,6 +88,7 @@ int main(int /*argc*/, char** /*argv*/)
 	// Output histograms
 	TFile* outFile = new TFile("PythiaResult.root","RECREATE");
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)", 40, -2, 2, 50, 0, 10);
+	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)", 40, -2, 2, 200, 0, 200);
 	TH1F* hists[nCharged + nNeutral];
 	TH1F* frags[nCharged + nNeutral];
 	for (int i = 0; i < nCharged + nNeutral; i++){
@@ -129,7 +130,7 @@ int main(int /*argc*/, char** /*argv*/)
         if (nMatriarchs == 1){
 					cout << "Matriarch1: " << part.index() << " " << part.p() << endl;
           matriarch1Index = part.index();
-					family1 = part.daughterListRecursive();
+					// family1 = part.daughterListRecursive();
 					etaM1 = part.eta();
 					phiM1 = part.phi();
           pxM1 = part.px();
@@ -140,7 +141,7 @@ int main(int /*argc*/, char** /*argv*/)
         else if (nMatriarchs == 2){
 					cout << "Matriarch2: " << part.index() << " " << part.p() << endl;
           matriarch2Index = part.index();
-					family2 = part.daughterListRecursive();
+					// family2 = part.daughterListRecursive();
 					etaM2 = part.eta();
 					phiM2 = part.phi();
           pxM2 = part.px();
@@ -177,12 +178,12 @@ int main(int /*argc*/, char** /*argv*/)
       //cout << "Before descendance check" << endl;
       // if (std::find(family1.begin(), family1.end(), part.index()) != family1.end()){
 			if (deltaR1 < matchDist && deltaR1 < deltaR2){
-        cout << "Particle " << part.index() << " close to matriarch 1" << endl;
+        // cout << "Particle " << part.index() << " close to matriarch 1" << endl;
 				a++;
 				double z = (px * pxM1 + py * pyM1 + pz * pzM1)/p2M1;
 				for (int i = 0; i < nCharged + nNeutral; i++){
 					if (part.id() == PDG[i]){
-            cout << Hadrons[i] << endl;
+            // cout << Hadrons[i] << endl;
 						frags[i]->Fill(z);
 						//break;
 					}
@@ -190,19 +191,19 @@ int main(int /*argc*/, char** /*argv*/)
 			}
 			// else if (std::find(family2.begin(), family2.end(), part.index()) != family2.end()){
       else if (deltaR2 < matchDist){
-        cout << "Particle " << part.index() << " close to matriarch 2" << endl;
+        // cout << "Particle " << part.index() << " close to matriarch 2" << endl;
 				b++;
 				double z = (px * pxM2 + py * pyM2 + pz * pzM2)/p2M2;
 				for (int i = 0; i < nCharged + nNeutral; i++){
 					if (part.id() == PDG[i]){
-            cout << Hadrons[i] << endl;
+            // cout << Hadrons[i] << endl;
 						frags[i]->Fill(z);
 						//break;
 					}
 				}
 			}
       else if (deltaR1 > matchDist && deltaR2 > matchDist){
-				cout << "Particle " << part.index() << " inside neither family" << endl;
+				// cout << "Particle " << part.index() << " inside neither family" << endl;
 				c++;
 			}
       //cout << "After partidcle for loop " << endl;

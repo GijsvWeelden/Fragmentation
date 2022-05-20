@@ -119,7 +119,7 @@ int main(int /*argc*/, char** /*argv*/)
 		Int_t matriarch2Index = -1;
     double pxM1 = 0, pyM1 = 0, pzM1 = 0, p2M1 = 0, etaM1 = 0, phiM1 = 0;
 		double pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0, etaM2 = 0, phiM2 = 0;
-		double matchDist = 0.4;
+		double matchDist = 5.;
 
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
@@ -176,32 +176,32 @@ int main(int /*argc*/, char** /*argv*/)
 			double deltaR2 = (part.eta() - etaM2) * (part.eta() - etaM2) + (part.phi() - phiM2) + (part.phi() - phiM2);
       //cout << "Before descendance check" << endl;
       // if (std::find(family1.begin(), family1.end(), part.index()) != family1.end()){
-			if (deltaR1 < matchDist){
+			if (deltaR1 < matchDist && deltaR1 < deltaR2){
         cout << "Particle " << part.index() << " close to matriarch 1" << endl;
 				a++;
 				double z = (px * pxM1 + py * pyM1 + pz * pzM1)/p2M1;
-				// for (int i = 0; i < nCharged + nNeutral; i++){
-				// 	if (part.id() == PDG[i]){
-        //     cout << Hadrons[i] << endl;
-				// 		frags[i]->Fill(z);
-				// 		//break;
-				// 	}
-				// }
+				for (int i = 0; i < nCharged + nNeutral; i++){
+					if (part.id() == PDG[i]){
+            cout << Hadrons[i] << endl;
+						frags[i]->Fill(z);
+						//break;
+					}
+				}
 			}
 			// else if (std::find(family2.begin(), family2.end(), part.index()) != family2.end()){
-			if (deltaR1 < matchDist){
+      else if (deltaR2 < matchDist){
         cout << "Particle " << part.index() << " close to matriarch 2" << endl;
 				b++;
 				double z = (px * pxM2 + py * pyM2 + pz * pzM2)/p2M2;
-				// for (int i = 0; i < nCharged + nNeutral; i++){
-				// 	if (part.id() == PDG[i]){
-        //     cout << Hadrons[i] << endl;
-				// 		frags[i]->Fill(z);
-				// 		//break;
-				// 	}
-				// }
+				for (int i = 0; i < nCharged + nNeutral; i++){
+					if (part.id() == PDG[i]){
+            cout << Hadrons[i] << endl;
+						frags[i]->Fill(z);
+						//break;
+					}
+				}
 			}
-			else{
+      else if (deltaR1 > matchDist && deltaR2 > matchDist){
 				cout << "Particle " << part.index() << " inside neither family" << endl;
 				c++;
 			}
@@ -214,7 +214,7 @@ int main(int /*argc*/, char** /*argv*/)
         cout << "2: ";
         for (auto ele : family2) cout << ele << ", ";
         cout << endl;
-        cout << "Out of " << nPartPythia << " particles, " << a << " originate from particle " << matriarch1Index << " and " << b << " originate from particle " << matriarch2Index << ", leaving " << nPartPythia - a - b  << "(" << c << ")" << " particles from the beam" << endl;
+        cout << "Out of " << nPartPythia << " particles, " << a << " originate from particle " << matriarch1Index << " and " << b << " originate from particle " << matriarch2Index << ", leaving " << nPartPythia - a - b  << " (" << c << ")" << " particles from the beam" << endl;
         // cout << "Matriarch1: " << matriarch1Index << " " << pythia.event[matriarch1Index].p() << endl;
         // cout << "Matriarch1: " << matriarch2Index << " " << pythia.event[matriarch2Index].p() << endl;
       }

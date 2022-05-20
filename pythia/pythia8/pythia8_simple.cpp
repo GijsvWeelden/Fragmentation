@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <math.h>
 
 #include "Pythia8/Pythia.h"
 
@@ -87,50 +88,55 @@ int main(int /*argc*/, char** /*argv*/)
 
 	// Output histograms
 	TFile* outFile = new TFile("PythiaResult.root","RECREATE");
-	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)", 40, -2, 2, 50, 0, 10);
-	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)", 40, -2, 2, 200, 0, 200);
+	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",
+													nBins_eta_track, -1 * max_eta_track, max_eta_track,
+													nBins_pt_track, min_pt_track, max_pt_track);
+													//40, -2, 2, 50, 0, 10);
+	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
+														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
+														 nBins_pt_jet, min_pt_jet, max_pt_jet);
+														 //40, -2, 2, 200, 0, 200);
 	TH1F* hists[nCharged + nNeutral];
 	TH1F* frags[nCharged + nNeutral];
+	TH1F* jetFrags[nCharged + nNeutral];
 	for (int i = 0; i < nCharged + nNeutral; i++){
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
-												 50,0,10);
+												 nBins_pt_track, min_pt_track, max_pt_track);
 		hists[i] = hPt;
 		TH1F* hFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
 													 TString::Format("D(z) for all %s;z", Hadrons[i].c_str()).Data(),
 													 100, 0., 1.);
-		frags[i] = hFrag;
+		jetFrags[i] = hFrag;
+		TH1F* hJetFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
+															TString::Format("D(z) for all %s;z", Hadrons[i].c_str()).Data(),
+															100, 0., 1.);
+		jetFrags[i] = hJetFrag;
 	}
 
 	//Begin event loop
 	for (int iEvent = 0; iEvent < nEvents; iEvent++){
 		if (!pythia.next()) continue;
-    if (iEvent > 0) continue;
 		double fourvec[4];
 
 		Double_t ptSumPythia = 0;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
-    int a = 0; int b = 0; int c = 0;
+    int a = 0; int b = 0; int c = 0; // For counting descendants
 
-		std::vector<int> family1;
-		std::vector<int> family2;
 		Int_t nMatriarchs = 0;
 		Int_t matriarch1Index = -1;
 		Int_t matriarch2Index = -1;
     double pxM1 = 0, pyM1 = 0, pzM1 = 0, p2M1 = 0, etaM1 = 0, phiM1 = 0;
 		double pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0, etaM2 = 0, phiM2 = 0;
-		double matchDist = 5.;
+		double matchDist = 1.;
 
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
-      //cout << "Made a particle" << endl;
 			if (part.status() == -23){ // TODO: Should also include 22 and 24?
 				nMatriarchs++;
         if (nMatriarchs == 1){
-					cout << "Matriarch1: " << part.index() << " " << part.p() << endl;
           matriarch1Index = part.index();
-					// family1 = part.daughterListRecursive();
 					etaM1 = part.eta();
 					phiM1 = part.phi();
           pxM1 = part.px();
@@ -139,9 +145,7 @@ int main(int /*argc*/, char** /*argv*/)
           p2M1 = part.pAbs2();
         }
         else if (nMatriarchs == 2){
-					cout << "Matriarch2: " << part.index() << " " << part.p() << endl;
           matriarch2Index = part.index();
-					// family2 = part.daughterListRecursive();
 					etaM2 = part.eta();
 					phiM2 = part.phi();
           pxM2 = part.px();
@@ -149,18 +153,12 @@ int main(int /*argc*/, char** /*argv*/)
           pzM2 = part.pz();
           p2M2 = part.pAbs2();
         }
-        else if (nMatriarchs > 2){
-					cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
-				}
+        // else if (nMatriarchs > 2){
+					// cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
+				// }
 				continue;
 			}
-      // if (nMatriarchs < 2) continue;
-      // if (iEvent != 0) continue;
-      // if (iPart > 50) continue;
 			if (!part.isFinal()) continue; // No decays yet
-			// cout << "Before family check" << endl;
-			// cout << "family1[3]: " << family1[3] << endl;
-			// cout << "family2[3]: " << family2[3] << endl;
 			// if (part.eta() > max_eta_track || part.pT() < min_track_pt) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
 			for (int i = 0; i < nCharged + nNeutral; i++){
@@ -175,50 +173,28 @@ int main(int /*argc*/, char** /*argv*/)
 
 			double deltaR1 = (part.eta() - etaM1) * (part.eta() - etaM1) + (part.phi() - phiM1) + (part.phi() - phiM1);
 			double deltaR2 = (part.eta() - etaM2) * (part.eta() - etaM2) + (part.phi() - phiM2) + (part.phi() - phiM2);
-      //cout << "Before descendance check" << endl;
-      // if (std::find(family1.begin(), family1.end(), part.index()) != family1.end()){
 			if (deltaR1 < matchDist && deltaR1 < deltaR2){
-        // cout << "Particle " << part.index() << " close to matriarch 1" << endl;
 				a++;
 				double z = (px * pxM1 + py * pyM1 + pz * pzM1)/p2M1;
 				for (int i = 0; i < nCharged + nNeutral; i++){
 					if (part.id() == PDG[i]){
-            // cout << Hadrons[i] << endl;
 						frags[i]->Fill(z);
-						//break;
 					}
 				}
 			}
-			// else if (std::find(family2.begin(), family2.end(), part.index()) != family2.end()){
       else if (deltaR2 < matchDist){
-        // cout << "Particle " << part.index() << " close to matriarch 2" << endl;
 				b++;
 				double z = (px * pxM2 + py * pyM2 + pz * pzM2)/p2M2;
 				for (int i = 0; i < nCharged + nNeutral; i++){
 					if (part.id() == PDG[i]){
-            // cout << Hadrons[i] << endl;
 						frags[i]->Fill(z);
-						//break;
 					}
 				}
 			}
-      else if (deltaR1 > matchDist && deltaR2 > matchDist){
-				// cout << "Particle " << part.index() << " inside neither family" << endl;
-				c++;
-			}
-      //cout << "After partidcle for loop " << endl;
+      // else if (deltaR1 > matchDist && deltaR2 > matchDist){
+			// 	c++;
+			// }
 			nPartPythia++;
-      if (iPart == nPart - 1){
-        cout << "1: ";
-        for (auto ele : family1) cout << ele << ", ";
-        cout << endl;
-        cout << "2: ";
-        for (auto ele : family2) cout << ele << ", ";
-        cout << endl;
-        cout << "Out of " << nPartPythia << " particles, " << a << " originate from particle " << matriarch1Index << " and " << b << " originate from particle " << matriarch2Index << ", leaving " << nPartPythia - a - b  << " (" << c << ")" << " particles from the beam" << endl;
-        // cout << "Matriarch1: " << matriarch1Index << " " << pythia.event[matriarch1Index].p() << endl;
-        // cout << "Matriarch1: " << matriarch2Index << " " << pythia.event[matriarch2Index].p() << endl;
-      }
 		}
 		if ((iEvent%1000)==0){
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
@@ -228,42 +204,6 @@ int main(int /*argc*/, char** /*argv*/)
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;
 	outFile->Close();
-}
-
-int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt){
-	Particle mother1, mother2;
-	Particle part = particle;
-  cout << "Part = " << part.index() << endl;
-  cout << part.p() << endl;
-  return -1;
-  /*
-  // int i = 0;
-  // while (i < pythia.event.size() +10){
-	for (int i = 0; i < 2 * pythia.event.size(); i++){
-	// while (true){ // Could this loop infinitely?
-    // i++;
-		mother1 = pythia.event[part.mother1()];
-		mother2 = pythia.event[part.mother2()];
-		if (abs(mother1.status()) == 23){
-			return mother1.index();
-		}
-		else if (abs(mother2.status()) == 23){
-			return mother2.index();
-		}
-		else if (mother1.index() == 1 || mother1.index() == 2 || mother2.index() == 1 || mother2.index() == 2){
-			// Particle originates from beam
-			return -1;
-		}
-		if (iEvt == 0){
-		cout << "(particle, mother1, mother2) = (" << part.index() << ", "
-			<< mother1.index() << ", " << mother2.index() << ")" << endl;
-		}
-		part = mother1; // Had to choose one to avoid branching. Is this smart?
-	}
-  //if (iEvt % 10000 == 0)
-  //  cout << i << endl;
-	return -2;
-  */
 }
 
 /*

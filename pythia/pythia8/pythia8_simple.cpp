@@ -28,8 +28,12 @@
 
 using namespace Pythia8;
 
-std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> fjInputs, double max_eta_track, double max_eta_jet, double jetR);
-int find_matriarch(const Pythia& pythia, const Particle& particle, int iEvt);
+std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> fjInputs,
+																								double max_eta_track, double max_eta_jet, double jetR);
+int do_matching(double eta, double eta_base, double phi, double phi_base, double matchDist);
+void fill_fragmentation(double px, double py, double pz, int id,
+												double px_base, double py_base, double pz_base, double p2_base,
+												TH1F* hFrag, std::vector<int> PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -175,26 +179,34 @@ int main(int /*argc*/, char** /*argv*/)
 			jInp.set_user_index(part.id());
 			fastjetInputs.push_back(jInp);
 
-			double deltaR1 = (part.eta() - etaM1) * (part.eta() - etaM1) + (part.phi() - phiM1) + (part.phi() - phiM1);
-			double deltaR2 = (part.eta() - etaM2) * (part.eta() - etaM2) + (part.phi() - phiM2) + (part.phi() - phiM2);
-			if (deltaR1 < matchDist && deltaR1 < deltaR2){
-				a++;
-				double z = (px * pxM1 + py * pyM1 + pz * pzM1)/p2M1;
-				for (int i = 0; i < nCharged + nNeutral; i++){
-					if (part.id() == PDG[i]){
-						frags[i]->Fill(z);
-					}
-				}
+			int match = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2);
+			if (match == 1){
+				fill_fragmentation(px, py, pz, part.id(), pxM1, pyM1, pzM1, p2M1);
 			}
-      else if (deltaR2 < matchDist){
-				b++;
-				double z = (px * pxM2 + py * pyM2 + pz * pzM2)/p2M2;
-				for (int i = 0; i < nCharged + nNeutral; i++){
-					if (part.id() == PDG[i]){
-						frags[i]->Fill(z);
-					}
-				}
+			else if (match == 2){
+				fill_fragmentation(px, py, pz, part.id(), pxM2, pyM2, pzM2, p2M2);
 			}
+
+			// double deltaR1 = (part.eta() - etaM1) * (part.eta() - etaM1) + (part.phi() - phiM1) + (part.phi() - phiM1);
+			// double deltaR2 = (part.eta() - etaM2) * (part.eta() - etaM2) + (part.phi() - phiM2) + (part.phi() - phiM2);
+			// if (deltaR1 < matchDist && deltaR1 < deltaR2){
+			// 	a++;
+			// 	double z = (px * pxM1 + py * pyM1 + pz * pzM1)/p2M1;
+			// 	for (int i = 0; i < nCharged + nNeutral; i++){
+			// 		if (part.id() == PDG[i]){
+			// 			frags[i]->Fill(z);
+			// 		}
+			// 	}
+			// }
+      // else if (deltaR2 < matchDist){
+			// 	b++;
+			// 	double z = (px * pxM2 + py * pyM2 + pz * pzM2)/p2M2;
+			// 	for (int i = 0; i < nCharged + nNeutral; i++){
+			// 		if (part.id() == PDG[i]){
+			// 			frags[i]->Fill(z);
+			// 		}
+			// 	}
+			// }
       // else if (deltaR1 > matchDist && deltaR2 > matchDist){
 			// 	c++;
 			// }
@@ -204,6 +216,7 @@ int main(int /*argc*/, char** /*argv*/)
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
 		}
 		// Do jet finding and analysis here.
+		std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fjInputs, max_eta_track, max_eta_jet, jetR);
 	}
 	//End event loop
 	outFile->Write();
@@ -226,4 +239,27 @@ std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet>
 	std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
 	vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
 	return ptSortedJets;
+}
+
+int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist){
+	double deltaR1 = (eta() - etaM1) * (eta() - etaM1) + (phi() - phiM1) + (phi() - phiM1);
+	double deltaR2 = (eta() - etaM2) * (eta() - etaM2) + (phi() - phiM2) + (phi() - phiM2);
+	if (deltaR1 < matchDist && deltaR1 < deltaR2){
+		return 1;
+	}
+	else if (deltaR2 < matchDist){
+		return 2;
+	}
+	else return 0;
+}
+
+void fragmentation(double px, double py, double pz, int id, double px_base, double py_base, double pz_base, double p2_base, TH1F* hFrag, std::vector<int> PDG){
+	double z = px * px_base + py * py_base + pz * pz_base;
+	z /= p2_base;
+	for (int i = 0; i < PDG.size(); i++){
+		if (id == PDG[i]){
+			hFrag->Fill(z);
+			return;
+		}
+	}
 }

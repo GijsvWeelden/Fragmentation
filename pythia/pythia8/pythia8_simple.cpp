@@ -161,15 +161,15 @@ int main(int /*argc*/, char** /*argv*/)
 					hists[i]->Fill(part.pT());
 				}
 			}
-			// double px = part.px();
-			// double py = part.py();
-			// double pz = part.pz();
-			// double p2 = px * px + py * py + pz * pz;
+			double px = part.px();
+			double py = part.py();
+			double pz = part.pz();
+			double p2 = part.pAbs2();
       //cout << "Before descendance check" << endl;
       if (std::find(family1.begin(), family1.end(), part.index()) != family1.end()){
         cout << "Particle " << part.index() << " inside family 1" << endl;
 				a++;
-				// double z = (px * pxM1 + py * pyM1 + pz * pzM1)/p2M1;
+				double z = (px * pxM1 + py * pyM1 + pz * pzM1)/p2M1;
 				// for (int i = 0; i < nCharged + nNeutral; i++){
 				// 	if (part.id() == PDG[i]){
         //     cout << Hadrons[i] << endl;
@@ -181,7 +181,7 @@ int main(int /*argc*/, char** /*argv*/)
 			else if (std::find(family2.begin(), family2.end(), part.index()) != family2.end()){
         cout << "Particle " << part.index() << " inside family 2" << endl;
 				b++;
-				// double z = (px * pxM2 + py * pyM2 + pz * pzM2)/p2M2;
+				double z = (px * pxM2 + py * pyM2 + pz * pzM2)/p2M2;
 				// for (int i = 0; i < nCharged + nNeutral; i++){
 				// 	if (part.id() == PDG[i]){
         //     cout << Hadrons[i] << endl;

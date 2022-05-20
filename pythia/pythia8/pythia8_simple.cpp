@@ -106,18 +106,20 @@ int main(int /*argc*/, char** /*argv*/)
 		if (!pythia.next()) continue;
     if (iEvent > 0) continue;
 		double fourvec[4];
-		std::vector<int> family1;
-		std::vector<int> family2;
 
 		Double_t ptSumPythia = 0;
-		Int_t nMatriarchs = 0;
-		Int_t matriarch1Index = -1;
-		Int_t matriarch2Index = -1;
 		Int_t nPartPythia = 0;
 		int nPart = pythia.event.size();
     int a = 0; int b = 0; int c = 0;
 
-    double pxM1 = 0, pyM1 = 0, pzM1 = 0, p2M1 = 0, pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0;
+		std::vector<int> family1;
+		std::vector<int> family2;
+		Int_t nMatriarchs = 0;
+		Int_t matriarch1Index = -1;
+		Int_t matriarch2Index = -1;
+    double pxM1 = 0, pyM1 = 0, pzM1 = 0, p2M1 = 0, etaM1 = 0, phiM1 = 0;
+		double pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0, etaM2 = 0, phiM2 = 0;
+		double matchDist = 0.4;
 
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
@@ -128,6 +130,8 @@ int main(int /*argc*/, char** /*argv*/)
 					cout << "Matriarch1: " << part.index() << " " << part.p() << endl;
           matriarch1Index = part.index();
 					family1 = part.daughterListRecursive();
+					etaM1 = part.eta();
+					phiM1 = part.phi();
           pxM1 = part.px();
           pyM1 = part.py();
           pzM1 = part.pz();
@@ -137,6 +141,8 @@ int main(int /*argc*/, char** /*argv*/)
 					cout << "Matriarch2: " << part.index() << " " << part.p() << endl;
           matriarch2Index = part.index();
 					family2 = part.daughterListRecursive();
+					etaM2 = part.eta();
+					phiM2 = part.phi();
           pxM2 = part.px();
           pyM2 = part.py();
           pzM2 = part.pz();
@@ -165,9 +171,13 @@ int main(int /*argc*/, char** /*argv*/)
 			double py = part.py();
 			double pz = part.pz();
 			double p2 = part.pAbs2();
+
+			double deltaR1 = (part.eta() - etaM1) * (part.eta() - etaM1) + (part.phi() - phiM1) + (part.phi() - phiM1);
+			double deltaR2 = (part.eta() - etaM2) * (part.eta() - etaM2) + (part.phi() - phiM2) + (part.phi() - phiM2);
       //cout << "Before descendance check" << endl;
-      if (std::find(family1.begin(), family1.end(), part.index()) != family1.end()){
-        cout << "Particle " << part.index() << " inside family 1" << endl;
+      // if (std::find(family1.begin(), family1.end(), part.index()) != family1.end()){
+			if (deltaR1 < matchDist){
+        cout << "Particle " << part.index() << " close to matriarch 1" << endl;
 				a++;
 				double z = (px * pxM1 + py * pyM1 + pz * pzM1)/p2M1;
 				// for (int i = 0; i < nCharged + nNeutral; i++){
@@ -178,8 +188,9 @@ int main(int /*argc*/, char** /*argv*/)
 				// 	}
 				// }
 			}
-			else if (std::find(family2.begin(), family2.end(), part.index()) != family2.end()){
-        cout << "Particle " << part.index() << " inside family 2" << endl;
+			// else if (std::find(family2.begin(), family2.end(), part.index()) != family2.end()){
+			if (deltaR1 < matchDist){
+        cout << "Particle " << part.index() << " close to matriarch 2" << endl;
 				b++;
 				double z = (px * pxM2 + py * pyM2 + pz * pzM2)/p2M2;
 				// for (int i = 0; i < nCharged + nNeutral; i++){

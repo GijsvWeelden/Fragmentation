@@ -33,7 +33,7 @@ std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet>
 int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist);
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
-												TH1F* hFrag[], int nHadrons, std::vector<int> PDG);
+												TH1F* frags[], int nHadrons, std::vector<int> PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -179,12 +179,12 @@ int main(int /*argc*/, char** /*argv*/)
 			jInp.set_user_index(part.id());
 			fastjetInputs.push_back(jInp);
 
-			int match = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2);
+			int match = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2, matchDist);
 			if (match == 1){
-				fill_fragmentation(px, py, pz, part.id(), pxM1, pyM1, pzM1, p2M1, hFrag, nCharged + nNeutral, PDG);
+				fill_fragmentation(px, py, pz, part.id(), pxM1, pyM1, pzM1, p2M1, frags, nCharged + nNeutral, PDG);
 			}
 			else if (match == 2){
-				fill_fragmentation(px, py, pz, part.id(), pxM2, pyM2, pzM2, p2M2, hFrag, nCharged + nNeutral, PDG);
+				fill_fragmentation(px, py, pz, part.id(), pxM2, pyM2, pzM2, p2M2, frags, nCharged + nNeutral, PDG);
 			}
 
 			// double deltaR1 = (part.eta() - etaM1) * (part.eta() - etaM1) + (part.phi() - phiM1) + (part.phi() - phiM1);
@@ -216,7 +216,7 @@ int main(int /*argc*/, char** /*argv*/)
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
 		}
 		// Do jet finding and analysis here.
-		std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fjInputs, max_eta_track, max_eta_jet, jetR);
+		// std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fjInputs, max_eta_track, max_eta_jet, jetR);
 	}
 	//End event loop
 	outFile->Write();
@@ -253,12 +253,12 @@ int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1
 	else return 0;
 }
 
-void fill_fragmentation(double px, double py, double pz, int id, double px_base, double py_base, double pz_base, double p2_base, TH1F* hFrag[], int nHadrons, std::vector<int> PDG){
+void fill_fragmentation(double px, double py, double pz, int id, double px_base, double py_base, double pz_base, double p2_base, TH1F* frags[], int nHadrons, std::vector<int> PDG){
 	double z = px * px_base + py * py_base + pz * pz_base;
 	z /= p2_base;
 	for (int i = 0; i < PDG.size(); i++){
 		if (id == PDG[i]){
-			hFrag->Fill(z);
+			frags[i]->Fill(z);
 			return;
 		}
 	}

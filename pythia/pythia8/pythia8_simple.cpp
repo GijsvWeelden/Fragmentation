@@ -33,7 +33,7 @@ std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet>
 int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist);
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
-												TH1F* frags[], int nHadrons, std::vector<int> PDG);
+												std::vector<TH1F*> frags, std::vector<int> PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -97,23 +97,29 @@ int main(int /*argc*/, char** /*argv*/)
 														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
 														 nBins_pt_jet, min_pt_jet, max_pt_jet);
 														//  40, -2, 2, 200, 0, 200);
-	TH1F* hists[nCharged + nNeutral];
-	TH1F* frags[nCharged + nNeutral];
-	TH1F* jetFrags[nCharged + nNeutral];
+	// TH1F* hists[nCharged + nNeutral];
+	// TH1F* frags[nCharged + nNeutral];
+	// TH1F* jetFrags[nCharged + nNeutral];
+	std::vector<TH1F*> hists;
+	std::vector<TH1F*> frags;
+	std::vector<TH1F*> jetFrags;
 	for (int i = 0; i < nCharged + nNeutral; i++){
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
 												 nBins_pt_track, min_pt_track, max_pt_track);
 												// 50, 0, 10);
-		hists[i] = hPt;
+		// hists[i] = hPt;
+		hists.push_back(hPt);
 		TH1F* hFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
 													 TString::Format("D(z) for all %s;z", Hadrons[i].c_str()).Data(),
 													 100, 0., 1.);
-		frags[i] = hFrag;
+		// frags[i] = hFrag;
+		frags.push_back(hFrag);
 		TH1F* hJetFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
 															TString::Format("D(z) for all %s;z", Hadrons[i].c_str()).Data(),
 															100, 0., 1.);
-		jetFrags[i] = hJetFrag;
+		// jetFrags[i] = hJetFrag;
+		jetFrags.push_back(hJetFrag);
 	}
 
 	//Begin event loop
@@ -179,12 +185,12 @@ int main(int /*argc*/, char** /*argv*/)
 			jInp.set_user_index(part.id());
 			fastjetInputs.push_back(jInp);
 
-			int match = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2, matchDist);
-			if (match == 1){
-				fill_fragmentation(px, py, pz, part.id(), pxM1, pyM1, pzM1, p2M1, frags, nCharged + nNeutral, PDG);
+			int partMatch = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2, matchDist);
+			if (partMatch == 1){
+				fill_fragmentation(px, py, pz, part.id(), pxM1, pyM1, pzM1, p2M1, frags, PDG);
 			}
-			else if (match == 2){
-				fill_fragmentation(px, py, pz, part.id(), pxM2, pyM2, pzM2, p2M2, frags, nCharged + nNeutral, PDG);
+			else if (partMatch == 2){
+				fill_fragmentation(px, py, pz, part.id(), pxM2, pyM2, pzM2, p2M2, frags, PDG);
 			}
 
 			// double deltaR1 = (part.eta() - etaM1) * (part.eta() - etaM1) + (part.phi() - phiM1) + (part.phi() - phiM1);
@@ -217,6 +223,9 @@ int main(int /*argc*/, char** /*argv*/)
 		}
 		// Do jet finding and analysis here.
 		// std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fjInputs, max_eta_track, max_eta_jet, jetR);
+		for (auto jet : ptSortedJets){
+			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
+		}
 	}
 	//End event loop
 	outFile->Write();
@@ -253,7 +262,7 @@ int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1
 	else return 0;
 }
 
-void fill_fragmentation(double px, double py, double pz, int id, double px_base, double py_base, double pz_base, double p2_base, TH1F* frags[], int nHadrons, std::vector<int> PDG){
+void fill_fragmentation(double px, double py, double pz, int id, double px_base, double py_base, double pz_base, double p2_base, std::vector<TH1F*> frags, std::vector<int> PDG){
 	double z = px * px_base + py * py_base + pz * pz_base;
 	z /= p2_base;
 	for (int i = 0; i < PDG.size(); i++){

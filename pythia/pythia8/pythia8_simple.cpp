@@ -34,7 +34,7 @@ int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
-void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH1F*> &jetFrags, std::vector<int> &PDG);
+// void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH1F*> &jetFrags, std::vector<int> &PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -188,9 +188,11 @@ int main(int /*argc*/, char** /*argv*/)
 
 			int partMatch = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2, matchDist);
 			if (partMatch == 1){
+				cout << "Match is 1!" << endl;
 				fill_fragmentation(px, py, pz, part.id(), pxM1, pyM1, pzM1, p2M1, frags, PDG);
 			}
 			else if (partMatch == 2){
+				cout << "Match is 2!"	<< endl;
 				fill_fragmentation(px, py, pz, part.id(), pxM2, pyM2, pzM2, p2M2, frags, PDG);
 			}
 
@@ -223,17 +225,17 @@ int main(int /*argc*/, char** /*argv*/)
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
 		}
 		// Do jet finding and analysis here.
-		std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fjInputs, max_eta_track, max_eta_jet, jetR);
-		for (auto jet : ptSortedJets){
-			hJetEtaPt->Fill(jet.eta(), jet.pt());
-			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
-			if (jetMatch == 1){
-				fill_fragmentation(jet, jetFrags, PDG);
-			}
-			else if (jetMatch == 2){
-				fill_fragmentation(jet, jetFrags, PDG);
-			}
-		}
+		// std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fjInputs, max_eta_track, max_eta_jet, jetR);
+		// for (auto jet : ptSortedJets){
+		// 	hJetEtaPt->Fill(jet.eta(), jet.pt());
+		// 	int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
+		// 	if (jetMatch == 1){
+		// 		fill_fragmentation(jet, jetFrags, PDG);
+		// 	}
+		// 	else if (jetMatch == 2){
+		// 		fill_fragmentation(jet, jetFrags, PDG);
+		// 	}
+		// }
 	}
 	//End event loop
 	outFile->Write();
@@ -262,9 +264,11 @@ int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1
 	double deltaR1 = (eta - etaM1) * (eta - etaM1) + (phi - phiM1) + (phi - phiM1);
 	double deltaR2 = (eta - etaM2) * (eta - etaM2) + (phi - phiM2) + (phi - phiM2);
 	if (deltaR1 < matchDist && deltaR1 < deltaR2){
+		cout << "found a match with matriarch 1" << endl;
 		return 1;
 	}
 	else if (deltaR2 < matchDist){
+		cout << "found a match with matriarch 2" << endl;
 		return 2;
 	}
 	else return 0;
@@ -275,12 +279,14 @@ void fill_fragmentation(double px, double py, double pz, int id, double px_base,
 	z /= p2_base;
 	for (int i = 0; i < PDG.size(); i++){
 		if (id == PDG[i]){
+			cout << "Found a particle with code: " << id << endl;
 			frags[i]->Fill(z);
 			return;
 		}
 	}
 }
 
+/*
 void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<Int_t> &PDG)
 {
   if (!jet.has_constituents())
@@ -303,3 +309,4 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
   }
   return;
 }
+*/

@@ -195,7 +195,21 @@ int main(int /*argc*/, char** /*argv*/)
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
 		}
 		// Do jet finding and analysis here.
-		std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
+		// std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
+		fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
+	fastjet::Strategy strategy = fastjet::Best;
+	fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
+	fastjet::AreaType areaType = fastjet::active_area;
+	fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType, ghostSpec);
+	fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
+		//fastjet::active_area, ghostSpec);
+	fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
+	fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
+	fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
+
+	std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
+	vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
+
 		for (auto jet : ptSortedJets){
 			if (nMatchedJets == 2) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());

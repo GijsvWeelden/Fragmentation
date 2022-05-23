@@ -302,7 +302,7 @@ void fill_fragmentation(double px, double py, double pz, int id, double px_base,
 	for (int i = 0; i < PDG.size(); i++){
 		if (id == PDG[i]){
 			cout << "Found a particle with code: " << id << endl;
-			cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
+			cout << "Histogram entries: " << frags[i]->GetBinContent(0) << " = " << frags.at(i)->GetBinContent(frags.at(i)->GetNbins()+1) << endl;
 			frags[i]->Fill(z);
 			cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
 			return;

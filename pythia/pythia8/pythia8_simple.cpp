@@ -116,9 +116,9 @@ int main(int /*argc*/, char** /*argv*/)
 													 100, 0., 1.);
 		// frags[i] = hFrag;
 		frags.push_back(hFrag);
-		TH1F* hJetFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
+		TH1F* hJetFrag = new TH1F(TString::Format("hJetFrag_%s", Hadrons[i].c_str()).Data(),
 															TString::Format("D(z) for all %s;z", Hadrons[i].c_str()).Data(),
-															100, 0., 1.);
+															100, -1e-3, 1.001);
 		// jetFrags[i] = hJetFrag;
 		jetFrags.push_back(hJetFrag);
 	}
@@ -302,7 +302,7 @@ void fill_fragmentation(double px, double py, double pz, int id, double px_base,
 	for (int i = 0; i < PDG.size(); i++){
 		if (id == PDG[i]){
 			cout << "Found a particle with code: " << id << endl;
-			cout << "Histogram entries: " << frags[i]->GetBinContent(0) << " = " << frags.at(i)->GetBinContent(frags.at(i)->GetNbins()+1) << endl;
+			cout << "Histogram entries: " << frags[i]->GetBinContent(0) << " = " << frags.at(i)->GetBinContent(frags.at(i)->GetNbinsX()+1) << endl;
 			frags[i]->Fill(z);
 			cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
 			return;

@@ -274,7 +274,7 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
 		px = constits[ic].px();
 		py = constits[ic].py();
 		pz = constits[ic].pz();
-		int id = constits[ic].id();
+		int id = constits[ic].user_index();
 		fill_fragmentation(px, py, pz, id, jet.px(), jet.py(), jet.pz(), p2, jetFrags, PDG);
   }
   return;

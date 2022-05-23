@@ -34,7 +34,7 @@ int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
-void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH1F*> &jetFrags, 																		std::vector<int> &PDG);
+void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<int> &PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -100,7 +100,7 @@ int main(int /*argc*/, char** /*argv*/)
 														//  40, -2, 2, 200, 0, 200);
 	std::vector<TH1F*> hists;
 	std::vector<TH1F*> frags;
-	std::vector<TH1F*> jetFrags;
+	std::vector<TH2F*> jetFrags;
 	for (int i = 0; i < nCharged + nNeutral; i++){
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
@@ -113,9 +113,10 @@ int main(int /*argc*/, char** /*argv*/)
 													 100, -1e-3, 1.001);
 		// frags[i] = hFrag;
 		frags.push_back(hFrag);
-		TH1F* hJetFrag = new TH1F(TString::Format("hJetFrag_%s", Hadrons[i].c_str()).Data(),
-															TString::Format("D(z) for all %s;z", Hadrons[i].c_str()).Data(),
-															100, -1e-3, 1.001);
+		TH2F* hJetFrag = new TH2F(TString::Format("hJetFrag_%s", Hadrons[i].c_str()).Data(),
+															TString::Format("D(z) for all %s;z;p_{T}", Hadrons[i].c_str()).Data(),
+															100, -1e-3, 1.001,
+															nBins_pt_jet, min_pt_jet, max_pt_jet);
 		// jetFrags[i] = hJetFrag;
 		jetFrags.push_back(hJetFrag);
 	}
@@ -197,18 +198,17 @@ int main(int /*argc*/, char** /*argv*/)
 		// Do jet finding and analysis here.
 		// std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
 		fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
-	fastjet::Strategy strategy = fastjet::Best;
-	fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
-	fastjet::AreaType areaType = fastjet::active_area;
-	fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType, ghostSpec);
-	fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
-		//fastjet::active_area, ghostSpec);
-	fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
-	fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
-	fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
-
-	std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
-	vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
+		fastjet::Strategy strategy = fastjet::Best;
+		fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
+		fastjet::AreaType areaType = fastjet::active_area;
+		fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType, ghostSpec);
+		fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
+			//fastjet::active_area, ghostSpec);
+		fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
+		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
+		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
+		std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
+		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
 
 		for (auto jet : ptSortedJets){
 			if (nMatchedJets == 2) continue;
@@ -277,19 +277,27 @@ void fill_fragmentation(double px, double py, double pz, int id, double px_base,
 	}
 }
 
-void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH1F*> &jetFrags, std::vector<Int_t> &PDG)
+void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<Int_t> &PDG)
 {
   if (!jet.has_constituents())
     return;
   std::vector<fastjet::PseudoJet> constits = jet.constituents();
-  Double_t p2 = jet.modp2(); //jet.px() * jet.px() + jet.py() * jet.py() + jet.pz() *jet.pz();
-  Double_t z; Int_t c; double px, py, pz;
+  Double_t jpx = jet.px(), jpy = jet.py(), jpz = jet.pz(), jp2 = jet.modp2(); Double_t z;
+	double px, py, pz; int id;
   for(UInt_t ic = 0; ic < constits.size(); ++ic){
 		px = constits[ic].px();
 		py = constits[ic].py();
 		pz = constits[ic].pz();
-		int id = constits[ic].user_index();
-		fill_fragmentation(px, py, pz, id, jet.px(), jet.py(), jet.pz(), p2, jetFrags, PDG);
+		id = constits[ic].user_index();
+		// fill_fragmentation(px, py, pz, id, jet.px(), jet.py(), jet.pz(), p2, jetFrags, PDG);
+		z = px * jpx + py * jpy + pz * jpz;
+		z /= jp2;
+		for (int i = 0; i < PDG.size(); i++){
+			if (abs(id) == PDG[i]){
+				jetFrags[i]->Fill(jet.perp(), z);
+				return;
+			}
+		}
   }
   return;
 }

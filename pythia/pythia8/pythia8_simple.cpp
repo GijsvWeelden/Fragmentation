@@ -263,7 +263,7 @@ void fill_fragmentation(double px, double py, double pz, int id, double px_base,
 	}
 }
 
-void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<Int_t> &PDG)
+void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH1F*> &jetFrags, std::vector<Int_t> &PDG)
 {
   if (!jet.has_constituents())
     return;

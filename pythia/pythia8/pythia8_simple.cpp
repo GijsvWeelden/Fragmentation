@@ -211,23 +211,25 @@ int main(int /*argc*/, char** /*argv*/)
 		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
 
 		for (auto jet : ptSortedJets){
-			if (nMatchedJets == 2) continue;
+			//if (nMatchedJets == 2) continue;
+      if (jet.pt() < min_pt_jet) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
 			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
 			if (jetMatch == 1){
-				if (jetMatch1) continue;
+				//if (jetMatch1) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
 				jetMatch1 = 1;
 				nMatchedJets++;
 			}
 			else if (jetMatch == 2){
-				if (jetMatch2) continue;
+				//if (jetMatch2) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
 				jetMatch2 = 1;
 				nMatchedJets++;
 			}
 		}
-		if (nMatchedJets < 2) cout << "Warning: could not match two jets." << endl;
+		if (nMatchedJets < 2) cout << "Warning: could not match two jets. Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
+    else cout << "Matched " << nMatchedJets << " jets" << endl;
 	}
 	//End event loop
 	outFile->Write();
@@ -295,7 +297,7 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
 		for (int i = 0; i < PDG.size(); i++){
 			if (abs(id) == PDG[i]){
 				jetFrags[i]->Fill(jet.perp(), z);
-				return;
+				//return;
 			}
 		}
   }

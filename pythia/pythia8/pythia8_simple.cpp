@@ -269,12 +269,11 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
     return;
   std::vector<fastjet::PseudoJet> constits = jet.constituents();
   Double_t p2 = jet.modp2(); //jet.px() * jet.px() + jet.py() * jet.py() + jet.pz() *jet.pz();
-  Double_t z;
-  Int_t c;
+  Double_t z; Int_t c; double px, py, pz;
   for(UInt_t ic = 0; ic < constits.size(); ++ic){
 		px = constits[ic].px();
-		px = constits[ic].px();
-		px = constits[ic].px();
+		py = constits[ic].py();
+		pz = constits[ic].pz();
 		int id = constits[ic].id();
 		fill_fragmentation(px, py, pz, id, jet.px(), jet.py(), jet.pz(), p2, jetFrags, PDG);
   }

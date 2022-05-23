@@ -188,12 +188,34 @@ int main(int /*argc*/, char** /*argv*/)
 
 			int partMatch = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2, matchDist);
 			if (partMatch == 1){
-				cout << "Match is 1!" << endl;
+				// cout << "Match is 1!" << endl;
 				fill_fragmentation(px, py, pz, part.id(), pxM1, pyM1, pzM1, p2M1, frags, PDG);
+				// double z = px * pxM1 + py * pyM1 + pz * pzM1;
+				// z /= p2M1;
+				// for (int i = 0; i < PDG.size(); i++){
+				// 	if (id == PDG[i]){
+				// 		cout << "Found a particle with code: " << id << endl;
+				// 		cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
+				// 		frags[i]->Fill(z);
+				// 		cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
+				// 		return;
+				// 	}
+				// }
 			}
 			else if (partMatch == 2){
-				cout << "Match is 2!"	<< endl;
+				// cout << "Match is 2!"	<< endl;
 				fill_fragmentation(px, py, pz, part.id(), pxM2, pyM2, pzM2, p2M2, frags, PDG);
+				// double z = px * pxM2 + py * pyM2 + pz * pzM2;
+				// z /= p2M2;
+				// for (int i = 0; i < PDG.size(); i++){
+				// 	if (id == PDG[i]){
+				// 		cout << "Found a particle with code: " << id << endl;
+				// 		cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
+				// 		frags[i]->Fill(z);
+				// 		cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
+				// 		return;
+				// 	}
+				// }
 			}
 
 			// double deltaR1 = (part.eta() - etaM1) * (part.eta() - etaM1) + (part.phi() - phiM1) + (part.phi() - phiM1);
@@ -264,11 +286,11 @@ int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1
 	double deltaR1 = (eta - etaM1) * (eta - etaM1) + (phi - phiM1) + (phi - phiM1);
 	double deltaR2 = (eta - etaM2) * (eta - etaM2) + (phi - phiM2) + (phi - phiM2);
 	if (deltaR1 < matchDist && deltaR1 < deltaR2){
-		cout << "found a match with matriarch 1" << endl;
+		// cout << "found a match with matriarch 1" << endl;
 		return 1;
 	}
 	else if (deltaR2 < matchDist){
-		cout << "found a match with matriarch 2" << endl;
+		// cout << "found a match with matriarch 2" << endl;
 		return 2;
 	}
 	else return 0;
@@ -280,7 +302,9 @@ void fill_fragmentation(double px, double py, double pz, int id, double px_base,
 	for (int i = 0; i < PDG.size(); i++){
 		if (id == PDG[i]){
 			cout << "Found a particle with code: " << id << endl;
+			cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
 			frags[i]->Fill(z);
+			cout << "Histogram entries: " << frags[i]->GetEntries() << " = " << frags.at(i)->GetEntries() << endl;
 			return;
 		}
 	}

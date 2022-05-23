@@ -28,13 +28,13 @@
 
 using namespace Pythia8;
 
-std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> &fjInputs,
+std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> &fastjetInputs,
 																								double max_eta_track, double max_eta_jet, double jetR);
 int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist);
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
-// void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH1F*> &jetFrags, std::vector<int> &PDG);
+void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH1F*> &jetFrags, 																		std::vector<int> &PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -169,7 +169,7 @@ int main(int /*argc*/, char** /*argv*/)
 			if (abs( part.eta() ) > max_eta_track || part.pT() < min_pt_track) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
 			for (int i = 0; i < nCharged + nNeutral; i++){
-				if (part.id() == PDG[i]){
+				if (abs(part.id()) == PDG[i]){
 					hists[i]->Fill(part.pT());
 				}
 			}
@@ -179,7 +179,7 @@ int main(int /*argc*/, char** /*argv*/)
 			double p2 = part.pAbs2();
 
 			fastjet::PseudoJet jInp(px, py, pz, part.e());
-			jInp.set_user_index(abs(part.id())());
+			jInp.set_user_index(part.id());
 			fastjetInputs.push_back(jInp);
 
 			int partMatch = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2, matchDist);
@@ -195,7 +195,7 @@ int main(int /*argc*/, char** /*argv*/)
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
 		}
 		// Do jet finding and analysis here.
-		std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fjInputs, max_eta_track, max_eta_jet, jetR);
+		std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
 		for (auto jet : ptSortedJets){
 			if (nMatchedJets == 2) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
@@ -213,7 +213,7 @@ int main(int /*argc*/, char** /*argv*/)
 				nMatchedJets++;
 			}
 		}
-		if (nMatchedJets < 2) cout << "Warning: could not match two jets."
+		if (nMatchedJets < 2) cout << "Warning: could not match two jets." << endl;
 	}
 	//End event loop
 	outFile->Write();
@@ -221,7 +221,7 @@ int main(int /*argc*/, char** /*argv*/)
 	outFile->Close();
 }
 
-std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> &fjInputs, double max_eta_track, double max_eta_jet, double jetR){
+std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> &fastjetInputs, double max_eta_track, double max_eta_jet, double jetR){
 	fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
 	fastjet::Strategy strategy = fastjet::Best;
 	fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
@@ -231,7 +231,7 @@ std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet>
 		//fastjet::active_area, ghostSpec);
 	fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
 	fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
-	fastjet::ClusterSequenceArea clustSeq(fjInputs, jetDef, areaDef);
+	fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
 
 	std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
 	vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
@@ -256,7 +256,7 @@ void fill_fragmentation(double px, double py, double pz, int id, double px_base,
 	double z = px * px_base + py * py_base + pz * pz_base;
 	z /= p2_base;
 	for (int i = 0; i < PDG.size(); i++){
-		if (id == PDG[i]){
+		if (abs(id) == PDG[i]){
 			frags[i]->Fill(z);
 			return;
 		}

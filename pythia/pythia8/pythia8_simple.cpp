@@ -35,6 +35,8 @@ void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
 void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<int> &PDG);
+void fill_fragmentation(double px_base, double py_base, double pz_base, double p2_base,
+												const fastjet::PseudoJet &jet, std::vector<TH3F*> &partonFrags, std::vector<int> &PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -146,7 +148,7 @@ int main(int /*argc*/, char** /*argv*/)
 		int nPart = pythia.event.size();
 
     int a = 0; int b = 0; int c = 0; // For counting descendants
-		Int_t nMatriarchs = 0; Int_t matriarch1Index = -1; Int_t matriarch2Index = -1;
+		Int_t nMatriarchs = 0; Int_t flavourM1 = -999; Int_t flavourM2 = -999;
 		int nMatchedJets = 0; int jetMatch1 = 0; int jetMatch2 = 0;
     double pxM1 = 0, pyM1 = 0, pzM1 = 0, p2M1 = 0, etaM1 = 0, phiM1 = 0;
 		double pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0, etaM2 = 0, phiM2 = 0;
@@ -159,7 +161,7 @@ int main(int /*argc*/, char** /*argv*/)
 			if (part.status() == -23){
 				nMatriarchs++;
         if (nMatriarchs == 1){
-          matriarch1Index = part.index();
+          flavourM1 = part.id();
 					etaM1 = part.eta();
 					phiM1 = part.phi();
           pxM1 = part.px();
@@ -168,7 +170,7 @@ int main(int /*argc*/, char** /*argv*/)
           p2M1 = part.pAbs2();
         }
         else if (nMatriarchs == 2){
-          matriarch2Index = part.index();
+          flavourM2 = part.id();
 					etaM2 = part.eta();
 					phiM2 = part.phi();
           pxM2 = part.px();
@@ -232,12 +234,24 @@ int main(int /*argc*/, char** /*argv*/)
 			if (jetMatch == 1){
 				if (jetMatch1) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
+				if (flavourM1 == 9){ // Gluon
+					fill_fragmentation(pxM1, pyM1, pzM1, p2M1, jet, gluonFrags, PDG);
+				}
+				else{ // Quark
+					fill_fragmentation(pxM1, pyM1, pzM1, p2M1, jet, quarkFrags, PDG);
+				}
 				jetMatch1 = 1;
 				nMatchedJets++;
 			}
 			else if (jetMatch == 2){
 				if (jetMatch2) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
+				if (flavourM1 == 9){ // Gluon
+					fill_fragmentation(pxM2, pyM2, pzM2, p2M2, jet, gluonFrags, PDG);
+				}
+				else{ // Quark
+					fill_fragmentation(pxM2, pyM2, pzM2, p2M2, jet, quarkFrags, PDG);
+				}
 				jetMatch2 = 1;
 				nMatchedJets++;
 			}
@@ -310,6 +324,30 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
 		for (int i = 0; i < PDG.size(); i++){
 			if (abs(id) == PDG[i]){
 				jetFrags[i]->Fill(jet.perp(), z);
+				//return;
+			}
+		}
+  }
+  return;
+}
+
+void fill_fragmentation(double px_base, double py_base, double pz_base, double p2_base, const fastjet::PseudoJet &jet, std::vector<TH3F*> &partonFrags, std::vector<int> &PDG)
+{
+	if (!jet.has_constituents())
+    return;
+	std::vector<fastjet::PseudoJet> constits = jet.constituents();
+	Double_t jpx = jet.px(), jpy = jet.py(), jpz = jet.pz(), jp2 = jet.modp2(); Double_t z;
+	double px, py, pz; int id;
+  for(UInt_t ic = 0; ic < constits.size(); ++ic){
+		px = constits[ic].px();
+		py = constits[ic].py();
+		pz = constits[ic].pz();
+		id = constits[ic].user_index();
+		z = px * jpx + py * jpy + pz * jpz;
+		z /= jp2;
+		for (int i = 0; i < PDG.size(); i++){
+			if (abs(id) == PDG[i]){
+				partonFrags[i]->Fill(z, jet.perp(), p2_base);
 				//return;
 			}
 		}

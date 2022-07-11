@@ -66,12 +66,12 @@ int main(int /*argc*/, char** /*argv*/)
 	pythia.readString("310:mayDecay  = off"); //K0s
 	pythia.readString("311:mayDecay  = off"); //K0
 	pythia.readString("3122:mayDecay = off"); //labda0
-	pythia.readString("3112:mayDecay = off"); //sigma-
-	pythia.readString("3212:mayDecay = off"); //sigma0
-	pythia.readString("3222:mayDecay = off"); //sigma+
-	pythia.readString("3312:mayDecay = off"); //xi-
-	pythia.readString("3322:mayDecay = off"); //xi+
-	pythia.readString("3334:mayDecay = off"); //omega-
+	// pythia.readString("3112:mayDecay = off"); //sigma-
+	// pythia.readString("3212:mayDecay = off"); //sigma0
+	// pythia.readString("3222:mayDecay = off"); //sigma+
+	// pythia.readString("3312:mayDecay = off"); //xi-
+	// pythia.readString("3322:mayDecay = off"); //xi+
+	// pythia.readString("3334:mayDecay = off"); //omega-
 
 	//ME corrections
 	//use of matrix corrections where available
@@ -83,7 +83,8 @@ int main(int /*argc*/, char** /*argv*/)
 	// Settings for tracks and jets
 	float max_eta_track = 2, min_pt_track = 0., max_pt_track = 10.;
 	float max_eta_jet = 2.0, min_pt_jet = 10, max_pt_jet = 200, jetR = 0.4;
-	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200;
+	float min_z = -1e-3, max_z = 1.001;
+	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200, nBins_z = 100;
 	int nCharged = 3, nNeutral = 5;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
 	std::vector<string> Hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
@@ -101,24 +102,38 @@ int main(int /*argc*/, char** /*argv*/)
 	std::vector<TH1F*> hists;
 	std::vector<TH1F*> frags;
 	std::vector<TH2F*> jetFrags;
+	std::vector<TH3F*> quarkFrags; // TODO: should be expanded across flavours
+	std::vector<TH3F*> gluonFrags;
 	for (int i = 0; i < nCharged + nNeutral; i++){
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
 												 nBins_pt_track, min_pt_track, max_pt_track);
-												// 50, 0, 10);
-		// hists[i] = hPt;
 		hists.push_back(hPt);
 		TH1F* hFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
 													 TString::Format("D^{%s}(z);z", Hadrons[i].c_str()).Data(),
-													 100, -1e-3, 1.001);
-		// frags[i] = hFrag;
+													nBins_z, min_z, max_z);
+													//  100, -1e-3, 1.001);
 		frags.push_back(hFrag);
 		TH2F* hJetFrag = new TH2F(TString::Format("hJetFrag_%s", Hadrons[i].c_str()).Data(),
-															TString::Format("D(z) for all %s;z;p_{T}", Hadrons[i].c_str()).Data(),
-															100, -1e-3, 1.001,
+															TString::Format("D^{%s}(z);z;p_{T}", Hadrons[i].c_str()).Data(),
+															nBins_z, min_z, max_z,
+															// 100, -1e-3, 1.001,
 															nBins_pt_jet, min_pt_jet, max_pt_jet);
-		// jetFrags[i] = hJetFrag;
 		jetFrags.push_back(hJetFrag);
+		TH3F* hQuarkFrags = new TH3F(TString::Format("hQuarkFrags_%s", Hadrons[i].c_str()).Data(),
+																 TString::Format("D^{%s/q}(z);z;p_{T}^{jet};p_{T}^{q}", Hadrons[i].c_str()).Data(),
+																 nBins_z, min_z, max_z,
+																//  100, -1e-3, 1.001,
+																 nBins_pt_jet, min_pt_jet, max_pt_jet,
+																 nBins_pt_jet, min_pt_jet, max_pt_jet); // Last line is matriarch pt
+		quarkFrags.push_back(hQuarkFrags);
+		TH3F* hGluonFrags = new TH3F(TString::Format("hGluonFrags_%s", Hadrons[i].c_str()).Data(),
+																 TString::Format("D^{%s/q}(z);z;p_{T}^{jet};p_{T}^{g}", Hadrons[i].c_str()).Data(),
+																 nBins_z, min_z, max_z,
+																//  100, -1e-3, 1.001,
+																 nBins_pt_jet, min_pt_jet, max_pt_jet,
+																 nBins_pt_jet, min_pt_jet, max_pt_jet); // Last line is matriarch pt
+		gluonFrags.push_back(hGluonFrags);
 	}
 
 	//Begin event loop
@@ -203,7 +218,6 @@ int main(int /*argc*/, char** /*argv*/)
 		fastjet::AreaType areaType = fastjet::active_area;
 		fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType, ghostSpec);
 		fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
-			//fastjet::active_area, ghostSpec);
 		fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
 		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
 		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
@@ -211,18 +225,18 @@ int main(int /*argc*/, char** /*argv*/)
 		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
 
 		for (auto jet : ptSortedJets){
-			//if (nMatchedJets == 2) continue;
+			if (nMatchedJets == 2) continue;
       if (jet.pt() < min_pt_jet) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
 			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
 			if (jetMatch == 1){
-				//if (jetMatch1) continue;
+				if (jetMatch1) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
 				jetMatch1 = 1;
 				nMatchedJets++;
 			}
 			else if (jetMatch == 2){
-				//if (jetMatch2) continue;
+				if (jetMatch2) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
 				jetMatch2 = 1;
 				nMatchedJets++;
@@ -291,7 +305,6 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
 		py = constits[ic].py();
 		pz = constits[ic].pz();
 		id = constits[ic].user_index();
-		// fill_fragmentation(px, py, pz, id, jet.px(), jet.py(), jet.pz(), p2, jetFrags, PDG);
 		z = px * jpx + py * jpy + pz * jpz;
 		z /= jp2;
 		for (int i = 0; i < PDG.size(); i++){

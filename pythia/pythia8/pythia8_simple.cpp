@@ -90,6 +90,7 @@ int main(int /*argc*/, char** /*argv*/)
 	int nCharged = 3, nNeutral = 5;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
 	std::vector<string> Hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
+	std::vector<string> Partons = {"g", "q"};
 
 	// Output histograms
 	TFile* outFile = new TFile("PythiaResult.root","RECREATE");
@@ -104,8 +105,8 @@ int main(int /*argc*/, char** /*argv*/)
 	std::vector<TH1F*> hists;
 	std::vector<TH1F*> frags;
 	std::vector<TH2F*> jetFrags;
-	std::vector<TH3F*> quarkFrags; // TODO: should be expanded across flavours
-	std::vector<TH3F*> gluonFrags;
+	std::vector<vector<TH2F*>> partonFrags;
+
 	for (int i = 0; i < nCharged + nNeutral; i++){
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
@@ -122,20 +123,17 @@ int main(int /*argc*/, char** /*argv*/)
 															// 100, -1e-3, 1.001,
 															nBins_pt_jet, min_pt_jet, max_pt_jet);
 		jetFrags.push_back(hJetFrag);
-		TH3F* hQuarkFrags = new TH3F(TString::Format("hQuarkFrags_%s", Hadrons[i].c_str()).Data(),
-																 TString::Format("D^{%s/q}(z);z;p_{T}^{jet};p_{T}^{q}", Hadrons[i].c_str()).Data(),
-																 nBins_z, min_z, max_z,
-																//  100, -1e-3, 1.001,
-																 nBins_pt_jet, min_pt_jet, max_pt_jet,
-																 nBins_pt_jet, min_pt_jet, max_pt_jet); // Last line is matriarch pt
-		quarkFrags.push_back(hQuarkFrags);
-		TH3F* hGluonFrags = new TH3F(TString::Format("hGluonFrags_%s", Hadrons[i].c_str()).Data(),
-																 TString::Format("D^{%s/q}(z);z;p_{T}^{jet};p_{T}^{g}", Hadrons[i].c_str()).Data(),
-																 nBins_z, min_z, max_z,
-																//  100, -1e-3, 1.001,
-																 nBins_pt_jet, min_pt_jet, max_pt_jet,
-																 nBins_pt_jet, min_pt_jet, max_pt_jet); // Last line is matriarch pt
-		gluonFrags.push_back(hGluonFrags);
+		std::vector<TH2F*> tmp;
+		for (int j = 0; j < Partons.size(); j++){
+			TH2F* hPartonFrags = new TH2F(TString::Format("h%sFrags_%s", Partons[j].c_str(), Hadrons[i].c_str()).Data(),
+																		TString::Format("D^{%s/%s}(z);z;p_{T}^{jet}",
+																										Hadrons[i].c_str(), Partons[j].c_str()).Data(),
+																		nBins_z, min_z, max_z,
+																		//  100, -1e-3, 1.001,
+																		nBins_pt_jet, min_pt_jet, max_pt_jet);
+			tmp.push_back(hPartonFrags);
+		}
+		partonFrags.push_back(tmp);
 	}
 
 	//Begin event loop
@@ -208,7 +206,7 @@ int main(int /*argc*/, char** /*argv*/)
 				fill_fragmentation(px, py, pz, part.id(), pxM2, pyM2, pzM2, p2M2, frags, PDG);
 			}
 			nPartPythia++;
-		}
+		} // Particle loop
 		if ((iEvent%1000)==0){
 			cout << "Pythia event: " << nPartPythia << " particles" << endl;
 		}
@@ -235,10 +233,10 @@ int main(int /*argc*/, char** /*argv*/)
 				if (jetMatch1) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM1 == 9){ // Gluon
-					fill_fragmentation(pxM1, pyM1, pzM1, p2M1, jet, gluonFrags, PDG);
+					fill_fragmentation(jet, partonFrags[0], PDG);
 				}
 				else{ // Quark
-					fill_fragmentation(pxM1, pyM1, pzM1, p2M1, jet, quarkFrags, PDG);
+					fill_fragmentation(jet, partonFrags[1], PDG);
 				}
 				jetMatch1 = 1;
 				nMatchedJets++;
@@ -246,18 +244,18 @@ int main(int /*argc*/, char** /*argv*/)
 			else if (jetMatch == 2){
 				if (jetMatch2) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
-				if (flavourM1 == 9){ // Gluon
-					fill_fragmentation(pxM2, pyM2, pzM2, p2M2, jet, gluonFrags, PDG);
+				if (flavourM2 == 9){ // Gluon
+					fill_fragmentation(jet, partonFrags[0], PDG);
 				}
 				else{ // Quark
-					fill_fragmentation(pxM2, pyM2, pzM2, p2M2, jet, quarkFrags, PDG);
+					fill_fragmentation(jet, partonFrags[1], PDG);
 				}
 				jetMatch2 = 1;
 				nMatchedJets++;
 			}
 		}
 		if (nMatchedJets < 2) cout << "Warning: could not match two jets. Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
-    else cout << "Matched " << nMatchedJets << " jets" << endl;
+    // else cout << "Matched " << nMatchedJets << " jets" << endl;
 	}
 	//End event loop
 	outFile->Write();

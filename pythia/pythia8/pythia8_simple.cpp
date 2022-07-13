@@ -35,8 +35,8 @@ void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
 void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<int> &PDG);
-void fill_fragmentation(double px_base, double py_base, double pz_base, double p2_base,
-												const fastjet::PseudoJet &jet, std::vector<TH3F*> &partonFrags, std::vector<int> &PDG);
+// void fill_fragmentation(double px_base, double py_base, double pz_base, double p2_base,
+// 												const fastjet::PseudoJet &jet, std::vector<TH3F*> &partonFrags, std::vector<int> &PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -329,26 +329,26 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
   return;
 }
 
-void fill_fragmentation(double px_base, double py_base, double pz_base, double p2_base, const fastjet::PseudoJet &jet, std::vector<TH3F*> &partonFrags, std::vector<int> &PDG)
-{
-	if (!jet.has_constituents())
-    return;
-	std::vector<fastjet::PseudoJet> constits = jet.constituents();
-	Double_t jpx = jet.px(), jpy = jet.py(), jpz = jet.pz(), jp2 = jet.modp2(); Double_t z;
-	double px, py, pz; int id;
-  for(UInt_t ic = 0; ic < constits.size(); ++ic){
-		px = constits[ic].px();
-		py = constits[ic].py();
-		pz = constits[ic].pz();
-		id = constits[ic].user_index();
-		z = px * jpx + py * jpy + pz * jpz;
-		z /= jp2;
-		for (int i = 0; i < PDG.size(); i++){
-			if (abs(id) == PDG[i]){
-				partonFrags[i]->Fill(z, jet.perp(), p2_base);
-				//return;
-			}
-		}
-  }
-  return;
-}
+// void fill_fragmentation(double px_base, double py_base, double pz_base, double p2_base, const fastjet::PseudoJet &jet, std::vector<TH3F*> &partonFrags, std::vector<int> &PDG)
+// {
+// 	if (!jet.has_constituents())
+//     return;
+// 	std::vector<fastjet::PseudoJet> constits = jet.constituents();
+// 	Double_t jpx = jet.px(), jpy = jet.py(), jpz = jet.pz(), jp2 = jet.modp2(); Double_t z;
+// 	double px, py, pz; int id;
+//   for(UInt_t ic = 0; ic < constits.size(); ++ic){
+// 		px = constits[ic].px();
+// 		py = constits[ic].py();
+// 		pz = constits[ic].pz();
+// 		id = constits[ic].user_index();
+// 		z = px * jpx + py * jpy + pz * jpz;
+// 		z /= jp2;
+// 		for (int i = 0; i < PDG.size(); i++){
+// 			if (abs(id) == PDG[i]){
+// 				partonFrags[i]->Fill(z, jet.perp(), p2_base);
+// 				//return;
+// 			}
+// 		}
+//   }
+//   return;
+// }

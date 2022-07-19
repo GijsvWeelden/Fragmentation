@@ -123,8 +123,10 @@ int main(int /*argc*/, char** /*argv*/)
 															// 100, -1e-3, 1.001,
 															nBins_pt_jet, min_pt_jet, max_pt_jet);
 		jetFrags.push_back(hJetFrag);
+	}
+	for (int j = 0; j < Partons.size(); j++){
 		std::vector<TH2F*> tmp;
-		for (int j = 0; j < Partons.size(); j++){
+		for (int i = 0; i < nCharged + nNeutral; i++){
 			TH2F* hPartonFrags = new TH2F(TString::Format("h%sFrags_%s", Partons[j].c_str(), Hadrons[i].c_str()).Data(),
 																		TString::Format("D^{%s/%s}(z);z;p_{T}^{jet}",
 																										Hadrons[i].c_str(), Partons[j].c_str()).Data(),
@@ -232,7 +234,7 @@ int main(int /*argc*/, char** /*argv*/)
 			if (jetMatch == 1){
 				if (jetMatch1) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
-				if (flavourM1 == 9){ // Gluon
+				if (flavourM1 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
 				}
 				else{ // Quark
@@ -244,7 +246,7 @@ int main(int /*argc*/, char** /*argv*/)
 			else if (jetMatch == 2){
 				if (jetMatch2) continue;
 				fill_fragmentation(jet, jetFrags, PDG);
-				if (flavourM2 == 9){ // Gluon
+				if (flavourM2 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
 				}
 				else{ // Quark
@@ -321,7 +323,7 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
 		z /= jp2;
 		for (int i = 0; i < PDG.size(); i++){
 			if (abs(id) == PDG[i]){
-				jetFrags[i]->Fill(jet.perp(), z);
+				jetFrags[i]->Fill(z, jet.perp());
 				//return;
 			}
 		}

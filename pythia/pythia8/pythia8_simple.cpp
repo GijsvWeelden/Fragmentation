@@ -107,7 +107,7 @@ int main(int /*argc*/, char** /*argv*/)
 	std::vector<TH2F*> jetFrags;
 	std::vector<vector<TH2F*>> partonFrags;
 
-	for (int i = 0; i < nCharged + nNeutral; i++){
+	for (int i = 0; i < Hadrons.size(); i++){
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
 												 nBins_pt_track, min_pt_track, max_pt_track);
@@ -115,23 +115,20 @@ int main(int /*argc*/, char** /*argv*/)
 		TH1F* hFrag = new TH1F(TString::Format("hFrag_%s", Hadrons[i].c_str()).Data(),
 													 TString::Format("D^{%s}(z);z", Hadrons[i].c_str()).Data(),
 													nBins_z, min_z, max_z);
-													//  100, -1e-3, 1.001);
 		frags.push_back(hFrag);
 		TH2F* hJetFrag = new TH2F(TString::Format("hJetFrag_%s", Hadrons[i].c_str()).Data(),
 															TString::Format("D^{%s}(z);z;p_{T}", Hadrons[i].c_str()).Data(),
 															nBins_z, min_z, max_z,
-															// 100, -1e-3, 1.001,
 															nBins_pt_jet, min_pt_jet, max_pt_jet);
 		jetFrags.push_back(hJetFrag);
 	}
 	for (int j = 0; j < Partons.size(); j++){
 		std::vector<TH2F*> tmp;
-		for (int i = 0; i < nCharged + nNeutral; i++){
+		for (int i = 0; i < Hadrons.size(); i++){
 			TH2F* hPartonFrags = new TH2F(TString::Format("h%sFrags_%s", Partons[j].c_str(), Hadrons[i].c_str()).Data(),
 																		TString::Format("D^{%s/%s}(z);z;p_{T}^{jet}",
 																										Hadrons[i].c_str(), Partons[j].c_str()).Data(),
 																		nBins_z, min_z, max_z,
-																		//  100, -1e-3, 1.001,
 																		nBins_pt_jet, min_pt_jet, max_pt_jet);
 			tmp.push_back(hPartonFrags);
 		}
@@ -186,7 +183,7 @@ int main(int /*argc*/, char** /*argv*/)
 			if (!part.isFinal()) continue; // No decays yet
 			if (abs( part.eta() ) > max_eta_track || part.pT() < min_pt_track) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
-			for (int i = 0; i < nCharged + nNeutral; i++){
+			for (int i = 0; i < Hadrons.size(); i++){
 				if (abs(part.id()) == PDG[i]){
 					hists[i]->Fill(part.pT());
 				}
@@ -255,8 +252,9 @@ int main(int /*argc*/, char** /*argv*/)
 				jetMatch2 = 1;
 				nMatchedJets++;
 			}
+			if (nMatchedJets == 2) cout << "Matched 2 jets!" << endl;
 		}
-		if (nMatchedJets < 2) cout << "Warning: could not match two jets. Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
+		// if (nMatchedJets < 2) cout << "Warning: could not match two jets. Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
     // else cout << "Matched " << nMatchedJets << " jets" << endl;
 	}
 	//End event loop

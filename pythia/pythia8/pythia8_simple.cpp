@@ -87,7 +87,7 @@ int main(int /*argc*/, char** /*argv*/)
 	float max_eta_jet = 2.0, min_pt_jet = 10, max_pt_jet = 200, jetR = 0.4;
 	float min_z = -1e-3, max_z = 1.001;
 	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200, nBins_z = 100;
-	int nCharged = 3, nNeutral = 5;
+	int match_0 = 0, match_1 = 0, match_2 = 0;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
 	std::vector<string> Hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
 	std::vector<string> Partons = {"g", "q"};
@@ -255,19 +255,19 @@ int main(int /*argc*/, char** /*argv*/)
 		}
 		if (nMatchedJets == 2){
 			// cout << "Warning: could not match two jets in event " << iEvent << ". Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
-			2Match++;
+			match_2++;
 		}
 		else if (nMatchedJets == 1){
-			1Match++;
+			match_1++;
 		}
 		else if (nMatchedJets == 0){
-			0Match++;
+			match_0++;
 		}
 	}
 	cout << "Number of events: " << nEvents << "Events with (2, 1, 0) matches:" << endl
-		<< "2: " << 2Match << " ("	<< 2Match/nEvents << ")" << endl
-		<< "1: " << 1Match << " ("	<< 1Match/nEvents << ")" << endl
-		<< "0: " << 0Match << " ("	<< 0Match/nEvents << ")" << endl
+		<< "2: " << match_2 << " ("	<< 1.*match_2/nEvents << ")" << endl
+		<< "1: " << match_1 << " ("	<< 1.*match_1/nEvents << ")" << endl
+		<< "0: " << match_0 << " ("	<< 1.*match_0/nEvents << ")" << endl
 	//End event loop
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;

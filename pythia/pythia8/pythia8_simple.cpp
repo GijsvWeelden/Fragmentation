@@ -252,9 +252,9 @@ int main(int /*argc*/, char** /*argv*/)
 				jetMatch2 = 1;
 				nMatchedJets++;
 			}
-			if (nMatchedJets == 2) cout << "Matched 2 jets!" << endl;
+			if (nMatchedJets == 2) cout << "Matched 2 jets in event " << iEvent << endl;
 		}
-		// if (nMatchedJets < 2) cout << "Warning: could not match two jets. Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
+		if (nMatchedJets < 2) cout << "Warning: could not match two jets in event " << iEvent << ". Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
     // else cout << "Matched " << nMatchedJets << " jets" << endl;
 	}
 	//End event loop

@@ -252,11 +252,22 @@ int main(int /*argc*/, char** /*argv*/)
 				jetMatch2 = 1;
 				nMatchedJets++;
 			}
-			if (nMatchedJets == 2) cout << "Matched 2 jets in event " << iEvent << endl;
 		}
-		if (nMatchedJets < 2) cout << "Warning: could not match two jets in event " << iEvent << ". Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
-    // else cout << "Matched " << nMatchedJets << " jets" << endl;
+		if (nMatchedJets == 2){
+			// cout << "Warning: could not match two jets in event " << iEvent << ". Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
+			2Match++;
+		}
+		else if (nMatchedJets == 1){
+			1Match++;
+		}
+		else if (nMatchedJets == 0){
+			0Match++;
+		}
 	}
+	cout << "Number of events: " << nEvents << "Events with (2, 1, 0) matches:" << endl
+		<< "2: " << 2Match << " ("	<< 2Match/nEvents << ")" << endl
+		<< "1: " << 1Match << " ("	<< 1Match/nEvents << ")" << endl
+		<< "0: " << 0Match << " ("	<< 0Match/nEvents << ")" << endl
 	//End event loop
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;

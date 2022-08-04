@@ -37,9 +37,9 @@ void fill_fragmentation(double px, double py, double pz, int id,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
 void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<int> &PDG);
 
-int main(int /*argc*/, char** /*argv*/)
+int main(int argc, char** argv)
 {
-	// Should take up to 3 arguments: pthatmin, pthatmax, outFile. Should have default values if these are not given.
+	// Should take up to 3 arguments: ptHatMin, ptHatMax, outFile. Should have default values if these are not given.
 
 	Float_t ptHatMin = 80;
 	Float_t ptHatMax = 200;
@@ -108,7 +108,7 @@ int main(int /*argc*/, char** /*argv*/)
 
 	// Output histograms
 	TFile* outFile = new TFile(TString::Format("%s_pthat%.0f_%.0f.root",
-																						 outName.c_str(), pthatmin, pthatmax).Data(),
+																						 outName, ptHatMin, ptHatMax).Data(),
 																						 "RECREATE");
 	// TFile* outFile = new TFile("PythiaResult.root","RECREATE");
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",

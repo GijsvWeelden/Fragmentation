@@ -48,11 +48,11 @@ int main(int argc, char** argv)
 	if (argc >= 4) outName = argv[3];
 	if (argc >= 2){
 		ptHatMin = atof(argv[1]);
-		outName.append(ptHatMin);
+		outName.append(argv[1]);
 	}
 	if (argc >= 3){
 		ptHatMax = atof(argv[2]);
-		outName.append(ptHatMax);
+		outName.append(argv[2]);
 	}
 	if (argc >= 5){
 		cout << "Superfluous arguments: ";

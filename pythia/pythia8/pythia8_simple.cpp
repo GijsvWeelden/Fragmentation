@@ -43,20 +43,20 @@ int main(int argc, char** argv)
 
 	Float_t ptHatMin = 80;
 	Float_t ptHatMax = 200;
-	TString outName = "PythiaResult";
+	string outName = "PythiaResult";
 
+	if (argc >= 4) outName = argv[3];
 	if (argc >= 2){
 		ptHatMin = atof(argv[1]);
-		outName.Append(ptHatMin);
+		outName.append(ptHatMin);
 	}
 	if (argc >= 3){
 		ptHatMax = atof(argv[2]);
-		outName.Append(ptHatMax);
+		outName.append(ptHatMax);
 	}
-	if (argc >= 4) outName = argv[3];
 	if (argc >= 5){
 		cout << "Superfluous arguments: ";
-		for (int i = 4; i < argc; i++) cout << argv[i] << " "
+		for (int i = 4; i < argc; i++) cout << argv[i] << " ";
 		cout << endl;
 	}
 
@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 
 	// Output histograms
 	TFile* outFile = new TFile(TString::Format("%s_pthat%.0f_%.0f.root",
-																						 outName, ptHatMin, ptHatMax).Data(),
+																						 outName.c_str(), ptHatMin, ptHatMax).Data(),
 																						 "RECREATE");
 	// TFile* outFile = new TFile("PythiaResult.root","RECREATE");
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",
@@ -282,7 +282,7 @@ int main(int argc, char** argv)
 	cout << "Number of events: " << nEvents << "Events with (2, 1, 0) matches:" << endl
 		<< "2: " << match_2 << " ("	<< 1.*match_2/nEvents << ")" << endl
 		<< "1: " << match_1 << " ("	<< 1.*match_1/nEvents << ")" << endl
-		<< "0: " << match_0 << " ("	<< 1.*match_0/nEvents << ")" << endl
+		<< "0: " << match_0 << " ("	<< 1.*match_0/nEvents << ")" << endl;
 	//End event loop
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;

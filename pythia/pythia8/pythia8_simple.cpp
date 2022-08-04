@@ -45,16 +45,16 @@ int main(int argc, char** argv)
 	Float_t ptHatMax = 200;
 	TString outName = "PythiaResult";
 
-	if (argv >= 2){
+	if (argc >= 2){
 		ptHatMin = atof(argv[1]);
 		outName.Append(ptHatMin);
 	}
-	if (argv >= 3){
+	if (argc >= 3){
 		ptHatMax = atof(argv[2]);
 		outName.Append(ptHatMax);
 	}
 	if (argc >= 4) outName = argv[3];
-	if (argv >= 5){
+	if (argc >= 5){
 		cout << "Superfluous arguments: ";
 		for (int i = 4; i < argc; i++) cout << argv[i] << " "
 		cout << endl;

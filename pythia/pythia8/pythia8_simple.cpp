@@ -31,20 +31,40 @@ using namespace Pythia8;
 std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> &fastjetInputs,
 																								double max_eta_track, double max_eta_jet, double jetR);
 int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist);
+// TODO: Normalise FFs by Njets
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
 void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<int> &PDG);
-// void fill_fragmentation(double px_base, double py_base, double pz_base, double p2_base,
-// 												const fastjet::PseudoJet &jet, std::vector<TH3F*> &partonFrags, std::vector<int> &PDG);
 
 int main(int /*argc*/, char** /*argv*/)
 {
-//PYTHIA SETTINGS
-	TString name;
-	int mecorr=1;
+	// Should take up to 3 arguments: pthatmin, pthatmax, outFile. Should have default values if these are not given.
+
 	Float_t ptHatMin = 80;
 	Float_t ptHatMax = 200;
+	TString outName = "PythiaResult";
+
+	if (argv >= 2){
+		ptHatMin = atof(argv[1]);
+		outName.Append(ptHatMin);
+	}
+	if (argv >= 3){
+		ptHatMax = atof(argv[2]);
+		outName.Append(ptHatMax);
+	}
+	if (argc >= 4) outName = argv[3];
+	if (argv >= 5){
+		cout << "Superfluous arguments: ";
+		for (int i = 4; i < argc; i++) cout << argv[i] << " "
+		cout << endl;
+	}
+
+	//PYTHIA SETTINGS
+	TString name;
+	int mecorr=1;
+	// Float_t ptHatMin = 80;
+	// Float_t ptHatMax = 200;
 
 	// Generator. Process selection. LHC initialization. Histogram.
 	Pythia pythia;
@@ -68,12 +88,6 @@ int main(int /*argc*/, char** /*argv*/)
 	pythia.readString("310:mayDecay  = off"); //K0s
 	pythia.readString("311:mayDecay  = off"); //K0
 	pythia.readString("3122:mayDecay = off"); //labda0
-	// pythia.readString("3112:mayDecay = off"); //sigma-
-	// pythia.readString("3212:mayDecay = off"); //sigma0
-	// pythia.readString("3222:mayDecay = off"); //sigma+
-	// pythia.readString("3312:mayDecay = off"); //xi-
-	// pythia.readString("3322:mayDecay = off"); //xi+
-	// pythia.readString("3334:mayDecay = off"); //omega-
 
 	//ME corrections
 	//use of matrix corrections where available
@@ -93,15 +107,16 @@ int main(int /*argc*/, char** /*argv*/)
 	std::vector<string> Partons = {"g", "q"};
 
 	// Output histograms
-	TFile* outFile = new TFile("PythiaResult.root","RECREATE");
+	TFile* outFile = new TFile(TString::Format("%s_pthat%.0f_%.0f.root",
+																						 outName.c_str(), pthatmin, pthatmax).Data(),
+																						 "RECREATE");
+	// TFile* outFile = new TFile("PythiaResult.root","RECREATE");
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",
 													nBins_eta_track, -1 * max_eta_track, max_eta_track,
 													nBins_pt_track, min_pt_track, max_pt_track);
-													// 40, -2, 2, 50, 0, 10);
 	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
 														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
 														 nBins_pt_jet, min_pt_jet, max_pt_jet);
-														//  40, -2, 2, 200, 0, 200);
 	std::vector<TH1F*> hists;
 	std::vector<TH1F*> frags;
 	std::vector<TH2F*> jetFrags;
@@ -206,9 +221,9 @@ int main(int /*argc*/, char** /*argv*/)
 			}
 			nPartPythia++;
 		} // Particle loop
-		if ((iEvent%1000)==0){
-			cout << "Pythia event: " << nPartPythia << " particles" << endl;
-		}
+		// if ((iEvent%1000)==0){
+		// 	cout << "Pythia event: " << nPartPythia << " particles" << endl;
+		// }
 		// Do jet finding and analysis here.
 		// std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
 		fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
@@ -339,27 +354,3 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
   }
   return;
 }
-
-// void fill_fragmentation(double px_base, double py_base, double pz_base, double p2_base, const fastjet::PseudoJet &jet, std::vector<TH3F*> &partonFrags, std::vector<int> &PDG)
-// {
-// 	if (!jet.has_constituents())
-//     return;
-// 	std::vector<fastjet::PseudoJet> constits = jet.constituents();
-// 	Double_t jpx = jet.px(), jpy = jet.py(), jpz = jet.pz(), jp2 = jet.modp2(); Double_t z;
-// 	double px, py, pz; int id;
-//   for(UInt_t ic = 0; ic < constits.size(); ++ic){
-// 		px = constits[ic].px();
-// 		py = constits[ic].py();
-// 		pz = constits[ic].pz();
-// 		id = constits[ic].user_index();
-// 		z = px * jpx + py * jpy + pz * jpz;
-// 		z /= jp2;
-// 		for (int i = 0; i < PDG.size(); i++){
-// 			if (abs(id) == PDG[i]){
-// 				partonFrags[i]->Fill(z, jet.perp(), p2_base);
-// 				//return;
-// 			}
-// 		}
-//   }
-//   return;
-// }

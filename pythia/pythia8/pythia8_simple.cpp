@@ -117,6 +117,10 @@ int main(int argc, char** argv)
 	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
 														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
 														 nBins_pt_jet, min_pt_jet, max_pt_jet);
+	TH1F *hNPartons = new TH1F("hNPartons","Matriarchs per eta;#eta",
+														 2 * nBins_eta_jet, -2 * max_eta_jet, 2 * max_eta_jet,);
+	TH1F *hNJets = new TH1F("hNJets","Jets per eta;#eta",
+													 nBins_eta_jet, -2 * max_eta_jet, 2 * max_eta_jet);
 	std::vector<TH1F*> hists;
 	std::vector<TH1F*> frags;
 	std::vector<TH2F*> jetFrags;
@@ -180,6 +184,7 @@ int main(int argc, char** argv)
           pyM1 = part.py();
           pzM1 = part.pz();
           p2M1 = part.pAbs2();
+					hNPartons->Fill(etaM1);
         }
         else if (nMatriarchs == 2){
           flavourM2 = part.id();
@@ -189,6 +194,7 @@ int main(int argc, char** argv)
           pyM2 = part.py();
           pzM2 = part.pz();
           p2M2 = part.pAbs2();
+					hNPartons->Fill(etaM2);
         }
         // else if (nMatriarchs > 2){
 					// cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
@@ -239,6 +245,7 @@ int main(int argc, char** argv)
 		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
 
 		for (auto jet : ptSortedJets){
+			hNJets->Fill(jet.eta());
 			if (nMatchedJets == 2) continue;
       if (jet.pt() < min_pt_jet) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
@@ -279,7 +286,8 @@ int main(int argc, char** argv)
 			match_0++;
 		}
 	}
-	cout << "Number of events: " << nEvents << "Events with (2, 1, 0) matches:" << endl
+	cout << "Number of events: " << nEvents << endl
+		<< "Events with (2, 1, 0) matches:" << endl
 		<< "2: " << match_2 << " ("	<< 1.*match_2/nEvents << ")" << endl
 		<< "1: " << match_1 << " ("	<< 1.*match_1/nEvents << ")" << endl
 		<< "0: " << match_0 << " ("	<< 1.*match_0/nEvents << ")" << endl;

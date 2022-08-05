@@ -24,7 +24,7 @@
 #include "TH1F.h"
 #include "TH2F.h"
 
-#define nEvents 20000
+#define nEvents 200
 
 using namespace Pythia8;
 
@@ -118,9 +118,9 @@ int main(int argc, char** argv)
 														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
 														 nBins_pt_jet, min_pt_jet, max_pt_jet);
 	TH1F *hNPartons = new TH1F("hNPartons","Matriarchs per eta;#eta",
-														 2 * nBins_eta_jet, -2 * max_eta_jet, 2 * max_eta_jet,);
+														 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
 	TH1F *hNJets = new TH1F("hNJets","Jets per eta;#eta",
-													 nBins_eta_jet, -2 * max_eta_jet, 2 * max_eta_jet);
+													 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
 	std::vector<TH1F*> hists;
 	std::vector<TH1F*> frags;
 	std::vector<TH2F*> jetFrags;
@@ -245,9 +245,9 @@ int main(int argc, char** argv)
 		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
 
 		for (auto jet : ptSortedJets){
+      if (jet.pt() < min_pt_jet) continue;
 			hNJets->Fill(jet.eta());
 			if (nMatchedJets == 2) continue;
-      if (jet.pt() < min_pt_jet) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
 			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
 			if (jetMatch == 1){

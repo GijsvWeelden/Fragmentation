@@ -24,7 +24,7 @@
 #include "TH1F.h"
 #include "TH2F.h"
 
-#define nEvents 200
+// #define nEvents 200
 
 using namespace Pythia8;
 
@@ -39,24 +39,32 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
 
 int main(int argc, char** argv)
 {
-	// Should take up to 3 arguments: ptHatMin, ptHatMax, outFile. Should have default values if these are not given.
+	// Should take up to 4 arguments: nEvents, outFile, ptHatMin, ptHatMax. Should have default values if these are not given.
 
+	int nEvents = 200;
+	string outName = "PythiaResult";
 	Float_t ptHatMin = 80;
 	Float_t ptHatMax = 200;
-	string outName = "PythiaResult";
 
-	if (argc >= 4) outName = argv[3];
 	if (argc >= 2){
-		ptHatMin = atof(argv[1]);
-		// outName.append(argv[1]);
+		nEvents = atoi(argv[1]);
+		if (nEvents == 0){
+			cerr << "ERROR: Zero events requested. Aborting.";
+			return 1;
+		}
 	}
 	if (argc >= 3){
-		ptHatMax = atof(argv[2]);
-		// outName.append(argv[2]);
+		outName = argv[2];
+	}
+	if (argc >= 4){
+		ptHatMin = atof(argv[3]);
 	}
 	if (argc >= 5){
+		ptHatMax = atof(argv[4]);
+	}
+	if (argc >= 6){
 		cout << "Superfluous arguments: ";
-		for (int i = 4; i < argc; i++) cout << argv[i] << " ";
+		for (int i = 5; i < argc; i++) cout << argv[i] << " ";
 		cout << endl;
 	}
 
@@ -249,10 +257,10 @@ int main(int argc, char** argv)
       if (jet.pt() < min_pt_jet) continue;
 			if (nMatchedJets == 2) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
-			hNJets->Fill(jet.eta());
 			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
 			if (jetMatch == 1){
 				if (jetMatch1) continue;
+				hNJets->Fill(jet.eta());
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM1 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
@@ -265,6 +273,7 @@ int main(int argc, char** argv)
 			}
 			else if (jetMatch == 2){
 				if (jetMatch2) continue;
+				hNJets->Fill(jet.eta());
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM2 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);

@@ -48,11 +48,11 @@ int main(int argc, char** argv)
 	if (argc >= 4) outName = argv[3];
 	if (argc >= 2){
 		ptHatMin = atof(argv[1]);
-		outName.append(argv[1]);
+		// outName.append(argv[1]);
 	}
 	if (argc >= 3){
 		ptHatMax = atof(argv[2]);
-		outName.append(argv[2]);
+		// outName.append(argv[2]);
 	}
 	if (argc >= 5){
 		cout << "Superfluous arguments: ";
@@ -98,7 +98,8 @@ int main(int argc, char** argv)
 
 	// Settings for tracks and jets
 	float max_eta_track = 2, min_pt_track = 0., max_pt_track = 10.;
-	float max_eta_jet = 2.0, min_pt_jet = 10, max_pt_jet = 200, jetR = 0.4;
+	float jetR = 0.4, min_pt_jet = 10, max_pt_jet = 200;
+	float max_eta_jet = max_eta_track - jetR;
 	float min_z = -1e-3, max_z = 1.001;
 	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200, nBins_z = 100;
 	int match_0 = 0, match_1 = 0, match_2 = 0;
@@ -246,9 +247,9 @@ int main(int argc, char** argv)
 
 		for (auto jet : ptSortedJets){
       if (jet.pt() < min_pt_jet) continue;
-			hNJets->Fill(jet.eta());
 			if (nMatchedJets == 2) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
+			hNJets->Fill(jet.eta());
 			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
 			if (jetMatch == 1){
 				if (jetMatch1) continue;

@@ -6,7 +6,7 @@ FASTJETCONFIG := fastjet-config
 
 # Compiler options
 FASTJETLIBS := $(shell $(FASTJETCONFIG) --libs)
-FASTJETLIBS := -Wl,-rpath,$(FASTJET_ROOT)/lib -lm -L$(CGAL_ROOT)/lib -lCGAL -lgmp -L$(FASTJET_ROOT)/lib -lfastjettools -lfastjet
+FASTJETLIBS := -Wl,-rpath,$(FASTJET)/lib -lm -L$(CGAL_ROOT)/lib -lCGAL -lgmp -L$(FASTJET)/lib -lfastjettools -lfastjet
 FASTJETFLAGS := $(shell $(FASTJETCONFIG) --cxxflags)
 
 ROOTLIBS := $(shell root-config  --libs)

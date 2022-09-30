@@ -1,5 +1,0 @@
-# This is the parameter file for the medium model.
-# and the centrality
-CENTRMIN 0.
-CENTRMAX 10.
-KEEPRECOILS T

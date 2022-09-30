@@ -1,1 +1,0 @@
-extern "C" void kkp_(int ih, int iset, double x, double q, double dh[10]);

@@ -31,7 +31,7 @@ using namespace Pythia8;
 std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> &fastjetInputs,
 																								double max_eta_track, double max_eta_jet, double jetR);
 int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist);
-// TODO: Normalise FFs by Njets
+// TODO: Normalise FFs by Njets of relevant flavour
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 	TFile* outFile = new TFile(TString::Format("%s_pthat%.0f_%.0f.root",
 																						 outName.c_str(), ptHatMin, ptHatMax).Data(),
 																						 "RECREATE");
-	// TFile* outFile = new TFile("PythiaResult.root","RECREATE");
+
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",
 													nBins_eta_track, -1 * max_eta_track, max_eta_track,
 													nBins_pt_track, min_pt_track, max_pt_track);
@@ -186,6 +186,7 @@ int main(int argc, char** argv)
 			if (part.status() == -23){
 				nMatriarchs++;
         if (nMatriarchs == 1){
+					// TODO: save mass,
           flavourM1 = part.id();
 					etaM1 = part.eta();
 					phiM1 = part.phi();
@@ -252,6 +253,7 @@ int main(int argc, char** argv)
 		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
 		std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
 		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
+		// TODO: is this high to low or low to high?
 
 		for (auto jet : ptSortedJets){
       if (jet.pt() < min_pt_jet) continue;
@@ -325,8 +327,14 @@ std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet>
 }
 
 int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist){
-	double deltaR1 = (eta - etaM1) * (eta - etaM1) + (phi - phiM1) * (phi - phiM1);
-	double deltaR2 = (eta - etaM2) * (eta - etaM2) + (phi - phiM2) * (phi - phiM2);
+	double dphi1 = phi - phiM1;
+	if (dphi1 < - fastjet::pi) dphi1 += fastjet::twopi;
+	if (dphi1 > fastjet::pi) dphi1 -= fastjet::twopi;
+	double dphi2 = phi - phiM2;
+	if (dphi2 < - fastjet::pi) dphi2 += fastjet::twopi;
+	if (dphi2 > fastjet::pi) dphi2 -= fastjet::twopi;
+	double deltaR1 = (eta - etaM1) * (eta - etaM1) + dphi1 * dphi1;
+	double deltaR2 = (eta - etaM2) * (eta - etaM2) + dphi2 * dphi2;
 	deltaR1 = sqrt(deltaR1);
 	deltaR2 = sqrt(deltaR2);
 	if (deltaR1 < matchDist && deltaR1 < deltaR2){

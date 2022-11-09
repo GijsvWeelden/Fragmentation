@@ -111,6 +111,7 @@ int main(int argc, char** argv)
 	float min_z = -1e-3, max_z = 1.001;
 	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200, nBins_z = 100;
 	int match_0 = 0, match_1 = 0, match_2 = 0;
+	int nGluons = 0, nQuarks = 0;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
 	std::vector<string> Hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
 	std::vector<string> Partons = {"g", "q"};
@@ -135,6 +136,7 @@ int main(int argc, char** argv)
 	std::vector<TH2F*> jetFrags;
 	std::vector<vector<TH2F*>> partonFrags;
 
+	// Hadron specific spectra, fragmentation, jet fragmentation
 	for (int i = 0; i < Hadrons.size(); i++){
 		TH1F* hPt = new TH1F(TString::Format("hPt_%s", Hadrons[i].c_str()).Data(),
 												 TString::Format("%s Pt;p_{T} (GeV/c)", Hadrons[i].c_str()).Data(),
@@ -150,6 +152,7 @@ int main(int argc, char** argv)
 															nBins_pt_jet, min_pt_jet, max_pt_jet);
 		jetFrags.push_back(hJetFrag);
 	}
+	// Parton specific hadron
 	for (int j = 0; j < Partons.size(); j++){
 		std::vector<TH2F*> tmp;
 		for (int i = 0; i < Hadrons.size(); i++){
@@ -183,6 +186,7 @@ int main(int argc, char** argv)
 
 		for (int iPart = 0; iPart < nPart; iPart++){
     	const Particle &part = pythia.event[iPart];
+			// Initial scattering partons
 			if (part.status() == -23){
 				nMatriarchs++;
         if (nMatriarchs == 1){
@@ -206,12 +210,9 @@ int main(int argc, char** argv)
           p2M2 = part.pAbs2();
 					hNPartons->Fill(etaM2);
         }
-        // else if (nMatriarchs > 2){
-					// cout << "Warning: More than 2 outgoing particles found from the initial hard scattering. We will ignore these." << endl;
-				// }
 				continue;
 			}
-			if (!part.isFinal()) continue; // No decays yet
+			if (!part.isFinal()) continue;
 			if (abs( part.eta() ) > max_eta_track || part.pT() < min_pt_track) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
 			for (int i = 0; i < Hadrons.size(); i++){
@@ -228,6 +229,7 @@ int main(int argc, char** argv)
 			jInp.set_user_index(part.id());
 			fastjetInputs.push_back(jInp);
 
+			//  Check if particle came from parton
 			int partMatch = do_matching(part.eta(), etaM1, etaM2, part.phi(), phiM1, phiM2, matchDist);
 			if (partMatch == 1){
 				fill_fragmentation(px, py, pz, part.id(), pxM1, pyM1, pzM1, p2M1, frags, PDG);
@@ -252,13 +254,14 @@ int main(int argc, char** argv)
 		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
 		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
 		std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
+		// Sort jets from high to low pt
 		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
-		// TODO: is this high to low or low to high?
 
 		for (auto jet : ptSortedJets){
       if (jet.pt() < min_pt_jet) continue;
 			if (nMatchedJets == 2) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
+			// Check if jet came from parton
 			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
 			if (jetMatch == 1){
 				if (jetMatch1) continue;
@@ -266,9 +269,11 @@ int main(int argc, char** argv)
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM1 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
+					nGluons++;
 				}
 				else{ // Quark
 					fill_fragmentation(jet, partonFrags[1], PDG);
+					nQuarks++;
 				}
 				jetMatch1 = 1;
 				nMatchedJets++;
@@ -279,16 +284,17 @@ int main(int argc, char** argv)
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM2 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
+					nGluons++;
 				}
 				else{ // Quark
 					fill_fragmentation(jet, partonFrags[1], PDG);
+					nQuarks++;
 				}
 				jetMatch2 = 1;
 				nMatchedJets++;
 			}
 		}
 		if (nMatchedJets == 2){
-			// cout << "Warning: could not match two jets in event " << iEvent << ". Matched " << nMatchedJets << " out of " << ptSortedJets.size() << " total jets."  << endl;
 			match_2++;
 		}
 		else if (nMatchedJets == 1){
@@ -298,11 +304,26 @@ int main(int argc, char** argv)
 			match_0++;
 		}
 	}
+	if (nGluons != 0){
+		for (auto& hist : partonFrags[0]){
+			hist->Scale(1./nGluons);
+		}
+	}
+	else cout << "ERROR: 0 gluon jets. Cannot rescale gluon fragmentation histograms" << endl;
+	if (nQuarks != 0){
+		for (auto& hist : partonFrags[1]){
+			hist->Scale(1./nQuarks);
+		}
+	}
+	else cout << "ERROR: 0 quark jets. Cannot rescale quark fragmentation histograms" << endl;
+
 	cout << "Number of events: " << nEvents << endl
 		<< "Events with (2, 1, 0) matches:" << endl
 		<< "2: " << match_2 << " ("	<< 1.*match_2/nEvents << ")" << endl
 		<< "1: " << match_1 << " ("	<< 1.*match_1/nEvents << ")" << endl
-		<< "0: " << match_0 << " ("	<< 1.*match_0/nEvents << ")" << endl;
+		<< "0: " << match_0 << " ("	<< 1.*match_0/nEvents << ")" << endl
+		<< "Number of gluon jets: " << nGluons << " (" << nGluons/(2 * match_2 + match_1) << ")" << endl
+		<< "Number of quark jets: " << nQuarks << " (" << nQuarks/(2 * match_2 + match_1) << ")" << endl;
 	//End event loop
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;

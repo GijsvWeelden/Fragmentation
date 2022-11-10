@@ -131,6 +131,11 @@ int main(int argc, char** argv)
 														 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
 	TH1F *hNJets = new TH1F("hNJets","Jets per eta;#eta",
 													 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
+	TH1I *hNJetTypes = new TH1I("hNJetTypes","Number of gluon/quark jets",
+													 Partons.size(), -0.5, Partons.size()-0.5);
+	for (int i = 0; i < Partons.size(); i++){
+		hNJetTypes->GetXaxis()->SetBinLabel(i+1, Partons[i].c_str());
+	}
 	std::vector<TH1F*> hists;
 	std::vector<TH1F*> frags;
 	std::vector<TH2F*> jetFrags;
@@ -190,7 +195,6 @@ int main(int argc, char** argv)
 			if (part.status() == -23){
 				nMatriarchs++;
         if (nMatriarchs == 1){
-					// TODO: save mass,
           flavourM1 = part.id();
 					etaM1 = part.eta();
 					phiM1 = part.phi();
@@ -239,11 +243,8 @@ int main(int argc, char** argv)
 			}
 			nPartPythia++;
 		} // Particle loop
-		// if ((iEvent%1000)==0){
-		// 	cout << "Pythia event: " << nPartPythia << " particles" << endl;
-		// }
+
 		// Do jet finding and analysis here.
-		// std::vector <fastjet::PseudoJet> ptSortedJets = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
 		fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
 		fastjet::Strategy strategy = fastjet::Best;
 		fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
@@ -254,8 +255,7 @@ int main(int argc, char** argv)
 		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
 		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
 		std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
-		// Sort jets from high to low pt
-		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
+		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets); // Sort jets from high to low pt
 
 		for (auto jet : ptSortedJets){
       if (jet.pt() < min_pt_jet) continue;
@@ -304,18 +304,20 @@ int main(int argc, char** argv)
 			match_0++;
 		}
 	}
-	if (nGluons != 0){
-		for (auto& hist : partonFrags[0]){
-			hist->Scale(1./nGluons);
-		}
-	}
-	else cout << "ERROR: 0 gluon jets. Cannot rescale gluon fragmentation histograms" << endl;
-	if (nQuarks != 0){
-		for (auto& hist : partonFrags[1]){
-			hist->Scale(1./nQuarks);
-		}
-	}
-	else cout << "ERROR: 0 quark jets. Cannot rescale quark fragmentation histograms" << endl;
+	hNJetTypes->Fill(0, nGluons);
+	hNJetTypes->Fill(0, nQuarks);
+	// if (nGluons != 0){
+	// 	for (auto& hist : partonFrags[0]){
+	// 		hist->Scale(1./nGluons);
+	// 	}
+	// }
+	// else cout << "ERROR: 0 gluon jets. Cannot rescale gluon fragmentation histograms" << endl;
+	// if (nQuarks != 0){
+	// 	for (auto& hist : partonFrags[1]){
+	// 		hist->Scale(1./nQuarks);
+	// 	}
+	// }
+	// else cout << "ERROR: 0 quark jets. Cannot rescale quark fragmentation histograms" << endl;
 
 	cout << "Number of events: " << nEvents << endl
 		<< "Events with (2, 1, 0) matches:" << endl
@@ -395,7 +397,6 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
 		for (int i = 0; i < PDG.size(); i++){
 			if (abs(id) == PDG[i]){
 				jetFrags[i]->Fill(z, jet.perp());
-				//return;
 			}
 		}
   }

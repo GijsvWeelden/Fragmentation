@@ -38,8 +38,8 @@ void plot_frags(void){
   int nJets = hJetEtaPt->GetEntries();
   // FIXME: When selecting jet pt bins, should we normalise by Njets inside that bin?
   TH1I* hNJetTypes = (TH1I*) inFile->Get("hNJetTypes");
-  int nGluons = hNJetTypes->GetBinContent(0);
-  int nQuarks = hNJetTypes->GetBinContent(1);
+  int nGluons = hNJetTypes->GetBinContent(1);
+  int nQuarks = hNJetTypes->GetBinContent(2);
 
   for (int iHad = 0; iHad < Hadrons.size(); iHad++){
     std::cout << "Plotting " << Hadrons[iHad] << std::endl;

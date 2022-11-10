@@ -321,8 +321,8 @@ int main(int argc, char** argv)
 		<< "2: " << match_2 << " ("	<< 1.*match_2/nEvents << ")" << endl
 		<< "1: " << match_1 << " ("	<< 1.*match_1/nEvents << ")" << endl
 		<< "0: " << match_0 << " ("	<< 1.*match_0/nEvents << ")" << endl
-		<< "Number of gluon jets: " << nGluons << " (" << nGluons/(2 * match_2 + match_1) << ")" << endl
-		<< "Number of quark jets: " << nQuarks << " (" << nQuarks/(2 * match_2 + match_1) << ")" << endl;
+		<< "Number of gluon jets: " << nGluons << " (" << nGluons/(2. * match_2 + 1. * match_1) << ")" << endl
+		<< "Number of quark jets: " << nQuarks << " (" << nQuarks/(2. * match_2 + 1. * match_1) << ")" << endl;
 	//End event loop
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;

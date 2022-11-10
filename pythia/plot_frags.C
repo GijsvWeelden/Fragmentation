@@ -36,6 +36,10 @@ void plot_frags(void){
 
   TH2F* hJetEtaPt = (TH2F*) inFile->Get("hJetEtaPt");
   int nJets = hJetEtaPt->GetEntries();
+  // FIXME: When selecting jet pt bins, should we normalise by Njets inside that bin?
+  TH1I* hNJetTypes = (TH1I*) inFile->Get("hNJetTypes");
+  int nGluons = hNJetTypes->GetBinContent(0);
+  int nQuarks = hNJetTypes->GetBinContent(1);
 
   for (int iHad = 0; iHad < Hadrons.size(); iHad++){
     std::cout << "Plotting " << Hadrons[iHad] << std::endl;
@@ -45,8 +49,8 @@ void plot_frags(void){
 
     // Should be normalised by nJets. Should maybe happen in filling macro.
     hInclJet->Scale(1./nJets);
-    hgJet->Scale(1./nJets);
-    hqJet->Scale(1./nJets);
+    hgJet->Scale(1./nGluons);
+    hqJet->Scale(1./nQuarks);
 
     for (int ipt = 1; ipt < jetPtBins.size(); ipt++){
       double min_pt = jetPtBins[ipt - 1], max_pt = jetPtBins[ipt];

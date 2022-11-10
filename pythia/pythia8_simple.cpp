@@ -31,7 +31,6 @@ using namespace Pythia8;
 std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> &fastjetInputs,
 																								double max_eta_track, double max_eta_jet, double jetR);
 int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist);
-// TODO: Normalise FFs by Njets of relevant flavour
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
@@ -39,8 +38,6 @@ void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFr
 
 int main(int argc, char** argv)
 {
-	// Should take up to 4 arguments: nEvents, outFile, ptHatMin, ptHatMax. Should have default values if these are not given.
-
 	int nEvents = 200;
 	string outName = "PythiaResult";
 	Float_t ptHatMin = 80;
@@ -304,8 +301,8 @@ int main(int argc, char** argv)
 			match_0++;
 		}
 	}
-	hNJetTypes->Fill(0, nGluons);
-	hNJetTypes->Fill(0, nQuarks);
+	hNJetTypes->Fill(0, 1.*nGluons);
+	hNJetTypes->Fill(0, 1.*nQuarks);
 	// if (nGluons != 0){
 	// 	for (auto& hist : partonFrags[0]){
 	// 		hist->Scale(1./nGluons);

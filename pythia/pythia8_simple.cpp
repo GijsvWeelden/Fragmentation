@@ -301,8 +301,8 @@ int main(int argc, char** argv)
 			match_0++;
 		}
 	}
-	hNJetTypes->Fill(0, 1.*nGluons);
-	hNJetTypes->Fill(0, 1.*nQuarks);
+	hNJetTypes->SetBinContent(1, 1.*nGluons);
+	hNJetTypes->SetBinContent(2, 1.*nQuarks);
 	// if (nGluons != 0){
 	// 	for (auto& hist : partonFrags[0]){
 	// 		hist->Scale(1./nGluons);

@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 	float jetR = 0.4, min_pt_jet = 10, max_pt_jet = 200;
 	float max_eta_jet = max_eta_track - jetR;
 	float min_z = -1e-3, max_z = 1.001;
-	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 200, nBins_z = 100;
+	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 190, nBins_z = 100;
 	int match_0 = 0, match_1 = 0, match_2 = 0;
 	int nGluons = 0, nQuarks = 0;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
@@ -124,12 +124,15 @@ int main(int argc, char** argv)
 	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
 														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
 														 nBins_pt_jet, min_pt_jet, max_pt_jet);
+	TH1F *hDeltaPartonJet = new TH1F("hDeltaPartonJet","Distance between parton and jet",
+																	 nBins_eta_jet, 0., 1.);
 	TH1F *hNPartons = new TH1F("hNPartons","Matriarchs per eta;#eta",
 														 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
 	TH1F *hNJets = new TH1F("hNJets","Jets per eta;#eta",
 													 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
-	TH1I *hNJetTypes = new TH1I("hNJetTypes","Number of gluon/quark jets",
-													 Partons.size(), -0.5, Partons.size()-0.5);
+	TH2F *hNJetTypes = new TH2F("hNJetTypes","Number of gluon/quark jets;;p^{jet}_{T}",
+													 Partons.size(), -0.5, Partons.size()-0.5,
+													 nBins_pt_jet, min_pt_jet, max_pt_jet);
 	for (int i = 0; i < Partons.size(); i++){
 		hNJetTypes->GetXaxis()->SetBinLabel(i+1, Partons[i].c_str());
 	}
@@ -259,17 +262,19 @@ int main(int argc, char** argv)
 			if (nMatchedJets == 2) continue;
 			hJetEtaPt->Fill(jet.eta(), jet.pt());
 			// Check if jet came from parton
-			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist);
+			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist, hDeltaPartonJet);
 			if (jetMatch == 1){
 				if (jetMatch1) continue;
 				hNJets->Fill(jet.eta());
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM1 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
+					hNJetTypes->Fill(1, jet.pt());
 					nGluons++;
 				}
 				else{ // Quark
 					fill_fragmentation(jet, partonFrags[1], PDG);
+					hNJetTypes->Fill(2, jet.pt());
 					nQuarks++;
 				}
 				jetMatch1 = 1;
@@ -281,10 +286,12 @@ int main(int argc, char** argv)
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM2 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
+					hNJetTypes->Fill(1, jet.pt());
 					nGluons++;
 				}
 				else{ // Quark
 					fill_fragmentation(jet, partonFrags[1], PDG);
+					hNJetTypes->Fill(2, jet.pt());
 					nQuarks++;
 				}
 				jetMatch2 = 1;
@@ -301,20 +308,8 @@ int main(int argc, char** argv)
 			match_0++;
 		}
 	}
-	hNJetTypes->SetBinContent(1, 1.*nGluons);
-	hNJetTypes->SetBinContent(2, 1.*nQuarks);
-	// if (nGluons != 0){
-	// 	for (auto& hist : partonFrags[0]){
-	// 		hist->Scale(1./nGluons);
-	// 	}
-	// }
-	// else cout << "ERROR: 0 gluon jets. Cannot rescale gluon fragmentation histograms" << endl;
-	// if (nQuarks != 0){
-	// 	for (auto& hist : partonFrags[1]){
-	// 		hist->Scale(1./nQuarks);
-	// 	}
-	// }
-	// else cout << "ERROR: 0 quark jets. Cannot rescale quark fragmentation histograms" << endl;
+	// hNJetTypes->SetBinContent(1, 1.*nGluons);
+	// hNJetTypes->SetBinContent(2, 1.*nQuarks);
 
 	cout << "Number of events: " << nEvents << endl
 		<< "Events with (2, 1, 0) matches:" << endl
@@ -346,7 +341,7 @@ std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet>
 	return ptSortedJets;
 }
 
-int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist){
+int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist, TH1F* hDeltaPartonJet = nullptr){
 	double dphi1 = phi - phiM1;
 	if (dphi1 < - fastjet::pi) dphi1 += fastjet::twopi;
 	if (dphi1 > fastjet::pi) dphi1 -= fastjet::twopi;
@@ -358,9 +353,11 @@ int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1
 	deltaR1 = sqrt(deltaR1);
 	deltaR2 = sqrt(deltaR2);
 	if (deltaR1 < matchDist && deltaR1 < deltaR2){
+		if (hDeltaPartonJet) hDeltaPartonJet->Fill(deltaR1);
 		return 1;
 	}
 	else if (deltaR2 < matchDist){
+		if (hDeltaPartonJet) hDeltaPartonJet->Fill(deltaR2);
 		return 2;
 	}
 	else return 0;

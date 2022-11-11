@@ -245,6 +245,7 @@ int main(int argc, char** argv)
 		} // Particle loop
 
 		// Do jet finding and analysis here.
+		/*
 		fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
 		fastjet::Strategy strategy = fastjet::Best;
 		fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
@@ -255,7 +256,11 @@ int main(int argc, char** argv)
 		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
 		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
 		std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
-		vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets); // Sort jets from high to low pt
+		std::vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets); // Sort jets from high to low pt
+		// */
+		std::vector <fastjet::PseudoJet> ptSortedJets_standard = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
+		// std::vector <fastjet::PseudoJet> ptSortedJets_WTA = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
+			// fastjet::RecombinationScheme recombScheme = fastjet::WTA_pt_scheme;
 
 		for (auto jet : ptSortedJets){
       if (jet.pt() < min_pt_jet) continue;
@@ -269,12 +274,12 @@ int main(int argc, char** argv)
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM1 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
-					hNJetTypes->Fill(1, jet.pt());
+					hNJetTypes->Fill(0, jet.pt());
 					nGluons++;
 				}
 				else{ // Quark
 					fill_fragmentation(jet, partonFrags[1], PDG);
-					hNJetTypes->Fill(2, jet.pt());
+					hNJetTypes->Fill(1, jet.pt());
 					nQuarks++;
 				}
 				jetMatch1 = 1;
@@ -286,12 +291,12 @@ int main(int argc, char** argv)
 				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM2 == 21){ // Gluon
 					fill_fragmentation(jet, partonFrags[0], PDG);
-					hNJetTypes->Fill(1, jet.pt());
+					hNJetTypes->Fill(0, jet.pt());
 					nGluons++;
 				}
 				else{ // Quark
 					fill_fragmentation(jet, partonFrags[1], PDG);
-					hNJetTypes->Fill(2, jet.pt());
+					hNJetTypes->Fill(1, jet.pt());
 					nQuarks++;
 				}
 				jetMatch2 = 1;
@@ -337,11 +342,11 @@ std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet>
 	fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
 
 	std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
-	vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
+	std::vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets);
 	return ptSortedJets;
 }
 
-int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist, TH1F* hDeltaPartonJet = nullptr){
+int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist, TH1F* hDeltaPartonJet){
 	double dphi1 = phi - phiM1;
 	if (dphi1 < - fastjet::pi) dphi1 += fastjet::twopi;
 	if (dphi1 > fastjet::pi) dphi1 -= fastjet::twopi;

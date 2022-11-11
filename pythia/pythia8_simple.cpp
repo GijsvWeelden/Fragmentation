@@ -245,22 +245,24 @@ int main(int argc, char** argv)
 		} // Particle loop
 
 		// Do jet finding and analysis here.
-		/*
 		fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
 		fastjet::Strategy strategy = fastjet::Best;
-		fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
 		fastjet::AreaType areaType = fastjet::active_area;
 		fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType, ghostSpec);
 		fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
 		fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
-		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
-		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
-		std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
-		std::vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets); // Sort jets from high to low pt
-		// */
-		std::vector <fastjet::PseudoJet> ptSortedJets_standard = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
-		// std::vector <fastjet::PseudoJet> ptSortedJets_WTA = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
-			// fastjet::RecombinationScheme recombScheme = fastjet::WTA_pt_scheme;
+		// Jets with standard jet axis
+		fastjet::RecombinationScheme recombScheme_standard = fastjet::E_scheme; // need E scheme for jet mass
+		fastjet::JetDefinition jetDef_standard(fastjet::antikt_algorithm, jetR, recombScheme_standard, strategy);
+		fastjet::ClusterSequenceArea clustSeq_standard(fastjetInputs, jetDef_standard, areaDef);
+		std::vector <fastjet::PseudoJet> inclusiveJets_standard = clustSeq_standard.inclusive_jets();
+		std::vector <fastjet::PseudoJet> ptSortedJets_standard = sorted_by_pt(inclusiveJets_standard); // Sort jets from high to low pt
+		// Jets with WTA axis
+		fastjet::RecombinationScheme recombScheme_WTA = fastjet::WTA_pt_scheme;
+		fastjet::JetDefinition jetDef_WTA(fastjet::antikt_algorithm, jetR, recombScheme_WTA, strategy);
+		fastjet::ClusterSequenceArea clustSeq_WTA(fastjetInputs, jetDef_WTA, areaDef);
+		std::vector <fastjet::PseudoJet> inclusiveJets_WTA = clustSeq_WTA.inclusive_jets();
+		std::vector <fastjet::PseudoJet> ptSortedJets_WTA = sorted_by_pt(inclusiveJets_WTA); // Sort jets from high to low pt
 
 		for (auto jet : ptSortedJets_standard){
       if (jet.pt() < min_pt_jet) continue;
@@ -313,8 +315,6 @@ int main(int argc, char** argv)
 			match_0++;
 		}
 	}
-	// hNJetTypes->SetBinContent(1, 1.*nGluons);
-	// hNJetTypes->SetBinContent(2, 1.*nQuarks);
 
 	cout << "Number of events: " << nEvents << endl
 		<< "Events with (2, 1, 0) matches:" << endl

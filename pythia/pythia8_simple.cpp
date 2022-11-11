@@ -30,7 +30,7 @@ using namespace Pythia8;
 
 std::vector <fastjet::PseudoJet> do_jet_finding(std::vector <fastjet::PseudoJet> &fastjetInputs,
 																								double max_eta_track, double max_eta_jet, double jetR);
-int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist);
+int do_matching(double eta, double etaM1, double etaM2, double phi, double phiM1, double phiM2, double matchDist, TH1F* hDeltaPartonJet = nullptr);
 void fill_fragmentation(double px, double py, double pz, int id,
 												double px_base, double py_base, double pz_base, double p2_base,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);

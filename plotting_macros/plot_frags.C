@@ -29,6 +29,7 @@ void load_hists(TFile* inFile, TH2F* &h0, TH2F* &h1, TH2F* &h2, TH2F* &h3,
                );
 void prep_mult_hadron(TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2F* h3_2D, TH2F* hNJetTypes,
                       TH1F* &h0_1D, TH1F* &h1_1D, TH1F* &h2_1D, TH1F* &h3_1D,
+                      string hadron0, string hadron1, string hadron2, string hadron3,
                       double min_pt, double max_pt, string IGQ
                       );
 void plot_FFs_single(TH1F* hIncl, TH1F* hg, TH1F* hq, string hadron, double min_pt, double max_pt);
@@ -36,21 +37,14 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
                    string hadron0, string hadron1, string hadron2, string hadron3,
                    double min_pt, double max_pt, string IGQ
                    );
-void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* hNJetTypes,
-                       TH1F* &h0_1D, TH1F* &h1_1D,
-                       string hadron0, string hadron1,
-                       std::vector<double> jetPtBins, string IGQ
-                       );
-void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2F* hNJetTypes,
-                       TH1F* &h0_1D, TH1F* &h1_1D, TH1F* &h2_1D,
-                       string hadron0, string hadron1, string hadron2,
-                       std::vector<double> jetPtBins, string IGQ
-                       );
 void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2F* h3_2D, TH2F* hNJetTypes,
                        TH1F* &h0_1D, TH1F* &h1_1D, TH1F* &h2_1D, TH1F* &h3_1D,
                        string hadron0, string hadron1, string hadron2, string hadron3,
                        std::vector<double> jetPtBins, string IGQ
                        );
+int hadrons_to_kkp(string hadron);
+void set_kkp_params(TF1* &kkp, double E, int flavour, int hadron);
+void prep_kkp();
 void plot_matchDist(TH1F* dist, std::vector<double> matchDist);
 
 void plot_frags(void)
@@ -94,40 +88,40 @@ void plot_frags(void)
   } // Single hadron plotting
   else cout << "Skipping single hadron fragmentation." << endl;
   if (plotMultHadron){
-    TH2F *h0_2D = nullptr, *h1_2D = nullptr, *h2_2D = nullptr, *h3_2D = nullptr;
-    TH1F *h0_1D = nullptr, *h1_1D = nullptr, *h2_1D = nullptr, *h3_1D = nullptr;
+    TH2F *h0_2D, *h1_2D, *h2_2D, *h3_2D;
+    TH1F *h0_1D, *h1_1D, *h2_1D, *h3_1D;
     string hadron0, hadron1, hadron2, hadron3;
 
-    // plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
-    //                   h0_1D, h1_1D, h2_1D, h3_1D,
-    //                   hadron0, hadron1, hadron2, hadron3,
-    //                   jetPtBins, "g");
+    if (true){
+      hadron0 = Hadrons[0];
+      hadron1 = Hadrons[1];
+      hadron2 = Hadrons[2];
+      hadron3 = "";
+      plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
+                        h0_1D, h1_1D, h2_1D, h3_1D,
+                        hadron0, hadron1, hadron2, hadron3,
+                        jetPtBins, "g");
+    }
 
-    hadron0 = Hadrons[0];
-    hadron1 = Hadrons[1];
-    hadron2 = Hadrons[2];
-    plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
-                      h0_1D, h1_1D, h2_1D, h3_1D,
-                      hadron0, hadron1, hadron2, hadron3,
-                      jetPtBins, "g");
+    if (true){
+      hadron0 = Hadrons[0];
+      hadron1 = Hadrons[1];
+      hadron2 = Hadrons[2];
+      hadron3 = Hadrons[7];
 
-    hadron0 = Hadrons[0];
-    hadron1 = Hadrons[1];
-    hadron2 = Hadrons[2];
-    hadron3 = Hadrons[7];
-
-    plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
-                      h0_1D, h1_1D, h2_1D, h3_1D,
-                      hadron0, hadron1, hadron2, hadron3,
-                      jetPtBins, "g");
-    plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
-                      h0_1D, h1_1D, h2_1D, h3_1D,
-                      hadron0, hadron1, hadron2, hadron3,
-                      jetPtBins, "q");
-    plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
-                      h0_1D, h1_1D, h2_1D, h3_1D,
-                      hadron0, hadron1, hadron2, hadron3,
-                      jetPtBins, "i");
+      plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
+                        h0_1D, h1_1D, h2_1D, h3_1D,
+                        hadron0, hadron1, hadron2, hadron3,
+                        jetPtBins, "g");
+      plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
+                        h0_1D, h1_1D, h2_1D, h3_1D,
+                        hadron0, hadron1, hadron2, hadron3,
+                        jetPtBins, "q");
+      plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
+                        h0_1D, h1_1D, h2_1D, h3_1D,
+                        hadron0, hadron1, hadron2, hadron3,
+                        jetPtBins, "i");
+    }
   } // Multiple hadron plotting
   else cout << "Skipping multiple hadron fragmentation comparison." << endl;
   if (plotMatchDist){
@@ -235,6 +229,7 @@ void prep_single_hadron(TH2F* hInclJet, TH2F* hgJet, TH2F* hqJet, TH2F* hNJetTyp
 
 void prep_mult_hadron(TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2F* h3_2D, TH2F* hNJetTypes,
                       TH1F* &h0_1D, TH1F* &h1_1D, TH1F* &h2_1D, TH1F* &h3_1D,
+                      string hadron0, string hadron1, string hadron2, string hadron3,
                       double min_pt, double max_pt, string IGQ)
 {
   hNJetTypes->GetYaxis()->SetRangeUser(min_pt, max_pt);
@@ -258,22 +253,22 @@ void prep_mult_hadron(TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2F* h3_2D, TH2F* 
     return;
   }
 
-  if (h0_2D && h0_1D){
+  if (hadron0 != ""){
     h0_2D->GetYaxis()->SetRangeUser(min_pt, max_pt);
     h0_1D = (TH1F*) h0_2D->ProjectionX();
     h0_1D->Scale(1./norm, "width");
   }
-  if (h1_2D && h1_1D){
+  if (hadron1 != ""){
     h1_2D->GetYaxis()->SetRangeUser(min_pt, max_pt);
     h1_1D = (TH1F*) h1_2D->ProjectionX();
     h1_1D->Scale(1./norm, "width");
   }
-  if (h2_2D && h2_1D){
+  if (hadron2 != ""){
     h2_2D->GetYaxis()->SetRangeUser(min_pt, max_pt);
     h2_1D = (TH1F*) h2_2D->ProjectionX();
     h2_1D->Scale(1./norm, "width");
   }
-  if (h3_2D && h3_1D){
+  if (hadron3 != ""){
     h3_2D->GetYaxis()->SetRangeUser(min_pt, max_pt);
     h3_1D = (TH1F*) h3_2D->ProjectionX();
     h3_1D->Scale(1./norm, "width");
@@ -295,10 +290,10 @@ void load_hists(TFile* inFile, TH2F* &h0, TH2F* &h1, TH2F* &h2, TH2F* &h3,
   else if (IGQ == "q"){
     histName = "gFrags";
   }
-  if (h0) h0 = (TH2F*) inFile->Get(TString::Format("h%s_%s", histName.c_str(), hadron0.c_str()).Data());
-  if (h1) h1 = (TH2F*) inFile->Get(TString::Format("h%s_%s", histName.c_str(), hadron1.c_str()).Data());
-  if (h2) h2 = (TH2F*) inFile->Get(TString::Format("h%s_%s", histName.c_str(), hadron2.c_str()).Data());
-  if (h3) h3 = (TH2F*) inFile->Get(TString::Format("h%s_%s", histName.c_str(), hadron3.c_str()).Data());
+  if (hadron0 != "") h0 = (TH2F*) inFile->Get(TString::Format("h%s_%s", histName.c_str(), hadron0.c_str()).Data());
+  if (hadron1 != "") h1 = (TH2F*) inFile->Get(TString::Format("h%s_%s", histName.c_str(), hadron1.c_str()).Data());
+  if (hadron2 != "") h2 = (TH2F*) inFile->Get(TString::Format("h%s_%s", histName.c_str(), hadron2.c_str()).Data());
+  if (hadron3 != "") h3 = (TH2F*) inFile->Get(TString::Format("h%s_%s", histName.c_str(), hadron3.c_str()).Data());
   return;
 }
 
@@ -360,41 +355,52 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
                    double min_pt, double max_pt, string IGQ)
 {
   auto legend = CreateLegend(0.75, 0.95, 0.6, 0.9, "", 0.05);
-  if (h0){
-    cout << "if (h0)" << endl;
+  double xmin = 0., xmax = 1., ymin = 1e-5, ymax;
+  int kkp_int0, kkp_int1, kkp_int2, kkp_int3;
+  const float E = 50;
+
+  // TF1* kkp0 = new TF1("kkp0", kkp_func, 0, 1, 3);
+  // TF1* kkp1 = new TF1("kkp1", kkp_func, 0, 1, 3);
+  // TF1* kkp2 = new TF1("kkp2", kkp_func, 0, 1, 3);
+  // TF1* kkp3 = new TF1("kkp3", kkp_func, 0, 1, 3);
+
+  if (hadron0 != ""){
     h0->SetStats(0);
     h0->SetLineColor(GetColor(0));
     h0->SetMarkerColor(GetColor(0));
     h0->SetMarkerStyle(GetMarker(0));
     string had0 = format_hadron_name(hadron0);
     legend->AddEntry(h0, had0.c_str());
+    ymax = h0->GetMaximum();
+    // kkp_int0 = prep_kkp(kkp0, IGQ, hadron0, E);
   }
-
-  if (h1){
+  if (hadron1 != ""){
     h1->SetStats(1);
     h1->SetLineColor(GetColor(1));
     h1->SetMarkerColor(GetColor(1));
     h1->SetMarkerStyle(GetMarker(1));
     string had1 = format_hadron_name(hadron1);
     legend->AddEntry(h1, had1.c_str());
-  }
+    ymax = max({h0->GetMaximum(), h1->GetMaximum()});
 
-  if (h2){
+  }
+  if (hadron2 != ""){
     h2->SetStats(2);
     h2->SetLineColor(GetColor(2));
     h2->SetMarkerColor(GetColor(2));
     h2->SetMarkerStyle(GetMarker(2));
     string had2 = format_hadron_name(hadron2);
     legend->AddEntry(h2, had2.c_str());
+    ymax = max({h0->GetMaximum(), h1->GetMaximum(), h2->GetMaximum()});
   }
-
-  if (h3){
+  if (hadron3 != ""){
     h3->SetStats(3);
     h3->SetLineColor(GetColor(3));
     h3->SetMarkerColor(GetColor(3));
     h3->SetMarkerStyle(GetMarker(3));
     string had3 = format_hadron_name(hadron3);
     legend->AddEntry(h3, had3.c_str());
+    ymax = max({h0->GetMaximum(), h1->GetMaximum(), h2->GetMaximum(), h3->GetMaximum()});
   }
 
   TCanvas *c_mult = new TCanvas(TString::Format("c_mult_%s_pt_%.0f_%.0f",
@@ -404,16 +410,6 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
                                 1600, 1000);
   c_mult->SetLogy();
 
-  double xmin = 0., xmax = 1., ymin = 1e-5, ymax;
-  if (h3){
-    ymax = max({h0->GetMaximum(), h1->GetMaximum(), h2->GetMaximum(), h3->GetMaximum()});
-  }
-  else if (h2){
-    ymax = max({h0->GetMaximum(), h1->GetMaximum(), h2->GetMaximum()});
-  }
-  else if (h1){
-    ymax = max({h0->GetMaximum(), h1->GetMaximum()});
-  }
   ymax *= 1.1;
   string yTitle = TString::Format("#frac{1}{#it{N}_{jets}^{%s}} #frac{d#it{N}_{h}}{d#it{z}}", IGQ.c_str()).Data();
   TH1F* frame1 = DrawFrame(xmin, xmax, ymin, ymax, "#it{z}", yTitle);
@@ -429,26 +425,26 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     str = "quark";
   }
   else{
-    cout << "Error: invalid value for IGQ. Aborting histogram prep." << endl;
+    cout << "Error: invalid value for IGQ. Aborting histogram plot." << endl;
     return;
   }
   frame1->SetTitle(TString::Format("Hadrons in %s jets (%.0f, %.0f) GeV", str.c_str(), min_pt, max_pt).Data());
 
   frame1->Draw();
-  if (h0) h0->Draw("same");
-  if (h1) h1->Draw("same");
-  if (h2) h2->Draw("same");
-  if (h3) h3->Draw("same");
+  if (hadron0 != ""){
+    h0->Draw("same");
+    // if (kkp_int0 == 0) kkp0->Draw("same");
+  }
+  if (hadron1 != "") h1->Draw("same");
+  if (hadron2 != "") h2->Draw("same");
+  if (hadron3 != "") h3->Draw("same");
   legend->Draw("same");
 
-  // c_mult->SaveAs(TString::Format("../plots/MultipleHadrons/%s_%s_%s_%s_%s_pt_%.0f_%.0f.pdf",
-  //                                str.c_str(), hadron0.c_str(), hadron1.c_str(), hadron2.c_str(), hadron3.c_str(),
-  //                                min_pt, max_pt).Data()
-  //                                );
   if (hadron0 != "") hadron0 = hadron0.append("_");
   if (hadron1 != "") hadron1 = hadron1.append("_");
   if (hadron2 != "") hadron2 = hadron2.append("_");
   if (hadron3 != "") hadron3 = hadron3.append("_");
+
   c_mult->SaveAs(TString::Format("../plots/MultipleHadrons/%s_%s%s%s%spt_%.0f_%.0f.pdf",
                                  str.c_str(), hadron0.c_str(), hadron1.c_str(), hadron2.c_str(), hadron3.c_str(),
                                  min_pt, max_pt).Data()
@@ -456,54 +452,60 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
   return;
 }
 
-// void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* hNJetTypes,
-//                        TH1F* &h0_1D, TH1F* &h1_1D,
-//                        string hadron0, string hadron1,
-//                        std::vector<double> jetPtBins, string IGQ)
-// {
-//   load_hists(inFile, h0_2D, h1_2D,
-//              hadron0, hadron1, IGQ);
-//   prep_mult_hadron(h0_2D, h1_2D, hNJetTypes,
-//                    h0_1D, h1_1D,
-//                    jetPtBins.front(), jetPtBins.back(), IGQ);
-//   plot_FFs_mult(h0_1D, h1_1D,
-//                 hadron0, hadron1,
-//                 jetPtBins.front(), jetPtBins.back(), IGQ);
+int hadrons_to_kkp(string hadron){
+  int kkp = -1;
+  if (hadron == "pi"){
+    kkp = 1;
+  }
+  else if (hadron == "K"){
+    kkp = 2;
+  }
+  else if (hadron == "K0"){
+    kkp = 3;
+  }
+  else if (hadron == "p"){
+    kkp = 4;
+  }
+  else if (hadron == "pi0"){
+    kkp = 5;
+  }
+  else if (hadron == "n"){
+    kkp = 6;
+  }
+  else if (hadron == "h"){
+    kkp = 7;
+  }
+  return kkp;
+}
 
-//   for (int ipt = 1; ipt < jetPtBins.size(); ipt++){
-//     double min_pt = jetPtBins[ipt - 1], max_pt = jetPtBins[ipt];
-//     prep_mult_hadron(h0_2D, h1_2D, hNJetTypes,
-//                      h0_1D, h1_1D,
-//                      min_pt, max_pt, IGQ);
-//     plot_FFs_mult(h0_1D, h1_1D,
-//                   hadron0, hadron1,
-//                   min_pt, max_pt, IGQ);
-//   }
-// }
-// void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2F* hNJetTypes,
-//                        TH1F* &h0_1D, TH1F* &h1_1D, TH1F* &h2_1D,
-//                        string hadron0, string hadron1, string hadron2,
-//                        std::vector<double> jetPtBins, string IGQ)
-// {
-//   load_hists(inFile, h0_2D, h1_2D, h2_2D,
-//              hadron0, hadron1, hadron2, IGQ);
-//   prep_mult_hadron(h0_2D, h1_2D, h2_2D, hNJetTypes,
-//                    h0_1D, h1_1D, h2_1D,
-//                    jetPtBins.front(), jetPtBins.back(), IGQ);
-//   plot_FFs_mult(h0_1D, h1_1D, h2_1D,
-//                 hadron0, hadron1, hadron2,
-//                 jetPtBins.front(), jetPtBins.back(), IGQ);
+void set_kkp_params(TF1* &kkp, double E, int flavour, int hadron){
+  kkp->SetParameter(0, E); // Q for fragmentation
+  kkp->SetParameter(1, flavour); // parton flavour
+  kkp->SetParameter(2, hadron); // hadron type
+  return;
+}
 
-//   for (int ipt = 1; ipt < jetPtBins.size(); ipt++){
-//     double min_pt = jetPtBins[ipt - 1], max_pt = jetPtBins[ipt];
-//     prep_mult_hadron(h0_2D, h1_2D, h2_2D, hNJetTypes,
-//                       h0_1D, h1_1D, h2_1D,
-//                       min_pt, max_pt, IGQ);
-//     plot_FFs_mult(h0_1D, h1_1D, h2_1D,
-//                   hadron0, hadron1, hadron2,
-//                   min_pt, max_pt, IGQ);
-//   }
-// }
+int prep_kkp(TF1* kkp, string IGQ, string hadron, double E){
+  int flavour, had;
+  if (IGQ == "g"){
+    flavour = 0;
+  }
+  else if (IGQ == "q"){
+    flavour = 1;
+  }
+  else{
+    cout << "Not quark or gluon KKP requested. Skipping." << endl;
+    return -1;
+  }
+  had = hadrons_to_kkp(hadron);
+  if (had < 0){
+    cout << "KKP requested for non-KKP hadron. Skipping." << endl;
+    return -1;
+  }
+
+  set_kkp_params(kkp, E, flavour, had);
+  return 0;
+}
 
 void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2F* h3_2D, TH2F* hNJetTypes,
                        TH1F* &h0_1D, TH1F* &h1_1D, TH1F* &h2_1D, TH1F* &h3_1D,
@@ -517,6 +519,7 @@ void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2
     cout << "Prepping hists" << endl;
     prep_mult_hadron(h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
                      h0_1D, h1_1D, h2_1D, h3_1D,
+                     hadron0, hadron1, hadron2, hadron3,
                      jetPtBins.front(), jetPtBins.back(), IGQ);
     cout << "Plotting FFs" << endl;
     plot_FFs_mult(h0_1D, h1_1D, h2_1D, h3_1D,
@@ -527,6 +530,7 @@ void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2
       double min_pt = jetPtBins[ipt - 1], max_pt = jetPtBins[ipt];
       prep_mult_hadron(h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
                        h0_1D, h1_1D, h2_1D, h3_1D,
+                       hadron0, hadron1, hadron2, hadron3,
                        min_pt, max_pt, IGQ);
       plot_FFs_mult(h0_1D, h1_1D, h2_1D, h3_1D,
                     hadron0, hadron1, hadron2, hadron3,

@@ -25,4 +25,18 @@ To achieve higher statistics, we can run the pythia code as a job on stoomboot. 
 ./batch <nJobs> <jobSize>
 ```
 
+# KKP Fragmentation Functions
+In the `brick` directory, we have access to the KKP fragmentation functions. First, compile the code in the `kkp` dir, with `./make`. Then, plot the FFs with the `plot_kkp_bm.C`. Note that `plot_kkp_bm_sub.C` does not run standalone, but is run through `plot_kkp_bm.C`.
+
+More useful is to access the fragmentation functions themselves, which can be done as follows:
+
+```
+TF1 *frag_f = new TF1("frag_f",kkp_func,0,1,3);
+frag_f->SetParameter(0,E); // Q for fragmentation
+frag_f->SetParameter(1,1); // parton flavour 1=u
+frag_f->SetParameter(2,1); // hadron type: 1=pi+pi-; 4 = p+pbar
+```
+
+where the various settings are found in `kkp/kkp.h`.
+
 # Plotting macros

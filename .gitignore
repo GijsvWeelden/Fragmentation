@@ -4,3 +4,6 @@ plots/
 **/test.C
 .DS_Store
 *.sh
+*.o
+*.pcm
+*.so

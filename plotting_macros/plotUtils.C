@@ -9,7 +9,7 @@ TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TStr
   gPad->SetLeftMargin(0.22);
   gPad->SetBottomMargin(0.15);
   gPad->SetRightMargin(0.1);//0.05);
-  gPad->SetTopMargin(0.05);
+  gPad->SetTopMargin(0.1);//0.05);
   }
 
   TH1F *frame = gPad->DrawFrame(xmin,ymin,xmax,ymax);
@@ -41,7 +41,7 @@ TLegend *CreateLegend(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax
   return leg;
 }
 
-void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = 0.06, Int_t color = 1, int all = 11, bool bndc = true) {	
+void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = 0.06, Int_t color = 1, int all = 11, bool bndc = true) {
   TLatex text;
   if(bndc) text.SetNDC();
   text.SetTextAlign(all);

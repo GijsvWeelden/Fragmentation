@@ -1,0 +1,6 @@
+# f77 -fPIC `root-config --cflags` -c kkp.f
+gfortran -fPIC `root-config --cflags` -c kkp.f
+gcc -fPIC `root-config --cflags` -c -o kkp_c.o kkp.C
+rootcint -f kkpDict.C -c kkp.h LinkDef.h 
+gcc -fPIC `root-config --cflags` -c kkpDict.C
+gcc `root-config --ldflags` -shared -o libkkp.so kkpDict.o kkp_c.o kkp.o

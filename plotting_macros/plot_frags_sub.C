@@ -101,6 +101,14 @@ void plot_frags(void)
                         h0_1D, h1_1D, h2_1D, h3_1D,
                         hadron0, hadron1, hadron2, hadron3,
                         jetPtBins, "g");
+      plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
+                        h0_1D, h1_1D, h2_1D, h3_1D,
+                        hadron0, hadron1, hadron2, hadron3,
+                        jetPtBins, "q");
+      // plot_mult_hadrons(inFile, h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
+      //                   h0_1D, h1_1D, h2_1D, h3_1D,
+      //                   hadron0, hadron1, hadron2, hadron3,
+      //                   jetPtBins, "i");
     }
 
     if (false){
@@ -374,6 +382,7 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     ymax = h0->GetMaximum();
     kkp_int0 = prep_kkp(kkp0, IGQ, hadron0, E);
     kkp0->SetLineColor(GetColor(0));
+    legend->AddEntry(kkp0, TString::Format("KKP %s #rightarrow %s (%.0f GeV)", IGQ.c_str(), hadron0.c_str(), E).Data());
   }
   if (hadron1 != ""){
     h1->SetStats(1);
@@ -385,6 +394,7 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     ymax = max({h0->GetMaximum(), h1->GetMaximum()});
     kkp_int1 = prep_kkp(kkp1, IGQ, hadron1, E);
     kkp1->SetLineColor(GetColor(1));
+    legend->AddEntry(kkp1, TString::Format("KKP %s #rightarrow %s (%.0f GeV)", IGQ.c_str(), hadron1.c_str(), E).Data());
   }
   if (hadron2 != ""){
     h2->SetStats(2);
@@ -396,6 +406,7 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     ymax = max({h0->GetMaximum(), h1->GetMaximum(), h2->GetMaximum()});
     kkp_int2 = prep_kkp(kkp2, IGQ, hadron2, E);
     kkp2->SetLineColor(GetColor(2));
+    legend->AddEntry(kkp2, TString::Format("KKP %s #rightarrow %s (%.0f GeV)", IGQ.c_str(), hadron2.c_str(), E).Data());
   }
   if (hadron3 != ""){
     h3->SetStats(3);
@@ -407,6 +418,7 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     ymax = max({h0->GetMaximum(), h1->GetMaximum(), h2->GetMaximum(), h3->GetMaximum()});
     kkp_int3 = prep_kkp(kkp3, IGQ, hadron3, E);
     kkp3->SetLineColor(GetColor(3));
+    legend->AddEntry(kkp3, TString::Format("KKP %s #rightarrow %s (%.0f GeV)", IGQ.c_str(), hadron3.c_str(), E).Data());
   }
 
   TCanvas *c_mult = new TCanvas(TString::Format("c_mult_%s_pt_%.0f_%.0f",

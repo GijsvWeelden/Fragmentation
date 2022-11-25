@@ -44,7 +44,7 @@ void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2
                        );
 int hadrons_to_kkp(string hadron);
 void set_kkp_params(TF1* &kkp, double E, int flavour, int hadron);
-void prep_kkp();
+void prep_kkp(TF1* kkp, string IGQ, string hadron, double E);
 void plot_matchDist(TH1F* dist, std::vector<double> matchDist);
 
 void plot_frags(void)
@@ -103,7 +103,7 @@ void plot_frags(void)
                         jetPtBins, "g");
     }
 
-    if (true){
+    if (false){
       hadron0 = Hadrons[0];
       hadron1 = Hadrons[1];
       hadron2 = Hadrons[2];
@@ -359,7 +359,7 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
   int kkp_int0, kkp_int1, kkp_int2, kkp_int3;
   const float E = 50;
 
-  // TF1* kkp0 = new TF1("kkp0", kkp_func, 0, 1, 3);
+  TF1* kkp0 = new TF1("kkp0", kkp_func, 0, 1, 3);
   // TF1* kkp1 = new TF1("kkp1", kkp_func, 0, 1, 3);
   // TF1* kkp2 = new TF1("kkp2", kkp_func, 0, 1, 3);
   // TF1* kkp3 = new TF1("kkp3", kkp_func, 0, 1, 3);
@@ -372,7 +372,7 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     string had0 = format_hadron_name(hadron0);
     legend->AddEntry(h0, had0.c_str());
     ymax = h0->GetMaximum();
-    // kkp_int0 = prep_kkp(kkp0, IGQ, hadron0, E);
+    kkp_int0 = prep_kkp(kkp0, IGQ, hadron0, E);
   }
   if (hadron1 != ""){
     h1->SetStats(1);
@@ -433,7 +433,7 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
   frame1->Draw();
   if (hadron0 != ""){
     h0->Draw("same");
-    // if (kkp_int0 == 0) kkp0->Draw("same");
+    if (kkp_int0 == 0) kkp0->Draw("same");
   }
   if (hadron1 != "") h1->Draw("same");
   if (hadron2 != "") h2->Draw("same");

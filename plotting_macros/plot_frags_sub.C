@@ -47,7 +47,7 @@ void set_kkp_params(TF1* &kkp, double E, int flavour, int hadron);
 int prep_kkp(TF1* kkp, string IGQ, string hadron, double E);
 void plot_matchDist(TH1F* dist, std::vector<double> matchDist);
 
-void plot_frags(void)
+void plot_frags_sub(void)
 {
   double time = clock();
   gROOT->SetBatch();

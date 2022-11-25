@@ -44,7 +44,7 @@ void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2
                        );
 int hadrons_to_kkp(string hadron);
 void set_kkp_params(TF1* &kkp, double E, int flavour, int hadron);
-void prep_kkp(TF1* kkp, string IGQ, string hadron, double E);
+int prep_kkp(TF1* kkp, string IGQ, string hadron, double E);
 void plot_matchDist(TH1F* dist, std::vector<double> matchDist);
 
 void plot_frags(void)
@@ -357,12 +357,12 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
   auto legend = CreateLegend(0.75, 0.95, 0.6, 0.9, "", 0.05);
   double xmin = 0., xmax = 1., ymin = 1e-5, ymax;
   int kkp_int0, kkp_int1, kkp_int2, kkp_int3;
-  const float E = 50;
+  const float E = (min_pt + max_pt) / 2; //50;
 
   TF1* kkp0 = new TF1("kkp0", kkp_func, 0, 1, 3);
-  // TF1* kkp1 = new TF1("kkp1", kkp_func, 0, 1, 3);
-  // TF1* kkp2 = new TF1("kkp2", kkp_func, 0, 1, 3);
-  // TF1* kkp3 = new TF1("kkp3", kkp_func, 0, 1, 3);
+  TF1* kkp1 = new TF1("kkp1", kkp_func, 0, 1, 3);
+  TF1* kkp2 = new TF1("kkp2", kkp_func, 0, 1, 3);
+  TF1* kkp3 = new TF1("kkp3", kkp_func, 0, 1, 3);
 
   if (hadron0 != ""){
     h0->SetStats(0);
@@ -373,6 +373,7 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     legend->AddEntry(h0, had0.c_str());
     ymax = h0->GetMaximum();
     kkp_int0 = prep_kkp(kkp0, IGQ, hadron0, E);
+    kkp0->SetLineColor(GetColor(0));
   }
   if (hadron1 != ""){
     h1->SetStats(1);
@@ -382,7 +383,8 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     string had1 = format_hadron_name(hadron1);
     legend->AddEntry(h1, had1.c_str());
     ymax = max({h0->GetMaximum(), h1->GetMaximum()});
-
+    kkp_int1 = prep_kkp(kkp1, IGQ, hadron1, E);
+    kkp1->SetLineColor(GetColor(1));
   }
   if (hadron2 != ""){
     h2->SetStats(2);
@@ -392,6 +394,8 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     string had2 = format_hadron_name(hadron2);
     legend->AddEntry(h2, had2.c_str());
     ymax = max({h0->GetMaximum(), h1->GetMaximum(), h2->GetMaximum()});
+    kkp_int2 = prep_kkp(kkp2, IGQ, hadron2, E);
+    kkp2->SetLineColor(GetColor(2));
   }
   if (hadron3 != ""){
     h3->SetStats(3);
@@ -401,6 +405,8 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     string had3 = format_hadron_name(hadron3);
     legend->AddEntry(h3, had3.c_str());
     ymax = max({h0->GetMaximum(), h1->GetMaximum(), h2->GetMaximum(), h3->GetMaximum()});
+    kkp_int3 = prep_kkp(kkp3, IGQ, hadron3, E);
+    kkp3->SetLineColor(GetColor(3));
   }
 
   TCanvas *c_mult = new TCanvas(TString::Format("c_mult_%s_pt_%.0f_%.0f",
@@ -435,9 +441,18 @@ void plot_FFs_mult(TH1F* h0, TH1F* h1, TH1F* h2, TH1F* h3,
     h0->Draw("same");
     if (kkp_int0 == 0) kkp0->Draw("same");
   }
-  if (hadron1 != "") h1->Draw("same");
-  if (hadron2 != "") h2->Draw("same");
-  if (hadron3 != "") h3->Draw("same");
+  if (hadron1 != ""){
+    h1->Draw("same");
+    if (kkp_int1 == 0) kkp1->Draw("same");
+  }
+  if (hadron2 != ""){
+    h2->Draw("same");
+    if (kkp_int2 == 0) kkp2->Draw("same");
+  }
+  if (hadron3 != ""){
+    h3->Draw("same");
+    if (kkp_int3 == 0) kkp3->Draw("same");
+  }
   legend->Draw("same");
 
   if (hadron0 != "") hadron0 = hadron0.append("_");

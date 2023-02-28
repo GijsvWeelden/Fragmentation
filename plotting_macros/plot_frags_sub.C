@@ -309,6 +309,12 @@ void load_hists(TFile* inFile, TH2F* &h0, TH2F* &h1, TH2F* &h2, TH2F* &h3,
 void plot_FFs_single(TH1F* hIncl, TH1F* hg, TH1F* hq,
                      string hadron, double min_pt, double max_pt)
 {
+  TF1* kkpg = new TF1("kkpg", kkp_func, 0, 1, 3);
+  TF1* kkpq = new TF1("kkpq", kkp_func, 0, 1, 3);
+  double E = min_pt;
+  kkp_intg = prep_kkp(kkpg, "g", hadron, E);
+  kkp_intq = prep_kkp(kkpq, "q", hadron, E);
+
   hIncl->SetStats(0);
   hIncl->SetLineColor(GetColor(0));
   hIncl->SetMarkerColor(GetColor(0));
@@ -318,16 +324,20 @@ void plot_FFs_single(TH1F* hIncl, TH1F* hg, TH1F* hq,
   hg->SetLineColor(GetColor(0));
   hg->SetMarkerColor(GetColor(1));
   hg->SetMarkerStyle(GetMarker(1));
+  kkpg->SetLineColor(GetColor(1));
 
   hq->SetStats(2);
   hq->SetLineColor(GetColor(0));
   hq->SetMarkerColor(GetColor(2));
   hq->SetMarkerStyle(GetMarker(2));
+  kkpq->SetLineColor(GetColor(2));
 
   auto legend = CreateLegend(0.75, 0.95, 0.6, 0.9, "", 0.05);
   legend->AddEntry(hIncl, "incl.");
   legend->AddEntry(hg, "g");
+  legend->AddEntry(kkpg, TString::Format("KKP g #rightarrow %s (%.0f GeV)", hadron.c_str(), E).Data());
   legend->AddEntry(hq, "q");
+  legend->AddEntry(kkpq, TString::Format("KKP q #rightarrow %s (%.0f GeV)", hadron.c_str(), E).Data());
 
   TCanvas *c_had = new TCanvas(TString::Format("c_%s_pt_%.0f_%.0f",
                                                hadron.c_str(), min_pt, max_pt).Data(),
@@ -335,8 +345,6 @@ void plot_FFs_single(TH1F* hIncl, TH1F* hg, TH1F* hq,
                                                hadron.c_str(), min_pt, max_pt).Data(),
                                1600, 1000);
   c_had->SetLogy();
-
-  // cout << "Plot_FFs_single after setup" << endl;
 
   double xmin = 0., xmax = 1., ymin = 1e-5, ymax;
   ymax = max({hIncl->GetMaximum(), hg->GetMaximum(), hq->GetMaximum()});
@@ -346,14 +354,13 @@ void plot_FFs_single(TH1F* hIncl, TH1F* hg, TH1F* hq,
   TH1F* frame1 = DrawFrame(xmin, xmax, ymin, ymax, "#it{z}", yTitle);
   frame1->SetTitle(TString::Format("%s in jets (%.0f, %.0f) GeV", s.c_str(), min_pt, max_pt).Data());
 
-  // cout << "Plot_FFs_single constructed frame" << endl;
-
   frame1->Draw();
   hIncl->Draw("same");
   hg->Draw("same");
+  kkpg->Draw("same");
   hq->Draw("same");
+  kkpq->Draw("same");
   legend->Draw("same");
-  // cout << "Plot_FFs_single after draw" << endl;
   c_had->SaveAs(TString::Format("../plots/SingleHadrons/%s_pt_%.0f_%.0f.pdf", hadron.c_str(), min_pt, max_pt).Data());
   return;
 }
@@ -540,15 +547,12 @@ void plot_mult_hadrons(TFile* inFile, TH2F* h0_2D, TH2F* h1_2D, TH2F* h2_2D, TH2
                        std::vector<double> jetPtBins, string IGQ
                        )
 {
-    cout << "Loading hists" << endl;
     load_hists(inFile, h0_2D, h1_2D, h2_2D, h3_2D,
                hadron0, hadron1, hadron2, hadron3, IGQ);
-    cout << "Prepping hists" << endl;
     prep_mult_hadron(h0_2D, h1_2D, h2_2D, h3_2D, hNJetTypes,
                      h0_1D, h1_1D, h2_1D, h3_1D,
                      hadron0, hadron1, hadron2, hadron3,
                      jetPtBins.front(), jetPtBins.back(), IGQ);
-    cout << "Plotting FFs" << endl;
     plot_FFs_mult(h0_1D, h1_1D, h2_1D, h3_1D,
                   hadron0, hadron1, hadron2, hadron3,
                   jetPtBins.front(), jetPtBins.back(), IGQ);

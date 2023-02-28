@@ -1,6 +1,7 @@
 *.log
 *.root
 plots/
+data/
 **/test.C
 .DS_Store
 *.sh

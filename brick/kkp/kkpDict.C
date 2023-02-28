@@ -49,8 +49,8 @@ namespace {
 nullptr
     };
     static const char* includePaths[] = {
-"/cvmfs/alice.cern.ch/el7-x86_64/Packages/ROOT/v6-26-04-patches-alice1-24/include/",
-"/user/gweelden/Fragmentation/brick/kkp/",
+"/Users/gijsvanweelden/alice/sw/osx_x86-64/ROOT/v6-26-04-patches-alice1-local1/include/",
+"/Users/gijsvanweelden/Documents/Fragmentation/brick/kkp/",
 nullptr
     };
     static const char* fwdDeclCode = R"DICTFWDDCLS(

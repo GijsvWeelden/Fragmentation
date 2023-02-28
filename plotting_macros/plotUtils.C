@@ -1,4 +1,9 @@
 
+#include "TColor.h"
+#include "TPad.h"
+#include "TLatex.h"
+#include "TLegend.h"
+
 static  int      myDarkRed     = TColor::GetColor(128,0,0);
 static  int      myDarkGreen   = TColor::GetColor(0,128,0);
 static  int      myDarkBlue    = TColor::GetColor(0,0,128);

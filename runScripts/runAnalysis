@@ -1,0 +1,33 @@
+#! /bin/bash
+
+BATCHMODE=""
+CONFIGURATION="--configuration json://analysis_config.json"
+while getopts 'bc:' OPTION; do
+  case "$OPTION" in
+    b)
+      BATCHMODE="-b"
+      ;;
+    c)
+      if ((${OPTARG} == 0 || ${OPTARG} == "null" || ${OPTARG} == "NULL" || ${OPTARG} == "none")); then
+      echo "Running without config file"
+      CONFIGURATION=""
+      else
+      CONFIGURATION="--configuration json://${OPTARG}"
+      fi
+      ;;
+    ?)
+      echo "No arguments supplied. Using defaults"
+      echo "Script usage: $(basename \$0) [-b] [-c yourconfig]"
+      ;;
+  esac
+done
+
+COMMONARGS="${BATCHMODE} ${CONFIGURATION}"
+
+o2-analysis-timestamp $COMMONARGS \
+| o2-analysis-event-selection $COMMONARGS \
+| o2-analysis-collision-converter $COMMONARGS \
+| o2-analysis-track-propagation $COMMONARGS \
+| o2-analysis-trackselection $COMMONARGS \
+| o2-analysis-je-jet-finder $COMMONARGS \
+| o2-analysis-je-jet-fragmentation $COMMONARGS

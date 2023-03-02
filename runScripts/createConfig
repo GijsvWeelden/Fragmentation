@@ -1,7 +1,10 @@
 #! /bin/bash
 
-# This script creates a config file for O2 analyses. You can use preset files or set variables
-# yourself with flags
+# This script creates a config file for O2 analyses. You can use preset values or set variables
+# yourself with flags.
+# # Always specify an aod file!
+# # Use -d <dataset> for a quick partial setup
+
 # Note that jet R has to be given in the form: -R '"R"'
 #     (i.e.: R surrounded by double quotes, all surrounded by single quotes)
 
@@ -10,8 +13,10 @@ analysis_or_trigger () {
   echo "Configuring $1 into ${OUTPUTFILE}"
   if [[ "$1" == "analysis" ]]; then
     CONFIGUREANALYSIS=1
+    CONFIGURETRIGGER=0
     # Default setting are for analysis. No need to change anything here
   else
+    CONFIGUREANALYSIS=0
     CONFIGURETRIGGER=1
     JETPT="5"
     JETR='"0.2", "0.4"'
@@ -42,7 +47,7 @@ setup_given_dataset () {
   fi
 }
 
-CONFIGUREANALYSIS=0
+CONFIGUREANALYSIS=1
 CONFIGURETRIGGER=0
 OUTPUTFILE=""
 # Settings

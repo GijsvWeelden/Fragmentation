@@ -1,0 +1,319 @@
+#! /bin/bash
+
+# This script creates a config file for O2 analyses. You can use preset files or set variables
+# yourself with flags
+# Note that jet R has to be given in the form: -R '"R"'
+#     (i.e.: R surrounded by double quotes, all surrounded by single quotes)
+
+analysis_or_trigger () {
+  OUTPUTFILE="$1_config.json"
+  echo "Configuring $1 into ${OUTPUTFILE}"
+  if [[ "$1" == "analysis" ]]; then
+    CONFIGUREANALYSIS=1
+    # Default setting are for analysis. No need to change anything here
+  else
+    CONFIGURETRIGGER=1
+    JETPT="5"
+    JETR='"0.2", "0.4"'
+    JETTYPE="0"
+    GHOSTREPEAT="0"
+    PROCESSDATACHARGED="false"
+    PROCESSDATAFULL="true"
+    TRACKETACUT="0.71"
+    TRACKPHIMINCUT="1.39"
+    TRACKPHIMAXCUT="3.27"
+    CLUSTERETACUT="0.71"
+    CLUSTERPHIMINCUT="1.39"
+    CLUSTERPHIMAXCUT="3.27"
+  fi
+}
+
+setup_given_dataset () {
+  if [[ "$1" == "LHC21k6" ]]; then
+    ISRUN2="false"
+    ISRUN3="true"
+    ISMC="true"
+    DONOTSWAP="false"
+  elif [[ "$1" == "LHC22q" ]]; then
+    ISRUN2="false"
+    ISRUN3="true"
+    ISMC="false"
+    DONOTSWAP="false"
+  fi
+}
+
+CONFIGUREANALYSIS=0
+CONFIGURETRIGGER=0
+OUTPUTFILE=""
+# Settings
+ISRUN2="false"
+ISRUN3="true"
+ISMC="false"
+DONOTSWAP="false"
+AODFILE="" # Always specify input
+
+JETPT="5"
+JETR='"0.4"'
+JETTYPE="1"
+GHOSTREPEAT="0"
+PROCESSDATACHARGED="true"
+PROCESSDATAFULL="false"
+TRACKETACUT="0.9"
+TRACKPHIMINCUT="-999"
+TRACKPHIMAXCUT="999"
+CLUSTERETACUT="0.9"
+CLUSTERPHIMINCUT="-999"
+CLUSTERPHIMAXCUT="999"
+
+# Formatting function taken from: https://medium.com/@Drew_Stokes/bash-argument-parsing-54f3b81a6a8f
+PARAMS=""
+while (( "$#" )); do
+  case "$1" in
+    -a|-A|--analysis|--Analysis)
+      analysis_or_trigger "analysis"
+      shift
+      ;;
+    -t|-T|--trigger|--Trigger)
+      analysis_or_trigger "trigger"
+      shift
+      ;;
+    # -at|-ta)
+    #   analysis_or_trigger "analysis"
+    #   analysis_or_trigger "trigger"
+    #   shift
+    #   ;;
+    --isRun2)
+      ISRUN2="true"
+      ISRUN3="false"
+      shift
+      ;;
+    --isRun3)
+      ISRUN2="false"
+      ISRUN3="true"
+      shift
+      ;;
+    --isMC)
+      ISMC="true"
+      shift
+      ;;
+    --doNotSwap)
+      DONOTSWAP="true"
+      shift
+      ;;
+    -c|--charged|--processDataCharged)
+      PROCESSDATACHARGED="true"
+      PROCESSDATAFULL="false"
+      shift
+      ;;
+    -f|--full|--processDataFull)
+      PROCESSDATACHARGED="false"
+      PROCESSDATAFULL="true"
+      shift
+      ;;
+    -d|--dataset)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        setup_given_dataset $2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -i|--aod|--aod-file)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        AODFILE=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    --jetpt|--jetPt)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        JETPT=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -r|-R|--jetr|--jetR)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        JETR=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    --ghostrepeat|--ghostRepeat)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        GHOSTREPEAT=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    --jetType)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        JETTYPE=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    --etacut|--etaCut)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        TRACKETACUT=$2
+        CLUSTERETACUT=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    --phimin|--phiMin)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        TRACKPHIMINCUT=$2
+        CLUSTERPHIMINCUT=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    --phimax|--phiMax)
+      if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+        TRACKPHIMAXCUT=$2
+        CLUSTERPHIMAXCUT=$2
+        shift 2
+      else
+        echo "Error: Argument for $1 is missing" >&2
+        exit 1
+      fi
+      ;;
+    -h|--help)
+      echo "Help: first decide to configure the trigger or analysis, then specify the dataset. Other flags may be used to overwrite the default settings."
+      exit 0
+      ;;
+    -*|--*=) # unsupported flags
+      echo -e "Error: Unsupported flag $1\nUsage: [-a/t] [other flags]\nNote that the a/t flag must come first" >&2
+      exit 1
+      ;;
+    *) # preserve positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+# Setup of tasks
+DPLCLOCK='"internal-dpl-clock": ""'
+AODSPAWNER='
+  "internal-dpl-aod-spawner": ""'
+AODREADER='
+  "internal-dpl-aod-reader": {
+    "aod-file": "%s",
+    "time-limit": "0",
+    "start-value-enumeration": "0",
+    "end-value-enumeration": "-1",
+    "step-value-enumeration": "1"
+  }'
+EVENTSELECTION='
+  "event-selection-task": {
+    "syst": "pp",
+    "isMC": "%s",
+    "processRun2": "%s",
+    "processRun3": "%s"
+  }'
+COLLISIONCONVERTER='
+  "collision-converter": {
+    "doNotSwap": "%s"
+  }'
+BCSELECTION='
+  "bc-selection-task": {
+    "processRun2": "%s",
+    "processRun3": "%s"
+  }'
+EMCALCORRECTIONTASK='
+  "emcal-correction-task": {
+    "clusterDefinition": "kV3Default"
+  }'
+EMCALCLUSTERMONITOR='
+  "EMCClusterMonitorTask": {
+    "clusterDefinition": "10"
+  }'
+TRACKSELECTION='
+  "track-selection": {
+    "isRun3": "%s"
+  }'
+JETFINDER='
+  "jet-finder-data": {
+    "vertexZCut": "10",
+    "trackPtCut": "0.100000001",
+    "trackEtaCut": "%s",
+    "trackPhiMinCut": "%s",
+    "trackPhiMaxCut": "%s",
+    "clusterEtaCut": "%s",
+    "clusterPhiMinCut": "%s",
+    "clusterPhiMaxCut": "%s",
+    "mClusterDefinition": "kV3Default",
+    "DoRhoAreaSub": "false",
+    "DoConstSub": "false",
+    "ghostRepeat": "%s",
+    "jetType": "%s",
+    "jetType2": "%s",
+    "jetPtMin": "%s",
+    "jetR": {
+      "values": [ %s ]
+    },
+    "processDataCharged": "%s",
+    "processDataFull": "%s"
+  }'
+JETTRIGGER=''
+JETTRIGGERQA='
+  "jet-trigger-qa": {
+    "f_jetR": "0.2",
+    "minCellAmplitude": "0.1"
+  }'
+JETFRAGMENTATION='
+  "jet-fragmentation": {
+      "f_jetR": %s
+  }'
+
+# Configure
+AODREADER=$(printf "${AODREADER}" "${AODFILE}")
+EVENTSELECTION=$(printf "${EVENTSELECTION}" "${ISMC}" "${ISRUN2}" "${ISRUN3}")
+COLLISIONCONVERTER=$(printf "${COLLISIONCONVERTER}" "${DONOTSWAP}")
+BCSELECTION=$(printf "${BCSELECTION}" "${ISRUN2}" "${ISRUN3}")
+TRACKSELECTION=$(printf "${TRACKSELECTION}" "${ISRUN3}")
+JETFINDER=$(printf "${JETFINDER}" "${TRACKETACUT}" "${TRACKPHIMINCUT}" "${TRACKPHIMAXCUT}" "${CLUSTERETACUT}" "${CLUSTERPHIMINCUT}" "${CLUSTERPHIMAXCUT}" "${GHOSTREPEAT}" "${JETTYPE}" "${JETTYPE}" "${JETPT}" "${JETR}" "${PROCESSDATACHARGED}" "${PROCESSDATAFULL}")
+JETFRAGMENTATION=$(printf "${JETFRAGMENTATION}" "${JETR}")
+
+# When configuring TRIGGERJSON with printf, it will add the original string (a bunch of commas)
+# at the end.vThe trailing %s prevents this from happening, but I don't understand why.
+# This doesn't seem to apply to ANALYSISJSON
+
+if [[ "${AODFILE}" == "" ]]; then
+echo "Error: No AOD file specified. Please specify one with -i, --aod, or --aod-file. Aborting" >&2
+exit 1
+fi
+
+if [[ ${CONFIGURETRIGGER} -gt 0 ]]; then
+TRIGGERJSON='{
+  %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%s
+}'
+TRIGGERJSON=$(printf "${TRIGGERJSON}" "${DPLCLOCK}" "${AODREADER}" "${AODSPAWNER}" "${COLLISIONCONVERTER}" "${BCSELECTION}" "${EVENTSELECTION}" "${EMCALCORRECTIONTASK}" "${EMCALCLUSTERMONITOR}" "${TRACKSELECTION}" "${JETFINDER}" "${JETTRIGGER}" "${JETTRIGGERQA}")
+echo -e "${TRIGGERJSON}\n" > ${OUTPUTFILE}
+fi
+if [[ ${CONFIGUREANALYSIS} -gt 0 ]]; then
+ANALYSISJSON='{
+  %s,%s,%s,%s,%s,%s,%s,%s,%s
+}'
+ANALYSISJSON=$(printf "${ANALYSISJSON}" "${DPLCLOCK}" "${AODREADER}" "${AODSPAWNER}" "${COLLISIONCONVERTER}" "${BCSELECTION}" "${EVENTSELECTION}" "${TRACKSELECTION}" "${JETFINDER}" "${JETFRAGMENTATION}")
+echo -e "${ANALYSISJSON}\n" > ${OUTPUTFILE}
+fi

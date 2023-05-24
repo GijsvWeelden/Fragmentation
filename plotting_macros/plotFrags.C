@@ -10,7 +10,7 @@
 #include "TString.h"
 #include "TLegend.h"
 
-#include "./plotHist.C"
+#include "./histUtils.C"
 
 enum { mQuark = 0,
        mGluon,
@@ -89,72 +89,73 @@ void plotFrags(void)
   // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 500, 700);
 
   // Lambda / K0
-  // std::vector<string> nominators = { hadrons[7], hadrons[7] };
-  // std::vector<int> nominatorTypes = { mQuark, mGluon };
-  // std::vector<string> denominators = { hadrons[6], hadrons[6] };
-  // std::vector<int> denominatorTypes = { mQuark, mGluon };
-  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes); // No pt selection
-  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 5, 10);
-  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 10, 15);
-  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 50, 60);
-  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 60, 70);
-  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 100, 150);
+  std::vector<string> nominators = { hadrons[7], hadrons[7] };
+  std::vector<int> nominatorTypes = { mQuark, mGluon };
+  std::vector<string> denominators = { hadrons[6], hadrons[6] };
+  std::vector<int> denominatorTypes = { mQuark, mGluon };
+  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes); // No pt selection
+  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 5, 10);
+  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 10, 15);
+  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 50, 60);
+  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 60, 70);
+  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 100, 150);
 
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
 }
 
-TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax)
-{
-  TH1F* outputHist;
-  TH2F* inputClone = (TH2F*)inputHist->Clone("CloneOfInput");
-  int firstBin = 1; int lastBin = -1;
+// TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax)
+// {
+//   TH1F* outputHist;
+//   TH2F* inputClone = (TH2F*)inputHist->Clone("CloneOfInput");
+//   int firstBin = 1; int lastBin = -1;
 
-  if (projectionAxis == "X" || projectionAxis == "x") {
-    if (axMin > -900) { firstBin = inputClone->GetYaxis()->FindBin(axMin); }
-    if (axMax > -900) { lastBin = inputClone->GetYaxis()->FindBin(axMax); }
-    else { lastBin = inputClone->GetNbinsY() + 1; }
-    if (firstBin == lastBin) {
-      if (firstBin == inputClone->GetNbinsY() + 1 || lastBin == 0) {
-        cout << "projectHist: requested bins out of range for Y axis. Aborting" << endl
-          << "Requested: (" << axMin << ", " << axMax << ")" << endl
-          << "Bins: (" << firstBin << ", " << lastBin << ")" << endl
-          << "Max bin: " << inputClone->GetNbinsY() + 1;
-        return nullptr;
-      }
-    }
-    outputHist = (TH1F*)inputClone->ProjectionX(TString::Format("%s", histName.c_str()).Data(), firstBin, lastBin);
-  }
-  else if (projectionAxis == "Y" || projectionAxis == "y") {
-    if (axMin > -900) { firstBin = inputClone->GetXaxis()->FindBin(axMin); }
-    if (axMax > -900) { lastBin = inputClone->GetXaxis()->FindBin(axMax); }
-    else { lastBin = inputClone->GetNbinsX() + 1; }
-    if (firstBin == lastBin) {
-      if (firstBin == inputClone->GetNbinsX() + 1 || lastBin == 0) {
-        cout << "projectHist: requested bins out of range for X axis. Aborting" << endl
-          << "Requested: (" << axMin << ", " << axMax << ")" << endl
-          << "Bins: (" << firstBin << ", " << lastBin << ")" << endl
-          << "Max bin: " << inputClone->GetNbinsX() + 1;
-        return nullptr;
-      }
-    }
-    outputHist = (TH1F*)inputClone->ProjectionY(TString::Format("%s", histName.c_str()).Data(), firstBin, lastBin);
-  }
-  else {
-    cout << "make_projection: invalid projection axis " << projectionAxis << ". Aborting." << endl;
-    return nullptr;
-  }
-  delete inputClone;
-  return outputHist;
-}
+//   if (projectionAxis == "X" || projectionAxis == "x") {
+//     if (axMin > -900) { firstBin = inputClone->GetYaxis()->FindBin(axMin); }
+//     if (axMax > -900) { lastBin = inputClone->GetYaxis()->FindBin(axMax); }
+//     else { lastBin = inputClone->GetNbinsY() + 1; }
+//     if (firstBin == lastBin) {
+//       if (firstBin == inputClone->GetNbinsY() + 1 || lastBin == 0) {
+//         cout << "projectHist: requested bins out of range for Y axis. Aborting" << endl
+//           << "Requested: (" << axMin << ", " << axMax << ")" << endl
+//           << "Bins: (" << firstBin << ", " << lastBin << ")" << endl
+//           << "Max bin: " << inputClone->GetNbinsY() + 1;
+//         return nullptr;
+//       }
+//     }
+//     outputHist = (TH1F*)inputClone->ProjectionX(TString::Format("%s", histName.c_str()).Data(), firstBin, lastBin);
+//   }
+//   else if (projectionAxis == "Y" || projectionAxis == "y") {
+//     if (axMin > -900) { firstBin = inputClone->GetXaxis()->FindBin(axMin); }
+//     if (axMax > -900) { lastBin = inputClone->GetXaxis()->FindBin(axMax); }
+//     else { lastBin = inputClone->GetNbinsX() + 1; }
+//     if (firstBin == lastBin) {
+//       if (firstBin == inputClone->GetNbinsX() + 1 || lastBin == 0) {
+//         cout << "projectHist: requested bins out of range for X axis. Aborting" << endl
+//           << "Requested: (" << axMin << ", " << axMax << ")" << endl
+//           << "Bins: (" << firstBin << ", " << lastBin << ")" << endl
+//           << "Max bin: " << inputClone->GetNbinsX() + 1;
+//         return nullptr;
+//       }
+//     }
+//     outputHist = (TH1F*)inputClone->ProjectionY(TString::Format("%s", histName.c_str()).Data(), firstBin, lastBin);
+//   }
+//   else {
+//     cout << "make_projection: invalid projection axis " << projectionAxis << ". Aborting." << endl;
+//     return nullptr;
+//   }
+//   delete inputClone;
+//   return outputHist;
+// }
 
 int getNJets(TFile* inFile, double ptMin, double ptMax, int quarkOrGluon)
 {
   string projectionAxis = "X";
-  double zMin = -999., zMax = -999;
+  // double zMin = -999., zMax = -999;
 
   TH2F* hNJetTypes = (TH2F*) inFile->Get("hNJetTypes");
-  TH1F* hNJets = projectHist(hNJetTypes, projectionAxis, "nJets", zMin, zMax, ptMin, ptMax);
+  // TH1F* hNJets = projectHist(hNJetTypes, projectionAxis, "nJets", zMin, zMax, ptMin, ptMax);
+  TH1F* hNJets = projectHist(hNJetTypes, projectionAxis, "nJets", ptMin, ptMax);
 
   int nGluons = (int) hNJets->GetBinContent(1);
   int nQuarks = (int) hNJets->GetBinContent(2);

@@ -25,6 +25,7 @@ int getNJets(TFile* inFile, double ptMin, double ptMax, int quarkOrGluon);
 
 TF1* loadKKP();
 TH1F* loadFragmentation(TFile* inFile, string hadron, int quarkOrGluon, double ptMin, double ptMax);
+TF1* loadTheory(string hadron, int quarkOrGluon, double QSquared);
 
 TH1F* makeRatio(TFile* inFile, string nominatorHadron, int nominatorType, string denominatorHadron, int denominatorType, double ptMin, double ptMax);
 
@@ -37,14 +38,16 @@ void plotMultipleHadrons(TFile* inFile, std::vector<string> hadrons, int quarkOr
 void plotSingleHadron(TFile* inFile, string hadron, int quarkOrGluon, string theory = "",
                       double ptMin = -999, double ptMax = -999);
 
-TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax);
+void plotGluonQuarkJetsFraction(TFile* inFile);
+
+// TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax);
 
 // TODO: Add theory (selection from various sets; give a fragmentation scale)
 
 void plotFrags(void)
 {
   double time = clock();
-  gROOT->SetBatch();
+  // gROOT->SetBatch();
   gStyle->SetNdivisions(505);
   string inName = "PythiaResultJob12128342_66_pthat80_200";
   TFile *inFile = TFile::Open(TString::Format("../data/pythia/%s.root", inName.c_str()).Data());
@@ -55,6 +58,11 @@ void plotFrags(void)
   std::vector<double> jetPtBins = {40.,60.,80.,100.,120.,160.,200.};
   std::vector<string> hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
 	std::vector<string> partons = {"q", "g"};
+
+  TF1* kkp = loadTheory("pi", 1, 1);
+  kkp->Draw();
+
+  // plotGluonQuarkJetsFraction(inFile);
 
   // Quark vs gluon (with and without inclusive)
   // for (unsigned int i = 0; i < hadrons.size(); i++) {
@@ -89,72 +97,25 @@ void plotFrags(void)
   // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 500, 700);
 
   // Lambda / K0
-  std::vector<string> nominators = { hadrons[7], hadrons[7] };
-  std::vector<int> nominatorTypes = { mQuark, mGluon };
-  std::vector<string> denominators = { hadrons[6], hadrons[6] };
-  std::vector<int> denominatorTypes = { mQuark, mGluon };
-  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes); // No pt selection
-  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 5, 10);
-  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 10, 15);
-  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 50, 60);
-  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 60, 70);
-  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 100, 150);
+  // std::vector<string> nominators = { hadrons[7], hadrons[7] };
+  // std::vector<int> nominatorTypes = { mQuark, mGluon };
+  // std::vector<string> denominators = { hadrons[6], hadrons[6] };
+  // std::vector<int> denominatorTypes = { mQuark, mGluon };
+  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes); // No pt selection
+  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 5, 10);
+  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 10, 15);
+  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 50, 60);
+  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 60, 70);
+  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 100, 150);
 
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
 }
 
-// TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax)
-// {
-//   TH1F* outputHist;
-//   TH2F* inputClone = (TH2F*)inputHist->Clone("CloneOfInput");
-//   int firstBin = 1; int lastBin = -1;
-
-//   if (projectionAxis == "X" || projectionAxis == "x") {
-//     if (axMin > -900) { firstBin = inputClone->GetYaxis()->FindBin(axMin); }
-//     if (axMax > -900) { lastBin = inputClone->GetYaxis()->FindBin(axMax); }
-//     else { lastBin = inputClone->GetNbinsY() + 1; }
-//     if (firstBin == lastBin) {
-//       if (firstBin == inputClone->GetNbinsY() + 1 || lastBin == 0) {
-//         cout << "projectHist: requested bins out of range for Y axis. Aborting" << endl
-//           << "Requested: (" << axMin << ", " << axMax << ")" << endl
-//           << "Bins: (" << firstBin << ", " << lastBin << ")" << endl
-//           << "Max bin: " << inputClone->GetNbinsY() + 1;
-//         return nullptr;
-//       }
-//     }
-//     outputHist = (TH1F*)inputClone->ProjectionX(TString::Format("%s", histName.c_str()).Data(), firstBin, lastBin);
-//   }
-//   else if (projectionAxis == "Y" || projectionAxis == "y") {
-//     if (axMin > -900) { firstBin = inputClone->GetXaxis()->FindBin(axMin); }
-//     if (axMax > -900) { lastBin = inputClone->GetXaxis()->FindBin(axMax); }
-//     else { lastBin = inputClone->GetNbinsX() + 1; }
-//     if (firstBin == lastBin) {
-//       if (firstBin == inputClone->GetNbinsX() + 1 || lastBin == 0) {
-//         cout << "projectHist: requested bins out of range for X axis. Aborting" << endl
-//           << "Requested: (" << axMin << ", " << axMax << ")" << endl
-//           << "Bins: (" << firstBin << ", " << lastBin << ")" << endl
-//           << "Max bin: " << inputClone->GetNbinsX() + 1;
-//         return nullptr;
-//       }
-//     }
-//     outputHist = (TH1F*)inputClone->ProjectionY(TString::Format("%s", histName.c_str()).Data(), firstBin, lastBin);
-//   }
-//   else {
-//     cout << "make_projection: invalid projection axis " << projectionAxis << ". Aborting." << endl;
-//     return nullptr;
-//   }
-//   delete inputClone;
-//   return outputHist;
-// }
-
 int getNJets(TFile* inFile, double ptMin, double ptMax, int quarkOrGluon)
 {
   string projectionAxis = "X";
-  // double zMin = -999., zMax = -999;
-
   TH2F* hNJetTypes = (TH2F*) inFile->Get("hNJetTypes");
-  // TH1F* hNJets = projectHist(hNJetTypes, projectionAxis, "nJets", zMin, zMax, ptMin, ptMax);
   TH1F* hNJets = projectHist(hNJetTypes, projectionAxis, "nJets", ptMin, ptMax);
 
   int nGluons = (int) hNJets->GetBinContent(1);
@@ -165,6 +126,57 @@ int getNJets(TFile* inFile, double ptMin, double ptMax, int quarkOrGluon)
   else if (quarkOrGluon == mGluon) { return nGluons; }
   else if (quarkOrGluon == mInclusive) { return nJets; }
   else { return -1; }
+}
+
+double kkpParameter(string hadron, int quarkOrGluon, int parameter, double sHat)
+{
+  double outPar = -999.;
+  if (parameter > 4) { cout << "kkpParameter: invalid input!" << endl; }
+  auto f3 = [](double a, double b, double c, double d, double x)
+  {
+    return a + b*x + c*x*x + d*x*x*x;
+  };
+
+  if (hadron == "pi") {
+    if (quarkOrGluon == mQuark) { // Currently only up quark
+      switch (parameter) {
+        case 0: // N
+          outPar = f3(0.44809, -0.13828, -0.06951, 0.01354, sHat);
+          break;
+        case 1: // alpha
+          outPar = f3(-1.47598, -0.30498, -0.01863, -0.12529, sHat);
+          break;
+        case 2: // beta
+          outPar = f3(91338, 0.64145, 0.07270, -0.16989, sHat);
+          break;
+        case 3: // gamma
+          outPar = f3(0, 0.07396, 0.07757, 0, sHat);
+          break;
+        default:
+          break;
+      }
+    }
+    else if (quarkOrGluon == mGluon) {
+      switch (parameter) {
+        case 0: // N
+          outPar = f3(3.73331, -3.16946, -0.47683, 0.70270 , sHat);
+          break;
+        case 1: // alpha
+          outPar = f3(-0.74159, -0.51377, -0.19705, -0.17917, sHat);
+          break;
+        case 2: // beta
+          outPar = f3(2.33092, 2.03394, -0.50764, -0.08565, sHat);
+          break;
+        case 3: // gamma
+          outPar = f3(0, 0.09466, -0.10222, 0, sHat);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  else { cout << "kkpParameter: this hadron type is not implemented" << endl; }
+  return outPar;
 }
 
 // Returns the fragmentation histogram into a hadron for a given pt range
@@ -194,6 +206,27 @@ TH1F* loadFragmentation(TFile* inFile, string hadron, int quarkOrGluon, double p
   nJets = getNJets(inFile, ptMin, ptMax, quarkOrGluon); // Get number of jets of appropriate type
   fragmentation->Scale(1./nJets, "width"); // Normalise by number of jets and bin width
   return fragmentation;
+}
+
+// Load a theory prediction for fragmentation in TF1* format
+TF1* loadTheory(string hadron, int quarkOrGluon, double QSquared)
+{
+  // KKP: https://arxiv.org/pdf/hep-ph/0011155.pdf
+  double Lambda = 213e-3; // In GeV, at NLO
+  double LambdaSquared = Lambda * Lambda;
+  double Q0Squared = TMath::Sqrt(2); // In GeV
+  double N = 22.2815, alpha = 0.12732, beta = 6.13697, gamma = 0;
+  double sHat = log( log(QSquared / LambdaSquared) / log (Q0Squared / LambdaSquared) );
+
+  TF1* theory = new TF1("kkp", "[0]*TMath::Power(x, [1])*TMath::Power(1 - x, [2])*(1 + [3]/x)", 0, 1);
+  double kkpParameters[4] = { 0, 0, 0, 0 };
+  for (int iPar = 0; iPar <= 4; iPar++) {
+    kkpParameters[iPar] = kkpParameter(hadron, quarkOrGluon, iPar, sHat);
+  }
+  theory->SetParameters(kkpParameters[0], kkpParameters[1], kkpParameters[2], kkpParameters[3]);
+  cout << "parameters: " << kkpParameters[0] << ", " << kkpParameters[1] << ", " << kkpParameters[2] << ", " << kkpParameters[3] << endl;
+  theory->Draw();
+  return theory;
 }
 
 // Formats the hadron name to look nice (Greek letters, sub- and superscripts)
@@ -459,6 +492,66 @@ void plotHadronRatios(TFile* inFile, std::vector<string> nominators, std::vector
     saveName = TString::Format("%s%s", saveName.c_str(), saveSuffix.c_str()).Data();
   }
   saveName = TString::Format("%s/%s", saveDir.c_str(), saveName.c_str()).Data();
+  plotNHists(histVector, histNameVector, funcVector, funcNameVector,
+             xTitle, yTitle, histTitle, saveName,
+             xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+             xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+             setLogY, setHistDrawOption, setFuncDrawOption);
+}
+
+void plotGluonQuarkJetsFraction(TFile* inFile)
+{
+  int nPtBins = 20;
+  double ptBins[21] = { 0., 10, 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200. };
+  TH1F* gluonFraction = new TH1F("gluonFraction", "Gluon Fraction", nPtBins, ptBins);
+  TH1F* quarkFraction = new TH1F("quarkFraction", "Quark Fraction", nPtBins, ptBins);
+  int nGluons = -1, nQuarks = -1, nJets = -1;
+  double fGluons = -1, fQuarks = -1;
+  double ptMin = -999, ptMax = -999;
+  double ptMean = -999;
+
+  std::vector<TH1F*> histVector; std::vector<string> histNameVector;
+  std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
+  string saveDir = "../Plots/";
+  string saveName = "qgJetsFraction";
+  string saveSuffix = "";
+  // Plot settings
+  string xTitle = "#it{p}_{T}", yTitle = "";
+  string histTitle = "Relative quark and gluon fraction";
+  double xMinFrame = 0, xMaxFrame = ptBins[nPtBins], yMinFrame = 0e-2, yMaxFrame = 1e0;
+  double xMinLegend = 0.6, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.9;
+  bool setLogY = false;
+  string setHistDrawOption = "hist", setFuncDrawOption = "";
+
+  for (auto iPt = 0; iPt < nPtBins; iPt++) {
+    ptMin = ptBins[iPt];
+    ptMax = ptBins[iPt+1];
+    ptMean = (ptMin + ptMax)/2;
+    nGluons = getNJets(inFile, ptMin, ptMax, mGluon);
+    nQuarks = getNJets(inFile, ptMin, ptMax, mQuark);
+    nJets = getNJets(inFile, ptMin, ptMax, mInclusive);
+    if (nJets != 0) {
+      fGluons = ( 1. * nGluons) / (1. * nJets);
+      fQuarks = ( 1. * nQuarks) / (1. * nJets);
+    }
+    else {
+      fGluons = 0;
+      fQuarks = 0;
+    }
+    cout << "pT = (" << ptMin << ", " << ptMax << ")" << endl
+      << "nJets = " << nJets << " = " << nGluons << " + " << nQuarks << endl
+      << fGluons + fQuarks << " = " << fGluons << " + " << fQuarks << endl;
+    gluonFraction->Fill(ptMean, fGluons);
+    quarkFraction->Fill(ptMean, fQuarks);
+  }
+
+  histVector.push_back(gluonFraction);
+  histNameVector.push_back("g");
+  histVector.push_back(quarkFraction);
+  histNameVector.push_back("q");
+
+  saveName = TString::Format("%s%s", saveDir.c_str(), saveName.c_str()).Data();
+
   plotNHists(histVector, histNameVector, funcVector, funcNameVector,
              xTitle, yTitle, histTitle, saveName,
              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,

@@ -13,7 +13,7 @@ TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TStr
   if(setMargins) {
   gPad->SetLeftMargin(0.22);
   gPad->SetBottomMargin(0.15);
-  gPad->SetRightMargin(0.1);//0.05);
+  gPad->SetRightMargin(0.15);//0.05);
   gPad->SetTopMargin(0.1);//0.05);
   }
 
@@ -25,7 +25,7 @@ TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TStr
   frame->GetXaxis()->SetTitleSize(0.06);
   frame->GetYaxis()->SetTitleSize(0.06);
   frame->GetXaxis()->SetTitleOffset(1.0);
-  frame->GetYaxis()->SetTitleOffset(1.3);
+  frame->GetYaxis()->SetTitleOffset(1.6);//1.3);
   frame->GetXaxis()->CenterTitle(true);
   frame->GetYaxis()->CenterTitle(true);
 

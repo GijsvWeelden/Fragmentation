@@ -48,20 +48,24 @@ void plotMultipleHadrons(TFile* inFile, std::vector<string> hadrons, int quarkOr
 void plotSingleHadron(TFile* inFile, string hadron, int quarkOrGluon, string theory = "",
                       double ptMin = -999, double ptMax = -999);
 
+void plotJetMatchingQA(TDirectory* inDir, string saveDir);
 void plotJetQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, string saveDir);
+void plotResponse(TDirectory* inDir, double ptMinTruth, double ptMaxTruth, string saveDir);
 void plotTrackQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, string saveDir);
 
 // TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax);
 
 // TODO: Add theory (selection from various sets; give a fragmentation scale)
 
-void plotFragsData(void)
+void plotFragsO2(void)
 {
   double time = clock();
   gROOT->SetBatch();
   gStyle->SetNdivisions(505);
-  string inName = "LHC22o_pass4_small-train90120.root";
-  string saveDir = "../Plots/LHC22o_pass4_small";
+  string inName = "LHC21k6.root";
+  string saveDir = "../Plots/LHC21k6";
+  // string inName = "LHC22o_pass4_small-train90120.root";
+  // string saveDir = "../Plots/LHC22o_pass4_small";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -83,7 +87,10 @@ void plotFragsData(void)
   // plotJetQA(jetsDir, kData, 40, 60, saveDir);
   // plotJetQA(jetsDir, kData, 60, 80, saveDir);
 
-  plotTrackQA(tracksDir, kData, -999, -999, saveDir);
+  // plotTrackQA(tracksDir, kData, -999, -999, saveDir);
+
+  plotJetMatchingQA(jetsDir, saveDir);
+  plotResponse(jetsDir, -999, -999, saveDir);
 
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
@@ -278,9 +285,7 @@ void plotJetQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, stri
   histTitle = TString::Format("Jet #eta, #phi (%.0f - %.0f GeV)", ptMin, ptMax);
   xMinFrame = -1, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 2*TMath::Pi();
   setLogY = false;
-  // h3Jets_2->GetXaxis()->SetRange(1, h3Jets_2->GetNbinsX()); // FIXME: This doesn't work!!
-  h3Jets_2->GetXaxis()->SetRangeUser(ptMin, ptMax); // FIXME: This doesn't work!!
-  // TH2F* hJetEtaPhi = dynamic_cast<TH2F*>(h3Jets_2->Project3D("zy"));
+  h3Jets_2->GetXaxis()->SetRangeUser(ptMin, ptMax); // SetRangeUser is risky!
   TH2F* hJetEtaPhi = (TH2F*)h3Jets_2->Project3D("zy");
   hJetEtaPhi->Scale(1./hJetEtaPhi->Integral());
   hJetEtaPhi->SetName(TString::Format("etaphi%.0f_%.0f", ptMin, ptMax));
@@ -289,6 +294,144 @@ void plotJetQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, stri
               xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
               xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
               setLogY, drawLegend);
+}
+// Jet matching QA plots
+void plotJetMatchingQA(TDirectory* inDir, string saveDir)
+{
+  string xTitle, yTitle;
+  double xMinFrame, xMaxFrame, yMinFrame, yMaxFrame;
+  double ptMin = 0, ptMax = 200, etaMin = -1, etaMax = 1, phiMin = 0, phiMax = 2*TMath::Pi();
+  string histTitle; string saveName; string histName;
+  double xMinLegend = 0.6, xMaxLegend = 0.8, yMinLegend = 0.6, yMaxLegend = 0.8;
+  bool setLogY = false, drawLegend = false;
+
+  histName = "matchDetJetPtPartJetPt";
+  TH2F* matchDetJetPtPartJetPt = (TH2F*)inDir->Get(histName.c_str());
+  xTitle = "#it{p}_{T}^{jet, det}", yTitle = "#it{p}_{T}^{jet, part}";
+  xMinFrame = ptMin, xMaxFrame = ptMax, yMinFrame = ptMin, yMaxFrame = ptMax;
+  histTitle = "Matched #it{p}_{T}";
+  saveName = TString::Format("%s/matchedJetPt", saveDir.c_str());
+  plotOneHist(matchDetJetPtPartJetPt, xTitle, yTitle, histTitle, saveName,
+              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+              setLogY, drawLegend);
+
+  histName = "matchDetJetEtaPartJetEta";
+  TH2F* matchDetJetEtaPartJetEta = (TH2F*)inDir->Get(histName.c_str());
+  xTitle = "#eta^{jet, det}", yTitle = "#eta^{jet, part}";
+  xMinFrame = etaMin, xMaxFrame = etaMax, yMinFrame = etaMin, yMaxFrame = etaMax;
+  histTitle = "Matched #eta";
+  saveName = TString::Format("%s/matchedJetEta", saveDir.c_str());
+  plotOneHist(matchDetJetEtaPartJetEta, xTitle, yTitle, histTitle, saveName,
+              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+              setLogY, drawLegend);
+
+  histName = "matchDetJetPhiPartJetPhi";
+  xTitle = "#phi^{jet, det}", yTitle = "#phi^{jet, part}";
+  xMinFrame = phiMin, xMaxFrame = phiMax, yMinFrame = phiMin, yMaxFrame = phiMax;
+  TH2F* matchDetJetPhiPartJetPhi = (TH2F*)inDir->Get(histName.c_str());
+  histTitle = "Matched #phi";
+  saveName = TString::Format("%s/matchedJetPhi", saveDir.c_str());
+  plotOneHist(matchDetJetPhiPartJetPhi, xTitle, yTitle, histTitle, saveName,
+              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+              setLogY, drawLegend);
+
+  histName = "matchPartJetPtResolutionPt";
+  TH2F* jetResolutionPt = (TH2F*)inDir->Get(histName.c_str());
+  xTitle = "#it{p}_{T}^{jet, part}", yTitle = "(#it{p}_{T}^{jet, part} - #it{p}_{T}^{jet, det}) / #it{p}_{T}^{jet, part}";
+  xMinFrame = ptMin, xMaxFrame = ptMax, yMinFrame = -1, yMaxFrame = 1;
+  histTitle = "Matched #it{p}_{T} resolution";
+  saveName = TString::Format("%s/jetResolutionPt", saveDir.c_str());
+  plotOneHist(jetResolutionPt, xTitle, yTitle, histTitle, saveName,
+              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+              setLogY, drawLegend);
+
+  // FIXME: eta phi QA plots
+  // histName = "matchPartJetPtResolutionEta";
+  // TH3F* jetPtResolutionEta = (TH3F*)inDir->Get(histName.c_str());
+  // // Project within pt range
+  // TH2F* jetResolutionEta = (TH2F*)jetPtResolutionEta->Project3D();
+  // xTitle = "#eta^{jet, part}", yTitle = "(#eta^{jet, part} - #eta^{jet, det}) / #eta^{jet, part}";
+  // xMinFrame = etaMin, xMaxFrame = etaMax, yMinFrame = -1, yMaxFrame = 1;
+  // histTitle = "Matched #eta resolution";
+  // saveName = TString::Format("%s/jetResolutionEta", saveDir.c_str());
+  // plotOneHist(jetResolutionEta, xTitle, yTitle, histTitle, saveName,
+  //             xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+  //             xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+  //             setLogY, drawLegend);
+
+  // histName = "matchPartJetPtResolutionPhi";
+  // TH3F* jetResolutionPhi = (TH3F*)inDir->Get(histName.c_str());
+  // xTitle = "#phi^{jet, part}", yTitle = "(#phi^{jet, part} - #phi^{jet, det}) / #phi^{jet, part}";
+  // xMinFrame = phiMin, xMaxFrame = phiMax, yMinFrame = -5, yMaxFrame = 5;
+  // histTitle = "Matched #phi resolution";
+  // saveName = TString::Format("%s/jetResolutionPhi", saveDir.c_str());
+  // plotOneHist(jetResolutionPhi, xTitle, yTitle, histTitle, saveName,
+  //             xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+  //             xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+  //             setLogY, drawLegend);
+
+  // TODO:
+  //  * match dist
+  //  * jet energy scale
+  //  * fakes
+  //  * misses
+}
+// Normalise 2D histogram row-by-row
+void normaliseHistRowByRow(TH2F* hist)
+{
+  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
+  for (int iRow = 1; iRow <= hist->GetNbinsY(); iRow++) {
+    double integral = hist->Integral(firstRowBin, lastRowBin, iRow, iRow);
+    for (int iCol = 1; iCol <= lastRowBin; iCol++) {
+      double binContent = hist->GetBinContent(iCol, iRow);
+      binContent /= integral;
+      hist->SetBinContent(iCol, iRow, binContent);
+    }
+  }
+}
+// Response matrix plots
+void plotResponse(TDirectory* inDir, double ptMinTruth, double ptMaxTruth, string saveDir)
+{
+  string xTitle, yTitle;
+  double xMinFrame, xMaxFrame, yMinFrame, yMaxFrame;
+  double ptMin = 0, ptMax = 200, zMin = 0, zMax = 1;
+  int ptMinTruthBin = 1, ptMaxTruthBin = -1;
+  string histTitle; string saveName; string histName;
+  double xMinLegend = 0.6, xMaxLegend = 0.8, yMinLegend = 0.6, yMaxLegend = 0.8;
+  bool setLogZ = true, drawLegend = false;
+
+  xTitle = "#it{z}_{proj}^{det}", yTitle = "#it{z}_{proj}^{part}";
+  xMinFrame = zMin, xMaxFrame = zMax, yMinFrame = zMin, yMaxFrame = zMax;
+  histTitle = "Matched #it{z}_{proj}";
+  saveName = TString::Format("%s/ResponseZ", saveDir.c_str());
+  if (ptMinTruth > -900 || ptMaxTruth > -900) {
+    histTitle = TString::Format("%s (#it{p}_{T}^{truth}: %.0f - %.0f)", histTitle.c_str(), ptMinTruth, ptMaxTruth);
+    saveName = TString::Format("%s_ptTruth%.0f-%.0f", saveName.c_str(), ptMinTruth, ptMaxTruth);
+  }
+
+  histName = "matchDetJetPtTrackProjPartJetPtTrackProj";
+  THnF* responseTrackProj = (THnF*)inDir->Get(histName.c_str());
+  TH2F* zTzD_TrackProj = projectHist(responseTrackProj, 1, 3, -999, -999, -999, -999, ptMinTruth, ptMaxTruth, -999, -999);
+  normaliseHistRowByRow(zTzD_TrackProj);
+  plotOneHist(zTzD_TrackProj, xTitle, yTitle, histTitle, TString::Format("%s", saveName.c_str()).Data(),
+              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+              setLogZ, drawLegend);
+
+  // histName = "matchDetJetPtFragPartJetPtFrag";
+  // THnF* responseFrag = (THnF*)inDir->Get(histName.c_str());
+  // xTitle = "#it{p}_{T}^{jet, det}", yTitle = "#it{p}_{T}^{jet, part}";
+  // xMinFrame = ptMin, xMaxFrame = ptMax, yMinFrame = ptMin, yMaxFrame = ptMax;
+  // histTitle = "Matched #it{p}_{T}";
+  // saveName = TString::Format("%s/matchedJetPt", saveDir.c_str());
+  // plotOneHist(matchDetJetPtPartJetPt, xTitle, yTitle, histTitle, saveName,
+  //             xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
+  //             xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
+  //             setLogY, drawLegend);
 }
 // Track QA plots
 void plotTrackQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, string saveDir)
@@ -431,305 +574,3 @@ string formatHadronName(string hadron)
   }
   return had;
 }
-
-// TH1F* makeRatio(TFile* inFile, string nominatorHadron, int nominatorType, string denominatorHadron, int denominatorType, double ptMin, double ptMax)
-// {
-//   string histName = "";
-
-//   // Format histogram name such that it will be unique
-//   switch (nominatorType) {
-//     case mQuark:
-//       histName = TString::Format("_q%s", nominatorHadron.c_str()).Data();
-//       break;
-//     case mGluon:
-//       histName = TString::Format("_g%s", nominatorHadron.c_str()).Data();
-//       break;
-//     case mInclusive:
-//       histName = TString::Format("_%s", nominatorHadron.c_str()).Data();
-//       break;
-//     default:
-//       std::cout << "makeRatio: invalid input. nominatorType = " << nominatorType << std::endl
-//         << "Allowed inputs: " << mQuark << ", " << mGluon << ", " << mInclusive << std::endl;
-//       return nullptr;
-//   }
-//   switch (denominatorType) {
-//     case mQuark:
-//       histName = TString::Format("_q%s", denominatorHadron.c_str()).Data();
-//       break;
-//     case mGluon:
-//       histName = TString::Format("_g%s", denominatorHadron.c_str()).Data();
-//       break;
-//     case mInclusive:
-//       histName = TString::Format("_%s", denominatorHadron.c_str()).Data();
-//       break;
-//     default:
-//       std::cout << "makeRatio: invalid input. denominatorType = " << denominatorType << std::endl
-//         << "Allowed inputs: " << mQuark << ", " << mGluon << ", " << mInclusive << std::endl;
-//       return nullptr;
-//   }
-//   if (ptMin > -900) { histName = TString::Format("_pt%.0f-%.0f", ptMin, ptMax).Data(); }
-
-//   // Make ratio histogram
-//   TH1F* nominator = loadFragmentation(inFile, nominatorHadron, nominatorType, ptMin, ptMax);
-//   TH1F* denominator = loadFragmentation(inFile, denominatorHadron, denominatorType, ptMin, ptMax);
-//   TH1F* fragmentation = (TH1F*)nominator->Clone(histName.c_str());
-//   fragmentation->Divide(denominator);
-//   return fragmentation;
-// }
-
-// // Plots the fragmentation into a single hadron species for quark, gluon, and/or inclusive sample
-// void plotSingleHadron(TFile* inFile, string hadron, int quarkOrGluon, string theory,
-//                       double ptMin, double ptMax)
-// {
-//   TH2F* inclusiveJets; TH2F* gluonJets; TH2F* quarkJets;
-//   TH1F* inclusiveFragmentation; TH1F* gluonFragmentation; TH1F* quarkFragmentation;
-//   std::vector<TH1F*> histVector; std::vector<string> histNameVector;
-//   std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
-
-//   string saveDir = "../Plots/SingleHadrons";
-//   string saveName = TString::Format("%s", hadron.c_str()).Data();
-//   string saveSuffix = "";
-
-//   // Histogram settings
-//   if (ptMin > -900) { saveSuffix = TString::Format("%s_pt%.0f_%.0f", saveSuffix.c_str(), ptMin, ptMax).Data(); }
-
-//   // Names for legend
-//   string formattedHadron = formatHadronName(hadron);
-//   string quarkHistName = TString::Format("q #rightarrow %s", formattedHadron.c_str()).Data();
-//   string gluonHistName = TString::Format("g #rightarrow %s", formattedHadron.c_str()).Data();
-//   string inclusiveHistName = TString::Format("incl. #rightarrow %s", formattedHadron.c_str()).Data();
-
-//   // Plot settings
-//   string xTitle = "#it{z}", yTitle = "#frac{1}{#it{N}_{jets}} #frac{d #it{N}}{d #it{z}}";
-//   string histTitle = TString::Format("Fragmentation into %s", formattedHadron.c_str()).Data();
-//   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 1e-4, yMaxFrame = 1e4;
-//   double xMinLegend = 0.6, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.9;
-//   bool setLogY = true;
-//   string setHistDrawOption = "hist", setFuncDrawOption = "";
-
-//   switch(quarkOrGluon) {
-//     case mQuark:
-//       quarkFragmentation = loadFragmentation(inFile, hadron, mQuark, ptMin, ptMax);
-//       histVector.push_back(quarkFragmentation);
-//       histNameVector.push_back(quarkHistName);
-//       saveSuffix = TString::Format("_q%s", saveSuffix.c_str()).Data();
-//       break;
-//     case mGluon:
-//       gluonFragmentation = loadFragmentation(inFile, hadron, mGluon, ptMin, ptMax);
-//       histVector.push_back(gluonFragmentation);
-//       histNameVector.push_back(gluonHistName);
-//       saveSuffix = TString::Format("_g%s", saveSuffix.c_str()).Data();
-//       break;
-//     case mQuarkGluon:
-//       quarkFragmentation = loadFragmentation(inFile, hadron, mQuark, ptMin, ptMax);
-//       histVector.push_back(quarkFragmentation);
-//       histNameVector.push_back(quarkHistName);
-//       gluonFragmentation = loadFragmentation(inFile, hadron, mGluon, ptMin, ptMax);
-//       histVector.push_back(gluonFragmentation);
-//       histNameVector.push_back(gluonHistName);
-//       saveSuffix = TString::Format("_qg%s", saveSuffix.c_str()).Data();
-//       break;
-//     default: // mQuarkGluonInclusive
-//       inclusiveFragmentation = loadFragmentation(inFile, hadron, mInclusive, ptMin, ptMax);
-//       histVector.push_back(inclusiveFragmentation);
-//       histNameVector.push_back(inclusiveHistName);
-//       quarkFragmentation = loadFragmentation(inFile, hadron, mQuark, ptMin, ptMax);
-//       histVector.push_back(quarkFragmentation);
-//       histNameVector.push_back(quarkHistName);
-//       gluonFragmentation = loadFragmentation(inFile, hadron, mGluon, ptMin, ptMax);
-//       histVector.push_back(gluonFragmentation);
-//       histNameVector.push_back(gluonHistName);
-//   }
-
-//   if (saveSuffix != "") { saveName = TString::Format("%s%s", saveName.c_str(), saveSuffix.c_str()).Data(); }
-//   saveName = TString::Format("%s/%s", saveDir.c_str(), saveName.c_str()).Data();
-//   plotNHists(histVector, histNameVector, funcVector, funcNameVector,
-//              xTitle, yTitle, histTitle, saveName,
-//              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
-//              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
-//              setLogY, setHistDrawOption, setFuncDrawOption);
-// }
-
-// void plotMultipleHadrons(TFile* inFile, std::vector<string> hadrons, int quarkOrGluon, string theory,
-//                          double ptMin, double ptMax)
-// {
-//   std::vector<TH1F*> histVector; std::vector<string> histNameVector;
-//   std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
-
-//   string saveDir = "../Plots/MultipleHadrons";
-//   string saveName = "";
-//   string saveSuffix = "";
-
-//   // Plot settings
-//   string xTitle = "#it{z}", yTitle = "#frac{1}{#it{N}_{jets}} #frac{d #it{N}}{d #it{z}}";
-//   string histTitle = "";
-//   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 1e-5, yMaxFrame = 1e3;
-//   double xMinLegend = 0.6, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.9;
-//   bool setLogY = true;
-//   string setHistDrawOption = "hist", setFuncDrawOption = "";
-
-//   if (quarkOrGluon == mQuark) {
-//     histTitle = "Quark jet fragmentation";
-//     saveSuffix = TString::Format("_q%s", saveSuffix.c_str()).Data();
-//   }
-//   else if (quarkOrGluon == mGluon) {
-//     histTitle = "Gluon jet fragmentation";
-//     saveSuffix = TString::Format("_g%s", saveSuffix.c_str()).Data();
-//   }
-//   else {
-//     histTitle = "Jet fragmentation";
-//   }
-
-//   if (ptMin > -900) { saveSuffix = TString::Format("%s_pt%.0f_%.0f", saveSuffix.c_str(), ptMin, ptMax).Data(); }
-
-//   for (auto hadron : hadrons) {
-//     saveName = TString::Format("%s_%s", saveName.c_str(), hadron.c_str()).Data();
-//     string histName = formatHadronName(hadron);
-//     TH1F* fragmentation = loadFragmentation(inFile, hadron, quarkOrGluon, ptMin, ptMax);
-//     histVector.push_back(fragmentation);
-//     histNameVector.push_back(histName);
-//   }
-
-//   if (saveSuffix != "") { saveName = TString::Format("%s%s", saveName.c_str(), saveSuffix.c_str()).Data(); }
-//   saveName = TString::Format("%s/%s", saveDir.c_str(), saveName.c_str()).Data();
-//   plotNHists(histVector, histNameVector, funcVector, funcNameVector,
-//              xTitle, yTitle, histTitle, saveName,
-//              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
-//              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
-//              setLogY, setHistDrawOption, setFuncDrawOption);
-// }
-
-// void plotHadronRatios(TFile* inFile, std::vector<string> nominators, std::vector<string> denominators,
-//                       std::vector<int> nominatorTypes, std::vector<int> denominatorTypes,
-//                       string theory = "",
-//                       double ptMin, double ptMax)
-// {
-//   // TODO: Add check to see if all input vectors are the same length
-//   std::vector<TH1F*> histVector; std::vector<string> histNameVector;
-//   std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
-
-//   string saveDir = "../Plots/HadronRatios";
-//   string saveName = "";
-//   string saveSuffix = "";
-
-//   // Plot settings
-//   string xTitle = "#it{z}", yTitle = "";
-//   string histTitle = "Jet fragmentation ratio";
-//   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0e-2, yMaxFrame = 1e0;
-//   double xMinLegend = 0.6, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.9;
-//   bool setLogY = false;
-//   string setHistDrawOption = "hist", setFuncDrawOption = "";
-
-//   if (ptMin > -900) {
-//     saveSuffix = TString::Format("%s_pt%.0f_%.0f", saveSuffix.c_str(), ptMin, ptMax).Data();
-//     histTitle = TString::Format("%s (%.0f - %.0f GeV)", histTitle.c_str(), ptMin, ptMax).Data();
-//   }
-
-//   for (unsigned int i = 0; i < nominators.size(); i++) {
-//     string nomName = nominators[i], denomName = denominators[i]; string histName;
-//     int nomType = nominatorTypes[i], denomType = denominatorTypes[i];
-//     string nomTypeName, denomTypeName;
-//     if (nomType == mQuark) { nomTypeName = "q"; }
-//     else { nomTypeName = "g"; }
-//     if (denomTypeName == mQuark) { denomTypeName = "q"; }
-//     else { denomTypeName = "g"; }
-
-//     // Divide the histograms
-//     TH1F* nominator = loadFragmentation(inFile, nomName, nomType, ptMin, ptMax);
-//     TH1F* denominator = loadFragmentation(inFile, denomName, denomType, ptMin, ptMax);
-//     TH1F* fragmentation = (TH1F*)nominator->Clone("fragmentation");
-//     fragmentation->Divide(denominator);
-//     fragmentation->SetLineWidth(3);
-
-//     if (nomType == denomType) { // Same parton
-//       saveName = TString::Format("%s_%s-%s", saveName.c_str(), nomName.c_str(), denomName.c_str()).Data();
-//       histName = TString::Format("%s: %s/%s", nomTypeName.c_str(), formatHadronName(nomName).c_str(), formatHadronName(denomName).c_str()).Data();
-//     } // Same parton
-//     else { // Different parton
-//       saveName = TString::Format("%s_%s%s-%s%s", saveName.c_str(), nomTypeName.c_str(), nomName.c_str(), denomTypeName.c_str(), denomName.c_str()).Data();
-//       if (nomName == denomName) { // Same hadron
-//         histName = TString::Format("%s: %s/%s", formatHadronName(nomName).c_str(), nomTypeName.c_str(), denomTypeName.c_str()).Data();
-//       }
-//       else { // Different hadron
-//         histName = TString::Format("(%s/%s) / (%s/%s)", formatHadronName(nomName).c_str(), nomTypeName.c_str(), formatHadronName(denomName).c_str(), denomTypeName.c_str()).Data();
-//       }
-//     } // Different parton
-
-//     histVector.push_back(fragmentation);
-//     histNameVector.push_back(histName);
-//     // delete nominator; delete denominator; delete fragmentation;
-//   } // for i < nominators.size()
-
-//   // if (quarkOrGluon == mQuarkGluon) { saveName = TString::Format("%s_q-g", saveName.c_str()).Data(); }
-//   // else if (quarkOrGluon < 0 ) { saveName = TString::Format("%s_g-q", saveName.c_str()).Data(); }
-
-//   if (saveSuffix != "") {
-//     saveName = TString::Format("%s%s", saveName.c_str(), saveSuffix.c_str()).Data();
-//   }
-//   saveName = TString::Format("%s/%s", saveDir.c_str(), saveName.c_str()).Data();
-//   plotNHists(histVector, histNameVector, funcVector, funcNameVector,
-//              xTitle, yTitle, histTitle, saveName,
-//              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
-//              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
-//              setLogY, setHistDrawOption, setFuncDrawOption);
-// }
-
-// void plotGluonQuarkJetsFraction(TFile* inFile)
-// {
-//   int nPtBins = 20;
-//   double ptBins[21] = { 0., 10, 20., 30., 40., 50., 60., 70., 80., 90., 100., 110., 120., 130., 140., 150., 160., 170., 180., 190., 200. };
-//   TH1F* gluonFraction = new TH1F("gluonFraction", "Gluon Fraction", nPtBins, ptBins);
-//   TH1F* quarkFraction = new TH1F("quarkFraction", "Quark Fraction", nPtBins, ptBins);
-//   int nGluons = -1, nQuarks = -1, nJets = -1;
-//   double fGluons = -1, fQuarks = -1;
-//   double ptMin = -999, ptMax = -999;
-//   double ptMean = -999;
-
-//   std::vector<TH1F*> histVector; std::vector<string> histNameVector;
-//   std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
-//   string saveDir = "../Plots/";
-//   string saveName = "qgJetsFraction";
-//   string saveSuffix = "";
-//   // Plot settings
-//   string xTitle = "#it{p}_{T}", yTitle = "";
-//   string histTitle = "Relative quark and gluon fraction";
-//   double xMinFrame = 0, xMaxFrame = ptBins[nPtBins], yMinFrame = 0e-2, yMaxFrame = 1e0;
-//   double xMinLegend = 0.6, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.9;
-//   bool setLogY = false;
-//   string setHistDrawOption = "hist", setFuncDrawOption = "";
-
-//   for (auto iPt = 0; iPt < nPtBins; iPt++) {
-//     ptMin = ptBins[iPt];
-//     ptMax = ptBins[iPt+1];
-//     ptMean = (ptMin + ptMax)/2;
-//     nGluons = getNJets(inFile, ptMin, ptMax, mGluon);
-//     nQuarks = getNJets(inFile, ptMin, ptMax, mQuark);
-//     nJets = getNJets(inFile, ptMin, ptMax, mInclusive);
-//     if (nJets != 0) {
-//       fGluons = ( 1. * nGluons) / (1. * nJets);
-//       fQuarks = ( 1. * nQuarks) / (1. * nJets);
-//     }
-//     else {
-//       fGluons = 0;
-//       fQuarks = 0;
-//     }
-//     cout << "pT = (" << ptMin << ", " << ptMax << ")" << endl
-//       << "nJets = " << nJets << " = " << nGluons << " + " << nQuarks << endl
-//       << fGluons + fQuarks << " = " << fGluons << " + " << fQuarks << endl;
-//     gluonFraction->Fill(ptMean, fGluons);
-//     quarkFraction->Fill(ptMean, fQuarks);
-//   }
-
-//   histVector.push_back(gluonFraction);
-//   histNameVector.push_back("g");
-//   histVector.push_back(quarkFraction);
-//   histNameVector.push_back("q");
-
-//   saveName = TString::Format("%s%s", saveDir.c_str(), saveName.c_str()).Data();
-
-//   plotNHists(histVector, histNameVector, funcVector, funcNameVector,
-//              xTitle, yTitle, histTitle, saveName,
-//              xMinFrame, xMaxFrame, yMinFrame, yMaxFrame,
-//              xMinLegend, xMaxLegend, yMinLegend, yMaxLegend,
-//              setLogY, setHistDrawOption, setFuncDrawOption);
-// }

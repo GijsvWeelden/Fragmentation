@@ -341,7 +341,7 @@ TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, doubl
 //   return outputHist;
 // }
 // Project a 4D histogram onto a 2D histogram
-TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY,
+TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, string histName,
                   double axis0Min, double axis0Max, double axis1Min, double axis1Max,
                   double axis2Min, double axis2Max, double axis3Min, double axis3Max)
 {
@@ -367,6 +367,7 @@ TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY,
   inputClone->GetAxis(2)->SetRange(firstBinAxis2, lastBinAxis2);
   inputClone->GetAxis(3)->SetRange(firstBinAxis3, lastBinAxis3);
   TH2F* outputHist = (TH2F*)inputClone->Projection(projectionAxisY, projectionAxisX);
+  outputHist->SetName(TString::Format("%s", histName.c_str()).Data());
   delete inputClone;
   return outputHist;
 }

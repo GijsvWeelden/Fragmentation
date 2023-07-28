@@ -44,10 +44,10 @@ void plotGluonQuarkJetsFraction(TFile* inFile);
 
 // TODO: Add theory (selection from various sets; give a fragmentation scale)
 
-void plotFrags(void)
+void plotFragsPythia(void)
 {
   double time = clock();
-  // gROOT->SetBatch();
+  gROOT->SetBatch();
   gStyle->SetNdivisions(505);
   string inName = "PythiaResultJob12128342_66_pthat80_200";
   TFile *inFile = TFile::Open(TString::Format("../data/pythia/%s.root", inName.c_str()).Data());
@@ -59,8 +59,8 @@ void plotFrags(void)
   std::vector<string> hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
 	std::vector<string> partons = {"q", "g"};
 
-  TF1* kkp = loadTheory("pi", 1, 1);
-  kkp->Draw();
+  // TF1* kkp = loadTheory("pi", 1, 1);
+  // kkp->Draw();
 
   // plotGluonQuarkJetsFraction(inFile);
 
@@ -86,15 +86,14 @@ void plotFrags(void)
 
 
   // Gluon over quark
-  // std::vector<string> gluonNominators = { "pi", "Lambda0" };
-  // std::vector<int> gluonNominatorTypes = { mGluon, mGluon };
-  // std::vector<string> quarkDenominators = { "pi", "Lambda0" };
-  // std::vector<int> quarkDenominatorTypes = { mQuark, mQuark };
+  std::vector<string> gluonNominators = { "pi", "Lambda0" };
+  std::vector<int> gluonNominatorTypes = { mGluon, mGluon };
+  std::vector<string> quarkDenominators = { "pi", "Lambda0" };
+  std::vector<int> quarkDenominatorTypes = { mQuark, mQuark };
   // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes); // No pt selection
   // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 5, 10);
   // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 10, 15);
-  // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 100, 150);
-  // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 500, 700);
+  plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 40, 60);
 
   // Lambda / K0
   // std::vector<string> nominators = { hadrons[7], hadrons[7] };
@@ -104,7 +103,7 @@ void plotFrags(void)
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes); // No pt selection
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 5, 10);
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 10, 15);
-  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 50, 60);
+  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 40, 60);
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 60, 70);
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 100, 150);
 
@@ -433,15 +432,15 @@ void plotHadronRatios(TFile* inFile, std::vector<string> nominators, std::vector
   std::vector<TH1F*> histVector; std::vector<string> histNameVector;
   std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
 
-  string saveDir = "../Plots/HadronRatios";
+  string saveDir = "../Plots/Pythia/HadronRatios";
   string saveName = "";
   string saveSuffix = "";
 
   // Plot settings
   string xTitle = "#it{z}", yTitle = "";
   string histTitle = "Jet fragmentation ratio";
-  double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0e-2, yMaxFrame = 1e0;
-  double xMinLegend = 0.6, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.9;
+  double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0e-2, yMaxFrame = 2e0;
+  double xMinLegend = 0.5, xMaxLegend = 0.8, yMinLegend = 0.6, yMaxLegend = 0.9;
   bool setLogY = false;
   string setHistDrawOption = "hist", setFuncDrawOption = "";
 

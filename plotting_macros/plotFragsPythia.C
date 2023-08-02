@@ -49,7 +49,7 @@ void plotFragsPythia(void)
   double time = clock();
   gROOT->SetBatch();
   gStyle->SetNdivisions(505);
-  string inName = "PythiaResultJob12128342_66_pthat80_200";
+  string inName = "PythiaResultJob14907_194-243_pthat20-80";
   TFile *inFile = TFile::Open(TString::Format("../data/pythia/%s.root", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -93,17 +93,17 @@ void plotFragsPythia(void)
   // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes); // No pt selection
   // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 5, 10);
   // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 10, 15);
-  plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 40, 60);
+  // plotHadronRatios(inFile, gluonNominators, quarkDenominators, gluonNominatorTypes, quarkDenominatorTypes, "", 40, 60);
 
   // Lambda / K0
-  // std::vector<string> nominators = { hadrons[7], hadrons[7] };
-  // std::vector<int> nominatorTypes = { mQuark, mGluon };
-  // std::vector<string> denominators = { hadrons[6], hadrons[6] };
-  // std::vector<int> denominatorTypes = { mQuark, mGluon };
+  std::vector<string> nominators = { hadrons[7], hadrons[7] };
+  std::vector<int> nominatorTypes = { mQuark, mGluon };
+  std::vector<string> denominators = { hadrons[6], hadrons[6] };
+  std::vector<int> denominatorTypes = { mQuark, mGluon };
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes); // No pt selection
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 5, 10);
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 10, 15);
-  // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 40, 60);
+  plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 40, 60);
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 60, 70);
   // plotHadronRatios(inFile, nominators, denominators, nominatorTypes, denominatorTypes, "", 100, 150);
 
@@ -202,6 +202,7 @@ TH1F* loadFragmentation(TFile* inFile, string hadron, int quarkOrGluon, double p
 
   TH2F* jets = loadHist<TH2F*>(inFile, histName);
   TH1F* fragmentation = projectHist(jets, projectionAxis, TString::Format("%s_projected", histName.c_str()).Data(), ptMin, ptMax);
+  fragmentation->Rebin(10);
   nJets = getNJets(inFile, ptMin, ptMax, quarkOrGluon); // Get number of jets of appropriate type
   fragmentation->Scale(1./nJets, "width"); // Normalise by number of jets and bin width
   return fragmentation;
@@ -310,7 +311,7 @@ void plotSingleHadron(TFile* inFile, string hadron, int quarkOrGluon, string the
   std::vector<TH1F*> histVector; std::vector<string> histNameVector;
   std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
 
-  string saveDir = "../Plots/SingleHadrons";
+  string saveDir = "../Plots/pthat20_80/SingleHadrons";
   string saveName = TString::Format("%s", hadron.c_str()).Data();
   string saveSuffix = "";
 
@@ -380,7 +381,7 @@ void plotMultipleHadrons(TFile* inFile, std::vector<string> hadrons, int quarkOr
   std::vector<TH1F*> histVector; std::vector<string> histNameVector;
   std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
 
-  string saveDir = "../Plots/MultipleHadrons";
+  string saveDir = "../Plots/pthat20_80/MultipleHadrons";
   string saveName = "";
   string saveSuffix = "";
 
@@ -432,17 +433,18 @@ void plotHadronRatios(TFile* inFile, std::vector<string> nominators, std::vector
   std::vector<TH1F*> histVector; std::vector<string> histNameVector;
   std::vector<TF1*> funcVector; std::vector<string> funcNameVector;
 
-  string saveDir = "../Plots/Pythia/HadronRatios";
+  string saveDir = "../Plots/Pythia/pthat20_80/HadronRatios";
   string saveName = "";
   string saveSuffix = "";
 
   // Plot settings
-  string xTitle = "#it{z}", yTitle = "";
+  string xTitle = "#it{z}";
+  string yTitle = "";
   string histTitle = "Jet fragmentation ratio";
-  double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0e-2, yMaxFrame = 2e0;
-  double xMinLegend = 0.5, xMaxLegend = 0.8, yMinLegend = 0.6, yMaxLegend = 0.9;
+  double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0e-2, yMaxFrame = 1e0;
+  double xMinLegend = 0.6, xMaxLegend = 0.8, yMinLegend = 0.7, yMaxLegend = 0.9;
   bool setLogY = false;
-  string setHistDrawOption = "hist", setFuncDrawOption = "";
+  string setHistDrawOption = "", setFuncDrawOption = "";
 
   if (ptMin > -900) {
     saveSuffix = TString::Format("%s_pt%.0f_%.0f", saveSuffix.c_str(), ptMin, ptMax).Data();
@@ -480,6 +482,10 @@ void plotHadronRatios(TFile* inFile, std::vector<string> nominators, std::vector
     } // Different parton
 
     histVector.push_back(fragmentation);
+    // histName = TString::Format("%s", formatHadronName(nomName).c_str());
+    if (nomType == mQuark) { histName = "quark"; }
+    else { histName = "gluon"; }
+    yTitle = TString::Format("#it{N}(%s) / #it{N}(%s)", formatHadronName(nomName).c_str(), formatHadronName(denomName).c_str()).Data();
     histNameVector.push_back(histName);
     // delete nominator; delete denominator; delete fragmentation;
   } // for i < nominators.size()

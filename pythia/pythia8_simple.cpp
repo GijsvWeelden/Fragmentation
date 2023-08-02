@@ -68,6 +68,8 @@ int main(int argc, char** argv)
 	//PYTHIA SETTINGS
 	TString name;
 	int mecorr=1;
+	// Float_t ptHatMin = 80;
+	// Float_t ptHatMax = 200;
 
 	// Generator. Process selection. LHC initialization. Histogram.
 	Pythia pythia;
@@ -105,10 +107,8 @@ int main(int argc, char** argv)
 	float max_eta_jet = max_eta_track - jetR;
 	float min_z = -1e-3, max_z = 1.001;
 	int nBins_eta_track = 40, nBins_pt_track = 50, nBins_eta_jet = 40, nBins_pt_jet = 190, nBins_z = 100;
-	int match_0_STD = 0, match_1_STD = 0, match_2_STD = 0;
-	int nGluons_STD = 0, nQuarks_STD = 0;
-	int match_0_WTA = 0, match_1_WTA = 0, match_2_WTA = 0;
-	int nGluons_WTA = 0, nQuarks_WTA = 0;
+	int match_0 = 0, match_1 = 0, match_2 = 0;
+	int nGluons = 0, nQuarks = 0;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
 	std::vector<string> Hadrons = {"pi", "K", "p", "pi0", "K0L", "K0S", "K0", "Lambda0"};
 	std::vector<string> Partons = {"g", "q"};
@@ -121,41 +121,25 @@ int main(int argc, char** argv)
 	TH2F *hEtaPt = new TH2F("hEtaPt","Pt vs Eta for all particles;#eta;p_{T} (GeV/c)",
 													nBins_eta_track, -1 * max_eta_track, max_eta_track,
 													nBins_pt_track, min_pt_track, max_pt_track);
-	TH2F *hSTDJetEtaPt = new TH2F("hSTDJetEtaPt","STD Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
+	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
 														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
 														 nBins_pt_jet, min_pt_jet, max_pt_jet);
-	TH2F *hWTAJetEtaPt = new TH2F("hWTAJetEtaPt","WTA Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
-														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
-														 nBins_pt_jet, min_pt_jet, max_pt_jet);
-
-	TH1F *hDeltaPartonSTDJet = new TH1F("hDeltaPartonSTDJet","Distance between parton and STD jet",
+	TH1F *hDeltaPartonJet = new TH1F("hDeltaPartonJet","Distance between parton and jet",
 																	 nBins_eta_jet, 0., 1.);
-	TH1F *hDeltaPartonWTAJet = new TH1F("hDeltaPartonWTAJet","Distance between parton and WTA jet",
-																	 nBins_eta_jet, 0., 1.);
-
 	TH1F *hNPartons = new TH1F("hNPartons","Matriarchs per eta;#eta",
 														 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
-	TH1F *hNSTDJets = new TH1F("hNSTDJets","STD jets per eta;#eta",
+	TH1F *hNJets = new TH1F("hNJets","Jets per eta;#eta",
 													 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
-	TH2F *hNSTDJetTypes = new TH2F("hNSTDJetTypes","Number of gluon/quark STD jets;;p^{jet}_{T}",
-													 Partons.size(), -0.5, Partons.size()-0.5,
-													 nBins_pt_jet, min_pt_jet, max_pt_jet);
-	TH1F *hNWTAJets = new TH1F("hNWTAJets","WTA jets per eta;#eta",
-													 3 * nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet);
-	TH2F *hNWTAJetTypes = new TH2F("hNWTAJetTypes","Number of gluon/quark WTA jets;;p^{jet}_{T}",
+	TH2F *hNJetTypes = new TH2F("hNJetTypes","Number of gluon/quark jets;;p^{jet}_{T}",
 													 Partons.size(), -0.5, Partons.size()-0.5,
 													 nBins_pt_jet, min_pt_jet, max_pt_jet);
 	for (int i = 0; i < Partons.size(); i++){
-		hNSTDJetTypes->GetXaxis()->SetBinLabel(i+1, Partons[i].c_str());
-		hNWTAJetTypes->GetXaxis()->SetBinLabel(i+1, Partons[i].c_str());
+		hNJetTypes->GetXaxis()->SetBinLabel(i+1, Partons[i].c_str());
 	}
-
-	std::vector<TH1F*> hists; // Hadron spectra
-	std::vector<TH1F*> frags; // Fragmentation from parton
-	std::vector<TH2F*> STDJetFrags; // Fragmentation of hadron in jet
-	std::vector<vector<TH2F*>> partonFragsSTDJet; // Fragmentation of hadron in tagged jet
-	std::vector<TH2F*> WTAJetFrags;
-	std::vector<vector<TH2F*>> partonFragsWTAJet;
+	std::vector<TH1F*> hists;
+	std::vector<TH1F*> frags;
+	std::vector<TH2F*> jetFrags;
+	std::vector<vector<TH2F*>> partonFrags;
 
 	// Hadron specific spectra, fragmentation, jet fragmentation
 	for (int i = 0; i < Hadrons.size(); i++){
@@ -167,40 +151,24 @@ int main(int argc, char** argv)
 													 TString::Format("D^{%s}(z);z", Hadrons[i].c_str()).Data(),
 													nBins_z, min_z, max_z);
 		frags.push_back(hFrag);
-		TH2F* hSTDJetFrag = new TH2F(TString::Format("hSTDJetFrag_%s", Hadrons[i].c_str()).Data(),
+		TH2F* hJetFrag = new TH2F(TString::Format("hJetFrag_%s", Hadrons[i].c_str()).Data(),
 															TString::Format("D^{%s}(z);z;p_{T}", Hadrons[i].c_str()).Data(),
 															nBins_z, min_z, max_z,
 															nBins_pt_jet, min_pt_jet, max_pt_jet);
-		STDJetFrags.push_back(hSTDJetFrag);
-		TH2F* hWTAJetFrag = new TH2F(TString::Format("hWTAJetFrag_%s", Hadrons[i].c_str()).Data(),
-															TString::Format("D^{%s}(z);z;p_{T}", Hadrons[i].c_str()).Data(),
-															nBins_z, min_z, max_z,
-															nBins_pt_jet, min_pt_jet, max_pt_jet);
-		WTAJetFrags.push_back(hWTAJetFrag);
+		jetFrags.push_back(hJetFrag);
 	}
-
 	// Parton specific hadron
 	for (int j = 0; j < Partons.size(); j++){
-		std::vector<TH2F*> tmpSTD;
-		std::vector<TH2F*> tmpWTA;
+		std::vector<TH2F*> tmp;
 		for (int i = 0; i < Hadrons.size(); i++){
-			TH2F* hpartonFragsSTDJet = new TH2F(TString::Format("h%sSTDFrags_%s",
-																													Partons[j].c_str(), Hadrons[i].c_str()).Data(),
-																					TString::Format("D^{%s/%s}(z);z;p_{T}^{jet}",
-																													Hadrons[i].c_str(), Partons[j].c_str()).Data(),
-																					nBins_z, min_z, max_z,
-																					nBins_pt_jet, min_pt_jet, max_pt_jet);
-			tmpSTD.push_back(hpartonFragsSTDJet);
-			TH2F* hpartonFragsWTAJet = new TH2F(TString::Format("h%sWTAFrags_%s",
-																													Partons[j].c_str(), Hadrons[i].c_str()).Data(),
-																					TString::Format("D^{%s/%s}(z);z;p_{T}^{jet}",
-																													Hadrons[i].c_str(), Partons[j].c_str()).Data(),
-																					nBins_z, min_z, max_z,
-																					nBins_pt_jet, min_pt_jet, max_pt_jet);
-			tmpWTA.push_back(hpartonFragsWTAJet);
+			TH2F* hPartonFrags = new TH2F(TString::Format("h%sFrags_%s", Partons[j].c_str(), Hadrons[i].c_str()).Data(),
+																		TString::Format("D^{%s/%s}(z);z;p_{T}^{jet}",
+																										Hadrons[i].c_str(), Partons[j].c_str()).Data(),
+																		nBins_z, min_z, max_z,
+																		nBins_pt_jet, min_pt_jet, max_pt_jet);
+			tmp.push_back(hPartonFrags);
 		}
-		partonFragsSTDJet.push_back(tmpSTD);
-		partonFragsWTAJet.push_back(tmpWTA);
+		partonFrags.push_back(tmp);
 	}
 
 	//Begin event loop
@@ -214,8 +182,7 @@ int main(int argc, char** argv)
 
     int a = 0; int b = 0; int c = 0; // For counting descendants
 		Int_t nMatriarchs = 0; Int_t flavourM1 = -999; Int_t flavourM2 = -999;
-		int nMatchedJets_STD = 0, jetMatch1_STD = 0, jetMatch2_STD = 0;
-		int nMatchedJets_WTA = 0, jetMatch1_WTA = 0, jetMatch2_WTA = 0;
+		int nMatchedJets = 0; int jetMatch1 = 0; int jetMatch2 = 0;
     double pxM1 = 0, pyM1 = 0, pzM1 = 0, p2M1 = 0, etaM1 = 0, phiM1 = 0;
 		double pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0, etaM2 = 0, phiM2 = 0;
 		double matchDist = 1.;
@@ -278,99 +245,84 @@ int main(int argc, char** argv)
 		} // Particle loop
 
 		// Do jet finding and analysis here.
+		/*
 		fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
 		fastjet::Strategy strategy = fastjet::Best;
+		fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
 		fastjet::AreaType areaType = fastjet::active_area;
 		fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType, ghostSpec);
 		fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
 		fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
+		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
+		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
+		std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
+		std::vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets); // Sort jets from high to low pt
+		// */
+		std::vector <fastjet::PseudoJet> ptSortedJets_standard = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
+		// std::vector <fastjet::PseudoJet> ptSortedJets_WTA = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
+			// fastjet::RecombinationScheme recombScheme = fastjet::WTA_pt_scheme;
 
-		// TODO: Can we put this stuff into a function?
-		// Jets with E scheme (standard) jet axis
-		fastjet::RecombinationScheme recombScheme_STD = fastjet::E_scheme; // need E scheme for jet mass
-		fastjet::JetDefinition jetDef_STD(fastjet::antikt_algorithm, jetR, recombScheme_STD, strategy);
-		fastjet::ClusterSequenceArea clustSeq_STD(fastjetInputs, jetDef_STD, areaDef);
-		std::vector <fastjet::PseudoJet> inclusiveJets_STD = clustSeq_STD.inclusive_jets();
-		std::vector <fastjet::PseudoJet> ptSortedJets_STD = sorted_by_pt(inclusiveJets_STD); // Sort jets from high to low pt
-
-		for (auto jet : ptSortedJets_STD){
+		for (auto jet : ptSortedJets_standard){
       if (jet.pt() < min_pt_jet) continue;
-			if (nMatchedJets_STD == 2) continue;
-			hSTDJetEtaPt->Fill(jet.eta(), jet.pt());
+			if (nMatchedJets == 2) continue;
+			hJetEtaPt->Fill(jet.eta(), jet.pt());
 			// Check if jet came from parton
-			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist, hDeltaPartonSTDJet);
+			int jetMatch = do_matching(jet.eta(), etaM1, etaM2, jet.phi(), phiM1, phiM2, matchDist, hDeltaPartonJet);
 			if (jetMatch == 1){
-				if (jetMatch1_STD) continue;
-				hNSTDJets->Fill(jet.eta());
-				fill_fragmentation(jet, STDJetFrags, PDG);
+				if (jetMatch1) continue;
+				hNJets->Fill(jet.eta());
+				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM1 == 21){ // Gluon
-					fill_fragmentation(jet, partonFragsSTDJet[0], PDG);
-					hNSTDJetTypes->Fill(0., jet.pt());
-					// nGluons++;
+					fill_fragmentation(jet, partonFrags[0], PDG);
+					hNJetTypes->Fill(0., jet.pt());
+					nGluons++;
 				}
 				else{ // Quark
-					fill_fragmentation(jet, partonFragsSTDJet[1], PDG);
-					hNSTDJetTypes->Fill(1., jet.pt());
-					// nQuarks++;
+					fill_fragmentation(jet, partonFrags[1], PDG);
+					hNJetTypes->Fill(1., jet.pt());
+					nQuarks++;
 				}
-				jetMatch1_STD = 1;
-				nMatchedJets_STD++;
+				jetMatch1 = 1;
+				nMatchedJets++;
 			}
 			else if (jetMatch == 2){
-				if (jetMatch2_STD) continue;
-				hNSTDJets->Fill(jet.eta());
-				fill_fragmentation(jet, STDJetFrags, PDG);
+				if (jetMatch2) continue;
+				hNJets->Fill(jet.eta());
+				fill_fragmentation(jet, jetFrags, PDG);
 				if (flavourM2 == 21){ // Gluon
-					fill_fragmentation(jet, partonFragsSTDJet[0], PDG);
-					hNSTDJetTypes->Fill(0., jet.pt());
-					// nGluons++;
+					fill_fragmentation(jet, partonFrags[0], PDG);
+					hNJetTypes->Fill(0., jet.pt());
+					nGluons++;
 				}
 				else{ // Quark
-					fill_fragmentation(jet, partonFragsSTDJet[1], PDG);
-					hNSTDJetTypes->Fill(1., jet.pt());
-					// nQuarks++;
+					fill_fragmentation(jet, partonFrags[1], PDG);
+					hNJetTypes->Fill(1., jet.pt());
+					nQuarks++;
 				}
-				jetMatch2_STD = 1;
-				nMatchedJets_STD++;
+				jetMatch2 = 1;
+				nMatchedJets++;
 			}
-		} // STD jet loop
-		if (nMatchedJets_STD == 2){
-			match_STD2++;
 		}
-		else if (nMatchedJets_STD == 1){
-			match_STD1++;
+		if (nMatchedJets == 2){
+			match_2++;
 		}
-		else if (nMatchedJets_STD == 0){
-			match_STD0++;
+		else if (nMatchedJets == 1){
+			match_1++;
 		}
-
-		// Jets with WTA axis
-		fastjet::RecombinationScheme recombScheme_WTA = fastjet::WTA_pt_scheme;
-		fastjet::JetDefinition jetDef_WTA(fastjet::antikt_algorithm, jetR, recombScheme_WTA, strategy);
-		fastjet::ClusterSequenceArea clustSeq_WTA(fastjetInputs, jetDef_WTA, areaDef);
-		std::vector <fastjet::PseudoJet> inclusiveJets_WTA = clustSeq_WTA.inclusive_jets();
-		std::vector <fastjet::PseudoJet> ptSortedJets_WTA = sorted_by_pt(inclusiveJets_WTA); // Sort jets from high to low pt
-
+		else if (nMatchedJets == 0){
+			match_0++;
+		}
 	}
+	// hNJetTypes->SetBinContent(1, 1.*nGluons);
+	// hNJetTypes->SetBinContent(2, 1.*nQuarks);
 
-	hSTDGvQ = hNSTDJetTypes->ProjectionX();
-	nGluons_STD = hSTDGvQ->GetN;
-	nGluons_WTA = hNWTAJetTypes->GetNentries();
 	cout << "Number of events: " << nEvents << endl
-		<< "Events with (2, 1, 0) STD matches:" << endl
-		<< "2: " << match_STD2 << " ("	<< 1.*match_STD2/nEvents << ")" << endl
-		<< "1: " << match_STD1 << " ("	<< 1.*match_STD1/nEvents << ")" << endl
-		<< "0: " << match_STD0 << " ("	<< 1.*match_STD0/nEvents << ")" << endl
-		<< "Number of gluon jets: " << nGluons_STD << " (" << nGluons/(2. * match_STD2 + 1. * match_STD1) << ")" << endl
-		<< "Number of quark jets: " << nQuarks_STD << " (" << nQuarks/(2. * match_STD2 + 1. * match_STD1) << ")" << endl;
-		/*
-		<< "Events with (2, 1, 0) WTA matches:" << endl
-		<< "2: " << match_WTA2 << " ("	<< 1.*match_WTA2/nEvents << ")" << endl
-		<< "1: " << match_WTA1 << " ("	<< 1.*match_WTA1/nEvents << ")" << endl
-		<< "0: " << match_WTA0 << " ("	<< 1.*match_WTA0/nEvents << ")" << endl
-		<< "Number of gluon jets: " << nGluons_WTA << " (" << nGluons/(2. * match_WTA2 + 1. * match_WTA1) << ")" << endl
-		<< "Number of quark jets: " << nQuarks_WTA << " (" << nQuarks/(2. * match_WTA2 + 1. * match_WTA1) << ")" << endl
-		*/
+		<< "Events with (2, 1, 0) matches:" << endl
+		<< "2: " << match_2 << " ("	<< 1.*match_2/nEvents << ")" << endl
+		<< "1: " << match_1 << " ("	<< 1.*match_1/nEvents << ")" << endl
+		<< "0: " << match_0 << " ("	<< 1.*match_0/nEvents << ")" << endl
+		<< "Number of gluon jets: " << nGluons << " (" << nGluons/(2. * match_2 + 1. * match_1) << ")" << endl
+		<< "Number of quark jets: " << nQuarks << " (" << nQuarks/(2. * match_2 + 1. * match_1) << ")" << endl;
 	//End event loop
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;

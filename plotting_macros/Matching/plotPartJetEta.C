@@ -10,7 +10,7 @@
 #include "TString.h"
 #include "TLegend.h"
 
-#include "./histUtils.C"
+#include "../histUtils.C"
 
 enum { mQuark = 0,
        mGluon,
@@ -45,13 +45,13 @@ void plotTrackQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, st
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-void plotJetEtaO2(void)
+void plotPartJetEta(void)
 {
   double time = clock();
   // gROOT->SetBatch();
   gStyle->SetNdivisions(505);
-  string inName = "../data/LHC21k6/train109274.root";
-  string saveDir = "../Plots/LHC21k6/train109274";
+  string inName = "../../data/LHC21k6/train109274.root";
+  string saveDir = "../../Plots/LHC21k6/train109274";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -87,24 +87,20 @@ void plotJetEtaO2(void)
   if (setLogZ) { myCanvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-  // TLegend* legend = nullptr;
 
   // Histogram stuff
   std::vector<TH1F*> histVector;
   TH3F* matchedJetPtEtaPhi = (TH3F*)matchJetsDir->Get(histName.c_str());
   matchedJetPtEtaPhi->Sumw2();
   int firstBinPt = 1, lastBinPt = matchedJetPtEtaPhi->GetNbinsX();
-  int projectionAxisX = 1, projectionAxisY = 3;
-  int ptTruthAxis = 2;
+  int firstBinPhi = 1, lastBinPhi = matchedJetPtEtaPhi->GetNbinsZ();
 
   firstBinPt = matchedJetPtEtaPhi->GetXaxis()->FindBin(ptMin);
   lastBinPt = matchedJetPtEtaPhi->GetXaxis()->FindBin(ptMax);
-  TH1F* matchedJetEta = (TH1F*)matchedJetPtEtaPhi->ProjectionY(TString::Format("eta_pt%.0f-%.0f", ptMin, ptMax).Data(), firstBinPt, lastBinPt);
+  TH1F* matchedJetEta = (TH1F*)matchedJetPtEtaPhi->ProjectionY(TString::Format("eta_pt%.0f-%.0f", ptMin, ptMax).Data(), firstBinPt, lastBinPt, firstBinPhi, lastBinPhi);
   matchedJetEta->Rebin(rebinNumber);
-  // matchedJetEta->Scale(1./matchedJetEta->Integral(), "width");
   matchedJetEta->Scale(1./matchedJetEta->Integral());
   histVector.push_back(matchedJetEta);
-  // legend->AddEntry(matchedJetEta, "jet");
 
   saveName = TString::Format("%s_pt%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
   saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);

@@ -73,11 +73,11 @@ void plotPartJetEtaPhi(void)
   double labelSize = 0.04;
   double titleSize = 0.03;//0.05;
   bool setLogY = false;
-  bool setLogZ = false;
-  double xMinFrame = -1, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 2*TMath::Pi(), zMinFrame = 1e-5, zMaxFrame = 1e5;
+  bool setLogZ = true;
+  double xMinFrame = -1, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 2*TMath::Pi(), zMinFrame = 1e-5, zMaxFrame = 1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
   int R = 4;
-  int rebinNumber = 1;
+  int rebinNumberEta = 1, rebinNumberPhi = 8;
   double ptMin = 40, ptMax = 60;
 
   // Plotting stuff
@@ -85,7 +85,6 @@ void plotPartJetEtaPhi(void)
   if (setLogY) { myCanvas->SetLogy(); }
   if (setLogZ) { myCanvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  frame->GetZaxis()->SetRangeUser(zMinFrame, zMaxFrame);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   // Histogram stuff
@@ -99,17 +98,15 @@ void plotPartJetEtaPhi(void)
   firstBinPt = matchedJetPtEtaPhi->GetXaxis()->FindBin(ptMin);
   lastBinPt = matchedJetPtEtaPhi->GetXaxis()->FindBin(ptMax);
   matchedJetPtEtaPhi->GetXaxis()->SetRangeUser(ptMin, ptMax);
-  // matchedJetPtEtaPhi->GetXaxis()->SetRange(firstBinPt, lastBinPt);
-  TH2F* matchedJetEtaPhi = (TH2F*)matchedJetPtEtaPhi->Project3D("zy"); //TString::Format("eta-phi_pt%.0f-%.0f", ptMin, ptMax).Data(), firstBinPt, lastBinPt);
-  // matchedJetEtaPhi->Rebin(rebinNumber);
-  // matchedJetEtaPhi->Scale(1./matchedJetEtaPhi->Integral());
-  // histVector.push_back(matchedJetEtaPhi);
+  TH2F* matchedJetEtaPhi = (TH2F*)matchedJetPtEtaPhi->Project3D("zy");
+  matchedJetEtaPhi->Rebin2D(rebinNumberEta, rebinNumberPhi);
+  normaliseHistRowByRow(matchedJetEtaPhi);
+  matchedJetEtaPhi->GetZaxis()->SetRangeUser(zMinFrame, zMaxFrame);
 
   saveName = TString::Format("%s_pt%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
-  saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
+  saveName = TString::Format("%s_binsize%.d-%.d", saveName.c_str(), rebinNumberEta, rebinNumberPhi);
+  saveName = TString::Format("%s/%s.pdf", saveDir.c_str(), saveName.c_str());
   latexText = "";
-  // latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
   plotOneHist(myCanvas, frame, matchedJetEtaPhi, legend, saveName, "", latexText);
 
   time = (clock() - time)/CLOCKS_PER_SEC;

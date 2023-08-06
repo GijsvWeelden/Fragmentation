@@ -45,12 +45,12 @@ void plotTrackQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, st
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-void plotPartJetEtaPhi(void)
+void plotPartJetEtaPhi(double ptMin = 40, double ptMax = 60, string input = "LHC21k6/train109274")
 {
   double time = clock();
   gStyle->SetNdivisions(505);
-  string inName = "../../data/LHC21k6/train109274.root";
-  string saveDir = "../../Plots/LHC21k6/train109274";
+  string inName = TString::Format("../../data/%s.root", input.c_str()).Data();
+  string saveDir = TString::Format("../../Plots/%s", input.c_str()).Data();
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -78,7 +78,6 @@ void plotPartJetEtaPhi(void)
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
   int R = 4;
   int rebinNumberEta = 1, rebinNumberPhi = 8;
-  double ptMin = 40, ptMax = 60;
 
   // Plotting stuff
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", 900, 900);

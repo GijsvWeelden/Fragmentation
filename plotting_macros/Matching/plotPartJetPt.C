@@ -18,12 +18,12 @@ void normaliseHistColByCol(TH2F* hist);
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-void plotPartJetPt(void)
+void plotPartJetPt(string input = "LHC21k6/train109274")
 {
   double time = clock();
   gStyle->SetNdivisions(505);
-  string inName = "../../data/LHC21k6/train109274.root";
-  string saveDir = "../../Plots/LHC21k6/train109274";
+  string inName = TString::Format("../../data/%s.root", input.c_str()).Data();
+  string saveDir = TString::Format("../../Plots/%s", input.c_str()).Data();
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -38,7 +38,6 @@ void plotPartJetPt(void)
   string histTitle = "";
   string saveName = "partJetPt";
   string xTitle = "#it{p}_{T}^{jet, truth}";
-  // string yTitle = "dN/d#eta";
   string yTitle = "normalised count";
   string legendTitle = "";
   string latexText = "latexText";
@@ -47,11 +46,10 @@ void plotPartJetPt(void)
   double titleSize = 0.03;//0.05;
   bool setLogY = true;
   bool setLogZ = false;
-  double xMinFrame = 0, xMaxFrame = 200, yMinFrame = 5e-9, yMaxFrame = 1.1, zMinFrame = 1e-5, zMaxFrame = 1;
+  double xMinFrame = 0, xMaxFrame = 200, yMinFrame = 5e-9, yMaxFrame = 2, zMinFrame = 1e-5, zMaxFrame = 1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
   int R = 4;
-  int rebinNumber = 5;
-  double ptMin = 40, ptMax = 60;
+  int rebinNumber = 1;
 
   // Plotting stuff
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", 900, 900);
@@ -77,8 +75,8 @@ void plotPartJetPt(void)
   histVector.push_back(matchedJetPt);
 
   saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
+  saveName = TString::Format("%s/%s.pdf", saveDir.c_str(), saveName.c_str());
+  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{Truth level jets with detector level match}}}", R).Data();
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 
   time = (clock() - time)/CLOCKS_PER_SEC;
@@ -126,7 +124,7 @@ void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, stri
   }
   hist->Draw(drawOption.c_str());
   if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.3, 0.9, latexText.c_str(), legend->GetTextSize()); }
+  if (latexText != "") { DrawLatex(0.3, 0.8, latexText.c_str(), legend->GetTextSize()); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText)
@@ -142,6 +140,6 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLe
     hist->Draw(drawOption.c_str());
   }
   if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.3, 0.9, latexText.c_str(), legend->GetTextSize()); }
+  if (latexText != "") { DrawLatex(0.3, 0.8, latexText.c_str(), legend->GetTextSize()); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }

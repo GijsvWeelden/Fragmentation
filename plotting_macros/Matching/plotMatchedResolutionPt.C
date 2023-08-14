@@ -22,9 +22,8 @@ void plotMatchedResolutionPt(void)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
-  string inName = "../../data/LHC21k6/train109274.root";
-  // string saveDir = "../../Plots/LHC21k6/train109274";
-  string saveDir = ".";
+  string inName = "../../data/LHC23d4/train111677.root";
+  string saveDir = "../../Plots/LHC23d4/train111677";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -77,7 +76,7 @@ void plotMatchedResolutionPt(void)
 
   saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
   saveName = TString::Format("%s/%s.pdf", saveDir.c_str(), saveName.c_str());
-  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
+  latexText = TString::Format("#splitline{PYTHIA, LHC23d4}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 
   time = (clock() - time)/CLOCKS_PER_SEC;

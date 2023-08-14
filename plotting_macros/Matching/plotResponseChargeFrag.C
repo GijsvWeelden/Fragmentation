@@ -18,16 +18,13 @@ void normaliseHistColByCol(TH2F* hist);
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-// TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax);
-
-// TODO: Add theory (selection from various sets; give a fragmentation scale)
-
 void plotResponseChargeFrag(void)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
-  string inName = "../../data/LHC23d4/train111677.root";
-  string saveDir = "../../Plots/LHC23d4/train111677";
+  string inName = "../../data/LHC21k6/train109274.root";
+  // string saveDir = "../../Plots/LHC21k6/test109274";
+  string saveDir = ".";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -41,23 +38,25 @@ void plotResponseChargeFrag(void)
   string histName = "matchDetJetPtTrackProjPartJetPtTrackProj";
   string histTitle = "";
   string saveName = "responseZproj";
-  string xTitle = "#it{z}^{det}";
-  string yTitle = "#it{z}^{part}";
+  string xTitle = "#it{z}^{ det}";
+  string yTitle = "#it{z}^{ truth}";
   string legendTitle = "";
   string latexText = "";
-  double textSize = 0.03;
+  double textSize = 0.04;
   double labelSize = 0.04;
-  double titleSize = 0.03;//0.05;
+  double titleSize = 0.05;
   bool setLogY = false;
   bool setLogZ = true;
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 1, zMinFrame = 1e-5, zMaxFrame = 1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
   int R = 4;
   int rebinNumber = 2;
-  double ptMin = 40, ptMax = 60;
+  double ptMin = 60, ptMax = 80;
 
   // Plotting stuff
-  TCanvas* myCanvas = new TCanvas("Plot", "Plot", 900, 900);
+  TCanvas* myCanvas = new TCanvas("Plot", "Plot", 800, 800);
+  myCanvas->SetLeftMargin(0.15);
+  myCanvas->SetBottomMargin(0.15);
   if (setLogY) { myCanvas->SetLogy(); }
   if (setLogZ) { myCanvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
@@ -80,7 +79,7 @@ void plotResponseChargeFrag(void)
   saveName = TString::Format("%s_ptTruth%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
   saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
   saveName = TString::Format("%s/%s.pdf", saveDir.c_str(), saveName.c_str());
-  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet, truth}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
+  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{ch. jet, truth}: %.0f-%.0f GeV/#it{c}}}}", R, ptMin, ptMax).Data();
   plotOneHist(myCanvas, frame, zTzD, legend, saveName, "", latexText);
 
   time = (clock() - time)/CLOCKS_PER_SEC;
@@ -128,7 +127,7 @@ void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, stri
   }
   hist->Draw(drawOption.c_str());
   if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.25, 0.8, latexText.c_str(), legend->GetTextSize()); }
+  if (latexText != "") { DrawLatex(0.3, 0.8, latexText.c_str(), legend->GetTextSize()); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText)

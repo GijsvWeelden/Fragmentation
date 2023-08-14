@@ -45,7 +45,7 @@ void plotTrackQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, st
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-void plotPartJetEtaPhi(double ptMin = 40, double ptMax = 60, string input = "LHC21k6/train109274")
+void plotPartJetEtaPhi(double ptMin = 40, double ptMax = 60, string input = "LHC23d4/train111677")
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -65,7 +65,6 @@ void plotPartJetEtaPhi(double ptMin = 40, double ptMax = 60, string input = "LHC
   string histTitle = "";
   string saveName = "partJetEtaPhi";
   string xTitle = "#eta^{jet, truth}";
-  // string yTitle = "dN/d#eta";
   string yTitle = "#phi^{jet, truth}";
   string legendTitle = "";
   string latexText = "latexText";

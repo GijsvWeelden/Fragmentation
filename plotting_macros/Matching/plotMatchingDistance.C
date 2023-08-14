@@ -23,7 +23,8 @@ void plotMatchingDistance(void)
   double time = clock();
   gStyle->SetNdivisions(505);
   string inName = "../../data/LHC21k6/train109274.root";
-  string saveDir = "../../Plots/LHC21k6/train109274";
+  // string saveDir = "../../Plots/LHC21k6/train109274";
+  string saveDir = ".";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -43,10 +44,10 @@ void plotMatchingDistance(void)
   string latexText = "latexText";
   double textSize = 0.03;
   double labelSize = 0.04;
-  double titleSize = 0.03;//0.05;
+  double titleSize = 0.04;//0.05;
   bool setLogY = true;
   bool setLogZ = false;
-  double xMinFrame = 0, xMaxFrame = 0.25, yMinFrame = 1e-2, yMaxFrame = 1, zMinFrame = 1e-5, zMaxFrame = 1;
+  double xMinFrame = 0, xMaxFrame = 0.2, yMinFrame = 3e-2, yMaxFrame = 1, zMinFrame = 1e-5, zMaxFrame = 1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
   int R = 4;
   int rebinNumber = 1;
@@ -57,6 +58,10 @@ void plotMatchingDistance(void)
   if (setLogY) { myCanvas->SetLogy(); }
   if (setLogZ) { myCanvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  // frame->GetXaxis()->SetLabelSize(labelSize);
+  // frame->GetYaxis()->SetLabelSize(labelSize);
+  // frame->GetXaxis()->SetTitleSize(titleSize);
+  // frame->GetYaxis()->SetTitleSize(titleSize);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   // Histogram stuff

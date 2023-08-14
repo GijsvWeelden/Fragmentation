@@ -22,9 +22,8 @@ void plotMatchedResolutionEta(void)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
-  string inName = "../../data/LHC21k6/train109274.root";
-  // string saveDir = "../../Plots/LHC21k6/train109274";
-  string saveDir = ".";
+  string inName = "../../data/LHC23d4/train111677.root";
+  string saveDir = "../../Plots/LHC23d4/train111677";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
@@ -47,7 +46,7 @@ void plotMatchedResolutionEta(void)
   double titleSize = 0.03;//0.05;
   bool setLogY = false;
   bool setLogZ = false;
-  double xMinFrame = -0.5, xMaxFrame = 0.55, yMinFrame = 0, yMaxFrame = 1, zMinFrame = 1e-5, zMaxFrame = 1;
+  double xMinFrame = -0.5, xMaxFrame = 0.5, yMinFrame = 0, yMaxFrame = 1, zMinFrame = 1e-5, zMaxFrame = 1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
   int R = 4;
   int rebinNumber = 1;
@@ -63,7 +62,6 @@ void plotMatchedResolutionEta(void)
   // Histogram stuff
   std::vector<TH1F*> histVector;
   TH3F* matchPartJetPtResolutionEta = (TH3F*)matchJetsDir->Get(histName.c_str());
-  // TH2F* matchPartJetPtResolutionEta = (TH2F*)matchJetsDir->Get(histName.c_str());
   matchPartJetPtResolutionEta->Sumw2();
   int firstBinPt = 1, lastBinPt = matchPartJetPtResolutionEta->GetNbinsX();
   int firstBinEta = 1, lastBinEta = matchPartJetPtResolutionEta->GetNbinsY();
@@ -79,7 +77,7 @@ void plotMatchedResolutionEta(void)
 
   saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
   saveName = TString::Format("%s/%s.pdf", saveDir.c_str(), saveName.c_str());
-  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
+  latexText = TString::Format("#splitline{PYTHIA, LHC23d4}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 
   time = (clock() - time)/CLOCKS_PER_SEC;

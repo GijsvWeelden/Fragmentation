@@ -45,7 +45,7 @@ void plotTrackQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, st
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-void plotPartJetEta(double ptMin = 40, double ptMax = 60, string input = "LHC21k6/train109274")
+void plotPartJetEta(double ptMin = 40, double ptMax = 60, string input = "LHC23d4/train111677")
 {
   double time = clock();
   // gROOT->SetBatch();
@@ -66,7 +66,6 @@ void plotPartJetEta(double ptMin = 40, double ptMax = 60, string input = "LHC21k
   string histTitle = "";
   string saveName = "partJetEta";
   string xTitle = "#eta^{jet, truth}";
-  // string yTitle = "dN/d#eta";
   string yTitle = "normalised count";
   string legendTitle = "";
   string latexText = "latexText";
@@ -108,7 +107,7 @@ void plotPartJetEta(double ptMin = 40, double ptMax = 60, string input = "LHC21k
   saveName = TString::Format("%s_pt%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
   saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
   saveName = TString::Format("%s/%s.pdf", saveDir.c_str(), saveName.c_str());
-  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
+  latexText = TString::Format("#splitline{PYTHIA, LHC23d4}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 
   time = (clock() - time)/CLOCKS_PER_SEC;
@@ -144,95 +143,6 @@ void normaliseHistColByCol(TH2F* hist)
       hist->SetBinContent(iCol, iRow, binContent);
     }
   }
-}
-
-// Get number of jets in pt range
-int getNJets(TDirectory* inDir, double ptMin, double ptMax, int dataOrMC)
-{
-  string projectionAxis = "X", dataType = "";
-  if ( dataOrMC == kData ) { dataType = "jet"; }
-  else if ( dataOrMC == kMCDetector ) { dataType = "detJet"; }
-  else if ( dataOrMC == kMCParticle ) { dataType = "partJet"; }
-  string histName = TString::Format("%sPtEtaPhi", dataType.c_str()).Data();
-
-  TH3F* h3nJets = (TH3F*)inDir->Get(histName.c_str());
-  // TH1F* hNJets = projectHist(hNJetTypes, projectionAxis, "nJets", ptMin, ptMax);
-  int firstXBin = h3nJets->GetXaxis()->FindBin(ptMin);
-  int lastXBin = h3nJets->GetXaxis()->FindBin(ptMax);
-  int firstZBin = 1;
-  int lastZBin = h3nJets->GetNbinsZ() + 1;
-  TH1F* h1nJets = (TH1F*)h3nJets->ProjectionY("nJetsProjected", firstXBin, lastXBin, firstZBin, lastZBin);
-
-  int nJets = h1nJets->Integral();
-  // cout << dataType << " pt " << ptMin << "-" << ptMax << " nJets: " << nJets << endl;
-
-  return nJets;
-}
-
-// Returns the fragmentation histogram into a hadron for a given pt range
-TH1F* loadFragmentation(TDirectory* inDir, int dataOrMC, int projOrPt, double ptMin, double ptMax)
-{
-  int nJets = -1;
-  string projectionAxis = "Y", histName = "";
-  string zDefinition = "";
-  if ( projOrPt == kProj ) { zDefinition = "TrackProj"; }
-  else if ( projOrPt == kPt ) { zDefinition = "Frag"; }
-  else {
-    cout << "loadFragmentation: invalid input. projOrPt = " << projOrPt << std::endl
-      << "Allowed inputs: projOrPt = " << kProj << ", " << kPt << std::endl;
-    return nullptr;
-  }
-
-  switch (dataOrMC) {
-    case kData:
-      histName = TString::Format("jetPt%s", zDefinition.c_str()).Data();
-      break;
-    case kMCParticle:
-      histName = TString::Format("partJetPt%s", zDefinition.c_str()).Data();
-      break;
-    case kMCDetector:
-      histName = TString::Format("detJetPt%s", zDefinition.c_str()).Data();
-      break;
-    default:
-      std::cout << "loadFragmentation: invalid input. dataOrMC = " << dataOrMC << std::endl
-        << "Allowed inputs: dataOrMC = " << kData << ", " << kMCParticle << ", " << kMCDetector << std::endl;
-      return nullptr;
-  }
-
-  TH2F* jets = loadHist<TH2F*>(inDir, histName);
-  TH1F* fragmentation = projectHist(jets, projectionAxis, TString::Format("%s_projected_pt%.0f-%.0f", histName.c_str(), ptMin, ptMax).Data(), ptMin, ptMax);
-  fragmentation->Rebin(5);
-  nJets = getNJets(inDir, ptMin, ptMax, dataOrMC); // Get number of jets of appropriate type
-  fragmentation->Scale(1./nJets, "width"); // Normalise by number of jets and bin width
-  return fragmentation;
-}
-
-// Formats the hadron name to look nice (Greek letters, sub- and superscripts)
-string formatHadronName(string hadron)
-{
-  string had = hadron;
-  if (hadron == "pi"){
-    had = "#pi^{#pm}";
-  }
-  else if (hadron == "pi0"){
-    had = "#pi^{0}";
-  }
-  else if (hadron == "K0L"){
-    had = "K^{0}_{L}";
-  }
-  else if (hadron == "K0S"){
-    had = "K^{0}_{S}";
-  }
-  else if (hadron == "K0"){
-    had = "K^{0}";
-  }
-  else if (hadron == "K"){
-    had = "K^{#pm}";
-  }
-  else if (hadron == "Lambda0"){
-    had = "#Lambda^{0}";
-  }
-  return had;
 }
 
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText)

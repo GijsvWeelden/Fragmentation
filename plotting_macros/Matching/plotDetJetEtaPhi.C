@@ -18,7 +18,7 @@ void normaliseHistColByCol(TH2F* hist);
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-void plotDetJetEtaPhi(double ptMin = 40, double ptMax = 60, string input = "LHC21k6/train109274")
+void plotDetJetEtaPhi(double ptMin = 40, double ptMax = 60, string input = "LHC23d4/train111677")
 {
   double time = clock();
   gStyle->SetNdivisions(505);

@@ -26,6 +26,8 @@ enum { kProj = 0, // Definition of z
        kPt
        };
 
+void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
+
 void comparePtBins(TDirectory* inDir, int dataOrMC, int projOrPt, string saveDir);
 void compareZDefinitions(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, string saveDir);
 
@@ -46,10 +48,10 @@ void plotTrackQA(TDirectory* inDir, int dataOrMC, double ptMin, double ptMax, st
 
 // TODO: Add theory (selection from various sets; give a fragmentation scale)
 
-void plotResponseChargeFrag(void)
+void plotResponseChargeFrag_old(void)
 {
   double time = clock();
-  gROOT->SetBatch();
+  // gROOT->SetBatch();
   gStyle->SetNdivisions(505);
   string inName = "../data/LHC21k6/train107435.root";
   string saveDir = "../Plots/LHC21k6/train107435";
@@ -66,15 +68,62 @@ void plotResponseChargeFrag(void)
 
   // Matching plots
   // plotResponse(matchJetsDir, -999, -999, saveDir);
-  plotResponse(matchJetsDir, 5, 20, saveDir);
-  plotResponse(matchJetsDir, 20, 30, saveDir);
-  plotResponse(matchJetsDir, 30, 40, saveDir);
-  plotResponse(matchJetsDir, 40, 60, saveDir);
+  // plotResponse(matchJetsDir, 5, 20, saveDir);
+  // plotResponse(matchJetsDir, 20, 30, saveDir);
+  // plotResponse(matchJetsDir, 30, 40, saveDir);
+  // plotResponse(matchJetsDir, 40, 60, saveDir);
   // plotResponse(matchJetsDir, 60, 80, saveDir);
   // plotResponse(matchJetsDir, 80, 100, saveDir);
   // plotResponse(matchJetsDir, 100, 120, saveDir);
   // plotResponse(matchJetsDir, 120, 160, saveDir);
   // plotResponse(matchJetsDir, 160, 200, saveDir);
+
+  // return;
+
+  string histName = "matchDetJetPtTrackProjPartJetPtTrackProj";
+  string histTitle = "";
+  string saveName = "responseZproj";
+  string xTitle = "#it{z}^{det}";
+  string yTitle = "#it{z}^{part}";
+  string legendTitle = "";
+  string latexText = "";
+    // "#splitline{ALICE 2022 data}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt full jets}{#splitline{Trigger: #it{R} = 0.2, #it{p}_{T}^{jet} > 8 GeV}{ }}}}";
+  double textSize = 0.03;
+  double labelSize = 0.04;
+  double titleSize = 0.03;//0.05;
+  bool setLogY = false;
+  bool setLogZ = true;
+  double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 1, zMinFrame = 1e-5, zMaxFrame = 1;
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
+  int R = 4;
+  double ptMin = 40, ptMax = 60;
+
+  // Plotting stuff
+  TCanvas* myCanvas = new TCanvas("Plot", "Plot", 900, 900);
+  if (setLogY) { myCanvas->SetLogy(); }
+  if (setLogZ) { myCanvas->SetLogz(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+
+  THnF* response = (THnF*)matchJetsDir->Get(histName.c_str());
+  int firstBinPtTruth = 1, lastBinPtTruth = response->GetAxis(3)->GetNbins();
+  int projectionAxisX = 1, projectionAxisY = 3;
+  int ptTruthAxis = 2;
+
+  firstBinPtTruth = response->GetAxis(ptTruthAxis)->FindBin(ptMin);
+  lastBinPtTruth = response->GetAxis(ptTruthAxis)->FindBin(ptMax);
+
+  response->GetAxis(ptTruthAxis)->SetRange(firstBinPtTruth, lastBinPtTruth);
+  TH2F* zTzD = (TH2F*)response->Projection(projectionAxisY, projectionAxisX);
+  // TH2F* zTzD = projectHist(response, 1, 3, "trackProj", -999, -999, -999, -999, ptMin, ptMax, -999, -999);
+  // zTzD->Rebin2D(5, 5);
+  normaliseHistRowByRow(zTzD);
+  zTzD->GetZaxis()->SetRangeUser(zMinFrame, zMaxFrame);
+  // zTzD->Draw("colz");
+  // return;
+  saveName = TString::Format("%s_ptTruth%.0f-%.0f_old.pdf", saveName.c_str(), ptMin, ptMax).Data();
+  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{jet, truth}: %.0f-%.0f GeV}}}", R, ptMin, ptMax).Data();
+  plotOneHist(myCanvas, frame, zTzD, legend, saveName, "", latexText);
 
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
@@ -126,7 +175,8 @@ void plotResponse(TDirectory* inDir, double ptMinTruth, double ptMaxTruth, strin
   xMinFrame = zMin, xMaxFrame = zMax, yMinFrame = zMin, yMaxFrame = zMax;
   // histTitle = "Matched #it{z}";
   histTitle = "";
-  saveName = TString::Format("%s/ResponseZproj", saveDir.c_str());
+  // saveName = TString::Format("%s/ResponseZproj", saveDir.c_str());
+  saveName = "responseZproj";
   if (ptMinTruth > -900 || ptMaxTruth > -900) {
     // histTitle = TString::Format("%s (#it{p}_{T}^{ jet, truth}: %.0f - %.0f)", histTitle.c_str(), ptMinTruth, ptMaxTruth);
     saveName = TString::Format("%s_ptTruth%.0f-%.0f", saveName.c_str(), ptMinTruth, ptMaxTruth);
@@ -254,4 +304,18 @@ string formatHadronName(string hadron)
     had = "#Lambda^{0}";
   }
   return had;
+}
+
+void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText)
+{
+  canvas->cd();
+  frame->Draw();
+  string drawOption = "same colz";
+  if (setDrawOption != "") {
+    drawOption = TString::Format("%s %s", drawOption.c_str(), setDrawOption.c_str()).Data();
+  }
+  hist->Draw(drawOption.c_str());
+  if (legend) { legend->Draw("same"); }
+  if (latexText != "") { DrawLatex(0.3, 0.9, latexText.c_str(), legend->GetTextSize()); }
+  canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }

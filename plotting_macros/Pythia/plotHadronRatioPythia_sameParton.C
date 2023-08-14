@@ -71,7 +71,7 @@ void plotHadronRatioPythia_sameParton(void)
 
   std::vector<TH1F*> histVector;
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 1;
-  double xMinLegend = 0.6, xMaxLegend = 0.7, yMinLegend = 0.45, yMaxLegend = 0.55;
+  double xMinLegend = 0.65, xMaxLegend = 0.75, yMinLegend = 0.6, yMaxLegend = 0.7;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.05;
@@ -80,11 +80,11 @@ void plotHadronRatioPythia_sameParton(void)
   string setDrawOption = "";
   string xTitle = "#it{z}";
   // string yTitle = "#it{N}(#Lambda^{0}) / #it{N}(K^{0})";
-  string yTitle = "#frac{#it{N}(#Lambda^{0})}{#it{N}(K^{0})}";
+  string yTitle = "#frac{#it{N} (#Lambda^{0})}{#it{N} (K^{0})}";
   string histTitle = "";
   string legendTitle = "";
   string latexText =
-    TString::Format("#splitline{PYTHIA Tune 4c, 13.6 TeV pp}{anti-kt jets, #it{R} = 0.%d, #it{p}_{T}^{ jet}: %.0f - %.0f}", R, ptMin, ptMax).Data();
+    TString::Format("#splitline{PYTHIA Tune 4c, 13.6 TeV pp}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{ jet}: %.0f - %.0f GeV/#it{c}}}", R, ptMin, ptMax).Data();
   string obsName = "#it{z}";
 
   // Plotting stuff
@@ -123,7 +123,9 @@ void plotHadronRatioPythia_sameParton(void)
   legend->AddEntry(quarkRatio, "quark");
 
   saveName = TString::Format("%s-%s", numerator.c_str(), denominator.c_str()).Data();
-  saveName = TString::Format("%s_pt%.0f-%.0f.pdf", saveName.c_str(), ptMin, ptMax).Data();
+  saveName = TString::Format("%s_pt%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
+  saveName = TString::Format("%s_textsize%d", saveName.c_str(), (int)std::round(100*textSize)).Data();
+  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
@@ -141,7 +143,7 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLe
     hist->Draw(drawOption.c_str());
   }
   if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.375, 0.7, latexText.c_str(), legend->GetTextSize()); }
+  if (latexText != "") { DrawLatex(0.3, 0.8, latexText.c_str(), legend->GetTextSize()); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
 

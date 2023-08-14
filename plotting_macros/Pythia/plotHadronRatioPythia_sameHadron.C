@@ -66,8 +66,8 @@ void plotHadronRatioPythia_sameHadron(void)
 
   std::vector<TH1F*> histVector;
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 2.5;
-  double xMinLegend = 0.6, xMaxLegend = 0.7, yMinLegend = 0.45, yMaxLegend = 0.55;
-  double textSize = 0.04;
+  double xMinLegend = 0.7, xMaxLegend = 0.8, yMinLegend = 0.5, yMaxLegend = 0.6;
+  double textSize = 0.03;
   double labelSize = 0.04;
   double titleSize = 0.05;
   int lineWidth = 3; int markerSize = 1;
@@ -123,7 +123,9 @@ void plotHadronRatioPythia_sameHadron(void)
   legend->AddEntry(ratio1, formatHadronName(hadron).c_str());
   saveName = TString::Format("%s_g%s-q%s", saveName.c_str(), hadron.c_str(), hadron.c_str()).Data();
 
-  saveName = TString::Format("%s_pt%.0f-%.0f.pdf", saveName.c_str(), ptMin, ptMax).Data();
+  saveName = TString::Format("%s_pt%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
+  saveName = TString::Format("%s_textsize%d", saveName.c_str(), (int)std::round(100*textSize)).Data();
+  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
@@ -141,9 +143,9 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLe
     hist->Draw(drawOption.c_str());
   }
   if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.375, 0.7, latexText.c_str(), legend->GetTextSize()); }
+  if (latexText != "") { DrawLatex(0.5, 0.8, latexText.c_str(), legend->GetTextSize()); }
   TLine* line = new TLine(0, 1, 1, 1);
-  line->SetLineStyle(9);
+  line->SetLineStyle(2);
   line->Draw("same");
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }

@@ -40,8 +40,8 @@ int main(int argc, char** argv)
 {
 	int nEvents = 200;
 	string outName = "PythiaResult";
-	Float_t ptHatMin = 80;
-	Float_t ptHatMax = 200;
+	Float_t ptHatMin = 20;
+	Float_t ptHatMax = 80;
 
 	if (argc >= 2){
 		nEvents = atoi(argv[1]);
@@ -101,6 +101,8 @@ int main(int argc, char** argv)
 	}
 	pythia.init();
 
+  // Eta cut to ignore events with partons too far away
+  float max_eta_matriarch = 2.5;
 	// Settings for tracks and jets
 	float max_eta_track = 2, min_pt_track = 0., max_pt_track = 10.;
 	float jetR = 0.4, min_pt_jet = 10, max_pt_jet = 200;
@@ -122,7 +124,7 @@ int main(int argc, char** argv)
 													nBins_eta_track, -1 * max_eta_track, max_eta_track,
 													nBins_pt_track, min_pt_track, max_pt_track);
 	TH2F *hJetEtaPt = new TH2F("hJetEtaPt","Jet Pt vs Eta;#eta;p^{jet}_{T} (GeV/c)",
-														 nBins_eta_jet, -1 * max_eta_jet, max_eta_jet,
+														 nBins_eta_jet, -3 * max_eta_jet, 3 * max_eta_jet,
 														 nBins_pt_jet, min_pt_jet, max_pt_jet);
 	TH1F *hDeltaPartonJet = new TH1F("hDeltaPartonJet","Distance between parton and jet",
 																	 nBins_eta_jet, 0., 1.);
@@ -182,10 +184,11 @@ int main(int argc, char** argv)
 
     int a = 0; int b = 0; int c = 0; // For counting descendants
 		Int_t nMatriarchs = 0; Int_t flavourM1 = -999; Int_t flavourM2 = -999;
+    bool isM1OutOfRange = false; bool isM2OutOfRange = false;
 		int nMatchedJets = 0; int jetMatch1 = 0; int jetMatch2 = 0;
     double pxM1 = 0, pyM1 = 0, pzM1 = 0, p2M1 = 0, etaM1 = 0, phiM1 = 0;
 		double pxM2 = 0, pyM2 = 0, pzM2 = 0, p2M2 = 0, etaM2 = 0, phiM2 = 0;
-		double matchDist = 1.;
+		double matchDist = 0.3; //1.;
 
 		std::vector<fastjet::PseudoJet> fastjetInputs;
 
@@ -216,6 +219,10 @@ int main(int argc, char** argv)
         }
 				continue;
 			}
+      // Ignore events where partons are too far away
+      if ( (abs(etaM1) > max_eta_matriarch) && (abs(etaM2) > max_eta_matriarch) ){
+        break;
+      }
 			if (!part.isFinal()) continue;
 			if (abs( part.eta() ) > max_eta_track || part.pT() < min_pt_track) continue;
 			hEtaPt->Fill(part.eta(),part.pT());
@@ -243,24 +250,30 @@ int main(int argc, char** argv)
 			}
 			nPartPythia++;
 		} // Particle loop
+    // Skip event if both matriarchs have too high eta
+    if ( (abs(etaM1) > max_eta_matriarch) && (abs(etaM2) > max_eta_matriarch) ){
+      continue;
+    }
 
 		// Do jet finding and analysis here.
-		/*
 		fastjet::GhostedAreaSpec ghostSpec(max_eta_track, 1, 0.01);
 		fastjet::Strategy strategy = fastjet::Best;
-		fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
 		fastjet::AreaType areaType = fastjet::active_area;
 		fastjet::AreaDefinition areaDef = fastjet::AreaDefinition(areaType, ghostSpec);
 		fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
 		fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
-		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
-		fastjet::ClusterSequenceArea clustSeq(fastjetInputs, jetDef, areaDef);
-		std::vector <fastjet::PseudoJet> inclusiveJets = clustSeq.inclusive_jets();
-		std::vector <fastjet::PseudoJet> ptSortedJets = sorted_by_pt(inclusiveJets); // Sort jets from high to low pt
-		// */
-		std::vector <fastjet::PseudoJet> ptSortedJets_standard = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
-		// std::vector <fastjet::PseudoJet> ptSortedJets_WTA = do_jet_finding(fastjetInputs, max_eta_track, max_eta_jet, jetR);
-			// fastjet::RecombinationScheme recombScheme = fastjet::WTA_pt_scheme;
+		// Jets with standard jet axis
+		fastjet::RecombinationScheme recombScheme_standard = fastjet::E_scheme; // need E scheme for jet mass
+		fastjet::JetDefinition jetDef_standard(fastjet::antikt_algorithm, jetR, recombScheme_standard, strategy);
+		fastjet::ClusterSequenceArea clustSeq_standard(fastjetInputs, jetDef_standard, areaDef);
+		std::vector <fastjet::PseudoJet> inclusiveJets_standard = clustSeq_standard.inclusive_jets();
+		std::vector <fastjet::PseudoJet> ptSortedJets_standard = sorted_by_pt(inclusiveJets_standard); // Sort jets from high to low pt
+		// Jets with WTA axis
+		//fastjet::RecombinationScheme recombScheme_WTA = fastjet::WTA_pt_scheme;
+		//fastjet::JetDefinition jetDef_WTA(fastjet::antikt_algorithm, jetR, recombScheme_WTA, strategy);
+		//fastjet::ClusterSequenceArea clustSeq_WTA(fastjetInputs, jetDef_WTA, areaDef);
+		//std::vector <fastjet::PseudoJet> inclusiveJets_WTA = clustSeq_WTA.inclusive_jets();
+		//std::vector <fastjet::PseudoJet> ptSortedJets_WTA = sorted_by_pt(inclusiveJets_WTA); // Sort jets from high to low pt
 
 		for (auto jet : ptSortedJets_standard){
       if (jet.pt() < min_pt_jet) continue;
@@ -313,8 +326,6 @@ int main(int argc, char** argv)
 			match_0++;
 		}
 	}
-	// hNJetTypes->SetBinContent(1, 1.*nGluons);
-	// hNJetTypes->SetBinContent(2, 1.*nQuarks);
 
 	cout << "Number of events: " << nEvents << endl
 		<< "Events with (2, 1, 0) matches:" << endl

@@ -21,7 +21,6 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLe
 void plotResponseChargeFrag(void)
 {
   double time = clock();
-  gStyle->SetNdivisions(505);
   string inName = "../../data/LHC21k6/train109274.root";
   // string saveDir = "../../Plots/LHC21k6/test109274";
   string saveDir = ".";
@@ -38,8 +37,8 @@ void plotResponseChargeFrag(void)
   string histName = "matchDetJetPtTrackProjPartJetPtTrackProj";
   string histTitle = "";
   string saveName = "responseZproj";
-  string xTitle = "#it{z}^{ det}";
-  string yTitle = "#it{z}^{ truth}";
+  string xTitle = "#it{z}_{ch}^{ det.}";
+  string yTitle = "#it{z}_{ch}^{ part.}";
   string legendTitle = "";
   string latexText = "";
   double textSize = 0.04;
@@ -47,19 +46,31 @@ void plotResponseChargeFrag(void)
   double titleSize = 0.05;
   bool setLogY = false;
   bool setLogZ = true;
+  bool centerTitle = false;
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 1, zMinFrame = 1e-5, zMaxFrame = 1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
   int R = 4;
   int rebinNumber = 2;
-  double ptMin = 60, ptMax = 80;
+  double ptMin = 40, ptMax = 60;
 
   // Plotting stuff
+  gStyle->SetNdivisions(505, "xy");
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", 800, 800);
-  myCanvas->SetLeftMargin(0.15);
-  myCanvas->SetBottomMargin(0.15);
+  myCanvas->SetLeftMargin(0.11);
+  myCanvas->SetBottomMargin(0.11);
+  myCanvas->SetRightMargin(0.125);
+  myCanvas->SetTopMargin(0.02);
   if (setLogY) { myCanvas->SetLogy(); }
   if (setLogZ) { myCanvas->SetLogz(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle, 0.1, false);
+  frame->GetXaxis()->SetLabelSize(labelSize);
+  frame->GetYaxis()->SetLabelSize(labelSize);
+  frame->GetXaxis()->SetTitleSize(titleSize);
+  frame->GetYaxis()->SetTitleSize(titleSize);
+  frame->GetXaxis()->CenterTitle(centerTitle);
+  frame->GetYaxis()->CenterTitle(centerTitle);
+  frame->GetXaxis()->SetTitleOffset(1.);
+  frame->GetYaxis()->SetTitleOffset(1.);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   THnF* response = (THnF*)matchJetsDir->Get(histName.c_str());
@@ -77,9 +88,11 @@ void plotResponseChargeFrag(void)
   zTzD->GetZaxis()->SetRangeUser(zMinFrame, zMaxFrame);
 
   saveName = TString::Format("%s_ptTruth%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
-  saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
+  saveName = TString::Format("%s_binsize%d", saveName.c_str(), rebinNumber);
+  saveName = TString::Format("%s_textsize%d", saveName.c_str(), (int)std::round(100*textSize));
   saveName = TString::Format("%s/%s.pdf", saveDir.c_str(), saveName.c_str());
-  latexText = TString::Format("#splitline{PYTHIA, ideal alignment}{#splitline{13.6 TeV pp 500 kHz}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{ch. jet, truth}: %.0f-%.0f GeV/#it{c}}}}", R, ptMin, ptMax).Data();
+  latexText = TString::Format("#splitline{ALICE simulation, ideal alignment}{#splitline{pp #sqrt{#it{s} } = 13.6 TeV}{#splitline{Ch-particle jets, anti-#it{k}_{T}, #it{R} = 0.%d}{#splitline{%.0f < #it{p}_{T, ch. jet}^{ part.} < %.0f GeV/#it{c}}{|#it{#eta}_{jet}^{det.}| < 0.5}}}}", R, ptMin, ptMax).Data();
+  // latexText = TString::Format("#splitline{ALICE performance, ideal alignment}{#splitline{500 kHz pp #sqrt{#it{s} } = 13.6 TeV}{#splitline{Ch-particle jets, anti-#it{k}_{T}, #it{R} = 0.%d}{#splitline{%.0f < #it{p}_{T, ch. jet}^{ part.} < %.0f GeV/#it{c}}{|#it{#eta}_{jet}^{det.}| < 0.5}}}}", R, ptMin, ptMax).Data();
   plotOneHist(myCanvas, frame, zTzD, legend, saveName, "", latexText);
 
   time = (clock() - time)/CLOCKS_PER_SEC;
@@ -127,7 +140,7 @@ void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, stri
   }
   hist->Draw(drawOption.c_str());
   if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.3, 0.8, latexText.c_str(), legend->GetTextSize()); }
+  if (latexText != "") { DrawLatex(0.15, 0.86, latexText.c_str(), legend->GetTextSize()); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText)

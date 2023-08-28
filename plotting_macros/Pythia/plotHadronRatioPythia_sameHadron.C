@@ -45,7 +45,6 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLe
 void plotHadronRatioPythia_sameHadron(void)
 {
   double time = clock();
-  gStyle->SetNdivisions(505);
   string inName = "PythiaResult_pthat20-80";
   TFile *inFile = TFile::Open(TString::Format("../../data/pythia/%s.root", inName.c_str()).Data());
   if(!inFile){
@@ -67,31 +66,36 @@ void plotHadronRatioPythia_sameHadron(void)
   std::vector<TH1F*> histVector;
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 2.5;
   double xMinLegend = 0.7, xMaxLegend = 0.8, yMinLegend = 0.5, yMaxLegend = 0.6;
-  double textSize = 0.03;
+  double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.05;
-  int lineWidth = 3; int markerSize = 1;
+  int lineWidth = 3; int markerSize = 2;
   bool setLogY = false;
-  string setDrawOption = "";
+  bool centerTitle = false;
+  string setDrawOption = "E";
   string xTitle = "#it{z}";
-  string yTitle = "#frac{1}{#it{N}_{jets}} #frac{d#it{N}}{d#it{z}} (gluon) / #frac{1}{#it{N}_{jets}} #frac{d#it{N}}{d#it{z}} (quark)";
+  string yTitle = "#frac{1}{#it{N}_{jets}} #frac{d#it{N}}{d#it{z}} (gluon) #scale[1.5]{/} #frac{1}{#it{N}_{jets}} #frac{d#it{N}}{d#it{z}} (quark)";
   string histTitle = "";
   string legendTitle = "";
   string latexText =
-    TString::Format("#splitline{PYTHIA Tune 4c}{#splitline{13.6 TeV pp}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{ jet}: %.0f - %.0f GeV/#it{c}}}}", R, ptMin, ptMax).Data();
-  // string latexText =
-  //   TString::Format("#splitline{PYTHIA Tune 4c, 13.6 TeV pp}{anti-kt jets, #it{R} = 0.%d, #it{p}_{T}^{ jet}: %.0f - %.0f GeV/#it{c}}", R, ptMin, ptMax).Data();
+    // TString::Format("#splitline{PYTHIA simulation pp, #sqrt{#it{s} } = 13.6 TeV}{#splitline{Anti-#it{k}_{T} jets, %.0f < #it{p}_{T, jet} < %.0f GeV/#it{c}}{#splitline{}{#splitline{}{#it{R} = 0.%d, |#it{#eta}_{jet}| < 1.6}}}}", ptMin, ptMax, R).Data();
+    TString::Format("#splitline{PYTHIA simulation}{#splitline{pp, #sqrt{#it{s} } = 13.6 TeV}{#splitline{Anti-#it{k}_{T} jets, #it{R} = 0.%d, |#it{#eta}_{jet}| < 1.6}{%.0f < #it{p}_{T jet} < %.0f GeV/#it{c}}}}", R, ptMin, ptMax).Data();
   string obsName = "#it{z}";
 
   // Plotting stuff
+  gStyle->SetNdivisions(505, "xy");
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", 800, 800);
-  myCanvas->SetLeftMargin(0.15);
+  myCanvas->SetLeftMargin(0.2);
   myCanvas->SetBottomMargin(0.15);
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  myCanvas->SetRightMargin(0.05);
+  myCanvas->SetTopMargin(0.05);
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle, 0.1, false);
   frame->GetXaxis()->SetLabelSize(labelSize);
   frame->GetYaxis()->SetLabelSize(labelSize);
   frame->GetXaxis()->SetTitleSize(titleSize);
   frame->GetYaxis()->SetTitleSize(titleSize);
+  frame->GetXaxis()->CenterTitle(centerTitle);
+  frame->GetYaxis()->CenterTitle(centerTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   // Make histograms
@@ -106,7 +110,7 @@ void plotHadronRatioPythia_sameHadron(void)
   ratio0->SetMarkerStyle(GetMarker(0));
   ratio0->SetMarkerColor(GetColor(0));
   histVector.push_back(ratio0);
-  legend->AddEntry(ratio0, formatHadronName(hadron).c_str());
+  legend->AddEntry(ratio0, TString::Format(" %s", formatHadronName(hadron).c_str()).Data());
   saveName = TString::Format("%s_g%s-q%s", saveName.c_str(), hadron.c_str(), hadron.c_str()).Data();
 
   hadron = "Lambda0";
@@ -120,13 +124,28 @@ void plotHadronRatioPythia_sameHadron(void)
   ratio1->SetMarkerStyle(GetMarker(1));
   ratio1->SetMarkerColor(GetColor(1));
   histVector.push_back(ratio1);
-  legend->AddEntry(ratio1, formatHadronName(hadron).c_str());
+  legend->AddEntry(ratio1, TString::Format(" %s", formatHadronName(hadron).c_str()).Data());
   saveName = TString::Format("%s_g%s-q%s", saveName.c_str(), hadron.c_str(), hadron.c_str()).Data();
 
   saveName = TString::Format("%s_pt%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
   saveName = TString::Format("%s_textsize%d", saveName.c_str(), (int)std::round(100*textSize)).Data();
+  saveName = TString::Format("%s_markersize%d", saveName.c_str(), markerSize).Data();
+  saveName = TString::Format("%s_draw%s", saveName.c_str(), setDrawOption.c_str()).Data();
   saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
+
+  // saveName = TString::Format("%s_drawCustom.pdf", saveName.c_str()).Data();
+  // gStyle->SetEndErrorSize(10.);
+  // myCanvas->cd();
+  // frame->Draw();
+  // ratio0->Draw("same E1 X0");
+  // ratio0->Draw("same E");
+  // ratio1->Draw("same E1 X0");
+  // ratio1->Draw("same E");
+  // legend->Draw("same");
+  // DrawLatex(0.5, 0.8, latexText.c_str(), legend->GetTextSize());
+  // myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
+
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
 }
@@ -143,7 +162,7 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLe
     hist->Draw(drawOption.c_str());
   }
   if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.5, 0.8, latexText.c_str(), legend->GetTextSize()); }
+  if (latexText != "") { DrawLatex(0.43, 0.85, latexText.c_str(), legend->GetTextSize()); }
   TLine* line = new TLine(0, 1, 1, 1);
   line->SetLineStyle(2);
   line->Draw("same");
@@ -286,13 +305,13 @@ string formatHadronName(string hadron)
     had = "K^{0}_{S}";
   }
   else if (hadron == "K0"){
-    had = "K^{0}";
+    had = "#it{K}^{0}";
   }
   else if (hadron == "K"){
     had = "K^{#pm}";
   }
   else if (hadron == "Lambda0"){
-    had = "#Lambda^{0}";
+    had = "#it{#Lambda}^{0}";
   }
   return had;
 }

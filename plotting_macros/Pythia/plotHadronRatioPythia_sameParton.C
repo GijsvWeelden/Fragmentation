@@ -38,18 +38,11 @@ void plotMultipleHadrons(TFile* inFile, std::vector<string> hadrons, int quarkOr
 void plotSingleHadron(TFile* inFile, string hadron, int quarkOrGluon, string theory = "",
                       double ptMin = -999, double ptMax = -999);
 
-void plotGluonQuarkJetsFraction(TFile* inFile);
-
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
-
-// TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax);
-
-// TODO: Add theory (selection from various sets; give a fragmentation scale)
 
 void plotHadronRatioPythia_sameParton(void)
 {
   double time = clock();
-  gStyle->SetNdivisions(505);
   string inName = "PythiaResult_pthat20-80";
   TFile *inFile = TFile::Open(TString::Format("../../data/pythia/%s.root", inName.c_str()).Data());
   if(!inFile){
@@ -71,31 +64,38 @@ void plotHadronRatioPythia_sameParton(void)
 
   std::vector<TH1F*> histVector;
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 1;
-  double xMinLegend = 0.65, xMaxLegend = 0.75, yMinLegend = 0.6, yMaxLegend = 0.7;
+  double xMinLegend = 0.55, xMaxLegend = 0.8, yMinLegend = 0.6, yMaxLegend = 0.7;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.05;
-  int lineWidth = 3; int markerSize = 1;
+  int lineWidth = 3; int markerSize = 2;
   bool setLogY = false;
-  string setDrawOption = "";
+  bool centerTitle = false;
+  string setDrawOption = "E";
   string xTitle = "#it{z}";
-  // string yTitle = "#it{N}(#Lambda^{0}) / #it{N}(K^{0})";
-  string yTitle = "#frac{#it{N} (#Lambda^{0})}{#it{N} (K^{0})}";
+  string yTitle =
+    TString::Format("#frac{d#it{N} (%s)}{d#it{z}} #scale[1.5]{/} #frac{d#it{N} (%s)}{d#it{z}}", formatHadronName(numerator).c_str(), formatHadronName(denominator).c_str()).Data();
   string histTitle = "";
   string legendTitle = "";
   string latexText =
-    TString::Format("#splitline{PYTHIA Tune 4c, 13.6 TeV pp}{#splitline{anti-kt jets, #it{R} = 0.%d}{#it{p}_{T}^{ jet}: %.0f - %.0f GeV/#it{c}}}", R, ptMin, ptMax).Data();
+    TString::Format("#splitline{PYTHIA simulation pp, #sqrt{#it{s} } = 13.6 TeV}{#splitline{Anti-#it{k}_{T} jets, #it{R} = 0.%d, |#it{#eta}_{jet}| < 1.6}{%.0f < #it{p}_{T, jet} < %.0f GeV/#it{c}}}", R, ptMin, ptMax).Data();
   string obsName = "#it{z}";
 
   // Plotting stuff
+  gStyle->SetNdivisions(505, "xy");
+  // gStyle->SetEndErrorSize(10.);
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", 800, 800);
-  myCanvas->SetLeftMargin(0.15);
+  myCanvas->SetLeftMargin(0.2);
   myCanvas->SetBottomMargin(0.15);
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  myCanvas->SetRightMargin(0.05);
+  myCanvas->SetTopMargin(0.05);
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle, 0.1, false);
   frame->GetXaxis()->SetLabelSize(labelSize);
   frame->GetYaxis()->SetLabelSize(labelSize);
   frame->GetXaxis()->SetTitleSize(titleSize);
   frame->GetYaxis()->SetTitleSize(titleSize);
+  frame->GetXaxis()->CenterTitle(centerTitle);
+  frame->GetYaxis()->CenterTitle(centerTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   TH1F* gluonNumerator = loadFragmentation(inFile, numerator.c_str(), mGluon, ptMin, ptMax);
@@ -108,7 +108,7 @@ void plotHadronRatioPythia_sameParton(void)
   gluonRatio->SetMarkerStyle(GetMarker(0));
   gluonRatio->SetMarkerColor(GetColor(0));
   histVector.push_back(gluonRatio);
-  legend->AddEntry(gluonRatio, "gluon");
+  legend->AddEntry(gluonRatio, " gluon-initiated jets");
 
   TH1F* quarkNumerator = loadFragmentation(inFile, numerator.c_str(), mQuark, ptMin, ptMax);
   TH1F* quarkDenominator = loadFragmentation(inFile, denominator.c_str(), mQuark, ptMin, ptMax);
@@ -120,13 +120,31 @@ void plotHadronRatioPythia_sameParton(void)
   quarkRatio->SetMarkerStyle(GetMarker(1));
   quarkRatio->SetMarkerColor(GetColor(1));
   histVector.push_back(quarkRatio);
-  legend->AddEntry(quarkRatio, "quark");
+  legend->AddEntry(quarkRatio, " quark-initiated jets");
 
   saveName = TString::Format("%s-%s", numerator.c_str(), denominator.c_str()).Data();
   saveName = TString::Format("%s_pt%.0f-%.0f", saveName.c_str(), ptMin, ptMax).Data();
   saveName = TString::Format("%s_textsize%d", saveName.c_str(), (int)std::round(100*textSize)).Data();
+  saveName = TString::Format("%s_markersize%d", saveName.c_str(), markerSize).Data();
+  // saveName = TString::Format("%s_draw%s", saveName.c_str(), setDrawOption.c_str()).Data();
+  // saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
+  // plotNHists(myCanvas, frame, histVector, legend, saveName, setDrawOption, latexText);
+
+  saveName = TString::Format("%s_drawCustom", saveName.c_str()).Data();
+  double endErrorSize = 8;
+  gStyle->SetEndErrorSize(endErrorSize);
+  saveName = TString::Format("%s_error%.0f", saveName.c_str(), endErrorSize).Data();
+  myCanvas->cd();
+  frame->Draw();
+  gluonRatio->Draw("same E1 X0");
+  gluonRatio->Draw("same E");
+  quarkRatio->Draw("same E1 X0");
+  quarkRatio->Draw("same E");
+  legend->Draw("same");
+  DrawLatex(0.25, 0.85, latexText.c_str(), legend->GetTextSize());
   saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
-  plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
+  myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
+
   time = (clock() - time)/CLOCKS_PER_SEC;
   cout << "Time taken: " << time << " seconds." << endl;
 }
@@ -143,7 +161,7 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLe
     hist->Draw(drawOption.c_str());
   }
   if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.3, 0.8, latexText.c_str(), legend->GetTextSize()); }
+  if (latexText != "") { DrawLatex(0.25, 0.85, latexText.c_str(), legend->GetTextSize()); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
 
@@ -283,13 +301,13 @@ string formatHadronName(string hadron)
     had = "K^{0}_{S}";
   }
   else if (hadron == "K0"){
-    had = "K^{0}";
+    had = "#it{K}^{ 0}";
   }
   else if (hadron == "K"){
     had = "K^{#pm}";
   }
   else if (hadron == "Lambda0"){
-    had = "#Lambda^{0}";
+    had = "#it{#Lambda}^{0}";
   }
   return had;
 }

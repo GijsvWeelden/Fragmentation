@@ -29,20 +29,23 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t Rj
   }
 
   string responseMatrixName = "matchDetJetPtTrackProjPartJetPtTrackProj";
-  THnSparseF* responseMatrix = (THnSparseF*)matchJetsDir->Get(responseMatrixName.c_str());
+  THnSparseF* responseMatrix = (THnSparseF*)matchJetsDir->Get(TString::Format("%s", responseMatrixName.c_str()).Data());
+  if(!responseMatrix){
+    std::cout << "Response matrix " << responseMatrix << " not found. Aborting program." << std::endl;
+    return;
+  }
+  responseMatrix->Print();
 
-  Int_t ptDetAxis   = 1;
-  Int_t zDetAxis    = 2;
-  Int_t ptTruthAxis = 3;
-  Int_t zTruthAxis  = 4;
+  Int_t ptDetAxis   = 0;
+  Int_t zDetAxis    = 1;
+  Int_t ptTruthAxis = 2;
+  Int_t zTruthAxis  = 3;
 
   // True and measured spectra as constructed from the response matrix
-  // TODO: Error propagation?
-  TH2F* responseMatrixTruthProjection = (TH2F*)responseMatrix->Projection(ptTruthAxis, zTruthAxis);
+  TH2F* responseMatrixTruthProjection = (TH2F*)responseMatrix->Projection(ptTruthAxis, zTruthAxis, "E");
   responseMatrixTruthProjection->SetName("responseMatrixTruthProjection");
   TH2F* responseMatrixDetectorProjection = (TH2F*)responseMatrix->Projection(ptDetAxis, zDetAxis);
   responseMatrixDetectorProjection->SetName("responseMatrixDetectorProjection");
-
   // Kinematic range
   Double_t ptMinDet    = PT_MIN;         // Lower Pt limit for detector level, Perhaps we can change this to evaluate systematics
   Double_t ptMaxDet    = 100.0;          // Upper Pt limit for detector level
@@ -83,8 +86,8 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t Rj
                                      nBinsPt[1], ptmin[1], ptmax[1], nBinsZ[1], zmin[1], zmax[1]);
   TH2F* hTruthMissed      = new TH2F("hTruthMissed", TString::Format("Missed %s", truthTitle.c_str()).Data(),
                                      nBinsPt[1], ptmin[1], ptmax[1], nBinsZ[1], zmin[1], zmax[1]);
-
-  // Detector
+  // Rebinning detector and truth
+  // These must be done separately, as they have different bin numbers and sizes
   for (Int_t ix; ix <= hDetector->GetNbinsX(); ix++) {
     Double_t xMin    = hDetector->GetXaxis()->GetBinLowEdge(ix);
     Double_t xMax    = hDetector->GetXaxis()->GetBinUpEdge(ix);
@@ -102,7 +105,6 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t Rj
       hDetector->SetBinError(ix, iy, binError);
     } // for iy
   }   // for ix
-  // Truth
   for (Int_t ix; ix <= hTruth->GetNbinsX(); ix++) {
     Double_t xMin    = hTruth->GetXaxis()->GetBinLowEdge(ix);
     Double_t xMax    = hTruth->GetXaxis()->GetBinUpEdge(ix);

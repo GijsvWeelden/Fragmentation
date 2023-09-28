@@ -1,0 +1,22 @@
+#!/bin/sh
+
+FIRSTFILE=1
+LASTFILE=3
+DIRECTORY=302003
+
+if (($# >= 1)); then FIRSTFILE=$1; fi
+if (($# >= 2)); then LASTFILE=$2; fi
+if (($# >= 3)); then DIRECTORY=$3; fi
+
+if (( ${FIRSTFILE} > ${LASTFILE})); then
+  echo "Error: first file (${FIRSTFILE}) > last file (${LASTFILE})"
+  echo "Script usage: <first-file> <last-file> <directory>"
+  exit 1
+fi
+
+echo "Copying files ${FIRSTFILE} till ${LASTFILE} from directory ${DIRECTORY}"
+for ((i=${FIRSTFILE}; i <= ${LASTFILE}; i++))
+do
+`printf "alien_cp /alice/sim/2023/LHC23d4/${DIRECTORY}/%03d/AO2D.root file:./AO2D_${DIRECTORY}_%03d.root" $i $i`
+echo
+done

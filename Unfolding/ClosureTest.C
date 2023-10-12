@@ -2,7 +2,7 @@ void SetStyle(TH1* h1);
 TH2D* RM_normalization(TH2D* input_RM);
 void normaliseHistRowByRow(TH2F* hist);
 
-void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "responseMatrix_ppMC_ptmin0.root", Double_t RJET = 0.1, Int_t PT_LOW = 0 , Int_t PT_HIGH = 100, Int_t N_ITER = 1, Int_t BINWIDTH = 1)
+void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "RooUnfoldResponse.root", Double_t RJET = 0.1, Int_t PT_LOW = 0 , Int_t PT_HIGH = 100, Int_t N_ITER = 1, Int_t BINWIDTH = 1)
 {
   //Response Matrix visualisation
   TFile* responseFile = TFile::Open(responseFileName.Data());

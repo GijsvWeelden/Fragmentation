@@ -1,13 +1,13 @@
 void SetStyle(TH1* h1);
-TH2D* RM_normalization(TH2D* input_RM);
+TH2F* RM_normalization(TH2F* input_RM);
 void normaliseHistRowByRow(TH2F* hist);
 
 void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "RooUnfoldResponse.root", Double_t RJET = 0.1, Int_t PT_LOW = 0 , Int_t PT_HIGH = 100, Int_t N_ITER = 1, Int_t BINWIDTH = 1)
 {
   //Response Matrix visualisation
-  TFile* responseFile = TFile::Open(responseFileName.Data());
-  TH2D* hDetector = static_cast<TH2D*>(responseFile->Get("hDetector"));
-  TH2D* hTruth    = static_cast<TH2D*>(responseFile->Get("hTruth"));
+  TFile* responseFile = TFile::Open(TString::Format("%s", responseFileName.c_str()).Data());
+  TH2F* hDetector = static_cast<TH2F*>(responseFile->Get("hDetector"));
+  TH2F* hTruth    = static_cast<TH2F*>(responseFile->Get("hTruth"));
 
   Int_t nBinsPt      = hDetector->GetNbinsX();
   Double_t ptmin     = hDetector->GetXaxis()->GetXmin();
@@ -68,14 +68,15 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   Int_t ptLowBin      = responseMatrix->GetAxis(ptDetAxis)->FindBin(PT_LOW);
   Int_t ptHighBin     = responseMatrix->GetAxis(ptDetAxis)->FindBin(PT_HIGH) - 1;
   responseMatrix->GetAxis(ptTruthAxis)->SetRange(ptLowBin_gen, ptHighBin_gen);
-  responseMatrix->GetAxis(ptDetAxis)->SetRange(Ptlow_bin, Pthigh_bin);
-  TH2D *ptRM = dynamic_cast<TH2D*>(responseMatrix->Projection(ptTruthAxis, ptDetAxis, "E"));
+  responseMatrix->GetAxis(ptDetAxis)->SetRange(ptLowBin, ptHighBin);
+  TH2F *ptRM = dynamic_cast<TH2F*>(responseMatrix->Projection(ptTruthAxis, ptDetAxis, "E"));
   ptRM->SetName("ptRM");
   ptRM->SetTitle("Response matrix projected onto jet pt");
   // RM_normalization(ptRM);
   normaliseHistRowByRow(ptRM);
-  ptRM->GetZaxis()->SetMaximum(1);
-  ptRM->GetZaxis()->SetMinimum(1e-5);
+  ptRM->GetZaxis()->SetRangeUser(1e-5, 1);
+  // ptRM->GetZaxis()->SetMaximum(1);
+  // ptRM->GetZaxis()->SetMinimum(1e-5);
 
   Int_t zLow_bin_gen  = responseMatrix->GetAxis(zTruthAxis)->FindBin(zLow_gen);
   Int_t zHigh_bin_gen = responseMatrix->GetAxis(zTruthAxis)->FindBin(zHigh_gen)-1;
@@ -83,13 +84,14 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   Int_t zHigh_bin     = responseMatrix->GetAxis(zDetAxis)->FindBin(zHigh)-1;
   responseMatrix->GetAxis(zTruthAxis)->SetRange(zLow_bin_gen, zHigh_bin_gen);
   responseMatrix->GetAxis(zDetAxis)->SetRange(zLow_bin,zHigh_bin);
-  TH2D *zRM = dynamic_cast<TH2D*>(responseMatrix->Projection(zTruthAxis, zDetAxis, "E"));
+  TH2F *zRM = dynamic_cast<TH2F*>(responseMatrix->Projection(zTruthAxis, zDetAxis, "E"));
   zRM->SetName("zRM");
   zRM->SetTitle("Response matrix projected onto z");
   // RM_normalization(zRM);
   normaliseHistRowByRow(zRM);
-  zRM->GetZaxis()->SetMaximum(1);
-  zRM->GetZaxis()->SetMinimum(1e-5);
+  zRM->GetZaxis()->SetRangeUser(1e-5, 1);
+  // zRM->GetZaxis()->SetMaximum(1);
+  // zRM->GetZaxis()->SetMinimum(1e-5);
 
   // Introducing the test or pseudodata distributions
   // If the closure is trivial then the input here is the same as it was used in the UnfoldPreparation macro
@@ -97,40 +99,40 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   string detectorTitle = "Detector level #it{p}_{T}, #it{z}; #it{p}_{T}; #it{z}";
   string truthTitle = "Particle level #it{p}_{T}, #it{z}; #it{p}_{T}; #it{z}";
   // Detector level - In Detector and in Truth acceptance (Response->Fill)
-  TH2D *hDetectorMeasured = new TH2D("hDetectorMeasured", TString::Format("Measured %s", detectorTitle.c_str()), nBinsPt, ptmin, ptmax, nBinsZ, zmin, zmax);
+  TH2F *hDetectorMeasured = new TH2F("hDetectorMeasured", TString::Format("Measured %s", detectorTitle.c_str()), nBinsPt, ptmin, ptmax, nBinsZ, zmin, zmax);
   // Detector level - In Truth, but out of Detector acceptance (Response->Miss) (should be empty)
-  TH2D *hDetectorMissed = new TH2D("hDetectorMissed", TString::Format("Missed %s", detectorTitle.c_str()), nBinsPt, ptmin, ptmax, nBinsZ, zmin, zmax);
+  TH2F *hDetectorMissed = new TH2F("hDetectorMissed", TString::Format("Missed %s", detectorTitle.c_str()), nBinsPt, ptmin, ptmax, nBinsZ, zmin, zmax);
   // Detector level - In Detector, but out of Truth acceptance (Response->Fake)
-  TH2D *hDetectorFake = new TH2D("hDetectorFake", TString::Format("Fake %s", detectorTitle.c_str()),nBinsPt,ptmin,ptmax,nBinsZ,zmin,zmax);
+  TH2F *hDetectorFake = new TH2F("hDetectorFake", TString::Format("Fake %s", detectorTitle.c_str()),nBinsPt,ptmin,ptmax,nBinsZ,zmin,zmax);
   // Truth level - In Detector and in Truth acceptance (Response->Fill)
-  TH2D *hTruthMeasured = new TH2D("hTruthMeasured", TString::Format("Measured %s", truthTitle.c_str()), nBinsPt_gen, ptmin_gen, ptmax_gen, nBinsZ_gen, zmin_gen, zmax_gen);
+  TH2F *hTruthMeasured = new TH2F("hTruthMeasured", TString::Format("Measured %s", truthTitle.c_str()), nBinsPt_gen, ptmin_gen, ptmax_gen, nBinsZ_gen, zmin_gen, zmax_gen);
   //Truth level distribution within true but outside detector range (Response->Miss)
-  TH2D *hTruthMissed = new TH2D("hTruthMissed", TString::Format("Missed %s", truthTitle.c_str()), nBinsPt_gen, ptmin_gen, ptmax_gen, nBinsZ_gen, zmin_gen, zmax_gen);
+  TH2F *hTruthMissed = new TH2F("hTruthMissed", TString::Format("Missed %s", truthTitle.c_str()), nBinsPt_gen, ptmin_gen, ptmax_gen, nBinsZ_gen, zmin_gen, zmax_gen);
   // Truth level - In Detector, but out of Truth acceptance (Response->Fake) (should be empty)
-  TH2D *hTruthFake = new TH2D("hTruthFake", TString::Format("Fake %s", truthTitle.c_str()), nBinsPt_gen, ptmin_gen, ptmax_gen, nBinsZ_gen, zmin_gen, zmax_gen);
+  TH2F *hTruthFake = new TH2F("hTruthFake", TString::Format("Fake %s", truthTitle.c_str()), nBinsPt_gen, ptmin_gen, ptmax_gen, nBinsZ_gen, zmin_gen, zmax_gen);
 
   //Open the test/pseudodata file to retrieve the responseMatrix, its projections and to fill the above histograms
-  TFile* testFile = TFile::Open(testFileName.Data());
+  TFile* testFile = TFile::Open(TString::Format("%s", testFileName.c_str()).Data());
   string testDirName = "jet-fragmentation/matching/jets";
-  TDirectory* testDir = (TDirectory*)testFile->Get(TString::Format("%s", testDirName).Data());
+  TDirectory* testDir = (TDirectory*)testFile->Get(TString::Format("%s", testDirName.c_str()).Data());
   string testResponseMatrixName = "matchDetJetPtTrackProjPartJetPtTrackProj";
-  THnSparseF* testResponseMatrix = (THnSparseF*)matchJetsDir->Get(TString::Format("%s", testResponseMatrixName.c_str()).Data());
+  THnSparseF* testResponseMatrix = (THnSparseF*)testDir->Get(TString::Format("%s", testResponseMatrixName.c_str()).Data());
 
   //Response matrix projections from the test file before rebinning
-  TH2D *testResponseMatrixTruthProjection = dynamic_cast<TH2D*>(testResponseMatrix->Projection(zTruthAxis, ptTruthAxis, "E"));
+  TH2F *testResponseMatrixTruthProjection = dynamic_cast<TH2F*>(testResponseMatrix->Projection(zTruthAxis, ptTruthAxis, "E"));
   testResponseMatrixTruthProjection->SetName("testResponseMatrixTruthProjection");
-  TH2D *testResponseMatrixDetectorProjection = dynamic_cast<TH2D*>(testResponseMatrix->Projection(zDetAxis, ptDetAxis, "E"));
+  TH2F *testResponseMatrixDetectorProjection = dynamic_cast<TH2F*>(testResponseMatrix->Projection(zDetAxis, ptDetAxis, "E"));
   testResponseMatrixDetectorProjection->SetName("testResponseMatrixDetectorProjection");
 
-  TH2D *testResponseMatrixDetectorProjection_rebinned = new TH2D("testResponseMatrixDetectorProjection_rebinned", "Detector level projection of test RM", nBinsPt, ptmin, ptmax, nBinsZ, zmin, zmax);
-  TH2D *testResponseMatrixTruthProjection_rebinned = new TH2D("testResponseMatrixTruthProjection_rebinned", "Truth level projection of test RM", nBinsPt_gen, ptmin_gen, ptmax_gen, nBinsZ_gen, zmin_gen, zmax_gen);
+  TH2F *testResponseMatrixDetectorProjection_rebinned = new TH2F("testResponseMatrixDetectorProjection_rebinned", "Detector level projection of test RM", nBinsPt, ptmin, ptmax, nBinsZ, zmin, zmax);
+  TH2F *testResponseMatrixTruthProjection_rebinned = new TH2F("testResponseMatrixTruthProjection_rebinned", "Truth level projection of test RM", nBinsPt_gen, ptmin_gen, ptmax_gen, nBinsZ_gen, zmin_gen, zmax_gen);
 
   //Rebinning the detector level distribution from the test file
   for (Int_t ix = 1; ix <= testResponseMatrixDetectorProjection_rebinned->GetNbinsX(); ix++) {
     Double_t xMin = testResponseMatrixDetectorProjection_rebinned->GetXaxis()->GetBinLowEdge(ix);
     Double_t xMax = testResponseMatrixDetectorProjection_rebinned->GetXaxis()->GetBinUpEdge(ix);
     Int_t xBinLow = testResponseMatrixDetectorProjection->GetXaxis()->FindBin(xMin + 0.000001);
-    Int_t xBinUp  = testResponseMatrixDetectorProjection->GetXaxis()->FindBin(xup - 0.000001);
+    Int_t xBinUp  = testResponseMatrixDetectorProjection->GetXaxis()->FindBin(xMax - 0.000001);
     for (Int_t iy = 1; iy <= testResponseMatrixDetectorProjection_rebinned->GetNbinsY(); iy++) {
       Double_t yMin = testResponseMatrixDetectorProjection_rebinned->GetYaxis()->GetBinLowEdge(iy);
       Double_t yMax = testResponseMatrixDetectorProjection_rebinned->GetYaxis()->GetBinUpEdge(iy);
@@ -179,8 +181,8 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
     Double_t ptMeasured = testResponseMatrix->GetAxis(ptDetAxis)->GetBinCenter(coord[ptDetAxis]);
     Double_t ptTruth    = testResponseMatrix->GetAxis(ptTruthAxis)->GetBinCenter(coord[ptTruthAxis]);
 
-    inAcceptanceDetector = (zMeasured  >= zmin[0]) * (zMeasured  < zmax[0]) * (ptMeasured >= ptmin[0]) * (ptMeasured < ptmax[0]);
-    inAcceptanceTruth = (zTruth >= zmin[1]) * (zTruth < zmax[1]) * (ptTruth >= ptmin[1]) * (ptTruth < ptmax[1]);
+    inAcceptanceDetector = (zMeasured  >= zmin) * (zMeasured  < zmax) * (ptMeasured >= ptmin) * (ptMeasured < ptmax);
+    inAcceptanceTruth = (zTruth >= zmin_gen) * (zTruth < zmax_gen) * (ptTruth >= ptmin_gen) * (ptTruth < ptmax_gen);
 
     if(inAcceptanceTruth && inAcceptanceDetector) {
       hDetectorMeasured->Fill(ptMeasured, zMeasured, w);
@@ -198,10 +200,10 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   delete [] coord;
 
   // Complete truth distribution
-  TH2D* h2TrueFull = (TH2D*) hTruthMeasured->Clone("h2TrueFull");
+  TH2F* h2TrueFull = (TH2F*) hTruthMeasured->Clone("h2TrueFull");
   h2TrueFull->Add(hTruthMissed, 1);
   // Complete measured distribution
-  TH2D* h2MeasuredFull = (TH2D*) hDetectorMeasured->Clone("h2MeasuredFull");
+  TH2F* h2MeasuredFull = (TH2F*) hDetectorMeasured->Clone("h2MeasuredFull");
   h2MeasuredFull->Add(hDetectorFake, 1);
 
   //This is the section where the actual unfolding starts and RooUnfold is involved
@@ -214,11 +216,11 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   //Create the Bayesian unfolding object
   RooUnfoldBayes Unfolding_bayes(ruResponse, testResponseMatrixDetectorProjection_rebinned, N_ITER, doSmoothing, Unfoldname, unfoldTitle);
   //Extracting the unfolded distribution as a histogram
-  TH2D* unfoldedTestZ = (TH2D*)Unfolding_bayes.Hreco(RooUnfold::kCovToy);
+  TH2F* unfoldedTestZ = (TH2F*)Unfolding_bayes.Hreco(RooUnfold::kCovToy);
   unfoldedTestZ->SetName("unfoldedTestZ_R%03d");
   auto Unf_Bayes = &Unfolding_bayes;
   //Applying the Response matrix to the unfolded result
-  TH2D* refoldedTestZ = (TH2D*)ruResponse->ApplyToTruth(unfoldedTestZ, "refoldedTestZ");
+  TH2F* refoldedTestZ = (TH2F*)ruResponse->ApplyToTruth(unfoldedTestZ, "refoldedTestZ");
   //Include the fakes in order to compare with the input distribution
   refoldedTestZ->Add(hDetectorFake);
 
@@ -344,9 +346,9 @@ void SetStyle(TH1* h1){
   h1->SetMarkerStyle(33); h1->SetMarkerSize(2); h1->SetLineWidth(2);
 }
 
-TH2D* RM_normalization(TH2D* input_RM){
+TH2F* RM_normalization(TH2F* input_RM){
   Int_t nBinsDpt[2]= {input_RM->GetXaxis()->GetNbins(),input_RM->GetYaxis()->GetNbins()};
-  TH2D* RM_norm =(TH2D*)input_RM->Clone();
+  TH2F* RM_norm =(TH2F*)input_RM->Clone();
   RM_norm->Reset();
   for(int iy=1;iy<=nBinsDpt[1];iy++){
     Double_t sum = input_RM->Integral(1,nBinsDpt[0],iy,iy);

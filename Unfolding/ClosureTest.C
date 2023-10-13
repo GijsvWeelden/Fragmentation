@@ -214,7 +214,7 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   //Load the response object from the Response file
   RooUnfoldResponse* ruResponse = static_cast<RooUnfoldResponse*>(responseFile->Get(TString::Format("%s", ruResponseName.c_str()).Data()));
   //Create the Bayesian unfolding object
-  RooUnfoldBayes Unfolding_bayes(ruResponse, testResponseMatrixDetectorProjection_rebinned, N_ITER, doSmoothing, Unfoldname, unfoldTitle);
+  RooUnfoldBayes Unfolding_bayes(ruResponse, testResponseMatrixDetectorProjection_rebinned, N_ITER, doSmoothing, unfoldName, unfoldTitle);
   //Extracting the unfolded distribution as a histogram
   TH2F* unfoldedTestZ = (TH2F*)Unfolding_bayes.Hreco(RooUnfold::kCovToy);
   unfoldedTestZ->SetName("unfoldedTestZ_R%03d");
@@ -297,7 +297,7 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   // testRefoldedOverDetector->SetName(TString::Format("Ratio_Reftest_R%03d",int(Rjet*100)));
 
   //Saving the output in a new file
-  string outFileName = TString::Format("closureTest_binWidth%d_pt%d-%d_ptmin%d_z%d-%d_nIter%d.root",
+  string outFileName = TString::Format("closureTest_binWidth%d_pt%d-%d_ptmin%.0f_z%.0f-%.0f_nIter%d.root",
                                        BINWIDTH, PT_LOW, PT_HIGH, ptmin, zmin, zmax, N_ITER).Data();
   // TString Outputname = Form("ClosureTest_ConstSub_wFakes_new_Binw%d_LC8_pt_%d_%d_ptmin%d_zmin%d_max%d_Iter%d.root",BinWidth,PT_LOW,PT_HIGH,int(ptmin),int(zmin),int(zmax),Niter);
   TFile *outFile = new TFile(outFileName.c_str(), "RECREATE");

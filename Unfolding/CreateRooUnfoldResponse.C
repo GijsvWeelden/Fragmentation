@@ -3,7 +3,7 @@
 // * Loads the response from the task output
 // * Creates the RooUnfoldResponse object used in unfolding
 
-void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t RJET = 0.4, Double_t PT_MIN = 20.0,
+void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t PT_MIN = 20.0,
                              Double_t Z_MIN = 0, Double_t Z_MAX = 1, Int_t BINWIDTHPT = 5){
 
   //Open the file and get the list where the response matrix is stored in THnSparse format
@@ -42,9 +42,9 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t RJ
   Int_t zTruthAxis  = 3;
 
   // True and measured spectra as constructed from the response matrix
-  TH2F* responseMatrixTruthProjection = (TH2F*)responseMatrix->Projection(ptTruthAxis, zTruthAxis, "E");
+  TH2F* responseMatrixTruthProjection = (TH2F*)responseMatrix->Projection(zTruthAxis, ptTruthAxis, "E");
   responseMatrixTruthProjection->SetName("responseMatrixTruthProjection");
-  TH2F* responseMatrixDetectorProjection = (TH2F*)responseMatrix->Projection(ptDetAxis, zDetAxis, "E");
+  TH2F* responseMatrixDetectorProjection = (TH2F*)responseMatrix->Projection(zDetAxis, ptDetAxis, "E");
   responseMatrixDetectorProjection->SetName("responseMatrixDetectorProjection");
   // Kinematic range
   Double_t ptMinDet    = PT_MIN;         // Lower Pt limit for detector level, Perhaps we can change this to evaluate systematics
@@ -63,7 +63,7 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t RJ
   Int_t    nBinsPt[2]     = { int( (ptmax[0]-ptmin[0]) / nPtBinWidth[0]),
                               int( (ptmax[1]-ptmin[1]) / nPtBinWidth[1]) };
 
-  Int_t    nZBinWidth[2] = { 1, 1 };
+  Double_t nZBinWidth[2] = { 5e-2, 5e-2 };
   Double_t zmin[2]       = { zMinDet, zMinTruth };
   Double_t zmax[2]       = { zMaxDet, zMaxTruth };
   Int_t    nBinsZ[2]     = { int( (zmax[0] - zmin[0]) / nZBinWidth[0]),
@@ -101,12 +101,12 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t RJ
 
   // Rebinning detector and truth
   // These must be done separately, as they have different bin numbers and sizes
-  for (Int_t ix; ix <= hDetector->GetNbinsX(); ix++) {
+  for (Int_t ix = 1; ix <= hDetector->GetNbinsX(); ix++) {
     Double_t xMin    = hDetector->GetXaxis()->GetBinLowEdge(ix);
     Double_t xMax    = hDetector->GetXaxis()->GetBinUpEdge(ix);
     Int_t    xBinLow = responseMatrixDetectorProjection->GetXaxis()->FindBin(xMin + 0.000001);
     Int_t    xBinUp  = responseMatrixDetectorProjection->GetXaxis()->FindBin(xMax - 0.000001);
-    for (Int_t iy; iy <= hDetector->GetNbinsY(); iy++) {
+    for (Int_t iy = 1; iy <= hDetector->GetNbinsY(); iy++) {
       Double_t yMin    = hDetector->GetYaxis()->GetBinLowEdge(iy);
       Double_t yMax    = hDetector->GetYaxis()->GetBinUpEdge(iy);
       Int_t    yBinLow = responseMatrixDetectorProjection->GetYaxis()->FindBin(yMin + 0.000001);
@@ -118,12 +118,12 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t RJ
       hDetector->SetBinError(ix, iy, binError);
     } // for iy
   }   // for ix
-  for (Int_t ix; ix <= hTruth->GetNbinsX(); ix++) {
+  for (Int_t ix = 1; ix <= hTruth->GetNbinsX(); ix++) {
     Double_t xMin    = hTruth->GetXaxis()->GetBinLowEdge(ix);
     Double_t xMax    = hTruth->GetXaxis()->GetBinUpEdge(ix);
     Int_t    xBinLow = responseMatrixTruthProjection->GetXaxis()->FindBin(xMin + 0.000001);
     Int_t    xBinUp  = responseMatrixTruthProjection->GetXaxis()->FindBin(xMax - 0.000001);
-    for (Int_t iy; iy <= hTruth->GetNbinsY(); iy++) {
+    for (Int_t iy = 1; iy <= hTruth->GetNbinsY(); iy++) {
       Double_t yMin    = hTruth->GetYaxis()->GetBinLowEdge(iy);
       Double_t yMax    = hTruth->GetYaxis()->GetBinUpEdge(iy);
       Int_t    yBinLow = responseMatrixTruthProjection->GetYaxis()->FindBin(yMin + 0.000001);
@@ -137,6 +137,8 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t RJ
   }   // for ix
 
   // Create RooUnfoldResponse and fill it
+  hDetector->Print();
+  hTruth->Print();
   RooUnfoldResponse *ruResponse = new RooUnfoldResponse("Response", "RM");
   ruResponse->Setup(hDetector, hTruth);
 

@@ -2,12 +2,12 @@ void SetStyle(TH1* h1);
 TH2F* RM_normalization(TH2F* input_RM);
 void normaliseHistRowByRow(TH2F* hist);
 
-void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "RooUnfoldResponse.root", Double_t RJET = 0.1, Int_t PT_LOW = 0 , Int_t PT_HIGH = 100, Int_t N_ITER = 1, Int_t BINWIDTH = 1)
+void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "RooUnfoldResponse.root", Int_t PT_LOW = 0 , Int_t PT_HIGH = 100, Int_t N_ITER = 1, Int_t BINWIDTH = 1)
 {
   //Response Matrix visualisation
   TFile* responseFile = TFile::Open(TString::Format("%s", responseFileName.c_str()).Data());
-  TH2F* hDetector = static_cast<TH2F*>(responseFile->Get("hDetector"));
-  TH2F* hTruth    = static_cast<TH2F*>(responseFile->Get("hTruth"));
+  TH2F* hDetector = (TH2F*)responseFile->Get("hDetector");
+  TH2F* hTruth    = (TH2F*)responseFile->Get("hTruth");
 
   Int_t nBinsPt      = hDetector->GetNbinsX();
   Double_t ptmin     = hDetector->GetXaxis()->GetXmin();
@@ -62,21 +62,19 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
 
   // Visualisation of response matrix
   THnSparse* responseMatrix = static_cast<THnSparse*>(responseFile->Get("responseMatrix"));
+  responseMatrix->SetName("responseMatrix");
   responseMatrix ->UseCurrentStyle();
   Int_t ptLowBin_gen  = responseMatrix->GetAxis(ptTruthAxis)->FindBin(PT_LOW);
-  Int_t ptHighBin_gen = responseMatrix->GetAxis(ptTruthAxis)->FindBin(PT_HIGH + 10) - 1;
+  Int_t ptHighBin_gen = responseMatrix->GetAxis(ptTruthAxis)->FindBin(PT_HIGH + 50) - 1;
   Int_t ptLowBin      = responseMatrix->GetAxis(ptDetAxis)->FindBin(PT_LOW);
   Int_t ptHighBin     = responseMatrix->GetAxis(ptDetAxis)->FindBin(PT_HIGH) - 1;
   responseMatrix->GetAxis(ptTruthAxis)->SetRange(ptLowBin_gen, ptHighBin_gen);
   responseMatrix->GetAxis(ptDetAxis)->SetRange(ptLowBin, ptHighBin);
-  TH2F *ptRM = dynamic_cast<TH2F*>(responseMatrix->Projection(ptTruthAxis, ptDetAxis, "E"));
+  TH2F *ptRM = (TH2F*)responseMatrix->Projection(ptTruthAxis, ptDetAxis, "E");
   ptRM->SetName("ptRM");
   ptRM->SetTitle("Response matrix projected onto jet pt");
-  // RM_normalization(ptRM);
   normaliseHistRowByRow(ptRM);
   ptRM->GetZaxis()->SetRangeUser(1e-5, 1);
-  // ptRM->GetZaxis()->SetMaximum(1);
-  // ptRM->GetZaxis()->SetMinimum(1e-5);
 
   Int_t zLow_bin_gen  = responseMatrix->GetAxis(zTruthAxis)->FindBin(zLow_gen);
   Int_t zHigh_bin_gen = responseMatrix->GetAxis(zTruthAxis)->FindBin(zHigh_gen)-1;
@@ -84,14 +82,11 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   Int_t zHigh_bin     = responseMatrix->GetAxis(zDetAxis)->FindBin(zHigh)-1;
   responseMatrix->GetAxis(zTruthAxis)->SetRange(zLow_bin_gen, zHigh_bin_gen);
   responseMatrix->GetAxis(zDetAxis)->SetRange(zLow_bin,zHigh_bin);
-  TH2F *zRM = dynamic_cast<TH2F*>(responseMatrix->Projection(zTruthAxis, zDetAxis, "E"));
+  TH2F *zRM = (TH2F*)responseMatrix->Projection(zTruthAxis, zDetAxis, "E");
   zRM->SetName("zRM");
   zRM->SetTitle("Response matrix projected onto z");
-  // RM_normalization(zRM);
   normaliseHistRowByRow(zRM);
   zRM->GetZaxis()->SetRangeUser(1e-5, 1);
-  // zRM->GetZaxis()->SetMaximum(1);
-  // zRM->GetZaxis()->SetMinimum(1e-5);
 
   // Introducing the test or pseudodata distributions
   // If the closure is trivial then the input here is the same as it was used in the UnfoldPreparation macro
@@ -119,9 +114,9 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   THnSparseF* testResponseMatrix = (THnSparseF*)testDir->Get(TString::Format("%s", testResponseMatrixName.c_str()).Data());
 
   //Response matrix projections from the test file before rebinning
-  TH2F *testResponseMatrixTruthProjection = dynamic_cast<TH2F*>(testResponseMatrix->Projection(zTruthAxis, ptTruthAxis, "E"));
+  TH2F *testResponseMatrixTruthProjection = (TH2F*)testResponseMatrix->Projection(zTruthAxis, ptTruthAxis, "E");
   testResponseMatrixTruthProjection->SetName("testResponseMatrixTruthProjection");
-  TH2F *testResponseMatrixDetectorProjection = dynamic_cast<TH2F*>(testResponseMatrix->Projection(zDetAxis, ptDetAxis, "E"));
+  TH2F *testResponseMatrixDetectorProjection = (TH2F*)testResponseMatrix->Projection(zDetAxis, ptDetAxis, "E");
   testResponseMatrixDetectorProjection->SetName("testResponseMatrixDetectorProjection");
 
   TH2F *testResponseMatrixDetectorProjection_rebinned = new TH2F("testResponseMatrixDetectorProjection_rebinned", "Detector level projection of test RM", nBinsPt, ptmin, ptmax, nBinsZ, zmin, zmax);
@@ -214,10 +209,10 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   //Load the response object from the Response file
   RooUnfoldResponse* ruResponse = static_cast<RooUnfoldResponse*>(responseFile->Get(TString::Format("%s", ruResponseName.c_str()).Data()));
   //Create the Bayesian unfolding object
-  RooUnfoldBayes Unfolding_bayes(ruResponse, testResponseMatrixDetectorProjection_rebinned, N_ITER, doSmoothing, unfoldName, unfoldTitle);
+  RooUnfoldBayes Unfolding_bayes(ruResponse, testResponseMatrixDetectorProjection_rebinned, N_ITER, doSmoothing, unfoldName.c_str(), unfoldTitle.c_str());
   //Extracting the unfolded distribution as a histogram
   TH2F* unfoldedTestZ = (TH2F*)Unfolding_bayes.Hreco(RooUnfold::kCovToy);
-  unfoldedTestZ->SetName("unfoldedTestZ_R%03d");
+  unfoldedTestZ->SetName("unfoldedTestZ");
   auto Unf_Bayes = &Unfolding_bayes;
   //Applying the Response matrix to the unfolded result
   TH2F* refoldedTestZ = (TH2F*)ruResponse->ApplyToTruth(unfoldedTestZ, "refoldedTestZ");
@@ -280,21 +275,18 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   }
   testUnfoldedOverDetector->Divide(testUnfolded, testUnfoldedOverDetector);
   testUnfoldedOverDetector->SetTitle(TString::Format("Unfolded over Detector %s (test sample); #it{z}; #frac{Unfolded}{Detector}", ratioName.c_str()));
-  // testUnfoldedOverDetector->SetName(TString::Format("Ratio_Unftest_R%03d",int(Rjet*100)));
 
   //Closure on the truth level
   TH1D* testUnfoldedOverTruth = (TH1D*)testUnfolded->Clone("testUnfoldedOverTruth");
   testUnfoldedOverTruth->Reset();
   testUnfoldedOverTruth->Divide(testUnfolded, testTruth);
   testUnfoldedOverTruth->SetTitle(TString::Format("Unfolded over Truth %s (test sample); #it{z}; #frac{Unfolded}{Truth}", ratioName.c_str()));
-  // testUnfoldedOverTruth->SetName(TString::Format("Ratio_Unftest_truth_R%03d",int(Rjet*100)));
 
   //Closure on the detector level
   TH1D* testRefoldedOverDetector = (TH1D*)testRefolded->Clone("testRefoldedOverDetector");
   testRefoldedOverDetector->Reset();
   testRefoldedOverDetector->Divide(testRefolded, testDetector);
   testRefoldedOverDetector->SetTitle(TString::Format("Refolded over Detector %s (test sample); #it{z}; #frac{Refolded}{Detector}",ratioName.c_str()));
-  // testRefoldedOverDetector->SetName(TString::Format("Ratio_Reftest_R%03d",int(Rjet*100)));
 
   //Saving the output in a new file
   string outFileName = TString::Format("closureTest_binWidth%d_pt%d-%d_ptmin%.0f_z%.0f-%.0f_nIter%d.root",

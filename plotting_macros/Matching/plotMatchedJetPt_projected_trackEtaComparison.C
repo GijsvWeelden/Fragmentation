@@ -18,28 +18,23 @@ void normaliseHistColByCol(TH2F* hist);
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-void plotMatchedJetPt_projected_trackCutComparison(void)
+template <typename T>
+T loadMatchedPtHist(string fileName, string dirName = "jet-fragmentation/matching/jets", string histName = "matchDetJetPtPartJetPt");
+
+template <typename T>
+void setStyle(T hist, int styleNumber);
+
+void plotMatchedJetPt_projected_trackEtaComparison(void)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
-  string inName1 = "./AnalysisResults-dist05-noEtaCut.root";
-  string inName2 = "./AnalysisResults-dist05-noEtaCut-largerEtaTrack.root";
-  string saveDir = ".";
-  TFile *inFile1 = TFile::Open(TString::Format("./%s", inName1.c_str()).Data());
-  TFile *inFile2 = TFile::Open(TString::Format("./%s", inName2.c_str()).Data());
-  if(!inFile1){
-    std::cout << "File " << inFile1 << " not found. Aborting program." << std::endl;
-    return;
-  }
-  if(!inFile2){
-    std::cout << "File " << inFile2 << " not found. Aborting program." << std::endl;
-    return;
-  }
-  TDirectory* dir1 = (TDirectory*)inFile1->Get("jet-fragmentation/matching/jets");
-  TDirectory* dir2 = (TDirectory*)inFile2->Get("jet-fragmentation/matching/jets");
 
   double ptMin = 40, ptMax = 60;
   // double ptMin = 100, ptMax = 140;
+
+  int normaliseHistograms = 1;
+  bool doRatio = true;
+  if (doRatio) { normaliseHistograms = 0; }
 
   string histName = "matchDetJetPtPartJetPt";
   string histTitle = "";
@@ -67,35 +62,46 @@ void plotMatchedJetPt_projected_trackCutComparison(void)
 
   // Histogram stuff
   std::vector<TH1F*> histVector;
-  TH2F* matchedJetPt1 = (TH2F*)dir1->Get(histName.c_str());
+  std::vector<string> nameVector;
+  std::vector<string> legendVector;
+
+  nameVector.push_back("./AnalysisResults-matchDist05-smallEta.root");
+  legendVector.push_back("|#eta_{track}^{part}| < 0.9");
+  nameVector.push_back("./AnalysisResults-matchDist05-largeEta.root");
+  legendVector.push_back("|#eta_{track}^{part}| < 2.0");
+
+
+  TH2F* matchedJetPt1 = loadMatchedPtHist<TH2F*>(inName1);
   matchedJetPt1->Sumw2();
-  TH2F* matchedJetPt2 = (TH2F*)dir2->Get(histName.c_str());
+
+  TH2F* matchedJetPt2 = loadMatchedPtHist<TH2F*>(inName2);
   matchedJetPt2->Sumw2();
-  int firstBinPtTruth = 1, lastBinPtTruth = matchedJetPt1->GetNbinsY() + 1;
-  firstBinPtTruth = matchedJetPt1->GetYaxis()->FindBin(ptMin);
-  lastBinPtTruth = matchedJetPt1->GetYaxis()->FindBin(ptMax);
 
-  TH1F* matchedJetPt1_projected = (TH1F*)matchedJetPt1->ProjectionX(TString::Format("matchedJetPt1_projected_pt%.0f-%.0f", ptMin, ptMax).Data(), firstBinPtTruth, lastBinPtTruth);
-  matchedJetPt1_projected->SetLineWidth(3);
-  matchedJetPt1_projected->SetLineColor(GetColor(0));
-  matchedJetPt1_projected->SetMarkerStyle(GetMarker(0));
-  matchedJetPt1_projected->SetMarkerColor(GetColor(0));
-
-  TH1F* matchedJetPt2_projected = (TH1F*)matchedJetPt2->ProjectionX(TString::Format("matchedJetPt2_projected_pt%.0f-%.0f", ptMin, ptMax).Data(), firstBinPtTruth, lastBinPtTruth);
-  matchedJetPt2_projected->SetLineWidth(3);
-  matchedJetPt2_projected->SetLineColor(GetColor(1));
-  matchedJetPt2_projected->SetMarkerStyle(GetMarker(1));
-  matchedJetPt2_projected->SetMarkerColor(GetColor(1));
-
-  matchedJetPt1_projected->Scale(1./matchedJetPt1_projected->Integral());
-  matchedJetPt2_projected->Scale(1./matchedJetPt2_projected->Integral());
-  legend->AddEntry(matchedJetPt1_projected, "#eta_{track}^{part} < 0.9");
-  histVector.push_back(matchedJetPt1_projected);
-  legend->AddEntry(matchedJetPt2_projected, "#eta_{track}^{part} < 2.0");
-  histVector.push_back(matchedJetPt2_projected);
+  int firstBinPtTruth = 1, lastBinPtTruth = 999;
+  for (unsigned int i = 0; i < nameVector.size(); i++) {
+    string fileName = nameVector[i];
+    string histLegend = legendVector[i];
+    TH2F* hMatchedPt = loadMatchedPtHist<TH2F*>(fileName);
+    firstBinPtTruth = hMatchedPt->GetYaxis()->FindBin(ptMin);
+    lastBinPtTruth = hMatchedPt->GetYaxis()->FindBin(ptMax);
+    TH1F* hist = (TH1F*)hMatchedPt->ProjectionX(firstBinPtTruth, lastBinPtTruth);
+    hist->Rebin(rebinNumber);
+    setStyle(hist, i);
+    if (normaliseHistograms > 0) { hist->Scale(1./hist->Integral()); }
+    else if (normaliseHistograms < 0) { hist->Scale(1./hist->GetBinContent(1)); }
+    legend->AddEntry(hist, histLegend.c_str());
+    histVector.push_back(hist);
+  }
+  if (doRatio) {
+    TH1F* base = (TH1F*)histVector[0]->Clone("base");
+    for (auto hist : histVector) {
+      hist->Divide(base);
+    }
+    saveName = TString::Format("%s_ratio", saveName.c_str());
+  }
 
   saveName = TString::Format("%s_pt%.0f-%.0f", saveName.c_str(), ptMin, ptMax);
-  saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
+  // saveName = TString::Format("%s_binsize%.d", saveName.c_str(), rebinNumber);
   saveName = TString::Format("%s/%s.pdf", saveDir.c_str(), saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 
@@ -162,4 +168,23 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLe
   if (legend) { legend->Draw("same"); }
   if (latexText != "") { DrawLatex(0.3, 0.8, latexText.c_str(), legend->GetTextSize()); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
+}
+
+template <typename T>
+T loadMatchedPtHist(string fileName, string dirName, string histName)
+{
+  TFile *inFile = TFile::Open(TString::Format("./%s", fileName.c_str()).Data());
+  TDirectory* dir = (TDirectory*)inFile->Get(TString::Format("%s", dirName.c_str()).Data());
+  T hist = (T)dir->Get(histName.c_str());
+  // hist->Sumw2();
+  return hist;
+}
+
+template <typename T>
+void setStyle(T hist, int styleNumber)
+{
+  hist->SetLineWidth(3);
+  hist->SetLineColor(GetColor(styleNumber));
+  hist->SetMarkerStyle(GetMarker(styleNumber));
+  hist->SetMarkerColor(GetColor(styleNumber));
 }

@@ -2,7 +2,7 @@ void SetStyle(TH1* h1);
 TH2F* RM_normalization(TH2F* input_RM);
 void normaliseHistRowByRow(TH2F* hist);
 
-void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "RooUnfoldResponse.root", Int_t PT_LOW = 0 , Int_t PT_HIGH = 100, Int_t N_ITER = 1, Int_t BINWIDTH = 1)
+void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "RooUnfoldResponse.root", Int_t PT_LOW = 20 , Int_t PT_HIGH = 80, Int_t N_ITER = 1)
 {
   //Response Matrix visualisation
   TFile* responseFile = TFile::Open(TString::Format("%s", responseFileName.c_str()).Data());
@@ -65,7 +65,7 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   responseMatrix->SetName("responseMatrix");
   responseMatrix ->UseCurrentStyle();
   Int_t ptLowBin_gen  = responseMatrix->GetAxis(ptTruthAxis)->FindBin(PT_LOW);
-  Int_t ptHighBin_gen = responseMatrix->GetAxis(ptTruthAxis)->FindBin(PT_HIGH + 50) - 1;
+  Int_t ptHighBin_gen = responseMatrix->GetAxis(ptTruthAxis)->FindBin(PT_HIGH) - 1;
   Int_t ptLowBin      = responseMatrix->GetAxis(ptDetAxis)->FindBin(PT_LOW);
   Int_t ptHighBin     = responseMatrix->GetAxis(ptDetAxis)->FindBin(PT_HIGH) - 1;
   responseMatrix->GetAxis(ptTruthAxis)->SetRange(ptLowBin_gen, ptHighBin_gen);
@@ -274,7 +274,7 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   testZUnfolded->Scale(1./testZUnfolded->Integral(), "width");
     //Refolded
   TH1D* testPtRefolded = refoldedTest->ProjectionX("testPtRefolded");
-  testPtRefolded->SetTitle(TString::Format("%s (refolded, test sample); #it{z}", projectionNameZ.c_str()));
+  testPtRefolded->SetTitle(TString::Format("%s (refolded, test sample); #it{p}_{T}", projectionNameZ.c_str()));
   testPtRefolded->Scale(1./testPtRefolded->Integral(), "width");
 
   TH1D* testZRefolded = refoldedTest->ProjectionY("testZRefolded");
@@ -289,9 +289,9 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
     trainingPtTruthOverDetector->SetBinContent(iBin, trainingPtDetector->GetBinContent(iBin));
     trainingPtTruthOverDetector->SetBinError(iBin, trainingPtDetector->GetBinError(iBin));
   }
-  trainingPtTruthOverDetector->Print();
   trainingPtTruthOverDetector->Divide(trainingPtTruth, trainingPtTruthOverDetector);
   trainingPtTruthOverDetector->SetTitle(TString::Format("Truth over Detector %s (training sample); #it{p}_{T}; #frac{Truth}{Detector}", ratioNamePt.c_str()));
+  trainingPtTruthOverDetector->Print();
 
   TH1D* trainingZTruthOverDetector = (TH1D*)trainingZTruth->Clone("trainingZTruthOverDetector");
   trainingZTruthOverDetector->Reset();
@@ -299,9 +299,9 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
     trainingZTruthOverDetector->SetBinContent(iBin, trainingZDetector->GetBinContent(iBin));
     trainingZTruthOverDetector->SetBinError(iBin, trainingZDetector->GetBinError(iBin));
   }
-  trainingZTruthOverDetector->Print();
   trainingZTruthOverDetector->Divide(trainingZTruth, trainingZTruthOverDetector);
   trainingZTruthOverDetector->SetTitle(TString::Format("Truth over Detector %s (training sample); #it{z}; #frac{Truth}{Detector}", ratioNameZ.c_str()));
+  trainingZTruthOverDetector->Print();
 
   //Test distributions - Detector response corrections
   TH1D* testPtUnfoldedOverDetector = (TH1D*)testPtUnfolded->Clone("testPtUnfoldedOverDetector");
@@ -310,9 +310,9 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
     testPtUnfoldedOverDetector->SetBinContent(iBin, testPtDetector->GetBinContent(iBin));
     testPtUnfoldedOverDetector->SetBinError(iBin, testPtDetector->GetBinError(iBin));
   }
-  testPtUnfoldedOverDetector->Print();
   testPtUnfoldedOverDetector->Divide(testPtUnfolded, testPtUnfoldedOverDetector);
   testPtUnfoldedOverDetector->SetTitle(TString::Format("Unfolded over Detector %s (test sample); #it{z}; #frac{Unfolded}{Detector}", ratioNamePt.c_str()));
+  testPtUnfoldedOverDetector->Print();
 
   TH1D* testZUnfoldedOverDetector = (TH1D*)testZUnfolded->Clone("testZUnfoldedOverDetector");
   testZUnfoldedOverDetector->Reset();
@@ -320,9 +320,9 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
     testZUnfoldedOverDetector->SetBinContent(iBin, testZDetector->GetBinContent(iBin));
     testZUnfoldedOverDetector->SetBinError(iBin, testZDetector->GetBinError(iBin));
   }
-  testZUnfoldedOverDetector->Print();
   testZUnfoldedOverDetector->Divide(testZUnfolded, testZUnfoldedOverDetector);
   testZUnfoldedOverDetector->SetTitle(TString::Format("Unfolded over Detector %s (test sample); #it{z}; #frac{Unfolded}{Detector}", ratioNameZ.c_str()));
+  testZUnfoldedOverDetector->Print();
 
   //Closure on the truth level
   TH1D* testPtUnfoldedOverTruth = (TH1D*)testPtUnfolded->Clone("testPtUnfoldedOverTruth");
@@ -331,32 +331,32 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   //   testZUnfoldedOverDetector->SetBinContent(iBin, testPtTruth->GetBinContent(iBin));
   //   testZUnfoldedOverDetector->SetBinError(iBin, testPtTruth->GetBinError(iBin));
   // }
-  testPtUnfoldedOverTruth->Print();
   testPtUnfoldedOverTruth->Divide(testPtUnfolded, testPtTruth);
   testPtUnfoldedOverTruth->SetTitle(TString::Format("Unfolded over Truth %s (test sample); #it{p}_{T}; #frac{Unfolded}{Truth}", ratioNamePt.c_str()));
+  testPtUnfoldedOverTruth->Print();
 
   TH1D* testZUnfoldedOverTruth = (TH1D*)testZUnfolded->Clone("testZUnfoldedOverTruth");
   testZUnfoldedOverTruth->Reset();
-  testZUnfoldedOverTruth->Print();
   testZUnfoldedOverTruth->Divide(testZUnfolded, testZTruth);
   testZUnfoldedOverTruth->SetTitle(TString::Format("Unfolded over Truth %s (test sample); #it{z}; #frac{Unfolded}{Truth}", ratioNameZ.c_str()));
+  testZUnfoldedOverTruth->Print();
 
   //Closure on the detector level
   TH1D* testPtRefoldedOverDetector = (TH1D*)testPtRefolded->Clone("testPtRefoldedOverDetector");
   testPtRefoldedOverDetector->Reset();
-  testPtRefoldedOverDetector->Print();
   testPtRefoldedOverDetector->Divide(testPtRefolded, testPtDetector);
   testPtRefoldedOverDetector->SetTitle(TString::Format("Refolded over Detector %s (test sample); #it{p}_{T}; #frac{Refolded}{Detector}",ratioNamePt.c_str()));
+  testPtRefoldedOverDetector->Print();
 
   TH1D* testZRefoldedOverDetector = (TH1D*)testZRefolded->Clone("testZRefoldedOverDetector");
   testZRefoldedOverDetector->Reset();
-  testZRefoldedOverDetector->Print();
   testZRefoldedOverDetector->Divide(testZRefolded, testZDetector);
   testZRefoldedOverDetector->SetTitle(TString::Format("Refolded over Detector %s (test sample); #it{z}; #frac{Refolded}{Detector}",ratioNameZ.c_str()));
+  testZRefoldedOverDetector->Print();
 
   //Saving the output in a new file
-  string outFileName = TString::Format("closureTest_binWidth%d_pt%d-%d_ptmin%.0f_z%.0f-%.0f_nIter%d.root",
-                                       BINWIDTH, PT_LOW, PT_HIGH, ptmin, zmin, zmax, N_ITER).Data();
+  string outFileName = TString::Format("closureTest_pt%d-%d_ptmin%.0f_z%.0f-%.0f_nIter%d.root",
+                                       PT_LOW, PT_HIGH, ptmin, zmin, zmax, N_ITER).Data();
   // TString Outputname = Form("ClosureTest_ConstSub_wFakes_new_Binw%d_LC8_pt_%d_%d_ptmin%d_zmin%d_max%d_Iter%d.root",BinWidth,PT_LOW,PT_HIGH,int(ptmin),int(zmin),int(zmax),Niter);
   TFile *outFile = new TFile(outFileName.c_str(), "RECREATE");
 

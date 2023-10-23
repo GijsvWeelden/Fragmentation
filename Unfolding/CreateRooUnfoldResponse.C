@@ -48,9 +48,9 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t PT
   responseMatrixDetectorProjection->SetName("responseMatrixDetectorProjection");
   // Kinematic range
   Double_t ptMinDet    = PT_MIN;         // Lower Pt limit for detector level, Perhaps we can change this to evaluate systematics
-  Double_t ptMaxDet    = 100.0;          // Upper Pt limit for detector level
-  Double_t ptMinTruth  = 5.;             // Lower Pt limit for truth level, TODO: is this a suitable value?
-  Double_t ptMaxTruth  = ptMaxDet + 50;  // Upper Pt limit for truth level, higher than detector level to allow for feed-in of jets
+  Double_t ptMaxDet    = 80.0;           // Upper Pt limit for detector level
+  Double_t ptMinTruth  = ptMinDet;       // Lower Pt limit for truth level, TODO: is this a suitable value?
+  Double_t ptMaxTruth  = ptMaxDet;       // Upper Pt limit for truth level, higher than detector level to allow for feed-in of jets
   Double_t zMinDet     = Z_MIN;          // Lower z limit for detector level
   Double_t zMaxDet     = Z_MAX;          // Upper z limit for detector level
   Double_t zMinTruth   = Z_MIN;          // Lower z limit for truth level

@@ -32,10 +32,10 @@ void plotRefoldedDetector(void)
   double time = clock();
   gStyle->SetNdivisions(505);
 
-  bool doTestSet = true;
+  bool doPt = true;
 
-  string saveName = "trainingRefoldedOverDetector";
-  string histName = "trainingRefoldedOverDetector";
+  string saveName = "testZRefoldedOverDetector";
+  string histName = "testZRefoldedOverDetector";
   string histTitle = "";
   string xTitle = "#it{z}";
   string yTitle = "#frac{Refolded}{Detector}";
@@ -44,10 +44,10 @@ void plotRefoldedDetector(void)
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.03;
-
-  if (doTestSet) {
-    histName = "testRefoldedOverDetector";
-    saveName = "testRefoldedOverDetector";
+  if (doPt) {
+    xTitle = "#it{p}_{T}";
+    saveName = "testPtRefoldedOverDetector";
+    histName = "testPtRefoldedOverDetector";
   }
 
   // Plotting stuff
@@ -55,6 +55,7 @@ void plotRefoldedDetector(void)
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", 900, 900);
   if (setLogY) { myCanvas->SetLogy(); }
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 2;
+  if (doPt) { xMaxFrame = 200; }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
@@ -89,12 +90,11 @@ void plotUnfoldedTruth(void)
   double time = clock();
   gStyle->SetNdivisions(505);
 
-  bool doTestSet = true;
-  string histName = "trainingUnfoldedOverTruth";
-  if (doTestSet) { histName = "testUnfoldedOverTruth"; }
+  bool doPt = true;
 
+  string histName = "testZUnfoldedOverTruth";
+  string saveName = "testZUnfoldedOverTruth";
   string histTitle = "";
-  string saveName = "testUnfoldedOverTruth";
   string xTitle = "#it{z}";
   string yTitle = "#frac{Unfolded}{Truth}";
   string legendTitle = "";
@@ -103,11 +103,18 @@ void plotUnfoldedTruth(void)
   double labelSize = 0.04;
   double titleSize = 0.03;
 
+  if (doPt) {
+    xTitle = "#it{P}_{T}";
+    histName = "testPtUnfoldedOverTruth";
+    saveName = "testPtUnfoldedOverTruth";
+  }
+
   // Plotting stuff
   bool setLogY = false;
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", 900, 900);
   if (setLogY) { myCanvas->SetLogy(); }
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 2;
+  if (doPt) { xMaxFrame = 200; }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);

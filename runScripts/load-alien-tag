@@ -1,0 +1,50 @@
+#! /bin/bash
+
+DATEOFTAG=$(date +"%Y%m%d")
+ALIPHYSICS=0
+while getopts 'd:ay' OPTION; do
+  case "$OPTION" in
+    d)
+      DATEOFTAG="${OPTARG}"
+      ;;
+    a)
+      ALIPHYSICS=1
+      ;;
+    y) # yesterday
+      DATEOFTAG=$(date -d '-1 day' '+%Y%m%d')
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-d date-of-tag (yyyymmdd, default: today)]"
+      exit 1
+      ;;
+  esac
+done
+
+getPackageName() {
+  # Retrieve the web page that lists packages, search for {date}'s package
+  # Retrieve only the package name
+  content=$(lynx -dump "http://alimonitor.cern.ch/packages/?packagename=VO_ALICE%40O2Physics%3A%3Adaily-$1")
+  myvar=$(echo "$content" | tr ' ' '\n' | grep VO_ALICE@O2Physics::daily-$1)
+  if [ $2 -eq 1 ]; then # AliPhysics version
+    content=$(lynx -dump "http://alimonitor.cern.ch/packages/?packagename=VO_ALICE%40AliPhysics%3A%3AvAN-$1")
+    myvar=$(echo "$content" | tr ' ' '\n' | grep VO_ALICE@AliPhysics::vAN-$1)
+  fi
+  # Remove pre-pending junk
+  myvar=${myvar#*]}
+  echo $myvar
+}
+
+if [ $ALIPHYSICS -eq 1 ]; then
+  echo "Loading AliPhysics daily tag of ${DATEOFTAG}"
+else
+  echo "Loading O2Physics daily tag of ${DATEOFTAG}"
+fi
+
+pkg=$(getPackageName ${DATEOFTAG} ${ALIPHYSICS})
+if [[ x$pkg == x ]]; then
+  echo "Error loading package. Perhaps it is not available?"
+  exit 1
+fi
+
+echo "Package name: ${pkg}"
+/cvmfs/alice.cern.ch/bin/alienv enter ${pkg}

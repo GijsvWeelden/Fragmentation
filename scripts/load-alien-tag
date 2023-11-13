@@ -1,5 +1,8 @@
 #! /bin/bash
 
+# This script loads the Ali/O2Physics daily tag for a given date
+# The script requires a cvmfs connection
+
 DATEOFTAG=$(date +"%Y%m%d")
 ALIPHYSICS=0
 while getopts 'd:ay' OPTION; do

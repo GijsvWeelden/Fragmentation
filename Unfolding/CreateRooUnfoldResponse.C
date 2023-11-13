@@ -12,7 +12,7 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root", Double_t PT
     std::cout << "File " << inFile << " not found. Aborting program." << std::endl;
     return;
   }
-  TDirectory* matchJetsDir = (TDirectory*)matchDir->Get("jet-fragmentation/matching/jets");
+  TDirectory* matchJetsDir = (TDirectory*)inFile->Get("jet-fragmentation/matching/jets");
   if(!matchJetsDir){
     std::cout << "Directory " << matchJetsDir << " not found. Aborting program." << std::endl;
     return;

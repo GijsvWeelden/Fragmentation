@@ -10,14 +10,14 @@ int zDetAxis    = 1;
 int ptTruthAxis = 2;
 int zTruthAxis  = 3;
 
-void CheckBinning(TH1* hist)
+void CheckBinning(const TH1* hist)
 {
   cout << hist->GetName() << " "
     << hist->GetXaxis()->GetBinLowEdge(1) << " - " << hist->GetXaxis()->GetBinLowEdge(hist->GetNbinsX() + 1)
     << " (" << hist->GetNbinsX() << " * " << hist->GetXaxis()->GetBinWidth(1) << ")"
     << endl;
 }
-void CheckBinning(TH2* hist)
+void CheckBinning(const TH2* hist)
 {
   cout << hist->GetName() << " "
     << hist->GetXaxis()->GetBinLowEdge(1) << " - " << hist->GetXaxis()->GetBinLowEdge(hist->GetNbinsX() + 1)
@@ -26,7 +26,7 @@ void CheckBinning(TH2* hist)
     << " (" << hist->GetNbinsY() << " * " << hist->GetYaxis()->GetBinWidth(1) << ")"
     << endl;
 }
-void CompareHists(TH1* histA, TH1* histB)
+void CompareHists(const TH1* histA, const TH1* histB)
 {
   cout << histA->GetName() << " - " << histB->GetName() << endl;
   for (int i = 0; i < histA->GetNbinsX(); i++)
@@ -36,7 +36,7 @@ void CompareHists(TH1* histA, TH1* histB)
   }
   cout << endl;
 }
-void CompareHists(TH2* histA, TH2* histB)
+void CompareHists(const TH2* histA, const TH2* histB)
 {
   cout << histA->GetName() << " - " << histB->GetName() << endl;
   for (int i = 0; i < histA->GetNbinsX(); i++)
@@ -48,14 +48,14 @@ void CompareHists(TH2* histA, TH2* histB)
   }
   cout << endl;
 }
-TH1* HistDiff(TH1* histA, TH1* histB, string outName = "outHist", string outTitle = "")
+TH1* HistDiff(const TH1* histA, const TH1* histB, string outName = "outHist", string outTitle = "")
 {
   TH1* outHist = (TH1*)histA->Clone(outName.c_str());
   outHist->SetTitle(outTitle.c_str());
   outHist->Add(histB, -1.);
   return outHist;
 }
-TH1* HistRatio(TH1* histA, TH1* histB, string outName = "outHist", string outTitle = "")
+TH1* HistRatio(const TH1* histA, const TH1* histB, string outName = "outHist", string outTitle = "")
 {
   TH1* outHist = (TH1*)histA->Clone(outName.c_str());
   outHist->SetTitle(outTitle.c_str());
@@ -97,7 +97,7 @@ void NormaliseHistRowByRow(TH2* hist)
 {
   NormaliseHist(hist, true);
 }
-void THnMinMax(THnSparse* hist)
+void THnMinMax(const THnSparse* hist)
 {
   int minBin = 0, maxBin = 0;
   double minBinContent = 9e12, maxBinContent = -9e12;
@@ -301,7 +301,7 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root",
                         );
 
 
-  bool checkBinning = true;
+  bool checkBinning = false;
   if (checkBinning) {
     CheckBinning(rmTruth);
     CheckBinning(hMiss);
@@ -480,22 +480,22 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
                               rmTruth->GetYaxis()->GetBinLowEdge(rmTruth->GetNbinsY() + 1)
                              );
 
-  TH2F* testDet  = new TH2F("testDet", "testDet",
-                            rmDet->GetNbinsX(),
-                            rmDet->GetXaxis()->GetBinLowEdge(1),
-                            rmDet->GetXaxis()->GetBinLowEdge(rmDet->GetNbinsX() + 1),
-                            rmDet->GetNbinsY(),
-                            rmDet->GetYaxis()->GetBinLowEdge(1),
-                            rmDet->GetYaxis()->GetBinLowEdge(rmDet->GetNbinsY() + 1)
-                           );
-  TH2F* testFake = new TH2F("testFake", "testFake",
-                            rmDet->GetNbinsX(),
-                            rmDet->GetXaxis()->GetBinLowEdge(1),
-                            rmDet->GetXaxis()->GetBinLowEdge(rmDet->GetNbinsX() + 1),
-                            rmDet->GetNbinsY(),
-                            rmDet->GetYaxis()->GetBinLowEdge(1),
-                            rmDet->GetYaxis()->GetBinLowEdge(rmDet->GetNbinsY() + 1)
-                           );
+  TH2F* testDet    = new TH2F("testDet", "testDet",
+                              rmDet->GetNbinsX(),
+                              rmDet->GetXaxis()->GetBinLowEdge(1),
+                              rmDet->GetXaxis()->GetBinLowEdge(rmDet->GetNbinsX() + 1),
+                              rmDet->GetNbinsY(),
+                              rmDet->GetYaxis()->GetBinLowEdge(1),
+                              rmDet->GetYaxis()->GetBinLowEdge(rmDet->GetNbinsY() + 1)
+                             );
+  TH2F* testFake   = new TH2F("testFake", "testFake",
+                              rmDet->GetNbinsX(),
+                              rmDet->GetXaxis()->GetBinLowEdge(1),
+                              rmDet->GetXaxis()->GetBinLowEdge(rmDet->GetNbinsX() + 1),
+                              rmDet->GetNbinsY(),
+                              rmDet->GetYaxis()->GetBinLowEdge(1),
+                              rmDet->GetYaxis()->GetBinLowEdge(rmDet->GetNbinsY() + 1)
+                             );
 
   int* coord = new int[testRM->GetNdimensions()]; //Carries the bin coordinates
   for (int iBin = 1; iBin <= testRM->GetNbins(); iBin++) {
@@ -538,37 +538,56 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   string unfoldName = "Bayesian_Unfolding";
   string unfoldTitle = unfoldName;
   int doSmoothing = 0;
+  RooUnfold::ErrorTreatment errorTreatment = RooUnfold::kCovToy;
   // Load the response object from the Response file, create the Bayesian unfolding object,
   // Extract the unfolded distribution as a histogram, apply the Response matrix to the unfolded result
   RooUnfoldResponse* ruResponse = static_cast<RooUnfoldResponse*>(responseFile->Get("Response"));
-  RooUnfoldBayes Unfolding_bayes(ruResponse, testDet, nIter, doSmoothing, unfoldName.c_str(), unfoldTitle.c_str());
-  TH2F* unfoldedTest = (TH2F*)Unfolding_bayes.Hreco(RooUnfold::kCovToy);
+  RooUnfoldBayes ruBayes(ruResponse, testDet, nIter, doSmoothing, unfoldName.c_str(), unfoldTitle.c_str());
+  auto Unf_Bayes = &ruBayes;
+  TH2F* unfoldedTest = (TH2F*)ruBayes.Hreco(errorTreatment);
   unfoldedTest->SetName("unfoldedTest");
-  auto Unf_Bayes = &Unfolding_bayes;
   TH2F* refoldedTest = (TH2F*)ruResponse->ApplyToTruth(unfoldedTest, "refoldedTest");
   // Include the fakes in order to compare with the input distribution
-  // TH2F* hFake = (TH2F*)responseFile->Get("hFake");
-  // refoldedTest->Add(hFake);
   refoldedTest->Add(testFake);
+  // TH2F* covMatTest = (TH2F*)ruBayes.Ereco(errorTreatment);
+  TH2D htmp(ruBayes.Ereco(errorTreatment));
+  TH2D* covMatTest = (TH2D*)htmp.Clone("covMatTest");
+
+  // Calculate the Pearson coefficients
+  // One block per pt bin
+  // FIXME: what is the shape of cov mat?
+  // Should we loop:
+  // -> (1,1), (1,2), ..., (1, nZ), (1, nZ+1), ..., (1, nZ*nPt)
+  // -> (1,1), (1,2), ..., (1, nPt), (1, nPt+1), ..., (1, nPt*nZ)
+  TH2D* pearson = (TH2D*)covMatTest->Clone("pearson");
+  pearson->Reset();
+  for (int iPtx = 0; iPtx <= rmTruth->GetNbinsX(); iPtx++) {
+    for (int iPty = 0; iPty <= rmTruth->GetNbinsX(); iPty++) {
+      for (int iZx = 0; iZx <= rmTruth->GetNbinsY(); iZx++) {
+        for (int iZy = 0; iZy <= rmTruth->GetNbinsY(); iZy++) {
+          double p = covMatTest->GetBinContent(iZx, iZy)/TMath::Sqrt(covMatTest->GetBinContent(iZx, iZx) * covMatTest->GetBinContent(iZy, iZy));
+          pearson->SetBinContent(iZx, iZy, p);
+        }
+      }
+    }
+  }
 
   // The unfolding is complete, the following sections refer to projections in one dimension and calculating the ratio between distributions
-  int ptLowTruth = rmTruth->GetXaxis()->FindBin(PTLOW);
+  int ptLowTruth  = rmTruth->GetXaxis()->FindBin(PTLOW);
   int ptHighTruth = rmTruth->GetXaxis()->FindBin(PTHIGH);
-  int ptLowDet = rmDet->GetXaxis()->FindBin(PTLOW);
-  int ptHighDet = rmDet->GetXaxis()->FindBin(PTHIGH);
+  int ptLowDet    = rmDet->GetXaxis()->FindBin(PTLOW);
+  int ptHighDet   = rmDet->GetXaxis()->FindBin(PTHIGH);
 
   //--------------Training sample (Sample creating the response)--------------------//
     //Truth level
   TH1D* trainingPtTruth = (TH1D*)rmTruth->ProjectionX("trainingPtTruth");
   trainingPtTruth->SetTitle("Training truth pt");
-
   TH1D* trainingZTruth = (TH1D*)rmTruth->ProjectionY("trainingZTruth", ptLowTruth, ptHighTruth - 1);
   trainingZTruth->SetTitle("Training truth z");
 
     //Detector level
   TH1D* trainingPtDetector = (TH1D*)rmDet->ProjectionX("trainingPtDetector");
   trainingPtDetector->SetTitle("Training detector pt");
-
   TH1D* trainingZDetector = (TH1D*)rmDet->ProjectionY("trainingZDetector", ptLowDet, ptHighDet - 1);
   trainingZDetector->SetTitle("Training detector z");
 
@@ -576,28 +595,24 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
     //Truth level
   TH1D* testPtTruth = (TH1D*)testTruth->ProjectionX("testPtTruth");
   testPtTruth->SetTitle("Test truth pt");
-
   TH1D* testZTruth = (TH1D*)testTruth->ProjectionY("testZTruth", ptLowTruth, ptHighTruth - 1);
   testZTruth->SetTitle("Test truth z");
 
     //Detector level
   TH1D* testPtDetector = (TH1D*)testDet->ProjectionX("testPtDetector");
   testPtDetector->SetTitle("Test detector pt");
-
   TH1D* testZDetector = (TH1D*)testDet->ProjectionY("testZDetector", ptLowDet, ptHighDet - 1);
   testZDetector->SetTitle("Test truth z");
 
     //Unfolded
   TH1D* testPtUnfolded = unfoldedTest->ProjectionX("testPtUnfolded");
   testPtUnfolded->SetTitle("Unfolded pt");
-
   TH1D* testZUnfolded = unfoldedTest->ProjectionY("testZUnfolded", ptLowTruth, ptHighTruth - 1);
   testZUnfolded->SetTitle("Unfolded z");
 
     //Refolded
   TH1D* testPtRefolded = refoldedTest->ProjectionX("testPtRefolded");
   testPtRefolded->SetTitle("Refolded pt");
-
   TH1D* testZRefolded = refoldedTest->ProjectionY("testZRefolded", ptLowDet, ptHighDet - 1);
   testZRefolded->SetTitle("Refolded z");
 
@@ -732,14 +747,16 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   TFile *outFile = new TFile(outFileName.c_str(), "RECREATE");
 
   // Response objects
-  responseMatrix->Write(responseMatrix->GetName(), TObject::kOverwrite);
+  responseMatrix->Write("trainingRM", TObject::kOverwrite);
   rmTruth->Write(rmTruth->GetName(), TObject::kOverwrite);
   rmDet->Write(rmDet->GetName(), TObject::kOverwrite);
-  testRM->Write(testRM->GetName(), TObject::kOverwrite);
+  testRM->Write("testRM", TObject::kOverwrite);
   testTruth->Write(testTruth->GetName(), TObject::kOverwrite);
   testDet->Write(testDet->GetName(), TObject::kOverwrite);
   ruResponse->Write(ruResponse->GetName(), TObject::kOverwrite);
   Unf_Bayes->Write(Unf_Bayes->GetName(), TObject::kOverwrite);
+  covMatTest->Write(covMatTest->GetName(), TObject::kOverwrite);
+  pearson->Write(pearson->GetName(), TObject::kOverwrite);
 
   trainingPtDetector->Write(trainingPtDetector->GetName(), TObject::kOverwrite);
   trainingZDetector->Write(trainingZDetector->GetName(), TObject::kOverwrite);

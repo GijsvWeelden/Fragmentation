@@ -3,7 +3,7 @@
 // * Loads the response from the task output
 // * Creates the RooUnfoldResponse object used in unfolding
 
-using std::cout, std::endl;
+using std::cout, std::endl, std::string;
 
 int ptDetAxis   = 0;
 int zDetAxis    = 1;
@@ -234,6 +234,7 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root",
                              const double BINWIDTH_Z = 0.025,
                              bool makePlots = false)
 {
+  string saveName = "RooUnfoldResponse.root";
   //Open the file and get the response matrix in THnSparse format
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   if(!inFile){
@@ -248,7 +249,7 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root",
   responseMatrix->Print();
   THnMinMax(responseMatrix);
   // !!! Make sure that all entries are >~ 1. Only for tests !!!
-  responseMatrix->Scale(1e10);
+  // responseMatrix->Scale(1e10);
   THnMinMax(responseMatrix);
 
   THnSparseF* tmpRM = (THnSparseF*)responseMatrix->Clone("tmpRM");
@@ -353,7 +354,7 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root",
 
   hKinEff->Divide(rmTruth);
 
-  TFile* outFile = new TFile("RooUnfoldResponse.root", "RECREATE");
+  TFile* outFile = new TFile(TString::Format("./%s", saveName.c_str()).Data(), "RECREATE");
   responseMatrix->Write("responseMatrix");
   rmTruth->Write();
   rmDet->Write();
@@ -362,10 +363,9 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root",
   hKinEff->Write();
   ruResponse->Write();
   outFile->Write();
-  // outFile->Close();
 
   if (!makePlots) return;
-
+  /*
   rmTruth->SetStats(0);
   rmTruth->SetTitle("RM truth");
   rmDet->SetStats(0);
@@ -422,11 +422,12 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root",
   rmDetectorZ->Draw();
 
   myCanvas->SaveAs("./RM_pt-z.pdf");
+  */
 }
 
 void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "RooUnfoldResponse.root",
                  double PTLOW = 40., double PTHIGH = 60.,
-                 int nIter = 3)
+                 int nIter = 3, string drawOption = "text90 hist")
 {
   // Training RM
   TFile* responseFile = TFile::Open(TString::Format("%s", responseFileName.c_str()).Data());
@@ -439,9 +440,10 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   TFile* testFile = TFile::Open(TString::Format("%s", testFileName.c_str()).Data());
   THnSparseF* testRM = (THnSparseF*)testFile->Get("jet-fragmentation/matching/jets/matchDetJetPtTrackProjPartJetPtTrackProj");
   // !!! Make sure that all entries are >~ 1. Only for tests !!!
-  THnMinMax(responseMatrix);
-  responseMatrix->Scale(1e10);
-  THnMinMax(responseMatrix);
+  // !!! Don't do this for the training RM, because it's saved scaled already !!!
+  THnMinMax(testRM);
+  // testRM->Scale(1e10);
+  THnMinMax(testRM);
 
   // !!! These ranges have to be same as the ones used in CreateRooUnfoldResponse() !!!
   double ptTruthMin = rmTruth->GetXaxis()->GetXmin();
@@ -547,6 +549,7 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   // Include the fakes in order to compare with the input distribution
   // TH2F* hFake = (TH2F*)responseFile->Get("hFake");
   // refoldedTest->Add(hFake);
+  refoldedTest->Add(testFake);
 
   // The unfolding is complete, the following sections refer to projections in one dimension and calculating the ratio between distributions
   int ptLowTruth = rmTruth->GetXaxis()->FindBin(PTLOW);
@@ -558,57 +561,45 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
     //Truth level
   TH1D* trainingPtTruth = (TH1D*)rmTruth->ProjectionX("trainingPtTruth");
   trainingPtTruth->SetTitle("Training truth pt");
-  // trainingPtTruth->Scale(1./trainingPtTruth->Integral(), "width");
 
   TH1D* trainingZTruth = (TH1D*)rmTruth->ProjectionY("trainingZTruth", ptLowTruth, ptHighTruth - 1);
   trainingZTruth->SetTitle("Training truth z");
-  // trainingZTruth->Scale(1./trainingZTruth->Integral(), "width");
 
     //Detector level
   TH1D* trainingPtDetector = (TH1D*)rmDet->ProjectionX("trainingPtDetector");
   trainingPtDetector->SetTitle("Training detector pt");
-  // trainingPtDetector->Scale(1./trainingPtDetector->Integral(), "width");
 
   TH1D* trainingZDetector = (TH1D*)rmDet->ProjectionY("trainingZDetector", ptLowDet, ptHighDet - 1);
   trainingZDetector->SetTitle("Training detector z");
-  // trainingZDetector->Scale(1./trainingZDetector->Integral(), "width");
 
   //--------------Test sample (MC sample treated as pseudodata)--------------------//
     //Truth level
   TH1D* testPtTruth = (TH1D*)testTruth->ProjectionX("testPtTruth");
   testPtTruth->SetTitle("Test truth pt");
-  // testPtTruth->Scale(1./testPtTruth->Integral(), "width");
 
   TH1D* testZTruth = (TH1D*)testTruth->ProjectionY("testZTruth", ptLowTruth, ptHighTruth - 1);
   testZTruth->SetTitle("Test truth z");
-  // testZTruth->Scale(1./testZTruth->Integral(), "width");
 
     //Detector level
   TH1D* testPtDetector = (TH1D*)testDet->ProjectionX("testPtDetector");
   testPtDetector->SetTitle("Test detector pt");
-  // testPtDetector->Scale(1./testPtDetector->Integral(), "width");
 
   TH1D* testZDetector = (TH1D*)testDet->ProjectionY("testZDetector", ptLowDet, ptHighDet - 1);
   testZDetector->SetTitle("Test truth z");
-  // testZDetector->Scale(1./testZDetector->Integral(), "width");
 
     //Unfolded
   TH1D* testPtUnfolded = unfoldedTest->ProjectionX("testPtUnfolded");
   testPtUnfolded->SetTitle("Unfolded pt");
-  // testPtUnfolded->Scale(1./testPtUnfolded->Integral(), "width");
 
   TH1D* testZUnfolded = unfoldedTest->ProjectionY("testZUnfolded", ptLowTruth, ptHighTruth - 1);
   testZUnfolded->SetTitle("Unfolded z");
-  // testZUnfolded->Scale(1./testZUnfolded->Integral(), "width");
 
     //Refolded
   TH1D* testPtRefolded = refoldedTest->ProjectionX("testPtRefolded");
   testPtRefolded->SetTitle("Refolded pt");
-  // testPtRefolded->Scale(1./testPtRefolded->Integral(), "width");
 
   TH1D* testZRefolded = refoldedTest->ProjectionY("testZRefolded", ptLowDet, ptHighDet - 1);
   testZRefolded->SetTitle("Refolded z");
-  // testZRefolded->Scale(1./testZRefolded->Integral(), "width");
 
   /*
   // Ratios of the projections
@@ -661,42 +652,83 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   testZRefolded->Draw();
   spectraCanvas->SaveAs("./closureTest-spectra.pdf");
 
-  TH1D* testPtUnfoldedOverTruth = (TH1D*)HistRatio(testPtUnfolded, testPtTruth, "testPtUnfoldedOverTruth", "Test pt unfolded/truth; #it{p}_{T}; #frac{Unfolded}{Truth}");
-  TH1D* testZUnfoldedOverTruth = (TH1D*)HistRatio(testZUnfolded, testZTruth, "testZUnfoldedOverTruth", "Test z unfolded/truth; #it{z}; #frac{Unfolded}{Truth}");
-  TH1D* testPtRefoldedOverDetector = (TH1D*)HistRatio(testPtRefolded, testPtDetector, "testPtRefoldedOverDetector", "Test pt refolded/detector; #it{p}_{T}; #frac{Refolded}{Detector}");
-  TH1D* testZRefoldedOverDetector = (TH1D*)HistRatio(testZRefolded, testZDetector, "testZRefoldedOverDetector", "Test z refolded/detector; #it{z}; #frac{Refolded}{Detector}");
+  TH1D* testPtUnfoldedOverTruth    = (TH1D*)HistRatio(testPtUnfolded, testPtTruth, "testPtUnfoldedOverTruth",
+                                                      "Test pt unfolded/truth; #it{p}_{T}; #frac{Unfolded}{Truth}"
+                                                     );
+  TH1D* testZUnfoldedOverTruth     = (TH1D*)HistRatio(testZUnfolded, testZTruth, "testZUnfoldedOverTruth",
+                                                      "Test z unfolded/truth; #it{z}; #frac{Unfolded}{Truth}"
+                                                     );
+  TH1D* testPtRefoldedOverDetector = (TH1D*)HistRatio(testPtRefolded, testPtDetector, "testPtRefoldedOverDetector",
+                                                      "Test pt refolded/detector; #it{p}_{T}; #frac{Refolded}{Detector}"
+                                                     );
+  TH1D* testZRefoldedOverDetector  = (TH1D*)HistRatio(testZRefolded, testZDetector, "testZRefoldedOverDetector",
+                                                      "Test z refolded/detector; #it{z}; #frac{Refolded}{Detector}"
+                                                     );
 
   TCanvas* ratioCanvas = new TCanvas("ratioCanvas", "ratioCanvas", 1000, 1000);
   ratioCanvas->Divide(2, 2);
   ratioCanvas->cd(1);
-  testPtUnfoldedOverTruth->Draw();
+  testPtUnfoldedOverTruth->Draw(drawOption.c_str());
   ratioCanvas->cd(2);
-  testZUnfoldedOverTruth->Draw();
+  testZUnfoldedOverTruth->Draw(drawOption.c_str());
   ratioCanvas->cd(3);
-  testPtRefoldedOverDetector->Draw();
+  testPtRefoldedOverDetector->Draw(drawOption.c_str());
   ratioCanvas->cd(4);
-  testZRefoldedOverDetector->Draw();
+  testZRefoldedOverDetector->Draw(drawOption.c_str());
   ratioCanvas->SaveAs("./closureTest-ratio.pdf");
 
-  TH1D* testPtUnfoldedMinusTruth = (TH1D*)HistDiff(testPtUnfolded, testPtTruth, "testPtUnfoldedMinusTruth", "Test pt unfolded - truth; #it{p}_{T}; Unfolded - Truth");
-  TH1D* testZUnfoldedMinusTruth = (TH1D*)HistDiff(testZUnfolded, testZTruth, "testZUnfoldedMinusTruth", "Test z unfolded - truth; #it{z}; Unfolded - Truth");
-  TH1D* testPtRefoldedMinusDetector = (TH1D*)HistDiff(testPtRefolded, testPtDetector, "testPtRefoldedMinusDetector", "Test pt refolded - detector; #it{p}_{T}; Refolded - Detector");
-  TH1D* testZRefoldedMinusDetector = (TH1D*)HistDiff(testZRefolded, testZDetector, "testZRefoldedMinusDetector", "Test z refolded - detector; #it{z}; Refolded - Detector");
+  TH1D* testPtUnfoldedMinusTruth    = (TH1D*)HistDiff(testPtUnfolded, testPtTruth, "testPtUnfoldedMinusTruth",
+                                                      "Test pt unfolded - truth; #it{p}_{T}; Unfolded - Truth"
+                                                     );
+  TH1D* testZUnfoldedMinusTruth     = (TH1D*)HistDiff(testZUnfolded, testZTruth, "testZUnfoldedMinusTruth",
+                                                      "Test z unfolded - truth; #it{z}; Unfolded - Truth"
+                                                     );
+  TH1D* testPtRefoldedMinusDetector = (TH1D*)HistDiff(testPtRefolded, testPtDetector, "testPtRefoldedMinusDetector",
+                                                      "Test pt refolded - detector; #it{p}_{T}; Refolded - Detector"
+                                                     );
+  TH1D* testZRefoldedMinusDetector  = (TH1D*)HistDiff(testZRefolded, testZDetector, "testZRefoldedMinusDetector",
+                                                      "Test z refolded - detector; #it{z}; Refolded - Detector"
+                                                     );
 
   TCanvas* diffCanvas = new TCanvas("diffCanvas", "diffCanvas", 1000, 1000);
   diffCanvas->Divide(2, 2);
   diffCanvas->cd(1);
-  testPtUnfoldedMinusTruth->Draw();
+  testPtUnfoldedMinusTruth->Draw(drawOption.c_str());
   diffCanvas->cd(2);
-  testZUnfoldedMinusTruth->Draw();
+  testZUnfoldedMinusTruth->Draw(drawOption.c_str());
   diffCanvas->cd(3);
-  testPtRefoldedMinusDetector->Draw();
+  testPtRefoldedMinusDetector->Draw(drawOption.c_str());
   diffCanvas->cd(4);
-  testZRefoldedMinusDetector->Draw();
+  testZRefoldedMinusDetector->Draw(drawOption.c_str());
   diffCanvas->SaveAs("./closureTest-diff.pdf");
 
+  TH1D* diffRatioPtTruth    = (TH1D*)HistRatio(testPtUnfoldedMinusTruth, testPtTruth, "diffRatioPtTruth",
+                                               "Test pt (unfolded - truth)/truth; #it{p}_{T}; #frac{Unfolded - Truth}{Truth}"
+                                              );
+  TH1D* diffRatioZTruth     = (TH1D*)HistRatio(testZUnfoldedMinusTruth, testZTruth, "diffRatioZTruth",
+                                               "Test z (unfolded - truth)/truth; #it{z}; #frac{Unfolded - Truth}{Truth}"
+                                              );
+  TH1D* diffRatioPtDetector = (TH1D*)HistRatio(testPtRefoldedMinusDetector, testPtDetector, "diffRatioPtDetector",
+                                               "Test pt (refolded - detector)/detector; #it{p}_{T}; #frac{Refolded - Detector}{Detector}"
+                                              );
+  TH1D* diffRatioZDetector  = (TH1D*)HistRatio(testZRefoldedMinusDetector, testZDetector, "diffRatioZDetector",
+                                               "Test z (refolded - detector)/detector; #it{z}; #frac{Refolded - Detector}{Detector}"
+                                              );
+
+  TCanvas* diffratioCanvas = new TCanvas("diffratioCanvas", "diffratioCanvas", 1000, 1000);
+  diffratioCanvas->Divide(2, 2);
+  diffratioCanvas->cd(1);
+  diffRatioPtTruth->Draw(drawOption.c_str());
+  diffratioCanvas->cd(2);
+  diffRatioZTruth->Draw(drawOption.c_str());
+  diffratioCanvas->cd(3);
+  diffRatioPtDetector->Draw(drawOption.c_str());
+  diffratioCanvas->cd(4);
+  diffRatioZDetector->Draw(drawOption.c_str());
+  diffratioCanvas->SaveAs("./closureTest-diffratio.pdf");
+
   //Saving the output in a new file
-  string outFileName = "closureTest_projection.root";
+  string outFileName = "./closureTest.root";
   TFile *outFile = new TFile(outFileName.c_str(), "RECREATE");
 
   // Response objects
@@ -740,6 +772,11 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   testZUnfoldedMinusTruth->Write(testZUnfoldedMinusTruth->GetName(), TObject::kOverwrite);
   testPtRefoldedMinusDetector->Write(testPtRefoldedMinusDetector->GetName(), TObject::kOverwrite);
   testZRefoldedMinusDetector->Write(testZRefoldedMinusDetector->GetName(), TObject::kOverwrite);
+
+  diffRatioPtTruth->Write(diffRatioPtTruth->GetName(), TObject::kOverwrite);
+  diffRatioZTruth->Write(diffRatioZTruth->GetName(), TObject::kOverwrite);
+  diffRatioPtDetector->Write(diffRatioPtDetector->GetName(), TObject::kOverwrite);
+  diffRatioZDetector->Write(diffRatioZDetector->GetName(), TObject::kOverwrite);
 
   // testFile->Close();
   // responseFile->Close();

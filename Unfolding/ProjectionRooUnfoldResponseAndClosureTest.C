@@ -426,23 +426,18 @@ void CreateRooUnfoldResponse(string inName = "AnalysisResults.root",
 
 void ClosureTest(string testFileName = "AnalysisResults.root", string responseFileName = "RooUnfoldResponse.root",
                  double PTLOW = 40., double PTHIGH = 60.,
-                 int nIter = 3, string drawOption = "text90 hist")
+                 int nIter = 3, bool makePlots = false, string drawOption = "text90 hist")
 {
   // Training RM
-  TFile* responseFile = TFile::Open(TString::Format("%s", responseFileName.c_str()).Data());
+  TFile* responseFile = TFile::Open(TString::Format("%s", responseFileName.c_str()).Data(), "READ");
   THnSparse* responseMatrix = static_cast<THnSparse*>(responseFile->Get("responseMatrix"));
   responseMatrix->SetName("responseMatrix");
   TH2F* rmTruth = (TH2F*)responseFile->Get("rmTruth");
   TH2F* rmDet = (TH2F*)responseFile->Get("rmDet");
 
   // Test RM
-  TFile* testFile = TFile::Open(TString::Format("%s", testFileName.c_str()).Data());
+  TFile* testFile = TFile::Open(TString::Format("%s", testFileName.c_str()).Data(), "READ");
   THnSparseF* testRM = (THnSparseF*)testFile->Get("jet-fragmentation/matching/jets/matchDetJetPtTrackProjPartJetPtTrackProj");
-  // !!! Make sure that all entries are >~ 1. Only for tests !!!
-  // !!! Don't do this for the training RM, because it's saved scaled already !!!
-  THnMinMax(testRM);
-  // testRM->Scale(1e10);
-  THnMinMax(testRM);
 
   // !!! These ranges have to be same as the ones used in CreateRooUnfoldResponse() !!!
   double ptTruthMin = rmTruth->GetXaxis()->GetXmin();
@@ -532,6 +527,58 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   delete [] coord;
   testKinEff->Divide(testDet);
 
+
+  // Output file
+  string outFileName = "./closureTest.root";
+  TFile *outFile = new TFile(outFileName.c_str(), "RECREATE");
+  responseMatrix->Write("trainingRM", TObject::kOverwrite);
+  rmTruth->Write(rmTruth->GetName(), TObject::kOverwrite);
+  rmDet->Write(rmDet->GetName(), TObject::kOverwrite);
+  testRM->Write("testRM", TObject::kOverwrite);
+  testTruth->Write(testTruth->GetName(), TObject::kOverwrite);
+  testDet->Write(testDet->GetName(), TObject::kOverwrite);
+
+  // Make projections of truth, detector distributions to compare to unfolding results
+  int ptTruthLowBin  = rmTruth->GetXaxis()->FindBin(PTLOW);
+  int ptTruthHighBin = rmTruth->GetXaxis()->FindBin(PTHIGH);
+  int ptDetLowBin    = rmDet->GetXaxis()->FindBin(PTLOW);
+  int ptDetHighBin   = rmDet->GetXaxis()->FindBin(PTHIGH);
+
+  double ptTruthLow  = rmTruth->GetXaxis()->GetBinLowEdge(ptTruthLowBin);
+  double ptTruthHigh = rmTruth->GetXaxis()->GetBinLowEdge(ptTruthHighBin);
+  double ptDetLow    = rmDet->GetXaxis()->GetBinLowEdge(ptDetLowBin);
+  double ptDetHigh   = rmDet->GetXaxis()->GetBinLowEdge(ptDetHighBin);
+
+  // Training sample (Sample creating the response)
+  TH1D* trainingPtTruth = (TH1D*)rmTruth->ProjectionX("trainingPtTruth");
+  trainingPtTruth->SetTitle("Training truth pt");
+  trainingPtTruth->Write(trainingPtTruth->GetName(), TObject::kOverwrite);
+  TH1D* trainingZTruth = (TH1D*)rmTruth->ProjectionY("trainingZTruth", ptTruthLowBin, ptTruthHighBin - 1);
+  trainingZTruth->SetTitle("Training truth z");
+  trainingZTruth->Write(trainingZTruth->GetName(), TObject::kOverwrite);
+
+  TH1D* trainingPtDetector = (TH1D*)rmDet->ProjectionX("trainingPtDetector");
+  trainingPtDetector->SetTitle("Training detector pt");
+  trainingPtDetector->Write(trainingPtDetector->GetName(), TObject::kOverwrite);
+  TH1D* trainingZDetector = (TH1D*)rmDet->ProjectionY("trainingZDetector", ptDetLowBin, ptDetHighBin - 1);
+  trainingZDetector->SetTitle("Training detector z");
+  trainingZDetector->Write(trainingZDetector->GetName(), TObject::kOverwrite);
+
+  // Test sample (MC sample treated as pseudodata)
+  TH1D* testPtTruth = (TH1D*)testTruth->ProjectionX("testPtTruth");
+  testPtTruth->SetTitle("Test truth pt");
+  testPtTruth->Write(testPtTruth->GetName(), TObject::kOverwrite);
+  TH1D* testZTruth = (TH1D*)testTruth->ProjectionY("testZTruth", ptTruthLowBin, ptTruthHighBin - 1);
+  testZTruth->SetTitle("Test truth z");
+  testZTruth->Write(testZTruth->GetName(), TObject::kOverwrite);
+
+  TH1D* testPtDetector = (TH1D*)testDet->ProjectionX("testPtDetector");
+  testPtDetector->SetTitle("Test detector pt");
+  testPtDetector->Write(testPtDetector->GetName(), TObject::kOverwrite);
+  TH1D* testZDetector = (TH1D*)testDet->ProjectionY("testZDetector", ptDetLowBin, ptDetHighBin - 1);
+  testZDetector->SetTitle("Test truth z");
+  testZDetector->Write(testZDetector->GetName(), TObject::kOverwrite);
+
   // This is the section where the actual unfolding starts and RooUnfold is involved
   string ruResponseName = "Response";
   string unfoldName = "Bayesian_Unfolding";
@@ -543,92 +590,7 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   TH2F* unfolded[nIter];
   TH2F* refolded[nIter];
   TH2D* covmat[nIter];
-  // Load the response object from the Response file, create the Bayesian unfolding object,
-  // Extract the unfolded distribution as a histogram, apply the Response matrix to the unfolded result
-  RooUnfoldResponse* ruResponse = static_cast<RooUnfoldResponse*>(responseFile->Get("Response"));
-  for (int iter = 0; iter < nIter; iter++) {
-    int iteration = iter + 1;
-    ruBayes[iter] = RooUnfoldBayes(ruResponse, testDet, iter, doSmoothing,
-                                   TString::Format("%s_iter%d", unfoldName.c_str(), iteration).Data(),
-                                   TString::Format("%s_iter%d", unfoldTitle.c_str(), iteration).Data()
-                                  );
-    unfolded[iter] = (TH2F*)ruBayes[iter].Hreco(errorTreatment);
-    unfolded[iter]->SetName(TString::Format("unfolded_iter%d", iteration).Data());
-    refolded[iter] = (TH2F*)ruResponse->ApplyToTruth(unfolded[iter], TString::Format("refolded_iter%d", iteration).Data());
-    // Include the fakes in order to compare with the input distribution
-    // TODO: do this here, or afterwards?
-    refolded[iter]->Add(testFake);
-    TH2D htmp(ruBayes[iter].Ereco(errorTreatment));
-    covmat[iter] = (TH2D*)htmp.Clone(TString::Format("covmat_iter%d", iteration).Data());
-  }
-
-  // Calculate the Pearson coefficients
-  // One block per pt bin
-  // FIXME: what is the shape of cov mat?
-  // Should we loop:
-  // -> (1,1), (1,2), ..., (1, nZ), (1, nZ+1), ..., (1, nZ*nPt)
-  // -> (1,1), (1,2), ..., (1, nPt), (1, nPt+1), ..., (1, nPt*nZ)
-  // TH2D* pearson = (TH2D*)covmat[lastIter]->Clone("pearson");
-  // pearson->Reset();
-  // for (int iPtx = 0; iPtx <= rmTruth->GetNbinsX(); iPtx++) {
-  //   for (int iPty = 0; iPty <= rmTruth->GetNbinsX(); iPty++) {
-  //     for (int iZx = 0; iZx <= rmTruth->GetNbinsY(); iZx++) {
-  //       for (int iZy = 0; iZy <= rmTruth->GetNbinsY(); iZy++) {
-  //         double p = covmat[lastIter]->GetBinContent(iZx, iZy)/TMath::Sqrt(covmat[lastIter]->GetBinContent(iZx, iZx) * covmat[lastIter]->GetBinContent(iZy, iZy));
-  //         pearson->SetBinContent(iZx, iZy, p);
-  //       }
-  //     }
-  //   }
-  // }
-
-  // The unfolding is complete, the following sections refer to projections in one dimension and calculating the ratio between distributions
-  int ptTruthLowBin  = rmTruth->GetXaxis()->FindBin(PTLOW);
-  int ptTruthHighBin = rmTruth->GetXaxis()->FindBin(PTHIGH);
-  int ptDetLowBin    = rmDet->GetXaxis()->FindBin(PTLOW);
-  int ptDetHighBin   = rmDet->GetXaxis()->FindBin(PTHIGH);
-
-  double ptTruthLow  = rmTruth->GetXaxis()->GetBinLowEdge(ptTruthLowBin);
-  double ptTruthHigh = rmTruth->GetXaxis()->GetBinLowEdge(ptTruthHighBin);
-  double ptDetLow    = rmDet->GetXaxis()->GetBinLowEdge(ptDetLowBin);
-  double ptDetHigh   = rmDet->GetXaxis()->GetBinLowEdge(ptDetHighBin);
-
-  //--------------Training sample (Sample creating the response)--------------------//
-    //Truth level
-  TH1D* trainingPtTruth = (TH1D*)rmTruth->ProjectionX("trainingPtTruth");
-  trainingPtTruth->SetTitle("Training truth pt");
-  TH1D* trainingZTruth = (TH1D*)rmTruth->ProjectionY("trainingZTruth", ptTruthLowBin, ptTruthHighBin - 1);
-  trainingZTruth->SetTitle("Training truth z");
-
-    //Detector level
-  TH1D* trainingPtDetector = (TH1D*)rmDet->ProjectionX("trainingPtDetector");
-  trainingPtDetector->SetTitle("Training detector pt");
-  TH1D* trainingZDetector = (TH1D*)rmDet->ProjectionY("trainingZDetector", ptDetLowBin, ptDetHighBin - 1);
-  trainingZDetector->SetTitle("Training detector z");
-
-  //--------------Test sample (MC sample treated as pseudodata)--------------------//
-    //Truth level
-  TH1D* testPtTruth = (TH1D*)testTruth->ProjectionX("testPtTruth");
-  testPtTruth->SetTitle("Test truth pt");
-  TH1D* testZTruth = (TH1D*)testTruth->ProjectionY("testZTruth", ptTruthLowBin, ptTruthHighBin - 1);
-  testZTruth->SetTitle("Test truth z");
-
-    //Detector level
-  TH1D* testPtDetector = (TH1D*)testDet->ProjectionX("testPtDetector");
-  testPtDetector->SetTitle("Test detector pt");
-  TH1D* testZDetector = (TH1D*)testDet->ProjectionY("testZDetector", ptDetLowBin, ptDetHighBin - 1);
-  testZDetector->SetTitle("Test truth z");
-
-    //Unfolded
-  TH1D* testPtUnfolded = unfoldedTest->ProjectionX("testPtUnfolded");
-  testPtUnfolded->SetTitle("Unfolded pt");
-  TH1D* testZUnfolded = unfoldedTest->ProjectionY("testZUnfolded", ptTruthLowBin, ptTruthHighBin - 1);
-  testZUnfolded->SetTitle("Unfolded z");
-
-    //Refolded
-  TH1D* testPtRefolded = refoldedTest->ProjectionX("testPtRefolded");
-  testPtRefolded->SetTitle("Refolded pt");
-  TH1D* testZRefolded = refoldedTest->ProjectionY("testZRefolded", ptDetLowBin, ptDetHighBin - 1);
-  testZRefolded->SetTitle("Refolded z");
+  TH2D* pearson[nIter];
 
   TH1D* unfoldedPt[nIter];
   TH1D* unfoldedZ[nIter];
@@ -647,19 +609,68 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
   TH1D* diffRatioPtDetector[nIter];
   TH1D* diffRatioZDetector[nIter];
 
-  // Compare spectra for each iteration of the unfolding
+  // Load the response object from the Response file
+  RooUnfoldResponse* ruResponse = static_cast<RooUnfoldResponse*>(responseFile->Get("Response"));
+  ruResponse->Write(ruResponse->GetName(), TObject::kOverwrite);
   for (int iter = 0; iter < nIter; iter++)
   {
-    int iteration = iter + 1; // Used for names/titles
+    // Create the Bayesian unfolding object,
+    // Extract the unfolded distribution as a histogram
+    // Apply the Response matrix to the unfolded result
+    // Retrieve the covariance matrix and Pearson coefficients
+
+    int iteration = iter + 1; // Used for names and titles
+    ruBayes[iter] = RooUnfoldBayes(ruResponse, testDet, iter, doSmoothing,
+                                   TString::Format("%s_iter%d", unfoldName.c_str(), iteration).Data(),
+                                   TString::Format("%s_iter%d", unfoldTitle.c_str(), iteration).Data()
+                                  );
+    unfolded[iter] = (TH2F*)ruBayes[iter].Hreco(errorTreatment);
+    unfolded[iter]->SetName(TString::Format("unfolded_iter%d", iteration).Data());
+    refolded[iter] = (TH2F*)ruResponse->ApplyToTruth(unfolded[iter], TString::Format("refolded_iter%d", iteration).Data());
+    // Include the fakes in order to compare with the input distribution
+    refolded[iter]->Add(testFake);
+    TH2D htmp(ruBayes[iter].Ereco(errorTreatment));
+    covmat[iter] = (TH2D*)htmp.Clone(TString::Format("covmat_iter%d", iteration).Data());
+
+    // Calculate the Pearson coefficients
+    // One block per pt bin
+    // FIXME: what is the shape of cov mat?
+    // Should we loop:
+    // -> (1,1), (1,2), ..., (1, nZ), (1, nZ+1), ..., (1, nZ*nPt)
+    // -> (1,1), (1,2), ..., (1, nPt), (1, nPt+1), ..., (1, nPt*nZ)
+    // TH2D* pearson = (TH2D*)covmat[lastIter]->Clone("pearson");
+    // pearson->Reset();
+    // for (int iPtx = 0; iPtx <= rmTruth->GetNbinsX(); iPtx++) {
+    //   for (int iPty = 0; iPty <= rmTruth->GetNbinsX(); iPty++) {
+    //     for (int iZx = 0; iZx <= rmTruth->GetNbinsY(); iZx++) {
+    //       for (int iZy = 0; iZy <= rmTruth->GetNbinsY(); iZy++) {
+    //         double p = covmat[lastIter]->GetBinContent(iZx, iZy)/TMath::Sqrt(covmat[lastIter]->GetBinContent(iZx, iZx) * covmat[lastIter]->GetBinContent(iZy, iZy));
+    //         pearson->SetBinContent(iZx, iZy, p);
+    //       }
+    //     }
+    //   }
+    // }
+
+    ruBayes[iter].Write(ruBayes[iter].GetName(), TObject::kOverwrite);
+    unfolded[iter]->Write(unfolded[iter]->GetName(), TObject::kOverwrite);
+    refolded[iter]->Write(refolded[iter]->GetName(), TObject::kOverwrite);
+    covmat[iter]->Write(covmat[iter]->GetName(), TObject::kOverwrite);
+    pearson[iter]->Write(pearson[iter]->GetName(), TObject::kOverwrite);
+
+    // ------------------ Compare 1D spectra for each iteration of the unfolding ------------------
     unfoldedPt[iter] = (TH1D*)unfolded[iter]->ProjectionX(TString::Format("unfoldedPt_iter%d", iteration).Data());
     unfoldedPt[iter]->SetTitle(TString::Format("Unfolded pt iteration %d; #it{p}_{T, ch. jet}", iteration).Data());
+    unfoldedPt[iter]->Write(unfoldedPt[iter]->GetName(), TObject::kOverwrite);
     unfoldedZ[iter] = (TH1D*)unfolded[iter]->ProjectionY(TString::Format("unfoldedZ_iter%d", iteration).Data(), ptTruthLowBin, ptTruthHighBin - 1);
     unfoldedZ[iter]->SetTitle(TString::Format("Unfolded z iteration %d, #it{p}_{T, ch. jet}: %.0f - %.0f", iteration, ptTruthLow, ptTruthHigh).Data());
+    unfoldedZ[iter]->Write(unfoldedZ[iter]->GetName(), TObject::kOverwrite);
 
     refoldedPt[iter] = (TH1D*)refolded[iter]->ProjectionX(TString::Format("refoldedPt_iter%d", iteration).Data());
     refoldedPt[iter]->SetTitle(TString::Format("Refolded pt iteration %d; #it{p}_{T, ch. jet}", iteration).Data());
+    refoldedPt[iter]->Write(refoldedPt[iter]->GetName(), TObject::kOverwrite);
     refoldedZ[iter] = (TH1D*)refolded[iter]->ProjectionY(TString::Format("refoldedZ_iter%d", iteration).Data(), ptTruthLowBin, ptTruthHighBin - 1);
     refoldedZ[iter]->SetTitle(TString::Format("Refolded z iteration %d, #it{p}_{T, ch. jet}: %.0f - %.0f", iteration, ptDetLow, ptDetHigh).Data());
+    refoldedZ[iter]->Write(refoldedZ[iter]->GetName(), TObject::kOverwrite);
 
     // Ratio histograms
     ptUnfoldedOverTruth[iter] =
@@ -683,6 +694,11 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
                        TString::Format("Test z refolded/detector, iter %d, #it{p}_{T, ch. jet}: %.0f - %.0f; #it{z}; #frac{Refolded}{Detector}", iteration, ptDetLow, ptDetHigh).Data()
                       );
 
+    ptUnfoldedOverTruth[iter]->Write(ptUnfoldedOverTruth[iter]->GetName(), TObject::kOverwrite);
+    zUnfoldedOverTruth[iter]->Write(zUnfoldedOverTruth[iter]->GetName(), TObject::kOverwrite);
+    ptRefoldedOverDetector[iter]->Write(ptRefoldedOverDetector[iter]->GetName(), TObject::kOverwrite);
+    zRefoldedOverDetector[iter]->Write(zRefoldedOverDetector[iter]->GetName(), TObject::kOverwrite);
+
     // Diff histograms
     ptUnfoldedMinusTruth[iter] =
       (TH1D*)HistDiff(unfoldedPt[iter], testPtTruth,
@@ -704,6 +720,11 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
                        TString::Format("zRefoldedMinusDetector_iter%d", iteration).Data(),
                        TString::Format("Test z refolded - detector, iter %d, #it{p}_{T, ch. jet}: %.0f - %.0f; #it{z}; Refolded - Detector", iteration, ptDetLow, ptDetHigh).Data()
                       );
+
+    ptUnfoldedMinusTruth[iter]->Write(ptUnfoldedMinusTruth[iter]->GetName(), TObject::kOverwrite);
+    zUnfoldedMinusTruth[iter]->Write(zUnfoldedMinusTruth[iter]->GetName(), TObject::kOverwrite);
+    ptRefoldedMinusDetector[iter]->Write(ptRefoldedMinusDetector[iter]->GetName(), TObject::kOverwrite);
+    zRefoldedMinusDetector[iter]->Write(zRefoldedMinusDetector[iter]->GetName(), TObject::kOverwrite);
 
     // Diff ratio histograms
     diffRatioPtTruth[iter]
@@ -727,7 +748,13 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
                          TString::Format("Test z (refolded - detector)/detector, iter %d, #it{p}_{T, ch. jet}: %.0f - %.0f; #it{z}; #frac{Refolded - Detector}{Detector}", iteration, ptDetLow, ptDetHigh).Data()
                         );
 
+    diffRatioPtTruth[iter]->Write(diffRatioPtTruth[iter]->GetName(), TObject::kOverwrite);
+    diffRatioZTruth[iter]->Write(diffRatioZTruth[iter]->GetName(), TObject::kOverwrite);
+    diffRatioPtDetector[iter]->Write(diffRatioPtDetector[iter]->GetName(), TObject::kOverwrite);
+    diffRatioZDetector[iter]->Write(diffRatioZDetector[iter]->GetName(), TObject::kOverwrite);
+
     // ----------------------- Plotting -----------------------
+    if (!makePlots) { continue; }
     TCanvas* spectraCanvas = new TCanvas(TString::Format("spectraCanvas_iter%d", iteration).Data(),
                                          TString::Format("spectraCanvas_iter%d", iteration).Data(),
                                          2000, 1000);
@@ -799,52 +826,5 @@ void ClosureTest(string testFileName = "AnalysisResults.root", string responseFi
     diffratioCanvas->cd(4);
     diffRatioZDetector[iter]->Draw(drawOption.c_str());
     diffratioCanvas->SaveAs(TString::Format("closureTest-diffratio-iter%d.pdf", iteration).Data());
-  }
-
-  //Saving the output in a new file
-  string outFileName = "./closureTest.root";
-  TFile *outFile = new TFile(outFileName.c_str(), "RECREATE");
-
-  // Response objects
-  responseMatrix->Write("trainingRM", TObject::kOverwrite);
-  rmTruth->Write(rmTruth->GetName(), TObject::kOverwrite);
-  rmDet->Write(rmDet->GetName(), TObject::kOverwrite);
-  trainingPtDetector->Write(trainingPtDetector->GetName(), TObject::kOverwrite);
-  trainingZDetector->Write(trainingZDetector->GetName(), TObject::kOverwrite);
-  trainingPtTruth->Write(trainingPtTruth->GetName(), TObject::kOverwrite);
-  trainingZTruth->Write(trainingZTruth->GetName(), TObject::kOverwrite);
-
-  testRM->Write("testRM", TObject::kOverwrite);
-  testTruth->Write(testTruth->GetName(), TObject::kOverwrite);
-  testDet->Write(testDet->GetName(), TObject::kOverwrite);
-  ruResponse->Write(ruResponse->GetName(), TObject::kOverwrite);
-  testPtDetector->Write(testPtDetector->GetName(), TObject::kOverwrite);
-  testZDetector->Write(testZDetector->GetName(), TObject::kOverwrite);
-  testPtTruth->Write(testPtTruth->GetName(), TObject::kOverwrite);
-  testZTruth->Write(testZTruth->GetName(), TObject::kOverwrite);
-
-  for (int iter = 0; iter < nIter; iter++) {
-    ruBayes[iter].Write();
-    unfolded[iter]->Write();
-    refolded[iter]->Write();
-    covmat[iter]->Write();
-
-    unfoldedPt[iter]->Write();
-    unfoldedZ[iter]->Write();
-    refoldedPt[iter]->Write();
-    refoldedZ[iter]->Write();
-
-    ptUnfoldedOverTruth[iter]->Write();
-    zUnfoldedOverTruth[iter]->Write();
-    ptRefoldedOverDetector[iter]->Write();
-    zRefoldedOverDetector[iter]->Write();
-    ptUnfoldedMinusTruth[iter]->Write();
-    zUnfoldedMinusTruth[iter]->Write();
-    ptRefoldedMinusDetector[iter]->Write();
-    zRefoldedMinusDetector[iter]->Write();
-    diffRatioPtTruth[iter]->Write();
-    diffRatioZTruth[iter]->Write();
-    diffRatioPtDetector[iter]->Write();
-    diffRatioZDetector[iter]->Write();
-  }
+  } // for iter
 }

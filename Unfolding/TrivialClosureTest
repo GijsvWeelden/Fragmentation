@@ -1,0 +1,76 @@
+
+#! /bin/bash
+
+# CreateRooUnfold settings
+TRAINING="23d4-matchDist05.root"
+PT_TRUTH_MIN=10.
+PT_TRUTH_MAX=300.
+PT_DET_MIN=10.
+PT_DET_MAX=300.
+BINWIDTH_PT=5.
+Z_TRUTH_MIN=0.
+Z_TRUTH_MAX=1.
+Z_DET_MIN=0.
+Z_DET_MAX=1.
+BINWIDTH_Z=0.025
+
+# ClosureTest settings
+TEST=${TRAINING}
+PT_LOW=60.
+PT_HIGH=80.
+N_ITER=3
+
+DO_CLOSURE=0
+command=""
+
+while getopts 'i:tc' OPTION; do
+  case "$OPTION" in
+    i)
+      TRAINING="${OPTARG}"
+      ;;
+    t)
+      DO_CLOSURE=1
+      ;;
+    c)
+      DO_CLOSURE=2
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-i input]"
+      exit 1
+      ;;
+  esac
+done
+
+echo "${TRAINING}"
+
+if [ ${DO_CLOSURE} -eq 0 ]; then
+echo "Creating RooUnfoldResponse"
+command="CreateRooUnfoldResponse(\"23d4-sample1.root\", 30., 150., 30., 150., 10, 0., 1., 0., 1., 0.05, false)"
+root -l -b <<EOF
+.L ProjectionRooUnfoldResponseAndClosureTest.C
+${command}
+EOF
+fi
+# else if [ ${DO_CLOSURE} -q 1 ]; then
+# echo "Trivial closure test"
+# command="ClosureTest(\"23d4-sample1.root\", \"RooUnfoldResponse.root\", 100., 120., 3)"
+# # root -l -b <<EOF
+# # .L ProjectionRooUnfoldResponseAndClosureTest.C
+# # ${command}
+# # EOF
+# mkdir -p "23d4-TCT_pt30-150_proj100-120/trivialCT/"
+# mv *.pdf "23d4-TCT_pt30-150_proj100-120/trivialCT/"
+# mv RooUnfoldResponse.root "23d4-TCT_pt30-150_proj100-120/trivialCT/"
+# mv closureTest.root "23d4-TCT_pt30-150_proj100-120/trivialCT/"
+# else
+# echo "Statistically independent closure test"
+# command="ClosureTest(\"23d4-sample2.root\", \"RooUnfoldResponse.root\", 100., 120., 3)"
+# # root -l -b <<EOF
+# # .L ProjectionRooUnfoldResponseAndClosureTest.C
+# # ${command}
+# # EOF
+# mkdir -p "23d4-TCT_pt30-150_proj100-120/statCT/"
+# mv *.pdf "23d4-TCT_pt30-150_proj100-120/statCT/"
+# mv RooUnfoldResponse.root "23d4-TCT_pt30-150_proj100-120/statCT/"
+# mv closureTest.root "23d4-TCT_pt30-150_proj100-120/statCT/"
+# fi

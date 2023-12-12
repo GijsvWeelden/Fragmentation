@@ -1,0 +1,6 @@
+
+# ./ClosureTest --create --out 23d4 --ptt 30. 200. --ptd 30. 200. --ptb 10. --zt 0. 1. --zd 0. 1. --zb 0.05
+# ./ClosureTest --trivial --out 23d4_CT_pt30-200_proj100-120 --pt 100. 120. -i 1 5
+
+./ClosureTest --create --out 23d4 --ptt 30. 200. --ptd 30. 200. --ptb 10. --zt 0. 1. --zd 0. 1. --zb 0.05
+./ClosureTest --stat --test 23d4-sample2.root --out 23d4_CT_pt30-200_proj100-120 --pt 100. 120. -i 1 5

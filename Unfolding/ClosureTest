@@ -1,8 +1,10 @@
 
 #! /bin/bash
 
+OUTPUTDIR=""
+
 # CreateRooUnfold settings
-TRAINING="23d4-matchDist05.root"
+TRAINING="23d4-sample1.root"
 PT_TRUTH_MIN=10.
 PT_TRUTH_MAX=300.
 PT_DET_MIN=10.
@@ -16,61 +18,199 @@ BINWIDTH_Z=0.025
 
 # ClosureTest settings
 TEST=${TRAINING}
-PT_LOW=60.
-PT_HIGH=80.
-N_ITER=3
+PT_LOW=100.
+PT_HIGH=120.
+# N_ITER=3
+IT_MIN=3
+IT_MAX=3
+DRAWOPTION="text90 hist"
 
 DO_CLOSURE=0
 command=""
 
-while getopts 'i:tc' OPTION; do
-  case "$OPTION" in
-    i)
-      TRAINING="${OPTARG}"
-      ;;
-    t)
-      DO_CLOSURE=1
-      ;;
-    c)
-      DO_CLOSURE=2
-      ;;
-    ?)
-      echo "Script usage: $(basename \$0) [-i input]"
-      exit 1
-      ;;
-  esac
-done
+_setArgs(){
+  while [ "${1:-}" != "" ]; do
+    case "$1" in
+      "--training")
+        shift
+        TRAINING=$1
+        ;;
+      "--test")
+        shift
+        TEST=$1
+        ;;
+      "-o" | "--out")
+        shift
+        OUTPUTDIR=$1
+        ;;
+      "--create")
+        DO_CLOSURE=0
+        ;;
+      "--trivial")
+        DO_CLOSURE=1
+        ;;
+      "--stat")
+        DO_CLOSURE=2
+        ;;
+      "--closure")
+        shift
+        DO_CLOSURE=$1
+        ;;
+      "-i" | "--iter")
+        shift
+        IT_MIN=$1
+        shift
+        IT_MAX=$1
+        ;;
+      "--pt")
+        shift
+        PT_LOW=$1
+        shift
+        PT_HIGH=$1
+        ;;
+      "--ptt")
+        shift
+        PT_TRUTH_MIN=$1
+        shift
+        PT_TRUTH_MAX=$1
+        ;;
+      "--ptd")
+        shift
+        PT_DET_MIN=$1
+        shift
+        PT_DET_MAX=$1
+        ;;
+      "--ptb")
+        shift
+        BINWIDTH_PT=$1
+        ;;
+      "--zt")
+        shift
+        Z_TRUTH_MIN=$1
+        shift
+        Z_TRUTH_MAX=$1
+        ;;
+      "--zd")
+        shift
+        Z_DET_MIN=$1
+        shift
+        Z_DET_MAX=$1
+        ;;
+      "--zb")
+        shift
+        BINWIDTH_Z=$1
+        ;;
+    esac
+    shift
+  done
+}
 
-echo "${TRAINING}"
+_setArgs $@
+
+if [ "${OUTPUTDIR}" = "" ]; then
+OUTPUTDIR="placeholder"
+fi
+
 
 if [ ${DO_CLOSURE} -eq 0 ]; then
-echo "Creating RooUnfoldResponse"
-command="CreateRooUnfoldResponse(\"23d4-sample1.root\", 30., 150., 30., 150., 10, 0., 1., 0., 1., 0.05, false)"
+echo "Starting: Creating RooUnfoldResponse"
+command="CreateRooUnfoldResponse(\"${TRAINING}\", ${PT_TRUTH_MIN}, ${PT_TRUTH_MAX}, ${PT_DET_MIN}, ${PT_DET_MAX}, ${BINWIDTH_PT}, ${Z_TRUTH_MIN}, ${Z_TRUTH_MAX}, ${Z_DET_MIN}, ${Z_DET_MAX}, ${BINWIDTH_Z}, false)"
 root -l -b <<EOF
 .L ProjectionRooUnfoldResponseAndClosureTest.C
 ${command}
 EOF
+TMP="${OUTPUTDIR}_CT_pt${PT_TRUTH_MIN}-${PT_TRUTH_MAX}_proj${PT_LOW}-${PT_HIGH}"
+OUTPUTDIR="${TMP//.}" # Remove all . from TMP
+echo "Input: ${TRAINING}, output: ${OUTPUTDIR}"
+mkdir -p "${OUTPUTDIR}"
+echo "Finished: Creating RooUnfoldResponse"
+
+elif [ ${DO_CLOSURE} -eq 1 ]; then
+echo "Starting: Trivial closure test"
+command="ClosureTest(\"${TRAINING}\", \"RooUnfoldResponse.root\", ${PT_LOW}, ${PT_HIGH}, ${IT_MIN}, ${IT_MAX}, true, \"${DRAWOPTION}\")"
+echo "${command}"
+# exit 0
+root -l -b <<EOF
+.L ProjectionRooUnfoldResponseAndClosureTest.C
+${command}
+EOF
+echo "Finished: Trivial closure test"
+echo "Ouput in: ${OUTPUTDIR}/trivialCT/"
+mkdir -p "${OUTPUTDIR}/trivialCT/"
+mv *.pdf "${OUTPUTDIR}/trivialCT/"
+mv RooUnfoldResponse.root "${OUTPUTDIR}/trivialCT/"
+mv closureTest.root "${OUTPUTDIR}/trivialCT/"
+
+elif [ ${DO_CLOSURE} -eq 2 ]; then
+echo "Starting: Statistically independent closure test"
+echo "Input: ${TEST}, output in: ${OUTPUTDIR}/statCT/"
+command="ClosureTest(\"${TEST}\", \"RooUnfoldResponse.root\", ${PT_LOW}, ${PT_HIGH}, ${IT_MIN}, ${IT_MAX}, true, \"${DRAWOPTION}\")"
+echo "${command}"
+# exit 0
+root -l -b <<EOF
+.L ProjectionRooUnfoldResponseAndClosureTest.C
+${command}
+EOF
+echo "Finished: Statistically independent closure test"
+mkdir -p "${OUTPUTDIR}/statCT/"
+mv *.pdf "${OUTPUTDIR}/statCT/"
+mv RooUnfoldResponse.root "${OUTPUTDIR}/statCT/"
+mv closureTest.root "${OUTPUTDIR}/statCT/"
+
+else
+echo "Error! DO_CLOSURE = ${DO_CLOSURE}"
+exit 1
 fi
-# else if [ ${DO_CLOSURE} -q 1 ]; then
-# echo "Trivial closure test"
-# command="ClosureTest(\"23d4-sample1.root\", \"RooUnfoldResponse.root\", 100., 120., 3)"
-# # root -l -b <<EOF
-# # .L ProjectionRooUnfoldResponseAndClosureTest.C
-# # ${command}
-# # EOF
+# if [ ${DO_CLOSURE} -eq 0 ]; then
+# echo "Starting: Creating RooUnfoldResponse"
+# command="CreateRooUnfoldResponse(\"23d4-sample1.root\", 30., 150., 30., 150., 10, 0., 1., 0., 1., 0.05, false)"
+# root -l -b <<EOF
+# .L ProjectionRooUnfoldResponseAndClosureTest.C
+# ${command}
+# EOF
+# echo "Finished: Creating RooUnfoldResponse"
+# elif [ ${DO_CLOSURE} -eq 1 ]; then
+# echo "Starting: Trivial closure test"
+# command="ClosureTest(\"23d4-sample1.root\", \"RooUnfoldResponse.root\", 100., 120., 3, true, \"text90 hist\")"
+# root -l -b <<EOF
+# .L ProjectionRooUnfoldResponseAndClosureTest.C
+# ${command}
+# EOF
+# echo "Finished: Trivial closure test"
 # mkdir -p "23d4-TCT_pt30-150_proj100-120/trivialCT/"
 # mv *.pdf "23d4-TCT_pt30-150_proj100-120/trivialCT/"
 # mv RooUnfoldResponse.root "23d4-TCT_pt30-150_proj100-120/trivialCT/"
 # mv closureTest.root "23d4-TCT_pt30-150_proj100-120/trivialCT/"
-# else
-# echo "Statistically independent closure test"
-# command="ClosureTest(\"23d4-sample2.root\", \"RooUnfoldResponse.root\", 100., 120., 3)"
-# # root -l -b <<EOF
-# # .L ProjectionRooUnfoldResponseAndClosureTest.C
-# # ${command}
-# # EOF
+# elif [ ${DO_CLOSURE} -eq 2 ]; then
+# echo "Starting: Statistically independent closure test"
+# command="ClosureTest(\"23d4-sample2.root\", \"RooUnfoldResponse.root\", 100., 120., 3, true, \"text90 hist\")"
+# root -l -b <<EOF
+# .L ProjectionRooUnfoldResponseAndClosureTest.C
+# ${command}
+# EOF
+# echo "Finished: Statistically independent closure test"
 # mkdir -p "23d4-TCT_pt30-150_proj100-120/statCT/"
 # mv *.pdf "23d4-TCT_pt30-150_proj100-120/statCT/"
 # mv RooUnfoldResponse.root "23d4-TCT_pt30-150_proj100-120/statCT/"
 # mv closureTest.root "23d4-TCT_pt30-150_proj100-120/statCT/"
+# else
+# echo "Error! DO_CLOSURE = ${DO_CLOSURE}"
+# exit 1
 # fi
+# while getopts 'i:tc' OPTION; do
+#   case "$OPTION" in
+#     i)
+#       TRAINING="${OPTARG}"
+#       ;;
+#     t)
+#       DO_CLOSURE=1
+#       ;;
+#     c)
+#       DO_CLOSURE=2
+#       ;;
+#     ?)
+#       echo "Script usage: $(basename \$0) [-i input]"
+#       exit 1
+#       ;;
+#   esac
+# done

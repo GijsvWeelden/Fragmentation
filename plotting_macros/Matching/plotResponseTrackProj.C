@@ -18,10 +18,10 @@ void normaliseHistColByCol(TH2F* hist);
 void plotOneHist(TCanvas* canvas, TH1F* frame, TH2F* hist, TLegend* legend, string saveName, string setDrawOption, string latexText);
 void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<TH1F*> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
 
-void plotResponseChargeFrag(void)
+void plotResponseTrackProj(void)
 {
   double time = clock();
-  string inName = "../../data/LHC21k6/train109274.root";
+  string inName = "./AnalysisResults-sample1.root";
   // string saveDir = "../../Plots/LHC21k6/test109274";
   string saveDir = ".";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
@@ -51,7 +51,8 @@ void plotResponseChargeFrag(void)
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.7, yMaxLegend = 0.8;
   int R = 4;
   int rebinNumber = 2;
-  double ptMin = 40, ptMax = 60;
+  // double ptMin = 10, ptMax = 300;
+  double ptMin = 60, ptMax = 80;
 
   // Plotting stuff
   gStyle->SetNdivisions(505, "xy");
@@ -76,11 +77,15 @@ void plotResponseChargeFrag(void)
   THnF* response = (THnF*)matchJetsDir->Get(histName.c_str());
   int firstBinPtTruth = 1, lastBinPtTruth = response->GetAxis(3)->GetNbins();
   int projectionAxisX = 1, projectionAxisY = 3;
+
+  int ptDetAxis = 0;
+  int zDetAxis = 1;
   int ptTruthAxis = 2;
 
   firstBinPtTruth = response->GetAxis(ptTruthAxis)->FindBin(ptMin);
   lastBinPtTruth = response->GetAxis(ptTruthAxis)->FindBin(ptMax);
-  response->GetAxis(ptTruthAxis)->SetRange(firstBinPtTruth, lastBinPtTruth);
+  response->GetAxis(ptTruthAxis)->SetRangeUser(ptMin, ptMax);
+  // response->GetAxis(ptTruthAxis)->SetRange(firstBinPtTruth, lastBinPtTruth);
 
   TH2F* zTzD = (TH2F*)response->Projection(projectionAxisY, projectionAxisX);
   zTzD->Rebin2D(rebinNumber, rebinNumber);

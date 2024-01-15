@@ -4,6 +4,7 @@ pythia/pythia8_simple
 
 **/.DS_Store
 **/test.*
+**/*.pdf
 
 *.log
 *.root

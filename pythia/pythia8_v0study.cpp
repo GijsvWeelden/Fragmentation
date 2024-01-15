@@ -132,9 +132,9 @@ void withDecays(int nEvents)
   double hNdauMin[nDim] = {min_pt_jet, min_ratio_pt, min_pt_track, min_dau};
   double hNdauMax[nDim] = {max_pt_jet, max_ratio_pt, max_pt_track, max_dau};
 
-	int hNv0Bins[nDim]   = {nBins_pt_jet, nBins_ratio_pt, nBins_pt_track, nBins_v0};
-  double hNv0Min[nDim] = {min_pt_jet, min_ratio_pt, min_pt_track, min_nv0};
-  double hNv0Max[nDim] = {max_pt_jet, max_ratio_pt, max_pt_track, max_nv0};
+	int hNptv0Bins[nDim]   = {nBins_pt_jet, nBins_ratio_pt, nBins_pt_track, nBins_v0};
+  double hNptv0Min[nDim] = {min_pt_jet, min_ratio_pt, min_pt_track, min_nv0};
+  double hNptv0Max[nDim] = {max_pt_jet, max_ratio_pt, max_pt_track, max_nv0};
 
   int hDauPtBins[nDim]   = {nBins_pt_jet, nBins_ratio_pt, nBins_pt_track, nBins_pt_track};
   double hDauPtMin[nDim] = {min_pt_jet, min_ratio_pt, min_pt_track, min_pt_track};
@@ -187,11 +187,18 @@ void withDecays(int nEvents)
 	TH1F* hnewjetpt = new TH1F("hnewjetpt", "hnewjetpt; #it{p}_{T, jet}^{new}", nBins_pt_jet, min_pt_jet, max_pt_jet);
 	TH1F* hv0pt = new TH1F("hv0pt", "hv0pt; #it{p}_{T, v0}", nBins_pt_track, min_pt_track, max_pt_track);
 
-	ThnSparseD* hNv0
-		= new ThnSparseD("hNv0",
-										 TString::Format("hNv0;%s;%s;%s;%s",
+	TH3D* hNv0 = new TH3D("hNv0",
+												TString::Format("hNv0; %s; %s; %s",
+														sorig.c_str(), sratio.c_str(), snv0.c_str()).Data(),
+											  nBins_pt_jet, min_pt_jet, max_pt_jet,
+												nBins_ratio_pt, min_ratio_pt, max_ratio_pt,
+												nBins_v0, min_nv0, max_nv0
+											 );
+	THnSparseD* hNptv0
+		= new THnSparseD("hNptv0",
+										 TString::Format("hNptv0;%s;%s;%s;%s",
 												sorig.c_str(), sratio.c_str(), sv0pt.c_str(), snv0.c_str()).Data(),
-										 nDim, hNv0Bins, hNv0Min, hNv0Max
+										 nDim, hNptv0Bins, hNptv0Min, hNptv0Max
 		);
 	THnSparseD* hzU // z calculated with uncorrected jet pt
 		= new THnSparseD(TString::Format("hzU").Data(),
@@ -406,9 +413,11 @@ void withDecays(int nEvents)
 				if (v0inJet) {
 					hzU->Fill(jet.pt(), ptratio, pjV0.pt(), zU);
 					hzC->Fill(jet.pt(), ptratio, pjV0.pt(), zC);
+					hNptv0->Fill(jet.pt(), ptratio, pjV0.pt(), nv0InJet);
 					hNdauV0in->Fill(jet.pt(), ptratio, pjV0.pt(), ndinjet);
 					hDeltaPtV0in->Fill(jet.pt(), ptratio, pjV0.pt(), jet.pt() - newjet.pt());
 					hdRV0in->Fill(jet.pt(), ptratio, pjV0.pt(), dR);
+
 					if (ndinjet == 0) {
 						vector<int> dList = v0.daughterList();
 						const Particle &d0 = pythia.event[dList[0]];

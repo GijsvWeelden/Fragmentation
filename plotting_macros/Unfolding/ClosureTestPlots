@@ -1,0 +1,28 @@
+
+#! /bin/bash
+
+INPUT="23d4_CT_pt30-200_proj100-120/trivialCT/closureTest.root"
+# INPUT="23d4_CT_pt30-200_proj100-120/statCT/closureTest.root"
+ITMIN=1
+ITMAX=5
+PTMIN=100.
+PTMAX=120.
+DRAWOPTION=""
+
+echo "Starting: plots for closure test"
+
+for VARIABLE in 1 2 3 5 6 7
+do
+SETTING=$((VARIABLE-4))
+command="plotRefoldedAndDetector(\"${INPUT}\", ${SETTING}, ${ITMIN}, ${ITMAX}, ${PTMIN}, ${PTMAX}, \"${DRAWOPTION}\")"
+root -l -b <<EOF
+.L plotUnfolding.C
+${command}
+EOF
+
+command="plotUnfoldedAndTruth(\"${INPUT}\", ${SETTING}, ${ITMIN}, ${ITMAX}, ${PTMIN}, ${PTMAX}, \"${DRAWOPTION}\")"
+root -l -b <<EOF
+.L plotUnfolding.C
+${command}
+EOF
+done

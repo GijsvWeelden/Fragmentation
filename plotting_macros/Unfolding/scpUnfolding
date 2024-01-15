@@ -1,0 +1,4 @@
+#! /bin/bash
+
+scp gweelden@login.nikhef.nl:Fragmentation/Unfolding/closureTest_*.root .
+scp gweelden@login.nikhef.nl:Fragmentation/Unfolding/RooUnfoldResponse.root .

@@ -149,7 +149,7 @@ double kkpParameter(string hadron, int quarkOrGluon, int parameter, double sHat)
           outPar = f3(91338, 0.64145, 0.07270, -0.16989, sHat);
           break;
         case 3: // gamma
-          outPar = f3(0, 0.07396, 0.07757, 0, sHat);
+          outPar = f3(0, 0.07396, -0.07757, 0, sHat);
           break;
         default:
           break;
@@ -214,7 +214,7 @@ TF1* loadTheory(string hadron, int quarkOrGluon, double QSquared)
   // KKP: https://arxiv.org/pdf/hep-ph/0011155.pdf
   double Lambda = 213e-3; // In GeV, at NLO
   double LambdaSquared = Lambda * Lambda;
-  double Q0Squared = TMath::Sqrt(2); // In GeV
+  double Q0Squared = 2; // In GeV^2
   double N = 22.2815, alpha = 0.12732, beta = 6.13697, gamma = 0;
   double sHat = log( log(QSquared / LambdaSquared) / log (Q0Squared / LambdaSquared) );
 

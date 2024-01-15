@@ -1,6 +1,7 @@
 Plots/
 data/
 pythia/pythia8_simple
+pythia/pythia8_v0study
 
 **/.DS_Store
 **/test.*

@@ -44,6 +44,6 @@ while [ $iJob -le ${nJobs} ]; do
     mkdir -p ${jobdir}/logs/
   fi
   # rm ${jobdir}/*.root ${jobdir}/logs/*
-  qsub -q generic -v DECAYS="${decays}",NEVENTS="${nEvents}" -d ${jobdir} -o ${jobdir}/logs -e ${jobdir}/logs ${outdir}/../runstbc
+  qsub -q generic -v decays="${decays}",nEvents="${nEvents}" -d ${jobdir} -o ${jobdir}/logs -e ${jobdir}/logs ${outdir}/../runstbc
   let iJob++
 done

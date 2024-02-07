@@ -27,8 +27,6 @@
 #include "THnSparse.h"
 #include "TH2F.h"
 
-// #define nEvents 200
-
 using namespace Pythia8;
 void withDecays(int nEvents);
 void withoutDecays(int nEvents);
@@ -121,7 +119,7 @@ void withDecays(int nEvents)
 	double min_nv0 = -0.5, max_nv0 = 20.5;
   double min_dau = -0.5, max_dau = 2.5;
 	double min_z = 1e-3, max_z = 1.001;
-	double min_dR = 0., max_dR = 1.;
+	double min_dR = 0., max_dR = 2.;
 
   int nDim = 4;
   int hzBins[nDim]   = {nBins_pt_jet, nBins_ratio_pt, nBins_pt_track, nBins_z};
@@ -183,9 +181,10 @@ void withDecays(int nEvents)
 																						 outName.c_str(), ptHatMin, ptHatMax).Data(),
 																						 "RECREATE");
 
-	TH1F* hjetpt = new TH1F("hjetpt", "hjetpt; #it{p}_{T, jet}^{orig.}", nBins_pt_jet, min_pt_jet, max_pt_jet);
-	TH1F* hnewjetpt = new TH1F("hnewjetpt", "hnewjetpt; #it{p}_{T, jet}^{new}", nBins_pt_jet, min_pt_jet, max_pt_jet);
-	TH1F* hv0pt = new TH1F("hv0pt", "hv0pt; #it{p}_{T, v0}", nBins_pt_track, min_pt_track, max_pt_track);
+	TH1D* hNEvts = new TH1D("hNEvts", "hNEvts", 1, 0.5, 1.5);
+	TH1D* hjetpt = new TH1D("hjetpt", "hjetpt; #it{p}_{T, jet}^{orig.}", nBins_pt_jet, min_pt_jet, max_pt_jet);
+	TH1D* hnewjetpt = new TH1D("hnewjetpt", "hnewjetpt; #it{p}_{T, jet}^{new}", nBins_pt_jet, min_pt_jet, max_pt_jet);
+	TH1D* hv0pt = new TH1D("hv0pt", "hv0pt; #it{p}_{T, v0}", nBins_pt_track, min_pt_track, max_pt_track);
 
 	TH3D* hNv0 = new TH3D("hNv0",
 												TString::Format("hNv0; %s; %s; %s",
@@ -285,6 +284,7 @@ void withDecays(int nEvents)
   for (int iEvent = 0; iEvent < nEvents; iEvent++)
   {
 		if (!pythia.next()) continue;
+		hNEvts->Fill(1);
 		double fourvec[4];
 
 		double ptSumPythia = 0;
@@ -428,6 +428,16 @@ void withDecays(int nEvents)
 						hMissDauPt->Fill(jet.pt(), pjV0.pt(), pjd0.pt(), pjd1.pt());
 						hMissDauEta->Fill(jet.pt(), pjV0.pt(), pjd0.eta(), pjd1.eta());
 						hMissDaudR->Fill(jet.pt(), pjV0.pt(), dR, pjd0.delta_R(jet), pjd1.delta_R(jet));
+
+						// cout << "v0 " << v0Indices[iv0] << " has daughters " << dList[0] << ", " << dList[1] << endl;
+						// cout << "jet: " << jet.px() << ", " << jet.py() << ", " << jet.pz() << endl;
+
+						// cout << "(pt, eta, phi):" << endl
+						// 		 << "jet (" << jet.pt() << ", " << jet.eta() << ", " << jet.phi() << ")" << endl
+						// 		 << "v0 (" << pjV0.pt() << ", " << pjV0.eta() << ", " << pjV0.phi() << "), dR(jet) = " << pjV0.delta_R(jet) << endl
+						// 		 << "d0 (" << pjd0.pt() << ", " << pjd0.eta() << ", " << pjd0.phi() << "), dR(jet) = " << pjd0.delta_R(jet) << endl
+						// 		 << "d1 (" << pjd1.pt() << ", " << pjd1.eta() << ", " << pjd1.phi() << "), dR(jet) = " << pjd1.delta_R(jet) << endl;
+						// pythia.event.list();
 					}
 				}
 				if (!v0inJet && ndinjet > 0) {
@@ -572,6 +582,7 @@ void withoutDecays(int nEvents)
 																						 outName.c_str(), ptHatMin, ptHatMax).Data(),
 																						 "RECREATE");
 
+	TH1D* hNEvts = new TH1D("hNEvts", "hNEvts", 1, 0.5, 1.5);
 	TH1F* hjetpt = new TH1F("hjetpt", "hjetpt; #it{p}_{T, jet}", nBins_pt_jet, min_pt_jet, max_pt_jet);
 	TH1F* hv0pt = new TH1F("hv0pt", "hv0pt; #it{p}_{T, v0}", nBins_pt_track, min_pt_track, max_pt_track);
 
@@ -591,6 +602,7 @@ void withoutDecays(int nEvents)
   for (int iEvent = 0; iEvent < nEvents; iEvent++)
   {
 		if (!pythia.next()) continue;
+		hNEvts->Fill(1);
 		double fourvec[4];
 
 		double ptSumPythia = 0;

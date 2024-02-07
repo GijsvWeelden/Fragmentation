@@ -14,7 +14,7 @@ DIGITS=${TRAINRUN:0:2}
 TESTID=00$DIGITS/00$TRAINRUN
 
 # make sure we are in the right directory...
-OUTPUTDIR=/Users/gijsvanweelden/Documents/Fragmentation/data/TrainOutput
+OUTPUTDIR=/Users/gijsvanweelden/Documents/TrainOutput
 [ ! -d "$OUTPUTDIR" ] && echo "The directory for train output does not exist! Check that you know where you are writing to! Requested directory: ${OUTPUTDIR}" && exit 1
 cd ${OUTPUTDIR}
 
@@ -24,9 +24,10 @@ cd $TRAINRUN
 
 ### 1 Download the full merged output AnalysisResults.root
 # there is an extra nested directory
+# FIXME: this doesn't work. How to get the correct directory? (29.01.2024)
 NEST=`alien_ls /alice/cern.ch/user/a/alihyperloop/outputs/$TRAINRUN`
 
-alien_cp alien:/alice/cern.ch/user/a/alihyperloop/outputs/$TRAINRUN/$NEST/AnalysisResults.root file:./AnalisysResults.root
+alien_cp alien:/alice/cern.ch/user/a/alihyperloop/outputs/$TRAINRUN/$NEST/AnalysisResults.root file:./AnalysisResults.root
 
 ### 2 Download config, stdout from the test directory
 curl -k --cert ~/.globus/usercert.pem --cert-type PEM --key ~/.globus/userkey.pem \

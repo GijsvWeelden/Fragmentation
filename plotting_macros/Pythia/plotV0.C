@@ -45,13 +45,13 @@ void plotNdaughtersV0in(string inName = "withdecays_pthat20_80.root", double ptm
   double titleSize = 0.03;
 
   bool setLogY = true;
-  double xMinFrame = 0, xMaxFrame = 20, yMinFrame = 1e-3, yMaxFrame = 1;
+  double xMinFrame = 0, xMaxFrame = 20, yMinFrame = 1e-5, yMaxFrame = 2;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, V0}";
   yTitle = "Fraction of V0s";
-  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f", ptmin, ptmax).Data();
+  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f, V0 #in jet", ptmin, ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -104,7 +104,7 @@ void plotNdaughtersV0out(string inName = "withdecays_pthat20_80.root", double pt
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, V0}";
   yTitle = "Fraction of V0s";
-  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f", ptmin, ptmax).Data();
+  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f, V0 #notin jet", ptmin, ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -176,10 +176,14 @@ void plotNdaughtersV0in2D(string inName = "withdecays_pthat20_80.root", double p
     hist->SetName(TString::Format("h%ddau", i).Data());
     hist->SetStats(0);
     hist->SetTitle("");
-    canvas->cd(i+1);
+    normaliseHistRowByRow(hist);
+    hist->SetMinimum(1e-5);
+    hist->SetMaximum(1);
+    auto* pad = canvas->cd(i+1);
+    pad->SetLogz();
     frame->Draw();
     hist->Draw("colz same");
-    latexText = TString::Format("V0 #in jet, %d dau #in jet", i).Data();
+    latexText = TString::Format("V0 #in jet, %d dau #in jet, norm. per #it{p}_{T, jet}", i).Data();
     DrawLatex(0.3, 0.93, latexText.c_str(), textSize);
   }
   saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
@@ -313,9 +317,10 @@ void plotAvgNV0in(string inName = "withdecays_pthat20_80.root", double ptmin = 1
   double titleSize = 0.03;
   xTitle = "#it{p}_{T, jet}";
   yTitle = "Average #it{N}(V0) per jet";
+  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f", ptmin, ptmax).Data();
 
   bool setLogY = false;
-  double xMinFrame = 0, xMaxFrame = 200, yMinFrame = 0, yMaxFrame = 100;
+  double xMinFrame = 0, xMaxFrame = 200, yMinFrame = 0, yMaxFrame = 3;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
@@ -541,8 +546,8 @@ void plotdRdauout(string inName = "withdecays_pthat20_80.root", double jetmin = 
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.03;
-  xTitle = "d#it{R}";
-  yTitle = "d#it{R}";
+  xTitle = "d#it{R}(jet, daughter 1)";
+  yTitle = "d#it{R}(jet, daughter 2)";
   latexText  = TString::Format("#it{p}_{T, jet} = %.0f - %.0f, #it{p}_{T, V0} = %.0f - %.0f", jetmin, jetmax, v0min, v0max).Data();
   string latexText2 = "V0 #in jet, dau #notin jet";
 
@@ -555,6 +560,7 @@ void plotdRdauout(string inName = "withdecays_pthat20_80.root", double jetmin = 
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (setLogY) { myCanvas->SetLogy(); }
+  myCanvas->SetLogz();
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
@@ -569,19 +575,23 @@ void plotdRdauout(string inName = "withdecays_pthat20_80.root", double jetmin = 
 
   histName = "hMissDaudR";
   THnSparseD* thn = loadHist<THnSparseD*>(inName, histName);
+  int _ptjetAxis = 0, _ptv0Axis = 1, _dRv0axis = 2, _dRd0axis = 3, _dRd1axis = 4; // Special axes
 
-  int firstBinPt = 1, lastBinPt = thn->GetAxis(ptjetAxis)->GetNbins();
-  int firstBinV0 = 1, lastBinV0 = thn->GetAxis(ptv0Axis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(jetmin);
-  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(jetmax);
-  firstBinV0 = thn->GetAxis(ptv0Axis)->FindBin(v0min);
-  lastBinV0  = thn->GetAxis(ptv0Axis)->FindBin(v0max);
-  thn->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
-  thn->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
-  TH2D* daudr = (TH2D*)thn->Projection(obsAxis, ptv0Axis);
+  int firstBinPt = 1, lastBinPt = thn->GetAxis(_ptjetAxis)->GetNbins();
+  int firstBinV0 = 1, lastBinV0 = thn->GetAxis(_ptv0Axis)->GetNbins();
+  firstBinPt = thn->GetAxis(_ptjetAxis)->FindBin(jetmin);
+  lastBinPt  = thn->GetAxis(_ptjetAxis)->FindBin(jetmax);
+  firstBinV0 = thn->GetAxis(_ptv0Axis)->FindBin(v0min);
+  lastBinV0  = thn->GetAxis(_ptv0Axis)->FindBin(v0max);
+  thn->GetAxis(_ptjetAxis)->SetRange(firstBinPt, lastBinPt);
+  thn->GetAxis(_ptv0Axis)->SetRange(firstBinV0, lastBinV0);
+  TH2D* daudr = (TH2D*)thn->Projection(_dRd0axis, _dRd1axis);
   daudr->SetName("daudr");
-  histVector.push_back(daudr);
   // daudr->Rebin2D(rebinNumber, 5);
+  daudr->Scale(1./daudr->Integral());
+  daudr->SetMinimum(1e-5);
+  daudr->SetMaximum(1);
+  histVector.push_back(daudr);
   saveName = "dRmissdau";
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetmin, jetmax);
   saveName = TString::Format("%s_v0pt%.0f-%.0f", saveName.c_str(), v0min, v0max);
@@ -597,7 +607,7 @@ void plotdRdauout(string inName = "withdecays_pthat20_80.root", double jetmin = 
   myCanvas->SaveAs(saveName.c_str());
   // myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
-void plotZ(string inName = "withdecays_pthat20_80.root", double ptmin = 10., double ptmax = 100.)
+void plotZ(string inName = "withdecays_pthat20_80.root", double ptmin = 10., double ptmax = 100., double v0min = 0., double v0max = 20.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -607,8 +617,8 @@ void plotZ(string inName = "withdecays_pthat20_80.root", double ptmin = 10., dou
   double labelSize = 0.04;
   double titleSize = 0.03;
   xTitle = "#it{z}_{V0}";
-  yTitle = "";
-  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f", ptmin, ptmax).Data();
+  yTitle = "#frac{1}{#it{N}_{jets}} #frac{d#it{N}}{d#it{z}}";
+  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f, #it{p}_{T, V0} = %.0f - %.0f", ptmin, ptmax, v0min, v0max).Data();
 
   bool setLogY = true;
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 1e-4, yMaxFrame = 1;
@@ -617,7 +627,7 @@ void plotZ(string inName = "withdecays_pthat20_80.root", double ptmin = 10., dou
   int rebinNumber = 5;
 
   std::vector<TH1D*> histVector;
-  std::vector<double> v0CutVector = {0., 1., 3., 5., 10., 20.};
+  // std::vector<double> v0CutVector = {0., 1., 3., 5., 10., 20.};
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (setLogY) { myCanvas->SetLogy(); }
@@ -632,10 +642,15 @@ void plotZ(string inName = "withdecays_pthat20_80.root", double ptmin = 10., dou
   double njets = getNjets(inName, ptmin, ptmax);
 
   int firstBinPt = 1, lastBinPt = uncorrected->GetAxis(ptjetAxis)->GetNbins();
+  int firstBinV0 = 1, lastBinV0 = uncorrected->GetAxis(ptv0Axis)->GetNbins();
+
   firstBinPt = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmin);
   lastBinPt  = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmax);
+  firstBinV0 = uncorrected->GetAxis(ptv0Axis)->FindBin(v0min);
+  lastBinV0  = uncorrected->GetAxis(ptv0Axis)->FindBin(v0max);
 
   uncorrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
+  uncorrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
   TH1D* zU = (TH1D*)uncorrected->Projection(obsAxis);
   zU->SetName("zU");
   zU->Rebin(rebinNumber);
@@ -645,6 +660,7 @@ void plotZ(string inName = "withdecays_pthat20_80.root", double ptmin = 10., dou
   histVector.push_back(zU);
 
   corrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
+  corrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
   TH1D* zC = (TH1D*)corrected->Projection(obsAxis);
   zC->SetName("zC");
   zC->Rebin(rebinNumber);
@@ -658,7 +674,7 @@ void plotZ(string inName = "withdecays_pthat20_80.root", double ptmin = 10., dou
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotZRatio(string inName = "withdecays_pthat20_80.root", double ptmin = 10., double ptmax = 100.)
+void plotZRatio(string inName = "withdecays_pthat20_80.root", double ptmin = 10., double ptmax = 100., double v0min = 0., double v0max = 20.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -669,7 +685,7 @@ void plotZRatio(string inName = "withdecays_pthat20_80.root", double ptmin = 10.
   double titleSize = 0.03;
   xTitle = "#it{z}_{V0}";
   yTitle = "corrected / uncorrected";
-  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f", ptmin, ptmax).Data();
+  latexText = TString::Format("#it{p}_{T, jet} = %.0f - %.0f, #it{p}_{T, V0} = %.0f - %.0f", ptmin, ptmax, v0min, v0max).Data();
 
   bool setLogY = false;
   double xMinFrame = 0, xMaxFrame = 1, yMinFrame = 0, yMaxFrame = 2;
@@ -693,16 +709,22 @@ void plotZRatio(string inName = "withdecays_pthat20_80.root", double ptmin = 10.
   // double njets = getNjets(inName, ptmin, ptmax);
 
   int firstBinPt = 1, lastBinPt = uncorrected->GetAxis(ptjetAxis)->GetNbins();
+  int firstBinV0 = 1, lastBinV0 = uncorrected->GetAxis(ptv0Axis)->GetNbins();
+
   firstBinPt = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmin);
   lastBinPt  = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmax);
+  firstBinV0 = uncorrected->GetAxis(ptv0Axis)->FindBin(v0min);
+  lastBinV0  = uncorrected->GetAxis(ptv0Axis)->FindBin(v0max);
 
   uncorrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
+  uncorrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
   TH1D* zU = (TH1D*)uncorrected->Projection(obsAxis);
   zU->SetName("zU");
   zU->Rebin(rebinNumber);
   // zU->Scale(1./njets);
 
   corrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
+  corrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
   TH1D* zC = (TH1D*)corrected->Projection(obsAxis);
   zC->SetName("zC");
   zC->Rebin(rebinNumber);

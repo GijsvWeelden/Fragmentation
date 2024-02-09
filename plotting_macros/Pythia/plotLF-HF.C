@@ -82,19 +82,19 @@ void plotZ(double ptmin = 10., double ptmax = 100., double v0min = 0., double v0
   firstBinPt = 1;
   lastBinPt = jetptUncorrected->GetNbinsX();
   firstBinPt = jetptUncorrected->GetXaxis()->FindBin(ptmin + 1e-3);
-  lastBinPt  = jetptUncorrected->GetXaxis()->FindBin(ptmax + 1e-3);
+  lastBinPt  = jetptUncorrected->GetXaxis()->FindBin(ptmax - 1e-3);
   double njetsUncorrected = jetptUncorrected->Integral(firstBinPt, lastBinPt);
 
   firstBinPt = 1;
   lastBinPt = jetptCorrected->GetNbinsX();
   firstBinPt = jetptCorrected->GetXaxis()->FindBin(ptmin + 1e-3);
-  lastBinPt  = jetptCorrected->GetXaxis()->FindBin(ptmax + 1e-3);
+  lastBinPt  = jetptCorrected->GetXaxis()->FindBin(ptmax - 1e-3);
   double njetsCorrected = jetptCorrected->Integral(firstBinPt, lastBinPt);
 
   firstBinPt = 1;
   lastBinPt = jetptNoDecays->GetNbinsX();
   firstBinPt = jetptNoDecays->GetXaxis()->FindBin(ptmin + 1e-3);
-  lastBinPt  = jetptNoDecays->GetXaxis()->FindBin(ptmax + 1e-3);
+  lastBinPt  = jetptNoDecays->GetXaxis()->FindBin(ptmax - 1e-3);
   double njetsNoDecays = jetptNoDecays->Integral(firstBinPt, lastBinPt);
 
   // Project onto z
@@ -103,7 +103,7 @@ void plotZ(double ptmin = 10., double ptmax = 100., double v0min = 0., double v0
   firstBinV0 = 1;
   lastBinV0 = zUncorrected->GetAxis(ptv0Axis)->GetNbins();
   firstBinPt = zUncorrected->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
-  lastBinPt = zUncorrected->GetAxis(ptjetAxis)->FindBin(ptmax + 1e-3);
+  lastBinPt = zUncorrected->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   firstBinV0 = zUncorrected->GetAxis(ptv0Axis)->FindBin(v0min + 1e-3);
   lastBinV0 = zUncorrected->GetAxis(ptv0Axis)->FindBin(v0max + 1e-3);
   zUncorrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
@@ -121,9 +121,9 @@ void plotZ(double ptmin = 10., double ptmax = 100., double v0min = 0., double v0
   firstBinV0 = 1;
   lastBinV0 = zCorrected->GetAxis(ptv0Axis)->GetNbins();
   firstBinPt = zCorrected->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
-  lastBinPt = zCorrected->GetAxis(ptjetAxis)->FindBin(ptmax + 1e-3);
+  lastBinPt = zCorrected->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   firstBinV0 = zCorrected->GetAxis(ptv0Axis)->FindBin(v0min + 1e-3);
-  lastBinV0 = zCorrected->GetAxis(ptv0Axis)->FindBin(v0max + 1e-3);
+  lastBinV0 = zCorrected->GetAxis(ptv0Axis)->FindBin(v0max - 1e-3);
   zCorrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   zCorrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
   TH1D* zC = (TH1D*)zCorrected->Projection(zAxis);
@@ -139,9 +139,9 @@ void plotZ(double ptmin = 10., double ptmax = 100., double v0min = 0., double v0
   firstBinV0 = 1;
   lastBinV0 = zNoDecays->GetNbinsY();
   firstBinPt = zNoDecays->GetXaxis()->FindBin(ptmin + 1e-3);
-  lastBinPt = zNoDecays->GetXaxis()->FindBin(ptmax + 1e-3);
+  lastBinPt = zNoDecays->GetXaxis()->FindBin(ptmax - 1e-3);
   firstBinV0 = zNoDecays->GetYaxis()->FindBin(v0min + 1e-3);
-  lastBinV0 = zNoDecays->GetYaxis()->FindBin(v0max + 1e-3);
+  lastBinV0 = zNoDecays->GetYaxis()->FindBin(v0max - 1e-3);
   TH1D* zND = (TH1D*)zNoDecays->ProjectionZ("zND", firstBinPt, lastBinPt, firstBinV0, lastBinV0);
   zND->Rebin(rebinNumber);
   zND->Scale(1./njetsNoDecays);
@@ -205,19 +205,19 @@ void plotZRatio(double ptmin = 10., double ptmax = 100., double v0min = 0., doub
   firstBinPt = 1;
   lastBinPt = jetptUncorrected->GetNbinsX();
   firstBinPt = jetptUncorrected->GetXaxis()->FindBin(ptmin + 1e-3);
-  lastBinPt  = jetptUncorrected->GetXaxis()->FindBin(ptmax + 1e-3);
+  lastBinPt  = jetptUncorrected->GetXaxis()->FindBin(ptmax - 1e-3);
   double njetsUncorrected = jetptUncorrected->Integral(firstBinPt, lastBinPt);
 
   firstBinPt = 1;
   lastBinPt = jetptCorrected->GetNbinsX();
   firstBinPt = jetptCorrected->GetXaxis()->FindBin(ptmin + 1e-3);
-  lastBinPt  = jetptCorrected->GetXaxis()->FindBin(ptmax + 1e-3);
+  lastBinPt  = jetptCorrected->GetXaxis()->FindBin(ptmax - 1e-3);
   double njetsCorrected = jetptCorrected->Integral(firstBinPt, lastBinPt);
 
   firstBinPt = 1;
   lastBinPt = jetptNoDecays->GetNbinsX();
   firstBinPt = jetptNoDecays->GetXaxis()->FindBin(ptmin + 1e-3);
-  lastBinPt  = jetptNoDecays->GetXaxis()->FindBin(ptmax + 1e-3);
+  lastBinPt  = jetptNoDecays->GetXaxis()->FindBin(ptmax - 1e-3);
   double njetsNoDecays = jetptNoDecays->Integral(firstBinPt, lastBinPt);
 
   // Project onto z
@@ -226,9 +226,9 @@ void plotZRatio(double ptmin = 10., double ptmax = 100., double v0min = 0., doub
   firstBinV0 = 1;
   lastBinV0 = zUncorrected->GetAxis(ptv0Axis)->GetNbins();
   firstBinPt = zUncorrected->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
-  lastBinPt = zUncorrected->GetAxis(ptjetAxis)->FindBin(ptmax + 1e-3);
+  lastBinPt = zUncorrected->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   firstBinV0 = zUncorrected->GetAxis(ptv0Axis)->FindBin(v0min + 1e-3);
-  lastBinV0 = zUncorrected->GetAxis(ptv0Axis)->FindBin(v0max + 1e-3);
+  lastBinV0 = zUncorrected->GetAxis(ptv0Axis)->FindBin(v0max - 1e-3);
   zUncorrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   zUncorrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
   TH1D* zU = (TH1D*)zUncorrected->Projection(zAxis);
@@ -244,9 +244,9 @@ void plotZRatio(double ptmin = 10., double ptmax = 100., double v0min = 0., doub
   firstBinV0 = 1;
   lastBinV0 = zCorrected->GetAxis(ptv0Axis)->GetNbins();
   firstBinPt = zCorrected->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
-  lastBinPt = zCorrected->GetAxis(ptjetAxis)->FindBin(ptmax + 1e-3);
+  lastBinPt = zCorrected->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   firstBinV0 = zCorrected->GetAxis(ptv0Axis)->FindBin(v0min + 1e-3);
-  lastBinV0 = zCorrected->GetAxis(ptv0Axis)->FindBin(v0max + 1e-3);
+  lastBinV0 = zCorrected->GetAxis(ptv0Axis)->FindBin(v0max - 1e-3);
   zCorrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   zCorrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
   TH1D* zC = (TH1D*)zCorrected->Projection(zAxis);
@@ -262,10 +262,10 @@ void plotZRatio(double ptmin = 10., double ptmax = 100., double v0min = 0., doub
   firstBinV0 = 1;
   lastBinV0 = zNoDecays->GetNbinsY();
   firstBinPt = zNoDecays->GetXaxis()->FindBin(ptmin + 1e-3);
-  lastBinPt = zNoDecays->GetXaxis()->FindBin(ptmax + 1e-3);
+  lastBinPt = zNoDecays->GetXaxis()->FindBin(ptmax - 1e-3);
   firstBinV0 = zNoDecays->GetYaxis()->FindBin(v0min + 1e-3);
-  lastBinV0 = zNoDecays->GetYaxis()->FindBin(v0max + 1e-3);
-  TH1D* zND = (TH1D*)zNoDecays->ProjectionZ("zND", firstBinPt, lastBinPt + 1, firstBinV0, lastBinV0 + 1);
+  lastBinV0 = zNoDecays->GetYaxis()->FindBin(v0max - 1e-3);
+  TH1D* zND = (TH1D*)zNoDecays->ProjectionZ("zND", firstBinPt, lastBinPt, firstBinV0, lastBinV0);
   zND->Rebin(rebinNumber);
   zND->Scale(1./njetsNoDecays);
   setStyle(zND, 2);

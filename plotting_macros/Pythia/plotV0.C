@@ -64,8 +64,8 @@ void plotNdaughtersV0in(string inName = "withdecays_pthat20_80.root", double ptm
   THnSparseD* thn = loadHist<THnSparseD*>(inName, histName);
 
   int firstBinPt = 1, lastBinPt = thn->GetAxis(ptjetAxis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin);
-  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax);
+  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
+  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   thn->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   TH2D* v0ndau = (TH2D*)thn->Projection(obsAxis, ptv0Axis);
   v0ndau->SetName("hNdauV0in");
@@ -117,8 +117,8 @@ void plotNdaughtersV0out(string inName = "withdecays_pthat20_80.root", double pt
   THnSparseD* thn = loadHist<THnSparseD*>(inName, histName);
 
   int firstBinPt = 1, lastBinPt = thn->GetAxis(ptjetAxis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin);
-  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax);
+  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
+  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   thn->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   TH2D* v0ndau = (TH2D*)thn->Projection(obsAxis, ptv0Axis);
   v0ndau->SetName("hNdauV0out");
@@ -221,8 +221,8 @@ void plotDeltaPtV0in(string inName = "withdecays_pthat20_80.root", double ptmin 
   THnSparse* thn = loadHist<THnSparse*>(inName, histName);
 
   int firstBinPt = 1, lastBinPt = thn->GetAxis(ptjetAxis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin);
-  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax);
+  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
+  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   thn->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   TH2D* v0dpt = (TH2D*)thn->Projection(obsAxis, ptv0Axis);
   v0dpt->SetName("v0dpt");
@@ -234,8 +234,8 @@ void plotDeltaPtV0in(string inName = "withdecays_pthat20_80.root", double ptmin 
   for (int i = 0; i < v0CutVector.size() - 1; i++) {
     double v0min = v0CutVector[i];
     double v0max = v0CutVector[i+1];
-    double binv0min = v0dpt->GetXaxis()->FindBin(v0min);
-    double binv0max = v0dpt->GetXaxis()->FindBin(v0max);
+    double binv0min = v0dpt->GetXaxis()->FindBin(v0min + 1e-3);
+    double binv0max = v0dpt->GetXaxis()->FindBin(v0max - 1e-3);
     string name = TString::Format("dpt_v0%.0f_%.0f", v0min, v0max).Data();
     string legendEntry = TString::Format("#it{p}_{T, V0} = %.0f - %.0f", v0min, v0max).Data();
     TH1D* hist = (TH1D*)v0dpt->ProjectionY(name.c_str(), i+1, i+1);
@@ -279,8 +279,8 @@ void plotDeltaPtV0out(string inName = "withdecays_pthat20_80.root", double ptmin
   THnSparseD* thn = loadHist<THnSparseD*>(inName, histName);
 
   int firstBinPt = 1, lastBinPt = thn->GetAxis(ptjetAxis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin);
-  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax);
+  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
+  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   thn->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   TH2D* v0dpt = (TH2D*)thn->Projection(obsAxis, ptv0Axis);
   v0dpt->SetName("v0dpt");
@@ -292,8 +292,8 @@ void plotDeltaPtV0out(string inName = "withdecays_pthat20_80.root", double ptmin
   for (int i = 0; i < v0CutVector.size() - 1; i++) {
     double v0min = v0CutVector[i];
     double v0max = v0CutVector[i+1];
-    double binv0min = v0dpt->GetXaxis()->FindBin(v0min);
-    double binv0max = v0dpt->GetXaxis()->FindBin(v0max);
+    double binv0min = v0dpt->GetXaxis()->FindBin(v0min + 1e-3);
+    double binv0max = v0dpt->GetXaxis()->FindBin(v0max - 1e-3);
     string name = TString::Format("dpt_v0%.0f_%.0f", v0min, v0max).Data();
     string legendEntry = TString::Format("#it{p}_{T, V0} = %.0f - %.0f", v0min, v0max).Data();
     TH1D* hist = (TH1D*)v0dpt->ProjectionY(name.c_str(), i+1, i+1);
@@ -396,8 +396,8 @@ void plotNV0in(string inName = "withdecays_pthat20_80.root")
     double jetptmax = jetCutVector[i+1];
     int firstBinPt = 1, lastBinPt = th3->GetNbinsX();
     int firstBinRatio = 1, lastBinRatio = th3->GetNbinsY();
-    firstBinPt = th3->GetXaxis()->FindBin(jetptmin);
-    lastBinPt  = th3->GetXaxis()->FindBin(jetptmax);
+    firstBinPt = th3->GetXaxis()->FindBin(jetptmin + 1e-3);
+    lastBinPt  = th3->GetXaxis()->FindBin(jetptmax - 1e-3);
     TH1D* nv0 = (TH1D*)th3->ProjectionZ("nv0", firstBinPt, lastBinPt, firstBinRatio, lastBinRatio);
     nv0->SetName(TString::Format("nv0_%d", i).Data());
     nv0->Scale(1./nv0->Integral());
@@ -453,8 +453,8 @@ void plotdRV0in(string inName = "withdecays_pthat20_80.root", double ptmin = 10.
   THnSparseD* thn = loadHist<THnSparseD*>(inName, histName);
 
   int firstBinPt = 1, lastBinPt = thn->GetAxis(ptjetAxis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin);
-  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax);
+  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
+  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   thn->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   TH2D* v0dR = (TH2D*)thn->Projection(obsAxis, ptv0Axis);
   v0dR->SetName("v0dR");
@@ -464,8 +464,8 @@ void plotdRV0in(string inName = "withdecays_pthat20_80.root", double ptmin = 10.
   for (int i = 0; i < v0CutVector.size() - 1; i++) {
     double v0min = v0CutVector[i];
     double v0max = v0CutVector[i+1];
-    double binv0min = v0dR->GetXaxis()->FindBin(v0min);
-    double binv0max = v0dR->GetXaxis()->FindBin(v0max);
+    double binv0min = v0dR->GetXaxis()->FindBin(v0min + 1e-3);
+    double binv0max = v0dR->GetXaxis()->FindBin(v0max - 1e-3);
     string name = TString::Format("dR_v0%.0f_%.0f", v0min, v0max).Data();
     string legendEntry = TString::Format("#it{p}_{T, V0} = %.0f - %.0f", v0min, v0max).Data();
     TH1D* hist = (TH1D*)v0dR->ProjectionY(name.c_str(), i+1, i+1);
@@ -510,8 +510,8 @@ void plotdRV0out(string inName = "withdecays_pthat20_80.root", double ptmin = 10
   THnSparseD* thn = loadHist<THnSparseD*>(inName, histName);
 
   int firstBinPt = 1, lastBinPt = thn->GetAxis(ptjetAxis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin);
-  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax);
+  firstBinPt = thn->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
+  lastBinPt  = thn->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
   thn->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   TH2D* v0dR = (TH2D*)thn->Projection(obsAxis, ptv0Axis);
   v0dR->SetName("v0dR");
@@ -521,8 +521,8 @@ void plotdRV0out(string inName = "withdecays_pthat20_80.root", double ptmin = 10
   for (int i = 0; i < v0CutVector.size() - 1; i++) {
     double v0min = v0CutVector[i];
     double v0max = v0CutVector[i+1];
-    double binv0min = v0dR->GetXaxis()->FindBin(v0min);
-    double binv0max = v0dR->GetXaxis()->FindBin(v0max);
+    double binv0min = v0dR->GetXaxis()->FindBin(v0min + 1e-3);
+    double binv0max = v0dR->GetXaxis()->FindBin(v0max - 1e-3);
     string name = TString::Format("dR_v0%.0f_%.0f", v0min, v0max).Data();
     string legendEntry = TString::Format("#it{p}_{T, V0} = %.0f - %.0f", v0min, v0max).Data();
     TH1D* hist = (TH1D*)v0dR->ProjectionY(name.c_str(), i+1, i+1);
@@ -579,10 +579,10 @@ void plotdRdauout(string inName = "withdecays_pthat20_80.root", double jetmin = 
 
   int firstBinPt = 1, lastBinPt = thn->GetAxis(_ptjetAxis)->GetNbins();
   int firstBinV0 = 1, lastBinV0 = thn->GetAxis(_ptv0Axis)->GetNbins();
-  firstBinPt = thn->GetAxis(_ptjetAxis)->FindBin(jetmin);
-  lastBinPt  = thn->GetAxis(_ptjetAxis)->FindBin(jetmax);
-  firstBinV0 = thn->GetAxis(_ptv0Axis)->FindBin(v0min);
-  lastBinV0  = thn->GetAxis(_ptv0Axis)->FindBin(v0max);
+  firstBinPt = thn->GetAxis(_ptjetAxis)->FindBin(jetmin + 1e-3);
+  lastBinPt  = thn->GetAxis(_ptjetAxis)->FindBin(jetmax - 1e-3);
+  firstBinV0 = thn->GetAxis(_ptv0Axis)->FindBin(v0min + 1e-3);
+  lastBinV0  = thn->GetAxis(_ptv0Axis)->FindBin(v0max - 1e-3);
   thn->GetAxis(_ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   thn->GetAxis(_ptv0Axis)->SetRange(firstBinV0, lastBinV0);
   TH2D* daudr = (TH2D*)thn->Projection(_dRd0axis, _dRd1axis);
@@ -644,10 +644,10 @@ void plotZ(string inName = "withdecays_pthat20_80.root", double ptmin = 10., dou
   int firstBinPt = 1, lastBinPt = uncorrected->GetAxis(ptjetAxis)->GetNbins();
   int firstBinV0 = 1, lastBinV0 = uncorrected->GetAxis(ptv0Axis)->GetNbins();
 
-  firstBinPt = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmin);
-  lastBinPt  = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmax);
-  firstBinV0 = uncorrected->GetAxis(ptv0Axis)->FindBin(v0min);
-  lastBinV0  = uncorrected->GetAxis(ptv0Axis)->FindBin(v0max);
+  firstBinPt = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
+  lastBinPt  = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
+  firstBinV0 = uncorrected->GetAxis(ptv0Axis)->FindBin(v0min + 1e-3);
+  lastBinV0  = uncorrected->GetAxis(ptv0Axis)->FindBin(v0max - 1e-3);
 
   uncorrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   uncorrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
@@ -711,10 +711,10 @@ void plotZRatio(string inName = "withdecays_pthat20_80.root", double ptmin = 10.
   int firstBinPt = 1, lastBinPt = uncorrected->GetAxis(ptjetAxis)->GetNbins();
   int firstBinV0 = 1, lastBinV0 = uncorrected->GetAxis(ptv0Axis)->GetNbins();
 
-  firstBinPt = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmin);
-  lastBinPt  = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmax);
-  firstBinV0 = uncorrected->GetAxis(ptv0Axis)->FindBin(v0min);
-  lastBinV0  = uncorrected->GetAxis(ptv0Axis)->FindBin(v0max);
+  firstBinPt = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmin + 1e-3);
+  lastBinPt  = uncorrected->GetAxis(ptjetAxis)->FindBin(ptmax - 1e-3);
+  firstBinV0 = uncorrected->GetAxis(ptv0Axis)->FindBin(v0min + 1e-3);
+  lastBinV0  = uncorrected->GetAxis(ptv0Axis)->FindBin(v0max - 1e-3);
 
   uncorrected->GetAxis(ptjetAxis)->SetRange(firstBinPt, lastBinPt);
   uncorrected->GetAxis(ptv0Axis)->SetRange(firstBinV0, lastBinV0);
@@ -776,8 +776,8 @@ double getNjets(string inName, double jetptmin, double jetptmax)
 {
   TH1D* hjetpt = loadHist<TH1D*>(inName, "hjetpt");
   int firstBinPt = 1, lastBinPt = hjetpt->GetNbinsX();
-  firstBinPt = hjetpt->FindBin(jetptmin);
-  lastBinPt = hjetpt->FindBin(jetptmax);
+  firstBinPt = hjetpt->FindBin(jetptmin + 1e-3);
+  lastBinPt  = hjetpt->FindBin(jetptmax - 1e-3);
   double integral = hjetpt->Integral(firstBinPt, lastBinPt);
   return integral;
 }

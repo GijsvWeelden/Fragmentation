@@ -10,7 +10,7 @@
 #include "TString.h"
 #include "TLegend.h"
 
-#include "../histUtils.C"
+#include "/Users/gijsvanweelden/Documents/Fragmentation/plotting_macros/histUtils.C"
 
 void checkAllBinsExactlyOne(TH1* hist);
 void checkBinning(std::vector<string> histNameVector);

@@ -13,7 +13,7 @@
 #include "TString.h"
 #include "TLegend.h"
 
-#include "../plotUtils.C"
+#include "/Users/gijsvanweelden/Documents/Fragmentation/plotting_macros/histUtils.C"
 
 string formatHadronName(string hadron);
 template <typename T>

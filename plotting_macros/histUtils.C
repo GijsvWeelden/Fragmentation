@@ -1,5 +1,6 @@
 //
-// This macro plots the rejection factor as a function of the trigger patch energy cut
+// This macro contains a set of useful functions for plotting histograms
+// and performing standard operations
 //
 
 #include <vector>
@@ -370,4 +371,47 @@ TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, str
   outputHist->SetName(TString::Format("%s", histName.c_str()).Data());
   delete inputClone;
   return outputHist;
+}
+// Return bin numbers and edges for a range on a given axis
+void getProjectionBins(const TH1* inputHist, const int axis, const double min, const double max,
+                       int& firstBin, int& lastBin, double& firstEdge, double& lastEdge, double epsilon = 1e-5)
+{
+  TAxis* axisPtr = inputHist->GetXaxis();
+  if (axis == 1) { axisPtr = inputHist->GetYaxis(); }
+  if (axis == 2) { axisPtr = inputHist->GetZaxis(); }
+
+  // Default is to include overflow and underflow bins
+  firstBin = 0;
+  firstEdge = -900.;
+  lastBin = axisPtr->GetNbins() + 1;
+  lastEdge = -900.;
+
+  if (min > -900) {
+    firstBin = axisPtr->FindBin(min + epsilon);
+    firstEdge = axisPtr->GetBinLowEdge(firstBin);
+  }
+  if (max > -900) {
+    lastBin = axisPtr->FindBin(max - epsilon);
+    lastEdge = axisPtr->GetBinUpEdge(lastBin);
+  }
+}
+void getProjectionBins(const THn* inputHist, const int axis, const double min, const double max,
+                       int& firstBin, int& lastBin, double& firstEdge, double& lastEdge, double epsilon = 1e-5)
+{
+  TAxis* axisPtr = inputHist->GetAxis(axis);
+
+  // Default is to include overflow and underflow bins
+  firstBin = 0;
+  firstEdge = -900.;
+  lastBin = axisPtr->GetNbins() + 1;
+  lastEdge = -900.;
+
+  if (min > -900) {
+    firstBin = axisPtr->FindBin(min + epsilon);
+    firstEdge = axisPtr->GetBinLowEdge(firstBin);
+  }
+  if (max > -900) {
+    lastBin = axisPtr->FindBin(max - epsilon);
+    lastEdge = axisPtr->GetBinUpEdge(lastBin);
+  }
 }

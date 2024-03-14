@@ -46,6 +46,15 @@ TLegend *CreateLegend(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax
   return leg;
 }
 
+TLatex* CreateLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = 0.06, Int_t color = 1, int all = 11, bool bndc = true) {
+  TLatex* text = new TLatex(x, y, strText.Data());
+  if(bndc) text->SetNDC();
+  text->SetTextAlign(all);
+  text->SetTextSize(textSize);
+  text->SetTextFont(42);
+  text->SetTextColor(color);
+   return text;
+}
 void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = 0.06, Int_t color = 1, int all = 11, bool bndc = true) {
   TLatex text;
   if(bndc) text.SetNDC();
@@ -54,8 +63,6 @@ void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize =
   text.SetTextFont(42);
   text.SetTextColor(color);
   text.DrawLatex(x,y,strText.Data());
-
-  //  return text;
 }
 
 Int_t GetColor(Int_t i) {

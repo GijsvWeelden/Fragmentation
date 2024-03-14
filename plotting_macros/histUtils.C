@@ -96,6 +96,40 @@ void plotOneHist(TH2F* hist, string xTitle, string yTitle, string histTitle, str
   nc->SaveAs(TString::Format("./%s.pdf", saveName.c_str()).Data());
   delete nc;
 }
+template <typename T>
+void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText)
+{
+  canvas->cd();
+  frame->Draw();
+  string drawOption = "same";
+  if (setDrawOption != "") {
+    drawOption = TString::Format("%s %s", drawOption.c_str(), setDrawOption.c_str()).Data();
+  }
+  for (unsigned int i = 0; i < histVector.size(); i++) {
+    T hist = histVector[i];
+    hist->Draw(drawOption.c_str());
+  }
+  if (legend) { legend->Draw("same"); }
+  if (latexText != "") { DrawLatex(0.4, 0.8, latexText.c_str(), legend->GetTextSize()); }
+  canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
+}
+template <typename T>
+void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, TLatex* latex, string saveName, string setDrawOption)
+{
+  canvas->cd();
+  frame->Draw();
+  string drawOption = "same";
+  if (setDrawOption != "") {
+    drawOption = TString::Format("%s %s", drawOption.c_str(), setDrawOption.c_str()).Data();
+  }
+  for (unsigned int i = 0; i < histVector.size(); i++) {
+    T hist = histVector[i];
+    hist->Draw(drawOption.c_str());
+  }
+  if (legend) { legend->Draw("same"); }
+  if (latex) { latex->Draw("same"); }
+  canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
+}
 // Plot only histograms
 void plotNHists(std::vector<TH1F*> histVector, std::vector<string> histNameVector,
                 string xTitle, string yTitle, string histTitle, string legendTitle, string saveName,
@@ -251,96 +285,6 @@ TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, doubl
   delete inputClone;
   return outputHist;
 }
-// /* Project a 2D histogram onto a 1D histogram */
-// TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName,
-//                   double xMin, double xMax, double yMin, double yMax)
-// {
-//   TH1F* outputHist;
-//   TH2F* inputClone = (TH2F*)inputHist->Clone("CloneOfInput");
-
-//   int firstXBin = 1; int lastXBin = inputHist->GetNbinsX() + 1;
-//   int firstYBin = 1; int lastYBin = inputHist->GetNbinsY() + 1;
-
-//   if (xMin > -900) { firstXBin = inputHist->GetXaxis()->FindBin(xMin); }
-//   if (xMax > -900) { lastXBin = inputHist->GetXaxis()->FindBin(xMax); }
-//   if (yMin > -900) { firstYBin = inputHist->GetYaxis()->FindBin(yMin); }
-//   if (yMax > -900) { lastYBin = inputHist->GetYaxis()->FindBin(yMax); }
-
-//   if (projectionAxis == "X" || projectionAxis == "x") {
-//     inputClone->GetXaxis()->SetRange(firstXBin, lastXBin);
-//     outputHist = (TH1F*)inputHist->ProjectionX(TString::Format("%s", histName.c_str()).Data(), firstYBin, lastYBin);
-//   }
-//   else if (projectionAxis == "Y" || projectionAxis == "y") {
-//     inputClone->GetYaxis()->SetRange(firstYBin, lastYBin);
-//     outputHist = (TH1F*)inputHist->ProjectionY(TString::Format("%s", histName.c_str()).Data(), firstXBin, lastXBin);
-//   }
-//   else {
-//     cout << "make_projection: invalid projection axis " << projectionAxis << ". Aborting." << endl;
-//   }
-//   delete inputClone;
-//   return outputHist;
-// }
-// Project a 3D histogram onto a 1D histogram
-// TH1F* projectHist(TH3F* inputHist, string projectionAxis, string histName,
-//                   double xMin, double xMax, double yMin, double yMax, double zMin, double zMax)
-// {
-//   TH1F* outputHist;
-//   TH3F* inputClone = (TH3F*)inputHist->Clone("CloneOfInput");
-
-//   int firstXBin = 1; int lastXBin = inputClone->GetNbinsX() + 1;
-//   int firstYBin = 1; int lastYBin = inputClone->GetNbinsY() + 1;
-//   int firstZBin = 1; int lastZBin = inputClone->GetNbinsZ() + 1;
-
-//   if (xMin > -900) { firstXBin = inputClone->GetXaxis()->FindBin(xMin); }
-//   if (xMax > -900) { lastXBin = inputClone->GetXaxis()->FindBin(xMax); }
-//   if (yMin > -900) { firstYBin = inputClone->GetYaxis()->FindBin(yMin); }
-//   if (yMax > -900) { lastYBin = inputClone->GetYaxis()->FindBin(yMax); }
-//   if (zMin > -900) { firstZBin = inputClone->GetZaxis()->FindBin(zMin); }
-//   if (zMax > -900) { lastZBin = inputClone->GetZaxis()->FindBin(zMax); }
-
-//   if (projectionAxis == "X" || projectionAxis == "x") {
-//     outputHist = (TH1F*)inputClone->ProjectionX(TString::Format("%s", histName.c_str()).Data(),
-//                                                 firstYBin, lastYBin, firstZBin, lastZBin);
-//   }
-//   else if (projectionAxis == "Y" || projectionAxis == "y") {
-//     outputHist = (TH1F*)inputClone->ProjectionY(TString::Format("%s", histName.c_str()).Data(),
-//                                                 firstXBin, lastXBin, firstZBin, lastZBin);
-//   }
-//   else if (projectionAxis == "Z" || projectionAxis == "z") {
-//     outputHist = (TH1F*)inputClone->ProjectionZ(TString::Format("%s", histName.c_str()).Data(),
-//                                                 firstXBin, lastXBin, firstYBin, lastYBin);
-//   }
-//   else {
-//     cout << "make_projection: invalid projection axis " << projectionAxis << ". Aborting." << endl;
-//   }
-//   // delete inputClone;
-//   return outputHist;
-// }
-// Project a 3D histogram onto a 1D or 2D histogram
-// TH2F* projectHist(TH3F* inputHist, string projectionAxis,
-//                   double xMin, double xMax, double yMin, double yMax, double zMin, double zMax)
-// {
-//   TH2F* outputHist;
-//   TH3F* inputClone = (TH3F*)inputHist->Clone("CloneOfInput");
-
-//   int firstXBin = 1; int lastXBin = inputClone->GetNbinsX() + 1;
-//   int firstYBin = 1; int lastYBin = inputClone->GetNbinsY() + 1;
-//   int firstZBin = 1; int lastZBin = inputClone->GetNbinsZ() + 1;
-
-//   if (xMin > -900) { firstXBin = inputClone->GetXaxis()->FindBin(xMin); }
-//   if (xMax > -900) { lastXBin = inputClone->GetXaxis()->FindBin(xMax); }
-//   if (yMin > -900) { firstYBin = inputClone->GetYaxis()->FindBin(yMin); }
-//   if (yMax > -900) { lastYBin = inputClone->GetYaxis()->FindBin(yMax); }
-//   if (zMin > -900) { firstZBin = inputClone->GetZaxis()->FindBin(zMin); }
-//   if (zMax > -900) { lastZBin = inputClone->GetZaxis()->FindBin(zMax); }
-
-//   inputClone->GetXaxis()->SetRange(firstXBin, lastXBin);
-//   inputClone->GetYaxis()->SetRange(firstYBin, lastYBin);
-//   inputClone->GetZaxis()->SetRange(firstZBin, lastZBin);
-//   outputHist = (TH2F*)inputClone->Project3D(projectionAxis.c_str());
-//   delete inputClone;
-//   return outputHist;
-// }
 // Project a 4D histogram onto a 2D histogram
 TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, string histName,
                   double axis0Min, double axis0Max, double axis1Min, double axis1Max,
@@ -372,46 +316,107 @@ TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, str
   delete inputClone;
   return outputHist;
 }
+
+std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const double max, double epsilon = 1e-5)
+{
+  // Default behaviour is to include overflow and underflow bins
+  int firstBin = 0, lastBin = axis->GetNbins() + 1;
+  if (min > -900) { firstBin = axis->FindBin(min + epsilon); }
+  if (max > -900) { lastBin = axis->FindBin(max - epsilon); }
+  return std::array{firstBin, lastBin};
+}
+std::array<int, 2> getProjectionBins(TH1* inputHist, const int axis, const double min, const double max, double epsilon = 1e-5)
+{
+  TAxis* axisPtr = inputHist->GetXaxis();
+  if (axis == 1) { axisPtr = inputHist->GetYaxis(); }
+  if (axis == 2) { axisPtr = inputHist->GetZaxis(); }
+  return getProjectionBins(axisPtr, min, max, epsilon);
+}
+std::array<int, 2> getProjectionBins(const THnSparse* inputHist, const int axis, const double min, const double max, double epsilon = 1e-5)
+{
+  TAxis* axisPtr = inputHist->GetAxis(axis);
+  return getProjectionBins(axisPtr, min, max, epsilon);
+}
 // Return bin numbers and edges for a range on a given axis
-void getProjectionBins(const TH1* inputHist, const int axis, const double min, const double max,
-                       int& firstBin, int& lastBin, double& firstEdge, double& lastEdge, double epsilon = 1e-5)
+void getProjectionBinsAndEdges(TH1* inputHist, const int axis, const double min, const double max,
+                               int& firstBin, int& lastBin, double& firstEdge, double& lastEdge, double epsilon = 1e-5)
 {
   TAxis* axisPtr = inputHist->GetXaxis();
   if (axis == 1) { axisPtr = inputHist->GetYaxis(); }
   if (axis == 2) { axisPtr = inputHist->GetZaxis(); }
 
-  // Default is to include overflow and underflow bins
-  firstBin = 0;
-  firstEdge = -900.;
-  lastBin = axisPtr->GetNbins() + 1;
-  lastEdge = -900.;
-
-  if (min > -900) {
-    firstBin = axisPtr->FindBin(min + epsilon);
-    firstEdge = axisPtr->GetBinLowEdge(firstBin);
-  }
-  if (max > -900) {
-    lastBin = axisPtr->FindBin(max - epsilon);
-    lastEdge = axisPtr->GetBinUpEdge(lastBin);
-  }
+  std::array<int, 2> bins = getProjectionBins(axisPtr, min, max, epsilon);
+  firstBin = bins[0];
+  lastBin = bins[1];
+  firstEdge = axisPtr->GetBinLowEdge(firstBin);
+  lastEdge = axisPtr->GetBinUpEdge(lastBin);
 }
-void getProjectionBins(const THn* inputHist, const int axis, const double min, const double max,
-                       int& firstBin, int& lastBin, double& firstEdge, double& lastEdge, double epsilon = 1e-5)
+void getProjectionBinsAndEdges(const THnSparse* inputHist, const int axis, const double min, const double max,
+                               int& firstBin, int& lastBin, double& firstEdge, double& lastEdge, double epsilon = 1e-5)
 {
   TAxis* axisPtr = inputHist->GetAxis(axis);
+  std::array<int, 2> bins = getProjectionBins(axisPtr, min, max, epsilon);
+  firstBin = bins[0];
+  lastBin = bins[1];
+  firstEdge = axisPtr->GetBinLowEdge(firstBin);
+  lastEdge = axisPtr->GetBinUpEdge(lastBin);
+}
 
-  // Default is to include overflow and underflow bins
-  firstBin = 0;
-  firstEdge = -900.;
-  lastBin = axisPtr->GetNbins() + 1;
-  lastEdge = -900.;
 
-  if (min > -900) {
-    firstBin = axisPtr->FindBin(min + epsilon);
-    firstEdge = axisPtr->GetBinLowEdge(firstBin);
+template <typename T>
+void setStyle(T hist, int styleNumber, int lineWidth = 3)
+{
+  hist->SetLineWidth(lineWidth);
+  hist->SetLineColor(GetColor(styleNumber));
+  hist->SetMarkerStyle(GetMarker(styleNumber));
+  hist->SetMarkerColor(GetColor(styleNumber));
+}
+
+// Formats the hadron name to look nice (Greek letters, sub- and superscripts)
+string formatHadronName(string hadron)
+{
+  string had = hadron;
+  if (hadron == "pi"){
+    had = "#pi^{#pm}";
   }
-  if (max > -900) {
-    lastBin = axisPtr->FindBin(max - epsilon);
-    lastEdge = axisPtr->GetBinUpEdge(lastBin);
+  else if (hadron == "pi0"){
+    had = "#pi^{0}";
+  }
+  else if (hadron == "K0S"){
+    had = "K^{0}_{S}";
+  }
+  else if (hadron == "Lambda0"){
+    had = "#it{#Lambda}^{0}";
+  }
+  return had;
+}
+// Normalise 2D histogram row-by-row
+void normaliseHistRowByRow(TH2* hist)
+{
+  int firstColBin = 1, lastColBin = hist->GetNbinsX();
+  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
+  for (int iRow = 1; iRow <= lastRowBin; iRow++) {
+    double integral = hist->Integral(firstColBin, lastColBin, iRow, iRow);
+    if (integral < 1) { continue; }
+    for (int iCol = 1; iCol <= lastColBin; iCol++) {
+      double binContent = hist->GetBinContent(iCol, iRow);
+      binContent /= integral;
+      hist->SetBinContent(iCol, iRow, binContent);
+    }
+  }
+}
+// Normalise 2D histogram col-by-col
+void normaliseHistColByCol(TH2* hist)
+{
+  int firstColBin = 1, lastColBin = hist->GetNbinsX();
+  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
+  for (int iCol = 1; iCol <= lastColBin; iCol++) {
+    double integral = hist->Integral(iCol, iCol, firstRowBin, lastRowBin);
+    if (integral < 1) { continue; }
+    for (int iRow = 1; iRow <= lastRowBin; iRow++) {
+      double binContent = hist->GetBinContent(iCol, iRow);
+      binContent /= integral;
+      hist->SetBinContent(iCol, iRow, binContent);
+    }
   }
 }

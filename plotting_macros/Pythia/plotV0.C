@@ -21,16 +21,9 @@ int ptratioAxis = 1;
 int ptv0Axis    = 2;
 int obsAxis     = 3;
 
-string formatHadronName(string hadron);
 double getNjets(string inName, double jetptmin, double jetptmax);
 template <typename T>
 T loadHist(string fileName, string histName);
-void normaliseHistRowByRow(TH2D* hist);
-void normaliseHistColByCol(TH2D* hist);
-template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
-template <typename T>
-void setStyle(T hist, int styleNumber);
 
 // ----------------------------------------------------------
 
@@ -703,8 +696,10 @@ void plotZRatio(string inName = "withdecays_pthat20_80.root", double ptmin = 10.
 
   histName = "hzU";
   THnSparseD* uncorrected = loadHist<THnSparseD*>(inName, histName);
+  uncorrected->Sumw2();
   histName = "hzC";
   THnSparseD* corrected = loadHist<THnSparseD*>(inName, histName);
+  corrected->Sumw2();
 
   // double njets = getNjets(inName, ptmin, ptmax);
 
@@ -745,33 +740,6 @@ void plotZRatio(string inName = "withdecays_pthat20_80.root", double ptmin = 10.
   myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
 
-// Formats the hadron name to look nice (Greek letters, sub- and superscripts)
-string formatHadronName(string hadron)
-{
-  string had = hadron;
-  if (hadron == "pi"){
-    had = "#pi^{#pm}";
-  }
-  else if (hadron == "pi0"){
-    had = "#pi^{0}";
-  }
-  else if (hadron == "K0L"){
-    had = "K^{0}_{L}";
-  }
-  else if (hadron == "K0S"){
-    had = "K^{0}_{S}";
-  }
-  else if (hadron == "K0"){
-    had = "#it{K}^{0}";
-  }
-  else if (hadron == "K"){
-    had = "K^{#pm}";
-  }
-  else if (hadron == "Lambda0"){
-    had = "#it{#Lambda}^{0}";
-  }
-  return had;
-}
 double getNjets(string inName, double jetptmin, double jetptmax)
 {
   TH1D* hjetpt = loadHist<TH1D*>(inName, "hjetpt");
@@ -787,59 +755,4 @@ T loadHist(string fileName, string histName)
   TFile *inFile = TFile::Open(TString::Format("./%s", fileName.c_str()).Data());
   T hist = (T)inFile->Get(histName.c_str());
   return hist;
-}
-// Normalise 2D histogram row-by-row
-void normaliseHistRowByRow(TH2D* hist)
-{
-  int firstColBin = 1, lastColBin = hist->GetNbinsX();
-  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
-  for (int iRow = 1; iRow <= lastRowBin; iRow++) {
-    double integral = hist->Integral(firstColBin, lastColBin, iRow, iRow);
-    if (integral < 1) { continue; }
-    for (int iCol = 1; iCol <= lastColBin; iCol++) {
-      double binContent = hist->GetBinContent(iCol, iRow);
-      binContent /= integral;
-      hist->SetBinContent(iCol, iRow, binContent);
-    }
-  }
-}
-// Normalise 2D histogram col-by-col
-void normaliseHistColByCol(TH2D* hist)
-{
-  int firstColBin = 1, lastColBin = hist->GetNbinsX();
-  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
-  for (int iCol = 1; iCol <= lastColBin; iCol++) {
-    double integral = hist->Integral(iCol, iCol, firstRowBin, lastRowBin);
-    if (integral < 1) { continue; }
-    for (int iRow = 1; iRow <= lastRowBin; iRow++) {
-      double binContent = hist->GetBinContent(iCol, iRow);
-      binContent /= integral;
-      hist->SetBinContent(iCol, iRow, binContent);
-    }
-  }
-}
-template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText)
-{
-  canvas->cd();
-  frame->Draw();
-  string drawOption = "same";
-  if (setDrawOption != "") {
-    drawOption = TString::Format("%s %s", drawOption.c_str(), setDrawOption.c_str()).Data();
-  }
-  for (unsigned int i = 0; i < histVector.size(); i++) {
-    T hist = histVector[i];
-    hist->Draw(drawOption.c_str());
-  }
-  if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.3, 0.93, latexText.c_str(), legend->GetTextSize()); }
-  canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
-}
-template <typename T>
-void setStyle(T hist, int styleNumber)
-{
-  hist->SetLineWidth(3);
-  hist->SetLineColor(GetColor(styleNumber));
-  hist->SetMarkerStyle(GetMarker(styleNumber));
-  hist->SetMarkerColor(GetColor(styleNumber));
 }

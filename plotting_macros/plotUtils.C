@@ -53,8 +53,9 @@ TLatex* CreateLatex(Double_t x, Double_t y, TString strText = "", Double_t textS
   text->SetTextSize(textSize);
   text->SetTextFont(42);
   text->SetTextColor(color);
-   return text;
+  return text;
 }
+
 void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = 0.06, Int_t color = 1, int all = 11, bool bndc = true) {
   TLatex text;
   if(bndc) text.SetNDC();

@@ -15,15 +15,7 @@
 
 #include "/Users/gijsvanweelden/Documents/Fragmentation/plotting_macros/histUtils.C"
 
-string formatHadronName(string hadron);
-template <typename T>
-T loadHist(string fileName, string histName);
-void normaliseHistRowByRow(TH2D* hist);
-void normaliseHistColByCol(TH2D* hist);
-template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
-template <typename T>
-void setStyle(T hist, int styleNumber);
+double getNjets(TFile* inFile, double jetptmin, double jetptmax);
 
 // ----------------------------------------------------------
 
@@ -78,6 +70,54 @@ void plotV0Pt(string inName = "AnalysisResults.root", double jetptmin = 10., dou
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
+}
+void plotV0Z(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
+{
+  double time = clock();
+  gStyle->SetNdivisions(505);
+
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
+  string dataSet = "LHC23y_pass1_small";
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+
+  bool setLogY = true;
+  double xMinFrame = 1e-3, xMaxFrame = 1.+1e-3, yMinFrame = 1e-4, yMaxFrame = 0.2;
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  double xLatex = 0.4, yLatex = 0.8;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = "#it{z}_{V0}";
+  yTitle = "normalised count";
+
+  std::vector<TH1D*> histVector;
+
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogY) { canvas->SetLogy(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  histName = "jet-fragmentation/data/jets/V0/jetPtV0TrackProj";
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TH2D* th2 = (TH2D*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> jetptbins = getProjectionBins(th2->GetXaxis(), jetptmin, jetptmax);
+  TH1D* v0z = (TH1D*)th2->ProjectionY("v0z", jetptbins[0], jetptbins[1]);
+  v0z->Scale(1./getNjets(inFile, jetptmin, jetptmax));
+  setStyle(v0z, 0);
+  histVector.push_back(v0z);
+
+  double lowjetpt = th2->GetXaxis()->GetBinLowEdge(jetptbins[0]);
+  double highjetpt = th2->GetXaxis()->GetBinUpEdge(jetptbins[1]);
+  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = "v0z";
+  saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
 
 // ----------------------------------------------------------
@@ -916,76 +956,10 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
 }
 
 // ----------------------------------------------------------
-// Formats the hadron name to look nice (Greek letters, sub- and superscripts)
-string formatHadronName(string hadron)
+double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 {
-  string had = hadron;
-  if (hadron == "pi"){
-    had = "#pi^{#pm}";
-  }
-  else if (hadron == "pi0"){
-    had = "#pi^{0}";
-  }
-  else if (hadron == "K0S"){
-    had = "K^{0}_{S}";
-  }
-  else if (hadron == "Lambda0"){
-    had = "#it{#Lambda}^{0}";
-  }
-  return had;
-}
-// Normalise 2D histogram row-by-row
-void normaliseHistRowByRow(TH2D* hist)
-{
-  int firstColBin = 1, lastColBin = hist->GetNbinsX();
-  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
-  for (int iRow = 1; iRow <= lastRowBin; iRow++) {
-    double integral = hist->Integral(firstColBin, lastColBin, iRow, iRow);
-    if (integral < 1) { continue; }
-    for (int iCol = 1; iCol <= lastColBin; iCol++) {
-      double binContent = hist->GetBinContent(iCol, iRow);
-      binContent /= integral;
-      hist->SetBinContent(iCol, iRow, binContent);
-    }
-  }
-}
-// Normalise 2D histogram col-by-col
-void normaliseHistColByCol(TH2D* hist)
-{
-  int firstColBin = 1, lastColBin = hist->GetNbinsX();
-  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
-  for (int iCol = 1; iCol <= lastColBin; iCol++) {
-    double integral = hist->Integral(iCol, iCol, firstRowBin, lastRowBin);
-    if (integral < 1) { continue; }
-    for (int iRow = 1; iRow <= lastRowBin; iRow++) {
-      double binContent = hist->GetBinContent(iCol, iRow);
-      binContent /= integral;
-      hist->SetBinContent(iCol, iRow, binContent);
-    }
-  }
-}
-template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText)
-{
-  canvas->cd();
-  frame->Draw();
-  string drawOption = "same";
-  if (setDrawOption != "") {
-    drawOption = TString::Format("%s %s", drawOption.c_str(), setDrawOption.c_str()).Data();
-  }
-  for (unsigned int i = 0; i < histVector.size(); i++) {
-    T hist = histVector[i];
-    hist->Draw(drawOption.c_str());
-  }
-  if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.4, 0.8, latexText.c_str(), legend->GetTextSize()); }
-  canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
-}
-template <typename T>
-void setStyle(T hist, int styleNumber)
-{
-  hist->SetLineWidth(3);
-  hist->SetLineColor(GetColor(styleNumber));
-  hist->SetMarkerStyle(GetMarker(styleNumber));
-  hist->SetMarkerColor(GetColor(styleNumber));
+  string histName = "jet-fragmentation/data/jets/jetPtEtaPhi";
+  TH3D* jets = (TH3D*)inFile->Get(histName.c_str());
+  std::array<int, 2> jetptbins = getProjectionBins(jets->GetXaxis(), jetptmin, jetptmax);
+  return jets->Integral(jetptbins[0], jetptbins[1], 1, jets->GetNbinsY(), 1, jets->GetNbinsZ());
 }

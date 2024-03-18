@@ -17,6 +17,49 @@
 
 // ----------------------------------------------------------
 
+void matchedJetPt(string inName = "AnalysisResults.root")
+{
+  double time = clock();
+  gStyle->SetNdivisions(505, "xy");
+
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+
+  bool setLogZ = true;
+  double xMinFrame = 0., xMaxFrame = 200., yMinFrame = 0., yMaxFrame = 200.;
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  double xLatex = 0.1, yLatex = 0.93;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = "#it{p}_{T, V0}^{det.} (GeV/#it{c})";
+  yTitle = "#it{p}_{T, V0}^{part.} (GeV/#it{c})";
+  dataSet = "LHC23k4b_pass1_small";
+
+  std::vector<TH2D*> histVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogZ) { canvas->SetLogz(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  histName = "jet-fragmentation/matching/jets/matchDetJetPtPartJetPt";
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TH2D* matchedjetpt = (TH2D*)inFile->Get(histName.c_str());
+  normaliseHistRowByRow(matchedjetpt);
+  matchedjetpt->SetMinimum(1e-5);
+  matchedjetpt->SetMaximum(1.);
+  matchedjetpt->SetName("matchedjetpt");
+  histVector.push_back(matchedjetpt);
+
+  latexText = TString::Format("%s, geometrically matched jets", dataSet.c_str()).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = "matchedJetPt";
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
+}
 void matchedV0Pt(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200.)
 {
   const int nDim          = 4;
@@ -26,14 +69,14 @@ void matchedV0Pt(string inName = "AnalysisResults.root", double partjetptmin = 1
   const int detV0PtAxis   = 3;
 
   double time = clock();
-  gStyle->SetNdivisions(505);
+  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = false;
+  bool setLogZ = true;
   double xMinFrame = 0., xMaxFrame = 60., yMinFrame = 0., yMaxFrame = 60.;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
@@ -46,7 +89,7 @@ void matchedV0Pt(string inName = "AnalysisResults.root", double partjetptmin = 1
   std::vector<TH2D*> histVector;
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
+  if (setLogZ) { canvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
@@ -62,6 +105,8 @@ void matchedV0Pt(string inName = "AnalysisResults.root", double partjetptmin = 1
 
   TH2D* v0pt = (TH2D*)thn->Projection(partV0PtAxis, detV0PtAxis);
   normaliseHistRowByRow(v0pt);
+  v0pt->SetMinimum(1e-5);
+  v0pt->SetMaximum(1.);
   v0pt->SetName("v0pt");
   histVector.push_back(v0pt);
 
@@ -83,14 +128,14 @@ void matchedV0Z(string inName = "AnalysisResults.root", double partjetptmin = 10
   const int partV0ZAxis   = 3;
 
   double time = clock();
-  gStyle->SetNdivisions(505);
+  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = false;
+  bool setLogZ = false;
   double xMinFrame = 1e-3, xMaxFrame = 1. + 1e-3, yMinFrame = 1e-3, yMaxFrame = 1. + 1e-3;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
@@ -103,7 +148,7 @@ void matchedV0Z(string inName = "AnalysisResults.root", double partjetptmin = 10
   std::vector<TH2D*> histVector;
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
+  if (setLogZ) { canvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
@@ -119,6 +164,8 @@ void matchedV0Z(string inName = "AnalysisResults.root", double partjetptmin = 10
 
   TH2D* v0z = (TH2D*)thn->Projection(partV0ZAxis, detV0ZAxis);
   normaliseHistRowByRow(v0z);
+  v0z->SetMinimum(1e-5);
+  v0z->SetMaximum(1.);
   v0z->SetName("v0z");
   histVector.push_back(v0z);
 
@@ -144,14 +191,14 @@ void matchedLambda0Pt(string inName = "AnalysisResults.root", double partjetptmi
   const int detV0PtAxis   = 3;
 
   double time = clock();
-  gStyle->SetNdivisions(505);
+  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = false;
+  bool setLogZ = false;
   double xMinFrame = 0., xMaxFrame = 60., yMinFrame = 0., yMaxFrame = 60.;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
@@ -164,7 +211,7 @@ void matchedLambda0Pt(string inName = "AnalysisResults.root", double partjetptmi
   std::vector<TH2D*> histVector;
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
+  if (setLogZ) { canvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
@@ -201,14 +248,14 @@ void matchedLambda0Z(string inName = "AnalysisResults.root", double partjetptmin
   const int partV0ZAxis   = 3;
 
   double time = clock();
-  gStyle->SetNdivisions(505);
+  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = false;
+  bool setLogZ = false;
   double xMinFrame = 1e-3, xMaxFrame = 1. + 1e-3, yMinFrame = 1e-3, yMaxFrame = 1. + 1e-3;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
@@ -221,7 +268,7 @@ void matchedLambda0Z(string inName = "AnalysisResults.root", double partjetptmin
   std::vector<TH2D*> histVector;
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
+  if (setLogZ) { canvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
@@ -262,14 +309,14 @@ void matchedAntiLambda0Pt(string inName = "AnalysisResults.root", double partjet
   const int detV0PtAxis   = 3;
 
   double time = clock();
-  gStyle->SetNdivisions(505);
+  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = false;
+  bool setLogZ = false;
   double xMinFrame = 0., xMaxFrame = 60., yMinFrame = 0., yMaxFrame = 60.;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
@@ -282,7 +329,7 @@ void matchedAntiLambda0Pt(string inName = "AnalysisResults.root", double partjet
   std::vector<TH2D*> histVector;
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
+  if (setLogZ) { canvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
@@ -319,14 +366,14 @@ void matchedAntiLambda0Z(string inName = "AnalysisResults.root", double partjetp
   const int partV0ZAxis   = 3;
 
   double time = clock();
-  gStyle->SetNdivisions(505);
+  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = false;
+  bool setLogZ = false;
   double xMinFrame = 1e-3, xMaxFrame = 1. + 1e-3, yMinFrame = 1e-3, yMaxFrame = 1. + 1e-3;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
@@ -339,7 +386,7 @@ void matchedAntiLambda0Z(string inName = "AnalysisResults.root", double partjetp
   std::vector<TH2D*> histVector;
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
+  if (setLogZ) { canvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
@@ -380,14 +427,14 @@ void matchedK0SPt(string inName = "AnalysisResults.root", double partjetptmin = 
   const int detV0PtAxis   = 3;
 
   double time = clock();
-  gStyle->SetNdivisions(505);
+  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = false;
+  bool setLogZ = false;
   double xMinFrame = 0., xMaxFrame = 60., yMinFrame = 0., yMaxFrame = 60.;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
@@ -400,7 +447,7 @@ void matchedK0SPt(string inName = "AnalysisResults.root", double partjetptmin = 
   std::vector<TH2D*> histVector;
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
+  if (setLogZ) { canvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
@@ -437,14 +484,14 @@ void matchedK0SZ(string inName = "AnalysisResults.root", double partjetptmin = 1
   const int partV0ZAxis   = 3;
 
   double time = clock();
-  gStyle->SetNdivisions(505);
+  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = false;
+  bool setLogZ = false;
   double xMinFrame = 1e-3, xMaxFrame = 1. + 1e-3, yMinFrame = 1e-3, yMaxFrame = 1. + 1e-3;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
@@ -457,7 +504,7 @@ void matchedK0SZ(string inName = "AnalysisResults.root", double partjetptmin = 1
   std::vector<TH2D*> histVector;
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
+  if (setLogZ) { canvas->SetLogz(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;

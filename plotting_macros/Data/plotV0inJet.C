@@ -89,7 +89,7 @@ void plotV0Z(string inName = "AnalysisResults.root", double jetptmin = 10., doub
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = "#it{z}_{V0}";
-  yTitle = "normalised count";
+  yTitle = "#frac{1}{#it{N}_{jets}} #frac{d#it{N}}{d#it{z}_{V0}}";
 
   std::vector<TH1D*> histVector;
 
@@ -105,7 +105,7 @@ void plotV0Z(string inName = "AnalysisResults.root", double jetptmin = 10., doub
 
   std::array<int, 2> jetptbins = getProjectionBins(th2->GetXaxis(), jetptmin, jetptmax);
   TH1D* v0z = (TH1D*)th2->ProjectionY("v0z", jetptbins[0], jetptbins[1]);
-  v0z->Scale(1./getNjets(inFile, jetptmin, jetptmax));
+  v0z->Scale(1./getNjets(inFile, jetptmin, jetptmax), "width");
   setStyle(v0z, 0);
   histVector.push_back(v0z);
 

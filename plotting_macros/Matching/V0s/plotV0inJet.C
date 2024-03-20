@@ -270,7 +270,7 @@ void matchedCtau(string inName = "", string hadron = "", string hypothesis = "",
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sPtCtau%s", hadron.c_str(), hypothesis.c_str()).Data();
-  if (doZ) { saveName = TString::Format("matched%sTrackProjCtau%s", hadron.c_str(), hypothesis.c_str()).Data(); }
+  if (doZ) { saveName = TString::Format("matched%sZCtau%s", hadron.c_str(), hypothesis.c_str()).Data(); }
   saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
@@ -346,7 +346,7 @@ void matchedMass(string inName = "", string hadron = "", string hypothesis = "",
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sPtMass%s", hadron.c_str(), hypothesis.c_str()).Data();
-  if (doZ) { saveName = TString::Format("matched%sTrackProjMass%s", hadron.c_str(), hypothesis.c_str()).Data(); }
+  if (doZ) { saveName = TString::Format("matched%sZMass%s", hadron.c_str(), hypothesis.c_str()).Data(); }
   saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
@@ -417,7 +417,7 @@ void matchedRadius(string inName = "", string hadron = "", double partjetptmin =
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sPtRadius", hadron.c_str()).Data();
-  if (doZ) { saveName = TString::Format("matched%sTrackProjRadius", hadron.c_str()).Data(); }
+  if (doZ) { saveName = TString::Format("matched%sZRadius", hadron.c_str()).Data(); }
   saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
@@ -493,6 +493,150 @@ void matchedCosPA(string inName = "", string hadron = "", double partjetptmin = 
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
+void matchedDCAposneg(string inName = "", string hadron = "", bool doNeg = false, double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  if ( ("V0" == hadron) + ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
+    cout << "Error: hadron must be either V0, K0S, Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+  const int nDim            = 6;
+  const int partJetPtAxis   = 0;
+  const int partV0PtAxis    = 1;
+  const int detJetPtAxis    = 2;
+  const int detV0PtAxis     = 3;
+  const int detV0DCAPosAxis = 4;
+  const int detV0DCANegAxis = 5;
+
+  gStyle->SetNdivisions(505, "xy");
+
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+
+  bool setLogZ = true;
+  double xMinFrame = -10., xMaxFrame = 10., yMinFrame = 0., yMaxFrame = 60.;
+  if (doZ) { yMinFrame = 1e-3; yMaxFrame = 1. + 1e-3; }
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  double xLatex = 0.3, yLatex = 0.8;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = doNeg ? "DCA neg. (cm)" : "DCA pos. (cm)";
+  yTitle = TString::Format("#it{p}_{T, %s}^{part.} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
+  if (doZ) { yTitle = TString::Format("#it{z}_{%s}^{part.}", formatHadronName(hadron).c_str()).Data(); }
+  dataSet = "LHC23k4b_pass1_small";
+
+  std::vector<TH2D*> histVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogZ) { canvas->SetLogz(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  histName = TString::Format("partJetPt%sPtDetJetPt%sPtDCAposneg", hadron.c_str(), hadron.c_str()).Data();
+  if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjDCAposneg", hadron.c_str(), hadron.c_str()).Data(); }
+  histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
+  thn->GetAxis(partJetPtAxis)->SetRange(partjetptbins[0], partjetptbins[1]);
+  double lowjetpt = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(partjetptbins[0]);
+  double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(partjetptbins[1]);
+
+  TH2D* v0dca = (TH2D*)thn->Projection(partV0PtAxis, doNeg ? detV0DCANegAxis : detV0DCAPosAxis);
+  normaliseHistRowByRow(v0dca);
+  v0dca->SetMinimum(1e-5);
+  v0dca->SetMaximum(1.);
+  v0dca->SetName(TString::Format("%sPtDCA", hadron.c_str()).Data());
+  if (doZ) { v0dca->SetName(TString::Format("%sZDCA", hadron.c_str()).Data()); }
+  histVector.push_back(v0dca);
+
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = TString::Format("matched%sPtDCA", hadron.c_str()).Data();
+  if (doZ) { saveName = TString::Format("matched%sZDCA", hadron.c_str()).Data(); }
+  saveName = TString::Format(doNeg ? "%sneg" : "%spos", saveName.c_str()).Data();
+  saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
+}
+void matchedDCAd(string inName = "", string hadron = "", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  if ( ("V0" == hadron) + ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
+    cout << "Error: hadron must be either V0, K0S, Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+  const int nDim           = 5;
+  const int partJetPtAxis  = 0;
+  const int partV0PtAxis   = 1;
+  const int detJetPtAxis   = 2;
+  const int detV0PtAxis    = 3;
+  const int detV0DCAdAxis  = 4;
+
+  gStyle->SetNdivisions(505, "xy");
+
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+
+  bool setLogZ = true;
+  double xMinFrame = 0., xMaxFrame = 10., yMinFrame = 0., yMaxFrame = 60.;
+  if (doZ) { yMinFrame = 1e-3; yMaxFrame = 1. + 1e-3; }
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  double xLatex = 0.3, yLatex = 0.8;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = "DCA daughters (cm^{2})";
+  yTitle = TString::Format("#it{p}_{T, %s}^{part.} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
+  if (doZ) { yTitle = TString::Format("#it{z}_{%s}^{part.}", formatHadronName(hadron).c_str()).Data(); }
+  dataSet = "LHC23k4b_pass1_small";
+
+  std::vector<TH2D*> histVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogZ) { canvas->SetLogz(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  histName = TString::Format("partJetPt%sPtDetJetPt%sPtDCAd", hadron.c_str(), hadron.c_str()).Data();
+  if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjDCAd", hadron.c_str(), hadron.c_str()).Data(); }
+  histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
+  thn->GetAxis(partJetPtAxis)->SetRange(partjetptbins[0], partjetptbins[1]);
+  double lowjetpt = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(partjetptbins[0]);
+  double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(partjetptbins[1]);
+
+  TH2D* v0dca = (TH2D*)thn->Projection(partV0PtAxis, detV0DCAdAxis);
+  normaliseHistRowByRow(v0dca);
+  v0dca->SetMinimum(1e-5);
+  v0dca->SetMaximum(1.);
+  v0dca->SetName(TString::Format("%sPtDCAd", hadron.c_str()).Data());
+  if (doZ) { v0dca->SetName(TString::Format("%sZDCAd", hadron.c_str()).Data()); }
+  histVector.push_back(v0dca);
+
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = TString::Format("matched%sPtDCAd", hadron.c_str()).Data();
+  if (doZ) { saveName = TString::Format("matched%sZDCAd", hadron.c_str()).Data(); }
+  saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
+}
 
 // ----------------------------------------------------------
 // Lambda0
@@ -516,6 +660,12 @@ void matchedLambda0Radius(string inName = "AnalysisResults.root", double partjet
 void matchedLambda0CosPA(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
 { matchedCosPA(inName, "Lambda0", partjetptmin, partjetptmax, doZ); }
 
+void matchedLambda0DCAposneg(string inName = "AnalysisResults.root", bool doNeg = false, double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedDCAposneg(inName, "Lambda0", doNeg, partjetptmin, partjetptmax, doZ); }
+
+void matchedLambda0DCAd(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedDCAd(inName, "Lambda0", partjetptmin, partjetptmax, doZ); }
+
 // ----------------------------------------------------------
 // AntiLambda0
 // ----------------------------------------------------------
@@ -538,6 +688,12 @@ void matchedAntiLambda0Radius(string inName = "AnalysisResults.root", double par
 void matchedAntiLambda0CosPA(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
 { matchedCosPA(inName, "AntiLambda0", partjetptmin, partjetptmax, doZ); }
 
+void matchedAntiLambda0DCAposneg(string inName = "AnalysisResults.root", bool doNeg = false, double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedDCAposneg(inName, "AntiLambda0", doNeg, partjetptmin, partjetptmax, doZ); }
+
+void matchedAntiLambda0DCAd(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedDCAd(inName, "AntiLambda0", partjetptmin, partjetptmax, doZ); }
+
 // ----------------------------------------------------------
 // K0S
 // ----------------------------------------------------------
@@ -559,3 +715,9 @@ void matchedK0SRadius(string inName = "AnalysisResults.root", double partjetptmi
 
 void matchedK0SCosPA(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
 { matchedCosPA(inName, "K0S", partjetptmin, partjetptmax, doZ); }
+
+void matchedK0SDCAposneg(string inName = "AnalysisResults.root", bool doNeg = false, double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedDCAposneg(inName, "K0S", doNeg, partjetptmin, partjetptmax, doZ); }
+
+void matchedK0SDCAd(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedDCAd(inName, "K0S", partjetptmin, partjetptmax, doZ); }

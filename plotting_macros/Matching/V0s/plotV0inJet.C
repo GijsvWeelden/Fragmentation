@@ -392,17 +392,88 @@ void matchedRadius(string inName = "", string hadron = "", double partjetptmin =
   double lowjetpt = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(partjetptbins[0]);
   double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(partjetptbins[1]);
 
-  TH2D* v0mass = (TH2D*)thn->Projection(partV0PtAxis, detV0RAxis);
-  normaliseHistRowByRow(v0mass);
-  v0mass->SetMinimum(1e-5);
-  v0mass->SetMaximum(1.);
-  v0mass->SetName(TString::Format("%sPtRadius", hadron.c_str()).Data());
-  histVector.push_back(v0mass);
+  TH2D* v0radius = (TH2D*)thn->Projection(partV0PtAxis, detV0RAxis);
+  normaliseHistRowByRow(v0radius);
+  v0radius->SetMinimum(1e-5);
+  v0radius->SetMaximum(1.);
+  v0radius->SetName(TString::Format("%sPtRadius", hadron.c_str()).Data());
+  histVector.push_back(v0radius);
 
   latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sPtRadius", hadron.c_str()).Data();
+  saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
+}
+void matchedCosPA(string inName = "", string hadron = "", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  if ( ("V0" == hadron) + ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
+    cout << "Error: hadron must be either V0, K0S, Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+  const int nDim           = 5;
+  const int partJetPtAxis  = 0;
+  const int partV0PtAxis   = 1;
+  const int detJetPtAxis   = 2;
+  const int detV0PtAxis    = 3;
+  const int detV0CosPAAxis = 4;
+
+  gStyle->SetNdivisions(505, "xy");
+
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+
+  bool setLogZ = true;
+  double xMinFrame = 0.95, xMaxFrame = 1., yMinFrame = 0., yMaxFrame = 60.;
+  if (doZ) { yMinFrame = 1e-3; yMaxFrame = 1. + 1e-3; }
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  double xLatex = 0.3, yLatex = 0.8;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = "cos(PA)";
+  yTitle = TString::Format("#it{p}_{T, %s}^{part.} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
+  if (doZ) { yTitle = TString::Format("#it{z}_{%s}^{det.}", formatHadronName(hadron).c_str()).Data(); }
+  dataSet = "LHC23k4b_pass1_small";
+
+  std::vector<TH2D*> histVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogZ) { canvas->SetLogz(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  histName = TString::Format("partJetPt%sPtDetJetPt%sPtCosPA", hadron.c_str(), hadron.c_str()).Data();
+  if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjCosPA", hadron.c_str(), hadron.c_str()).Data(); }
+  histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
+  thn->GetAxis(partJetPtAxis)->SetRange(partjetptbins[0], partjetptbins[1]);
+  double lowjetpt = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(partjetptbins[0]);
+  double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(partjetptbins[1]);
+
+  TH2D* v0cospa = (TH2D*)thn->Projection(partV0PtAxis, detV0CosPAAxis);
+  normaliseHistRowByRow(v0cospa);
+  v0cospa->SetMinimum(1e-5);
+  v0cospa->SetMaximum(1.);
+  v0cospa->SetName(TString::Format("%sPtCosPA", hadron.c_str()).Data());
+  if (doZ) { v0cospa->SetName(TString::Format("%sZCosPA", hadron.c_str()).Data()); }
+  histVector.push_back(v0cospa);
+
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = TString::Format("matched%sPtCosPA", hadron.c_str()).Data();
+  if (doZ) { saveName = TString::Format("matched%sZCosPA", hadron.c_str()).Data(); }
   saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
@@ -427,6 +498,9 @@ void matchedLambda0Mass(string inName = "AnalysisResults.root", string hypothesi
 void matchedLambda0Radius(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200.)
 { matchedRadius(inName, "Lambda0", partjetptmin, partjetptmax); }
 
+void matchedLambda0CosPA(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedCosPA(inName, "Lambda0", partjetptmin, partjetptmax, doZ); }
+
 // ----------------------------------------------------------
 // AntiLambda0
 // ----------------------------------------------------------
@@ -446,6 +520,9 @@ void matchedAntiLambda0Mass(string inName = "AnalysisResults.root", string hypot
 void matchedAntiLambda0Radius(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200.)
 { matchedRadius(inName, "AntiLambda0", partjetptmin, partjetptmax); }
 
+void matchedAntiLambda0CosPA(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedCosPA(inName, "AntiLambda0", partjetptmin, partjetptmax, doZ); }
+
 // ----------------------------------------------------------
 // K0S
 // ----------------------------------------------------------
@@ -464,3 +541,6 @@ void matchedK0SMass(string inName = "AnalysisResults.root", string hypothesis = 
 
 void matchedK0SRadius(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200.)
 { matchedRadius(inName, "K0S", partjetptmin, partjetptmax); }
+
+void matchedK0SCosPA(string inName = "AnalysisResults.root", double partjetptmin = 10., double partjetptmax = 200., bool doZ = false)
+{ matchedCosPA(inName, "K0S", partjetptmin, partjetptmax, doZ); }

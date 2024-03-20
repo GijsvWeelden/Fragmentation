@@ -386,7 +386,10 @@ string formatHadronName(string hadron)
     had = "K^{0}_{S}";
   }
   else if (hadron == "Lambda0"){
-    had = "#it{#Lambda}^{0}";
+    had = "#Lambda^{0}";
+  }
+  else if (hadron == "AntiLambda0"){
+    had = "#bar{#Lambda}^{0}";
   }
   return had;
 }

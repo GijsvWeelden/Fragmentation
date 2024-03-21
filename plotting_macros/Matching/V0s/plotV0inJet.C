@@ -17,10 +17,10 @@
 
 double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 {
-  string histName = "jet-fragmentation/matching/jets/matchDetJetPtEtaPhi"; // Should this be particle level?
+  string histName = "jet-fragmentation/matching/jets/matchPartJetPtEtaPhi";
   TH3D* jets = (TH3D*)inFile->Get(histName.c_str());
   std::array<int, 2> jetptbins = getProjectionBins(jets->GetXaxis(), jetptmin, jetptmax);
-  return jets->Integral(jetptbins[0], jetptbins[1], 1, jets->GetNbinsY(), 1, jets->GetNbinsZ());
+  return jets->Integral(jetptbins[0], jetptbins[1], 0, jets->GetNbinsY() + 1, 0, jets->GetNbinsZ() + 1);
 }
 
 void matchedJetPt(string inName = "AnalysisResults.root")

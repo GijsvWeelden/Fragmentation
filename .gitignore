@@ -2,6 +2,8 @@ Plots/
 inputfiles/
 pythia/pythia8_simple
 pythia/pythia8_v0study
+pythia/v0studyWithDecays
+pythia/v0studyWithoutDecays
 
 **/.DS_Store
 **/test.*

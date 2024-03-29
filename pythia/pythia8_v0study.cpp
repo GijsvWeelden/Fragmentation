@@ -158,6 +158,8 @@ void withDecays(int nEvents)
   double hMissDaudRMin[nDim+1] = {min_pt_jet, min_pt_track, min_dR, min_dR, min_dR};
   double hMissDaudRMax[nDim+1] = {max_pt_jet, max_pt_track, max_dR, max_dR, max_dR};
 
+	double hEventWeightBins[15] = {1e-13, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0};
+
 	int match_0 = 0, match_1 = 0, match_2 = 0;
 	int nGluons = 0, nQuarks = 0;
 	std::vector<int> PDG = {211, 321, 2212, 111, 130, 310, 311, 3122};
@@ -182,6 +184,7 @@ void withDecays(int nEvents)
 																						 "RECREATE");
 
 	TH1D* hNEvts = new TH1D("hNEvts", "hNEvts", 1, 0.5, 1.5);
+	TH1D* hEvtWeights = new TH1D("hEvtWeights", "hEvtWeights", 14, hEventWeightBins);
 	TH1D* hjetpt = new TH1D("hjetpt", "hjetpt; #it{p}_{T, jet}^{orig.}", nBins_pt_jet, min_pt_jet, max_pt_jet);
 	TH1D* hnewjetpt = new TH1D("hnewjetpt", "hnewjetpt; #it{p}_{T, jet}^{new}", nBins_pt_jet, min_pt_jet, max_pt_jet);
 	TH1D* hv0pt = new TH1D("hv0pt", "hv0pt; #it{p}_{T, v0}", nBins_pt_track, min_pt_track, max_pt_track);
@@ -285,6 +288,8 @@ void withDecays(int nEvents)
   {
 		if (!pythia.next()) continue;
 		hNEvts->Fill(1);
+		double weight = pythia.info.weight();
+		hEvtWeights->Fill(weight);
 		double fourvec[4];
 
 		double ptSumPythia = 0;

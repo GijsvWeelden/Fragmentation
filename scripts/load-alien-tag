@@ -27,10 +27,10 @@ getPackageName() {
   # Retrieve the web page that lists packages, search for {date}'s package
   # Retrieve only the package name
   content=$(lynx -dump "http://alimonitor.cern.ch/packages/?packagename=VO_ALICE%40O2Physics%3A%3Adaily-$1")
-  myvar=$(echo "$content" | tr ' ' '\n' | grep VO_ALICE@O2Physics::daily-$1)
+  myvar=$(echo "$content" | tr ' ' '\n' | grep ]VO_ALICE@O2Physics::daily-$1)
   if [ $2 -eq 1 ]; then # AliPhysics version
     content=$(lynx -dump "http://alimonitor.cern.ch/packages/?packagename=VO_ALICE%40AliPhysics%3A%3AvAN-$1")
-    myvar=$(echo "$content" | tr ' ' '\n' | grep VO_ALICE@AliPhysics::vAN-$1)
+    myvar=$(echo "$content" | tr ' ' '\n' | grep ]VO_ALICE@AliPhysics::vAN-$1)
   fi
   # Remove pre-pending junk
   myvar=${myvar#*]}

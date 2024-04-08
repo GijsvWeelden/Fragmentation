@@ -42,14 +42,7 @@ double pol2bkg(double *x, double *par)
   }
   return par[0] + par[1]*x[0] + par[2]*x[0]*x[0];
 }
-double pol3bkg(double *x, double *par)
-{
-  if (x[0] > par[0] && x[0] < par[1]) {
-    TF1::RejectPoint();
-    return 0;
-  }
-  return par[2] + par[3]*x[0] + par[4]*x[0]*x[0] + par[5]*x[0]*x[0]*x[0];
-}
+
 // -------------------------------------------------------------------------------------------------
 
 void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double ptmax = 100.)

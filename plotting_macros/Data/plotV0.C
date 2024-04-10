@@ -53,7 +53,7 @@ void plotV0Pt(string inName = "AnalysisResults.root")
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0Eta(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0Eta(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -97,7 +97,7 @@ void plotV0Eta(string inName = "AnalysisResults.root", double v0ptmin = 0., doub
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0Phi(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0Phi(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -142,7 +142,7 @@ void plotV0Phi(string inName = "AnalysisResults.root", double v0ptmin = 0., doub
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0EtaPhi(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0EtaPhi(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -198,7 +198,7 @@ void plotV0EtaPhi(string inName = "AnalysisResults.root", double v0ptmin = 0., d
 
 // ----------------------------------------------------------
 
-void plotV0Radius(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0Radius(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -243,7 +243,7 @@ void plotV0Radius(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0CosPA(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0CosPA(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -287,7 +287,7 @@ void plotV0CosPA(string inName = "AnalysisResults.root", double v0ptmin = 0., do
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0DCAdaughters(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0DCAdaughters(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -331,7 +331,7 @@ void plotV0DCAdaughters(string inName = "AnalysisResults.root", double v0ptmin =
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0DCApos(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0DCApos(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -375,7 +375,7 @@ void plotV0DCApos(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0DCAneg(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0DCAneg(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -419,7 +419,7 @@ void plotV0DCAneg(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0DCAposneg(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0DCAposneg(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -466,7 +466,7 @@ void plotV0DCAposneg(string inName = "AnalysisResults.root", double v0ptmin = 0.
   if (latexText != "") { DrawLatex(0.2, 0.93, latexText.c_str(), textSize); }
   myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
-void plotV0ctau(string inName = "AnalysisResults.root", int setting = 1, double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0ctau(string inName = "AnalysisResults.root", int setting = 1, double v0ptmin = 0., double v0ptmax = 100.)
 {
   const int nDim           = 4;
   const int ptAxis         = 0;
@@ -526,7 +526,7 @@ void plotV0ctau(string inName = "AnalysisResults.root", int setting = 1, double 
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
 // This plot isn't very useful. ctauL = 2*ctauK0S?
-void plotV0ctauKL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0ctauKL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   const int nDim           = 4;
   const int ptAxis         = 0;
@@ -579,7 +579,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   if (latexText != "") { DrawLatex(0.2, 0.93, latexText.c_str(), textSize); }
   myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
-void plotV0mass(string inName = "AnalysisResults.root", int setting = 1, double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0mass(string inName = "AnalysisResults.root", int setting = 1, double v0ptmin = 0., double v0ptmax = 100.)
 {
   const int nDim           = 4;
   const int ptAxis         = 0;
@@ -641,7 +641,7 @@ void plotV0mass(string inName = "AnalysisResults.root", int setting = 1, double 
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0massKL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0massKL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   const int nDim           = 4;
   const int ptAxis         = 0;
@@ -694,7 +694,7 @@ void plotV0massKL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   if (latexText != "") { DrawLatex(0.2, 0.93, latexText.c_str(), textSize); }
   myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
-void plotV0massLL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 10.)
+void plotV0massLL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
 {
   const int nDim           = 4;
   const int ptAxis         = 0;

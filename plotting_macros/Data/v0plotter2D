@@ -1,0 +1,111 @@
+
+#! /bin/bash
+
+INPUT="186444.root"
+PTMIN=40.
+PTMAX=60.
+V0="V0"
+
+declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
+
+echo "Starting: 2D plots for V0s"
+
+command="plotRadius(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, false)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotRadius(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, true)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotCosPA(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, false)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotCosPA(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, true)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotDCAdaughters(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, false)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotDCAdaughters(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, true)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotDCApos(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, false)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotDCApos(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, true)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotDCAneg(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, false)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotDCAneg(\"${INPUT}\", \"${V0}\", ${PTMIN}, ${PTMAX}, true)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+for i in "${hadrons[@]}"
+do
+HYPOTHESIS=$i
+command="plotV0ctau(\"${INPUT}\", \"${HYPOTHESIS}\", ${PTMIN}, ${PTMAX}, false)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotV0ctau(\"${INPUT}\", \"${HYPOTHESIS}\", ${PTMIN}, ${PTMAX}, true)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotctau(\"${INPUT}\", \"${HYPOTHESIS}\", ${PTMIN}, ${PTMAX}, false)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotctau(\"${INPUT}\", \"${HYPOTHESIS}\", ${PTMIN}, ${PTMAX}, true)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotV0Mass(\"${INPUT}\", \"${HYPOTHESIS}\", ${PTMIN}, ${PTMAX}, false)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+
+command="plotV0Mass(\"${INPUT}\", \"${HYPOTHESIS}\", ${PTMIN}, ${PTMAX}, true)"
+root -l -b <<EOF
+.L plotV0inJet2D.C
+${command}
+EOF
+done

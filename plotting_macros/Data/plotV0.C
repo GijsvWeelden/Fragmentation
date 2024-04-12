@@ -32,7 +32,7 @@ void plotV0Pt(string inName = "AnalysisResults.root")
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, V0}";
   yTitle = "normalised count";
-  latexText = "LHC23y_pass1_small";
+  latexText = "LHC23y_pass1";
 
   std::vector<TH1D*> histVector;
 
@@ -663,7 +663,7 @@ void plotV0massKL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#Lambda)";
-  latexText = TString::Format("LHC23y_pass1_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("LHC23y_pass1, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { myCanvas->SetLogz(); }

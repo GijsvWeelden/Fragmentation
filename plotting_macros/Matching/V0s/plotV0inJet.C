@@ -25,6 +25,71 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 
 // -------------------------------------------------------------------------------------------------
 
+void matchedPtZ(string inName = "", double partjetptmin = 10., double partjetptmax = 1e6, bool detector = false, bool doZ = false)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  const int nDim          = 4;
+  const int partJetPtAxis = 0;
+  const int partV0PtAxis  = 1;
+  const int detJetPtAxis  = 2;
+  const int detV0PtAxis   = 3;
+
+  gStyle->SetNdivisions(505, "xy");
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+
+  bool setLogY = true;
+  double xMinFrame = 0., xMaxFrame = 60., yMinFrame = 1e-8, yMaxFrame = 1.;
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  double xLatex = 0.35, yLatex = 0.8;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = TString::Format("#it{p}_{T, V0}^{%s.} (GeV/#it{c})", detector ? "det" : "part").Data();
+  if (doZ) {
+    xTitle = TString::Format("#it{z}_{V0}^{%s.}", detector ? "det" : "part").Data();
+    xMinFrame = 1e-3; xMaxFrame = 1.+1e-3;
+  }
+  yTitle = "normalised count";
+  dataSet = "LHC23k4b_pass1";
+
+  std::vector<TH1D*> histVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogY) { canvas->SetLogy(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  histName = "partJetPtV0PtDetJetPtV0Pt";
+  if (doZ) { histName = "matchDetJetPtV0TrackProjPartJetPtV0TrackProj"; }
+  histName = TString::Format("jet-fragmentation_id10235/matching/jets/V0/%s", histName.c_str());
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
+  thn->GetAxis(partJetPtAxis)->SetRange(partjetptbins[0], partjetptbins[1]);
+  double lowjetpt = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(partjetptbins[0]);
+  double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(partjetptbins[1]);
+
+  TH1D* matchedjetpt = (TH1D*)thn->Projection(detector ? detV0PtAxis : partV0PtAxis);
+  matchedjetpt->SetName("matchedjetpt");
+  matchedjetpt->Scale(1./ matchedjetpt->Integral());
+  setStyle(matchedjetpt, 0);
+  histVector.push_back(matchedjetpt);
+
+  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, jet}^{part.} = %.0f - %.0f (GeV/#it{c}) }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = TString::Format("matched%sV0%s", detector ? "Det" : "Part" , doZ ? "Z" : "Pt").Data();
+  saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
+}
+
 void matchedCtau(string inName = "", string hadron = "", string hypothesis = "", double partjetptmin = 10., double partjetptmax = 200., double partv0min = -1., double partv0max = 1e6, bool doZ = false)
 {
   if ("" == inName) {

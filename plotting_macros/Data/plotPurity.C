@@ -25,11 +25,11 @@ const double MassLambda0 = 1.115683;
 // Parameter [1] -> Lo RightBg Boundary
 double pol1bkg(double *x, double *par)
 {
-  if (x[0] > 0.46221947 && x[0] < 0.53135842) {
+  if (x[0] > par[0] && x[0] < par[1]) {
     TF1::RejectPoint();
     return 0;
   }
-  return par[0] + par[1]*x[0];
+  return par[2] + par[3]*x[0];
 }
 // Is there a smart way to implement these separately for Lambda and antiLambda?
 // * Lambda0     = 1.10192774, 1.12922828
@@ -88,7 +88,8 @@ void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double
   double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
   double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
   TH1D* mass = (TH1D*)thn->Projection(K0SmassAxis);
-  // mass->Scale(1./mass->Integral()); // TODO: Normalising shows S+B=0 in TLatex. How to deal with this?
+  // double nV0s = mass->Integral();
+  // mass->Scale(1./nV0s); // TODO: Normalising shows S+B=0 in TLatex. How to deal with this?
   setStyle(mass, 0);
   legend->AddEntry(mass, "data");
 
@@ -97,17 +98,19 @@ void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double
   mass->Draw("same");
 
   double parameters[5];
+  double sidebandRegion[2] = {0.46221947, 0.53135842}; // mu ± 7 sigma
   double signalRegion[2] = {0.47209646, 0.52148143}; // mu ± 5 sigma
   double fitRegion[2] = {0.4, 0.6};
   TF1* background_extrapolated = new TF1("background_extrapolated", "pol1", fitRegion[0], fitRegion[1]);
   // TF1* background = new TF1("background", "pol1", fitRegion[0], fitRegion[1]);
-  TF1* background = new TF1("background", pol1bkg, fitRegion[0], fitRegion[1], 2);
+  TF1* background = new TF1("background", pol1bkg, fitRegion[0], fitRegion[1], 4);
   TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
   TF1* total = new TF1("total", "pol1(0) + gaus(2)", fitRegion[0], fitRegion[1]);
 
+  background->SetParameter(0, sidebandRegion[0]); background->SetParameter(1, sidebandRegion[1]);
   setStyle(background, 1);
   TFitResultPtr bkgPtr = mass->Fit("background", "S");
-  background->GetParameters(&parameters[0]);
+  parameters[0] = background->GetParameter(2); parameters[1] = background->GetParameter(3);
   legend->AddEntry(background, "background");
 
   setStyle(background_extrapolated, 1);

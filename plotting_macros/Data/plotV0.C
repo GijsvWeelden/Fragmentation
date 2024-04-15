@@ -26,7 +26,7 @@ void plotV0Pt(string inName = "AnalysisResults.root")
   double titleSize = 0.04;
 
   bool setLogY = true;
-  double xMinFrame = 0, xMaxFrame = 10, yMinFrame = 1e-6, yMaxFrame = .1;
+  double xMinFrame = 0, xMaxFrame = 100, yMinFrame = 1e-6, yMaxFrame = .1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;

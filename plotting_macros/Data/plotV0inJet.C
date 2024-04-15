@@ -42,12 +42,10 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   const int v0phiAxis  = 3;
 
   gStyle->SetNdivisions(505, "xy");
-
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
-
   bool SetLogy = true;
   double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 1e-7, yMaxFrame = 0.1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;

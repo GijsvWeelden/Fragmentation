@@ -433,3 +433,283 @@ void AntiLambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0.
   cout << "Purity: " << purity << " = " << 1e2 * purity << "%" << endl;
 }
 
+// -------------------------------------------------------------------------------------------------
+
+void cutVarPurityWrtNoCut(string inName = "", string hypothesis = "", int cutAxis = -1, double ptmin = 0., double ptmax = 100., bool doRatio = false)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  if ( ("K0S" == hypothesis) + ("Lambda0" == hypothesis) + ("AntiLambda0" == hypothesis) != 1) {
+    cout << "Error: hypothesis must be either K0S, Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+  if (cutAxis < 0) {
+    cout << "Error: cutAxis must be specified (4-9)" << endl;
+    return;
+  }
+  const int nDim                = 10;
+  const int ptAxis              = 0;
+  const int K0SmassAxis         = 1;
+  const int Lambda0massAxis     = 2;
+  const int AntiLambda0massAxis = 3;
+  const int RAxis               = 4;
+  const int ctauAxis            = 5;
+  const int cosPAAxis           = 6;
+  const int DCApAxis            = 7;
+  const int DCAnAxis            = 8;
+  const int DCAdAxis            = 9;
+
+  std::array<string, nDim> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0mass", "R", "ctau", "cosPA", "DCAp", "DCAn", "DCAd"};
+  int projectionAxis = ("K0S" == hypothesis)*K0SmassAxis + ("Lambda0" == hypothesis)*Lambda0massAxis + ("AntiLambda0" == hypothesis)*AntiLambda0massAxis;
+  gStyle->SetNdivisions(505, "xy");
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+  bool SetLogy = false;
+  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
+  if ("K0S" == hypothesis) { xMinFrame = 0.4, xMaxFrame = 0.6, yMaxFrame = 0.1; }
+  if (doRatio) { yMinFrame = 0.5, yMaxFrame = 1.2; }
+  double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
+  double xLatex = 0.23, yLatex = 0.93;
+  int xCanvas = 1800, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = TString::Format("#it{M}_{%s} (cm)", formatHadronName(hypothesis).c_str()).Data();
+  yTitle = "#frac{N}{N(uncut)}";
+  dataSet = "LHC23y_pass1";
+
+  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (SetLogy) { canvas->SetLogy(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+
+  histName = "V0CutVariation";
+  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
+  TFile* inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  // Apply pt selection for all histograms
+  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
+  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
+  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
+  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
+
+  TH1D* stdmass = (TH1D*)thn->Projection(projectionAxis);
+  double stdmassIntegral = stdmass->Integral();
+  stdmass->Scale(1./stdmassIntegral);
+  setStyle(stdmass, 0);
+  legend->AddEntry(stdmass, "No cut");
+  latexText = TString::Format("%s, %.0f < #it{p}_{T, V0} < %.0f GeV/#it{c}", dataSet.c_str(), ptmin, ptmax).Data();
+  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
+  for (int iBin = underflowBin + 1; iBin <= overflowBin; iBin++) {
+    THnSparseD* thn_copy = (THnSparseD*)thn->Clone("thn_copy");
+    thn_copy->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]); // Just to be sure
+
+    // Cut the axis off at the bottom (var > binLowEdge)
+    thn_copy->GetAxis(cutAxis)->SetRange(iBin, overflowBin);
+    if ( (ctauAxis == cutAxis) + (DCAdAxis == cutAxis) ) {
+      // Cut the axis off at the top (var < binUpEdge)
+      thn_copy->GetAxis(cutAxis)->SetRange(underflowBin, overflowBin - iBin);
+    }
+    TH1D* mass = (TH1D*)thn_copy->Projection(projectionAxis);
+    mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
+    mass->Scale(1./stdmassIntegral);
+    setStyle(mass, iBin);
+
+    if (doRatio) { mass->Divide(stdmass); }
+    histVector.push_back(mass);
+
+    // Legend stuff
+    string legendEntry;
+    double binEdge = thn_copy->GetAxis(cutAxis)->GetBinLowEdge(iBin);
+    if ( (ctauAxis == cutAxis) + (DCAdAxis == cutAxis) ) {
+      binEdge = thn_copy->GetAxis(cutAxis)->GetBinUpEdge(iBin);
+    }
+    switch (cutAxis) {
+      case RAxis:
+        legendEntry = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case ctauAxis:
+        legendEntry = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case cosPAAxis:
+        legendEntry = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case DCApAxis:
+        legendEntry = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case DCAnAxis:
+        legendEntry = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case DCAdAxis:
+        legendEntry = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+    }
+    legend->AddEntry(mass, legendEntry.c_str());
+  }
+  if (doRatio) { stdmass->Divide(stdmass); }
+  frame->Draw();
+  stdmass->Draw("same hist");
+  for (auto hist : histVector) {
+    hist->Draw("same hist");
+  }
+  legend->Draw("same");
+  latex->Draw("same");
+
+  saveName = TString::Format("m%s_wrtNoCut", hypothesis.c_str()).Data();
+  saveName = TString::Format("%s_%s", saveName.c_str(), axisNames[cutAxis].c_str()).Data();
+  saveName = TString::Format("%s_%s", saveName.c_str(), doRatio ? "ratio" : "spectrum").Data();
+  saveName = TString::Format("%s_v0pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax).Data();
+  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
+  canvas->SaveAs(saveName.c_str());
+}
+
+void cutVarPurityWrtStdCut(string inName = "", string hypothesis = "", int cutAxis = -1, double ptmin = 0., double ptmax = 100., bool doRatio = false)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  if ( ("K0S" == hypothesis) + ("Lambda0" == hypothesis) + ("AntiLambda0" == hypothesis) != 1) {
+    cout << "Error: hypothesis must be either K0S, Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+  if (cutAxis < 0) {
+    cout << "Error: cutAxis must be specified (4-9)" << endl;
+    return;
+  }
+  const int nDim                = 10;
+  const int ptAxis              = 0;
+  const int K0SmassAxis         = 1;
+  const int Lambda0massAxis     = 2;
+  const int AntiLambda0massAxis = 3;
+  const int RAxis               = 4;
+  const int ctauAxis            = 5;
+  const int cosPAAxis           = 6;
+  const int DCApAxis            = 7;
+  const int DCAnAxis            = 8;
+  const int DCAdAxis            = 9;
+
+  // Bins corresponding to standard cuts. We don't cut on the first 4 axes, so -1 to ignore
+  std::array<int, nDim> stdBins = {-1, -1, -1, -1, 3, 2 - 1*("K0S" == hypothesis), 3, 2, 2, 1};
+  std::array<string, nDim> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0mass", "R", "ctau", "cosPA", "DCAp", "DCAn", "DCAd"};
+  int projectionAxis = ("K0S" == hypothesis)*K0SmassAxis + ("Lambda0" == hypothesis)*Lambda0massAxis + ("AntiLambda0" == hypothesis)*AntiLambda0massAxis;
+  gStyle->SetNdivisions(505, "xy");
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+  bool SetLogy = false;
+  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
+  if ("K0S" == hypothesis) {
+    xMinFrame = 0.4, xMaxFrame = 0.6, yMaxFrame = 0.11;
+    if (doRatio) { yMinFrame = 0.8, yMaxFrame = 1.3; }
+  }
+  else { if (doRatio) { yMinFrame = 0.9, yMaxFrame = 1.1; } }
+  double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
+  double xLatex = 0.23, yLatex = 0.93;
+  int xCanvas = 1800, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = TString::Format("#it{M}_{%s} (cm)", formatHadronName(hypothesis).c_str()).Data();
+  yTitle = "#frac{N}{N(std)}";
+  dataSet = "LHC23y_pass1";
+
+  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
+
+  histName = "V0CutVariation";
+  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
+  TFile* inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  // Apply pt selection for all histograms
+  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
+  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
+  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
+  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
+
+  thn->GetAxis(cutAxis)->SetRange(1, 1 + thn->GetAxis(cutAxis)->GetNbins());
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  latexText = TString::Format("%s, %.0f < #it{p}_{T, V0} < %.0f GeV/#it{c}", dataSet.c_str(), ptmin, ptmax).Data();
+  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
+  for (int iBin = underflowBin + 1; iBin <= overflowBin; iBin++) {
+    THnSparseD* thn_copy = (THnSparseD*)thn->Clone("thn_copy");
+    thn_copy->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]); // Just to be sure
+
+    // Cut the axis off at the bottom (var > binLowEdge)
+    thn_copy->GetAxis(cutAxis)->SetRange(iBin, overflowBin);
+    if ( (ctauAxis == cutAxis) + (DCAdAxis == cutAxis) ) {
+      // Cut the axis off at the top (var < binUpEdge)
+      thn_copy->GetAxis(cutAxis)->SetRange(underflowBin, overflowBin - iBin);
+    }
+    TH1D* mass = (TH1D*)thn_copy->Projection(projectionAxis);
+    mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
+    // mass->Scale(1./stdmassIntegral);
+    setStyle(mass, iBin);
+
+    // if (doRatio) { mass->Divide(stdmass); }
+    histVector.push_back(mass);
+
+    // Legend stuff
+    string legendEntry;
+    double binEdge = thn_copy->GetAxis(cutAxis)->GetBinLowEdge(iBin);
+    if ( (ctauAxis == cutAxis) + (DCAdAxis == cutAxis) ) {
+      binEdge = thn_copy->GetAxis(cutAxis)->GetBinUpEdge(iBin);
+    }
+    switch (cutAxis) {
+      case RAxis:
+        legendEntry = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case ctauAxis:
+        legendEntry = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case cosPAAxis:
+        legendEntry = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case DCApAxis:
+        legendEntry = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case DCAnAxis:
+        legendEntry = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+      case DCAdAxis:
+        legendEntry = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
+        break;
+    }
+    legend->AddEntry(mass, legendEntry.c_str());
+    if (iBin == stdBins[cutAxis]) {
+      yTitle = TString::Format("#frac{N}{N(%s)}", legendEntry.c_str()).Data();
+      setStyle(mass, 0);
+    }
+  }
+  TH1D* stdmass = (TH1D*)histVector[stdBins[cutAxis]-1]->Clone("stdmass");
+  double stdmassIntegral = stdmass->Integral();
+  for (auto hist : histVector) {
+  if (doRatio) { hist->Divide(stdmass); }
+  else { hist->Scale(1./stdmassIntegral); }
+  }
+
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (SetLogy) { canvas->SetLogy(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->Draw();
+  for (auto hist : histVector) {
+    hist->Draw("same hist");
+  }
+  legend->Draw("same");
+  latex->Draw("same");
+
+  saveName = TString::Format("m%s_wrtStdCut", hypothesis.c_str()).Data();
+  saveName = TString::Format("%s_%s", saveName.c_str(), axisNames[cutAxis].c_str()).Data();
+  saveName = TString::Format("%s_%s", saveName.c_str(), doRatio ? "ratio" : "spectrum").Data();
+  saveName = TString::Format("%s_v0pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax).Data();
+  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
+  canvas->SaveAs(saveName.c_str());
+}
+

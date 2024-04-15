@@ -15,6 +15,11 @@
 
 #include "../../histUtils.C"
 
+/*
+ * Plots background from mistagged V0s
+ * E.g. K0SMass("Lambda0") plots and fits the shape of mK0S for true Lambdas
+ */
+
 const double MassK0S = 0.497611;
 const double MassLambda0 = 1.115683;
 

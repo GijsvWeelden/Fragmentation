@@ -1,0 +1,47 @@
+
+#! /bin/bash
+
+INPUT="196844_test.root"
+PTMIN=0.
+PTMAX=100.
+DORATIO=false
+COMPARESTD=false
+
+while getopts 'i:rs' OPTION; do
+  case "$OPTION" in
+    i)
+      INPUT="${OPTARG}"
+      ;;
+    r)
+      DORATIO=true
+      ;;
+    s)
+      COMPARESTD=true
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-r doratio, -s comparestd, -i input]"
+      exit 1
+      ;;
+  esac
+done
+
+declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
+
+echo "Starting: cut variation for V0s"
+
+command="cutVarPurityWrtNoCut"
+if [[ $COMPARESTD == true ]]; then
+command="cutVarPurityWrtStdCut"
+fi
+
+for i in "${hadrons[@]}"; do
+HYPOTHESIS=$i
+
+for AXIS in 4 5 6 7 8 9; do
+# command="${command}"
+root -l -b <<EOF
+.L plotPurity.C
+${command}(\"${INPUT}\", \"${HYPOTHESIS}\", ${AXIS}, ${PTMIN}, ${PTMAX}, ${DORATIO})
+EOF
+done
+done

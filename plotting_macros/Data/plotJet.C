@@ -13,18 +13,7 @@
 #include "TString.h"
 #include "TLegend.h"
 
-#include "/Users/gijsvanweelden/Documents/Fragmentation/plotting_macros/histUtils.C"
-
-string formatHadronName(string hadron);
-// double getNjets(string inName, double jetptmin, double jetptmax);
-void normaliseHistRowByRow(TH2D* hist);
-void normaliseHistColByCol(TH2D* hist);
-template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText);
-template <typename T>
-void setStyle(T hist, int styleNumber);
-
-// ----------------------------------------------------------
+#include "../histUtils.C"
 
 void plotJetPt(string inName = "AnalysisResults.root")
 {
@@ -43,7 +32,7 @@ void plotJetPt(string inName = "AnalysisResults.root")
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, jet}";
   yTitle = "normalised count";
-  latexText = "LHC23y_pass1_small";
+  latexText = "LHC23y_pass1";
 
   std::vector<TH1D*> histVector;
 
@@ -205,87 +194,4 @@ void plotJetEtaPhi(string inName = "AnalysisResults.root", double jetptmin = 10.
   jetetaphi->Draw("same colz");
   if (latexText != "") { DrawLatex(0.2, 0.93, latexText.c_str(), textSize); }
   myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
-}
-
-// Formats the hadron name to look nice (Greek letters, sub- and superscripts)
-string formatHadronName(string hadron)
-{
-  string had = hadron;
-  if (hadron == "pi"){
-    had = "#pi^{#pm}";
-  }
-  else if (hadron == "pi0"){
-    had = "#pi^{0}";
-  }
-  else if (hadron == "K0S"){
-    had = "K^{0}_{S}";
-  }
-  else if (hadron == "Lambda0"){
-    had = "#it{#Lambda}^{0}";
-  }
-  return had;
-}
-// double getNjets(string inName, double jetptmin, double jetptmax)
-// {
-//   TH1D* hjetpt = loadHist<TH1D*>(inName, "hjetpt");
-//   int firstBinPt = 1, lastBinPt = hjetpt->GetNbinsX();
-//   firstBinPt = hjetpt->FindBin(jetptmin + 1e-3);
-//   lastBinPt = hjetpt->FindBin(jetptmax - 1e-3);
-//   double integral = hjetpt->Integral(firstBinPt, lastBinPt);
-//   return integral;
-// }
-// Normalise 2D histogram row-by-row
-void normaliseHistRowByRow(TH2D* hist)
-{
-  int firstColBin = 1, lastColBin = hist->GetNbinsX();
-  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
-  for (int iRow = 1; iRow <= lastRowBin; iRow++) {
-    double integral = hist->Integral(firstColBin, lastColBin, iRow, iRow);
-    if (integral < 1) { continue; }
-    for (int iCol = 1; iCol <= lastColBin; iCol++) {
-      double binContent = hist->GetBinContent(iCol, iRow);
-      binContent /= integral;
-      hist->SetBinContent(iCol, iRow, binContent);
-    }
-  }
-}
-// Normalise 2D histogram col-by-col
-void normaliseHistColByCol(TH2D* hist)
-{
-  int firstColBin = 1, lastColBin = hist->GetNbinsX();
-  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
-  for (int iCol = 1; iCol <= lastColBin; iCol++) {
-    double integral = hist->Integral(iCol, iCol, firstRowBin, lastRowBin);
-    if (integral < 1) { continue; }
-    for (int iRow = 1; iRow <= lastRowBin; iRow++) {
-      double binContent = hist->GetBinContent(iCol, iRow);
-      binContent /= integral;
-      hist->SetBinContent(iCol, iRow, binContent);
-    }
-  }
-}
-template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText)
-{
-  canvas->cd();
-  frame->Draw();
-  string drawOption = "same";
-  if (setDrawOption != "") {
-    drawOption = TString::Format("%s %s", drawOption.c_str(), setDrawOption.c_str()).Data();
-  }
-  for (unsigned int i = 0; i < histVector.size(); i++) {
-    T hist = histVector[i];
-    hist->Draw(drawOption.c_str());
-  }
-  if (legend) { legend->Draw("same"); }
-  if (latexText != "") { DrawLatex(0.4, 0.8, latexText.c_str(), legend->GetTextSize()); }
-  canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
-}
-template <typename T>
-void setStyle(T hist, int styleNumber)
-{
-  hist->SetLineWidth(3);
-  hist->SetLineColor(GetColor(styleNumber));
-  hist->SetMarkerStyle(GetMarker(styleNumber));
-  hist->SetMarkerColor(GetColor(styleNumber));
 }

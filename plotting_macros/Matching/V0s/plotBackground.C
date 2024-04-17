@@ -325,7 +325,7 @@ void K0SMass(string inName = "", string hadron = "", double partjetptmin = 10., 
   background_extrapolated->Draw("same");
 
   latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
-  if (doZ) { latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.0f - %.0f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
+  if (doZ) { latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.2f - %.2f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   TLatex* latexChi2 = CreateLatex(0.3, 0.6, TString::Format("#chi^{2}/NDF = %.2f / %d = %.2f", bkgPtr->Chi2(), bkgPtr->Ndf(), bkgPtr->Chi2() / bkgPtr->Ndf()).Data(), textSize);
@@ -444,7 +444,7 @@ void Lambda0Mass(string inName = "", string hadron = "", double partjetptmin = 1
   exp1_extrapolated->Draw("same");
 
   latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
-  if (doZ) { latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.0f - %.0f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
+  if (doZ) { latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.2f - %.2f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   TLatex* latexPolChi2 = CreateLatex(0.25, 0.6, TString::Format("Pol: #chi^{2}/NDF = %.2f / %d = %.2f", polptr->Chi2(), polptr->Ndf(), polptr->Chi2() / polptr->Ndf()).Data(), textSize);
@@ -586,7 +586,7 @@ void AntiLambda0Mass(string inName = "", string hadron = "", double partjetptmin
   exp1_extrapolated->Draw("same");
 
   latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
-  if (doZ) { latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.0f - %.0f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
+  if (doZ) { latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.2f - %.2f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   TLatex* latexPolChi2 = CreateLatex(0.25, 0.6, TString::Format("Pol: #chi^{2}/NDF = %.2f / %d = %.2f", polptr->Chi2(), polptr->Ndf(), polptr->Chi2() / polptr->Ndf()).Data(), textSize);
@@ -628,3 +628,120 @@ void AntiLambda0Mass(string inName = "", string hadron = "", double partjetptmin
 
   canvas->SaveAs(saveName.c_str());
 }
+
+// -------------------------------------------------------------------------------------------------
+
+void ReflectionNoJets(string inName, string hadron, double partv0min = -1., double partv0max = 1e6)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  if ( ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
+    cout << "Error: hadron must be either Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+  string hypothesis = ("Lambda0" == hadron) ? "AntiLambda0" : "Lambda0";
+  const int nDim                = 6;
+  const int partV0PtAxis        = 0;
+  const int detV0PtAxis         = 1;
+  const int K0SMassAxis         = 2;
+  const int Lambda0MassAxis     = 3;
+  const int AntiLambda0MassAxis = 4;
+  const int ReflectionAxis      = 5;
+
+  gStyle->SetNdivisions(505, "xy");
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+  bool setLogY = false;
+  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
+  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.3, yMaxLegend = 0.5;
+  double xLatex = 0.3, yLatex = 0.8;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
+  yTitle = "normalised count";
+  dataSet = "LHC23k4b_pass1_small";
+
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogY) { canvas->SetLogy(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  histName = TString::Format("%sReflection", ("Lambda0" == hadron) ? "Lambda0" : "antiLambda0").Data();
+  histName = TString::Format("jet-fragmentation/matching/V0/%s", histName.c_str()).Data();
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> partv0bins = getProjectionBins(thn->GetAxis(partV0PtAxis), partv0min, partv0max);
+  thn->GetAxis(partV0PtAxis)->SetRange(partv0bins[0], partv0bins[1]);
+  double lowv0 = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(partv0bins[0]);
+  double highv0 = thn->GetAxis(partV0PtAxis)->GetBinUpEdge(partv0bins[1]);
+  if (lowv0 < 0.) { lowv0 = 0.; } // Avoids ugly pt>-0 in latextext
+
+  TH1D* v0mass = (TH1D*)thn->Projection(ReflectionAxis);
+  v0mass->Scale(1./v0mass->Integral());
+  setStyle(v0mass, 0);
+  v0mass->SetName(TString::Format("%sReflection", hadron.c_str()).Data());
+  legend->AddEntry(v0mass, "data");
+
+  canvas->cd();
+  frame->Draw();
+  v0mass->Draw("same");
+
+  double parameters_pol[2];
+  double parameters_pol2[3];
+  double parameters_exp[2];
+  double fitRegion[4] = {1.1, 1.15, 1.17, 1.215};
+  TF1* pol = new TF1("pol", "pol1", fitRegion[0], fitRegion[1]);
+  TF1* pol_extrapolated = new TF1("pol_extrapolated", "pol1", 1.05, 1.215);
+  TF1* exp1 = new TF1("exp1", "expo", fitRegion[0], fitRegion[1]);
+  TF1* exp1_extrapolated = new TF1("exp1_extrapolated", "expo", 1.05, 1.215);
+
+  setStyle(pol, 1);
+  TFitResultPtr polptr = v0mass->Fit(pol, "S R");
+  pol->GetParameters(&parameters_pol[0]);
+  legend->AddEntry(pol, "pol1 fit");
+
+  setStyle(pol_extrapolated, 1);
+  pol_extrapolated->SetLineStyle(9);
+  pol_extrapolated->SetParameters(parameters_pol);
+  pol_extrapolated->Draw("same");
+
+  setStyle(exp1, 2);
+  TFitResultPtr expptr = v0mass->Fit(exp1, "S R+");
+  exp1->GetParameters(&parameters_exp[0]);
+  legend->AddEntry(exp1, "expo fit");
+
+  setStyle(exp1_extrapolated, 2);
+  exp1_extrapolated->SetLineStyle(9);
+  exp1_extrapolated->SetParameters(parameters_exp);
+  exp1_extrapolated->Draw("same");
+
+  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }", dataSet.c_str(), formatHadronName(hadron).c_str(), lowv0, highv0).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  TLatex* latexPolChi2 = CreateLatex(0.26, 0.7, TString::Format("Pol: #chi^{2}/NDF = %.2f / %d = %.2f", polptr->Chi2(), polptr->Ndf(), polptr->Chi2() / polptr->Ndf()).Data(), textSize);
+  TLatex* latexPol = CreateLatex(0.26, 0.65, TString::Format("Pol = %.2f + %.2f M", parameters_pol[0], parameters_pol[1]).Data(), textSize);
+  TLatex* latexExpChi2 = CreateLatex(0.26, 0.6, TString::Format("Exp: #chi^{2}/NDF = %.2f / %d = %.2f", expptr->Chi2(), expptr->Ndf(), expptr->Chi2() / expptr->Ndf()).Data(), textSize);
+  TLatex* latexExp = CreateLatex(0.26, 0.55, TString::Format("Exp = exp(%.2f + %.2f M)", parameters_exp[0], parameters_exp[1]).Data(), textSize);
+
+  TLine* line = new TLine(MassLambda0, yMinFrame, MassLambda0, yMaxFrame);
+
+  legend->Draw("same");
+  latex->Draw("same");
+  latexPolChi2->Draw("same");
+  latexPol->Draw("same");
+  latexExpChi2->Draw("same");
+  latexExp->Draw("same");
+
+  saveName = TString::Format("%sReflection", hadron.c_str()).Data();
+  saveName = TString::Format("%s_partv0pt%.0f-%.0f", saveName.c_str(), lowv0, highv0);
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  canvas->SaveAs(saveName.c_str());
+}
+void Reflection(string inName, string hadron, double partjetptmin = 10., double partjetptmax = 200., double partv0min = -1., double partv0max = 1e6, bool doZ = false)
+{}

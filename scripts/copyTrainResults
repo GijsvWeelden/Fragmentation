@@ -5,6 +5,8 @@
 #   `bash copyTrainResults.sh 123456`
 # or in one go like:
 #   `alienv setenv O2Physics/latest -c bash copyTrainResults.sh 123456`
+# Sometimes, this script will fail to download the output, saying the specified source could not be found.
+# Running the script again resolves this.
 
 # Credit: Rik Spijkers
 

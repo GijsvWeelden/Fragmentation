@@ -243,6 +243,7 @@ void matchedMass(string inName = "", string hadron = "", string hypothesis = "",
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
 
+// Mass under K0S hypothesis from true Lambda/antiLambda
 void K0SMass(string inName = "", string hadron = "", double partjetptmin = 10., double partjetptmax = 200., double partv0min = -1., double partv0max = 1e6, bool doZ = false)
 {
   if ("" == inName) {
@@ -344,6 +345,7 @@ void K0SMass(string inName = "", string hadron = "", double partjetptmin = 10., 
 
   canvas->SaveAs(saveName.c_str());
 }
+// Mass under Lambda hypothesis from true K0S/antiLambda
 void Lambda0Mass(string inName = "", string hadron = "", double partjetptmin = 10., double partjetptmax = 200., double partv0min = -1., double partv0max = 1e6, bool doZ = false)
 {
   if ("" == inName) {
@@ -486,6 +488,7 @@ void Lambda0Mass(string inName = "", string hadron = "", double partjetptmin = 1
 
   canvas->SaveAs(saveName.c_str());
 }
+// Mass under antiLambda hypothesis from true Lambda/K0S
 void AntiLambda0Mass(string inName = "", string hadron = "", double partjetptmin = 10., double partjetptmax = 200., double partv0min = -1., double partv0max = 1e6, bool doZ = false)
 {
   if ("" == inName) {

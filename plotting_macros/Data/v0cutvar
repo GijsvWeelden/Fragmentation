@@ -1,0 +1,43 @@
+
+#! /bin/bash
+
+INPUT="196844.root"
+PTMIN=0.
+PTMAX=100.
+HADRON=""
+
+while getopts 'i:h:' OPTION; do
+  case "$OPTION" in
+    i)
+      INPUT="${OPTARG}"
+      ;;
+    h)
+      HADRON="${OPTARG}"
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-h hadron (K0S, Lambda, AntiLambda), -i input]"
+      exit 1
+      ;;
+  esac
+done
+
+declare -a hadrons=("K0S" "Lambda" "AntiLambda")
+
+if [[ ! " ${hadrons[@]} " =~ " ${HADRON} " ]];
+then
+  echo "Please specify a hadron with -h (K0S, Lambda, AntiLambda)"
+  exit 1
+fi
+# echo "Starting: purity estimation for V0 cut variation. 3 hadrons * 6 axes"
+echo "Starting: purity estimation for V0 cut variation."
+
+# AXIS=4
+for AXIS in 4 5 6 7 8 9
+do
+command="cutVar${HADRON}Purity(\"${INPUT}\", ${AXIS}, ${PTMIN}, ${PTMAX})"
+echo "${command}"
+root -l -b <<EOF
+.L plotPurity.C
+${command}
+EOF
+done

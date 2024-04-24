@@ -90,12 +90,13 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200.)
+void plotV0Z(string inName = "", double jetptmin = 10., double jetptmax = 200.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
     return;
   }
+  string hadron = "V0";
   if ( ("V0" == hadron) + ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
     cout << "Error: hadron must be either V0, K0S, Lambda0, or AntiLambda0" << endl;
     return;
@@ -140,6 +141,81 @@ void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double
   double highjetpt = thn->GetAxis(jetptAxis)->GetBinUpEdge(jetptbins[1]);
 
   TH1D* v0z = (TH1D*)thn->Projection(v0zAxis);
+  v0z->Scale(1./getNjets(inFile, jetptmin, jetptmax), "width");
+  v0z->SetName(TString::Format("%sZ", hadron.c_str()).Data());
+  setStyle(v0z, 0);
+  histVector.push_back(v0z);
+
+  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = TString::Format("%sZ", hadron.c_str()).Data();
+  saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
+}
+void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200.)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  if ("V0" == hadron) {
+    cout << "V0 selected. Redirecting to plotV0Z()" << endl;
+    plotV0Z(inName, jetptmin, jetptmax);
+    return;
+  }
+  if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
+    cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+  const int nDim                = 5;
+  const int jetptAxis           = 0;
+  const int v0zAxis             = 1;
+  const int K0SMassAxis         = 2;
+  const int Lambda0MassAxis     = 3;
+  const int AntiLambda0MassAxis = 4;
+
+  gStyle->SetNdivisions(505, "xy");
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+
+  bool SetLogy = true;
+  // bool SetLogy = false;
+  double xMinFrame = 1e-3, xMaxFrame = 1.+1e-3, yMinFrame = 1e-7, yMaxFrame = 3.;
+  // double xMinFrame = 1e-3, xMaxFrame = 1.+1e-3, yMinFrame = 0, yMaxFrame = 1.;
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  double xLatex = 0.4, yLatex = 0.8;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 4;
+  xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data();
+  yTitle = TString::Format("#frac{1}{#it{N}_{jets}} #frac{d #it{N}}{d #it{z}_{%s}}", formatHadronName(hadron).c_str()).Data();
+  dataSet = "LHC22o_pass6_small";
+
+  std::vector<TH1D*> histVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (SetLogy) { canvas->SetLogy(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  string hadronForHistname = hadron;
+  if ("Lambda0" == hadron) { hadronForHistname = "Lambda"; }
+  if ("AntiLambda0" == hadron) { hadronForHistname = "AntiLambda"; }
+  histName = TString::Format("jetPt%sTrackProjAllMasses", hadronForHistname.c_str()).Data();
+  histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
+  thn->GetAxis(jetptAxis)->SetRange(jetptbins[0], jetptbins[1]);
+  double lowjetpt = thn->GetAxis(jetptAxis)->GetBinLowEdge(jetptbins[0]);
+  double highjetpt = thn->GetAxis(jetptAxis)->GetBinUpEdge(jetptbins[1]);
+
+  TH1D* v0z = (TH1D*)thn->Projection(v0zAxis);
+  v0z->Rebin(rebinNumber);
   v0z->Scale(1./getNjets(inFile, jetptmin, jetptmax), "width");
   v0z->SetName(TString::Format("%sZ", hadron.c_str()).Data());
   setStyle(v0z, 0);

@@ -25,6 +25,84 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 
 // -------------------------------------------------------------------------------------------------
 
+void ptResolution(string inName = "", double partjetptmin = 10., double partjetptmax = 1e6, double partv0min = -1., double partv0max = 1e6)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  const int nDim = 5;
+  const int partJetPtAxis = 0;
+  const int detJetPtAxis = 1;
+  const int partV0PtAxis = 2;
+  const int ptRatioAxis = 3;
+  const int ptRelDiffAxis = 4;
+
+  string hadron = "V0";
+  gStyle->SetNdivisions(505, "xy");
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+  bool setLogY = true;
+  double xMinFrame = -1., xMaxFrame = 10., yMinFrame = 1e-7, yMaxFrame = 2.;
+  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  double xLatex = 0.4, yLatex = 0.8;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 5;
+  xTitle = TString::Format("(#it{p}_{T, %s}^{det.} - #it{p}_{T, %s}^{part.})/#it{p}_{T, %s}^{part.}", hadron.c_str(), hadron.c_str(), hadron.c_str()).Data();
+  yTitle = "normalised count";
+  dataSet = "LHC24b1";
+
+  std::vector<TH1D*> histVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogY) { canvas->SetLogy(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLatex* latex;
+
+  histName = "partJetPtDetJetPtPartV0PtRatioPtRelDiffPt";
+  histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
+  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
+  std::array<int, 2> partv0bins = getProjectionBins(thn->GetAxis(partV0PtAxis), partv0min, partv0max);
+  thn->GetAxis(partJetPtAxis)->SetRange(jetptbins[0], jetptbins[1]);
+  thn->GetAxis(partV0PtAxis)->SetRange(partv0bins[0], partv0bins[1]);
+  double lowjetpt = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(jetptbins[0]);
+  double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(jetptbins[1]);
+  double lowv0 = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(partv0bins[0]);
+  double highv0 = thn->GetAxis(partV0PtAxis)->GetBinUpEdge(partv0bins[1]);
+  if (lowv0 < 0.) { lowv0 = 0.; } // Avoids ugly pt>-0 in latextext
+
+  TH1D* v0res = (TH1D*)thn->Projection(ptRelDiffAxis);
+  v0res->SetName("v0resolution");
+  v0res->Scale(1./v0res->Integral());
+  setStyle(v0res, 0);
+  histVector.push_back(v0res);
+
+  // Get RMS = V0 resolution for given pt range
+  double rms = 0.;
+  for (int i = 1; i < v0res->GetNbinsX(); i++) {
+    double binContent = v0res->GetBinContent(i);
+    double binCenter = v0res->GetBinCenter(i);
+    // Hist is self-normalised, so no need to divide by integral
+    rms += binContent * binCenter * binCenter;
+  }
+  rms = TMath::Sqrt(rms);
+  // v0res->Print("all");
+
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{#splitline{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }{ RMS: %.2f } } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0, rms).Data();
+  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = TString::Format("%sPtResolution", hadron.c_str()).Data();
+  saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
+  saveName = TString::Format("%s_partv0pt%.0f-%.0f", saveName.c_str(), lowv0, highv0);
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
+}
+
 void matchedPtZ(string inName = "", double partjetptmin = 10., double partjetptmax = 1e6, bool detector = false, bool doZ = false)
 {
   if ("" == inName) {

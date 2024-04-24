@@ -32,15 +32,15 @@ void ptResolution(string inName = "", double partv0min = -1., double partv0max =
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
-  bool setLogY = false;
-  double xMinFrame = -1., xMaxFrame = 10., yMinFrame = 0., yMaxFrame = 1.;
+  bool setLogY = true;
+  double xMinFrame = -1., xMaxFrame = 10., yMinFrame = 1e-8, yMaxFrame = 2.;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
-  double xLatex = 0.3, yLatex = 0.8;
+  double xLatex = 0.4, yLatex = 0.8;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = TString::Format("(#it{p}_{T, %s}^{det.} - #it{p}_{T, %s}^{part.})/#it{p}_{T, %s}^{part.}", hadron.c_str(), hadron.c_str(), hadron.c_str()).Data();
   yTitle = "normalised count";
-  dataSet = "LHC23k4b_pass1_small";
+  dataSet = "LHC24b1";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);

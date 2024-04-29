@@ -3,6 +3,8 @@
 # This script loads the Ali/O2Physics daily tag for a given date
 # The script requires a cvmfs connection
 
+echo "Warning: For tags after 11.03.2024, I will not work on centOS. Make sure you are running AlmaLinux9"
+
 DATEOFTAG=$(date +"%Y%m%d")
 ALIPHYSICS=0
 while getopts 'd:ay' OPTION; do

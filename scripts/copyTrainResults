@@ -10,7 +10,13 @@
 
 # Credit: Rik Spijkers
 
+if [[ ${O2_ROOT} == "" ]]; then
+  echo "You need to be in an O2 environment to run this script!"
+  exit 1
+fi
+
 TRAINRUN=$1
+[ -z "${TRAINRUN}" ] && echo "Please provide a train run number as an argument!" && exit 1
 # try to get the testdir from the train run number
 DIGITS=${TRAINRUN:0:2}
 TESTID=00$DIGITS/00$TRAINRUN

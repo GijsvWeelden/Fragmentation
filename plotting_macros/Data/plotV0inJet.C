@@ -82,7 +82,7 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   setStyle(v0pt, 0);
   histVector.push_back(v0pt);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%sPt", hadron.c_str()).Data();
@@ -146,7 +146,7 @@ void plotV0Z(string inName = "", double jetptmin = 10., double jetptmax = 200.)
   setStyle(v0z, 0);
   histVector.push_back(v0z);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%sZ", hadron.c_str()).Data();
@@ -221,7 +221,7 @@ void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double
   setStyle(v0z, 0);
   histVector.push_back(v0z);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%sZ", hadron.c_str()).Data();
@@ -290,7 +290,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   setStyle(v0Radius, 0);
   histVector.push_back(v0Radius);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }",
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }",
                               dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
@@ -358,7 +358,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   setStyle(v0CosPA, 0);
   histVector.push_back(v0CosPA);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%sCosPA", hadron.c_str()).Data();
@@ -416,7 +416,7 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   setStyle(v0DCAdaughters, 0);
   histVector.push_back(v0DCAdaughters);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, formatHadronName(hadron).c_str(), v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, formatHadronName(hadron).c_str(), v0ptmin, v0ptmax).Data();
   latex = CreateLatex(0.3, 0.8, latexText, textSize);
 
   saveName = TString::Format("%sDCAdaughters", hadron.c_str()).Data();
@@ -481,7 +481,7 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   setStyle(v0DCApos, 0);
   histVector.push_back(v0DCApos);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
   latex = CreateLatex(0.3, 0.8, latexText, textSize);
 
   saveName = TString::Format("%sDCApos", hadron.c_str()).Data();
@@ -545,7 +545,7 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   setStyle(v0DCAneg, 0);
   histVector.push_back(v0DCAneg);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }",
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }",
                               dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
   TLatex* latex = CreateLatex(0.3, 0.8, latexText, textSize);
 
@@ -611,7 +611,7 @@ void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10.
   v0DCAposneg->SetMinimum(1e-5);
   v0DCAposneg->SetMaximum(1.);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
   TLatex* latex = CreateLatex(0.2, 0.93, latexText, textSize);
 
   saveName = TString::Format("%sDCAposneg", hadron.c_str()).Data();
@@ -679,7 +679,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   setStyle(ctau, 0);
   histVector.push_back(ctau);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0pt, highv0pt).Data();
   TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("ctau%s", hadron.c_str()).Data();
@@ -745,7 +745,7 @@ void plotMass(string inName = "", string hadron = "", double jetptmin = 10., dou
   setStyle(mass, 0);
   histVector.push_back(mass);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, formatHadronName(hadron).c_str(), v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, formatHadronName(hadron).c_str(), v0ptmin, v0ptmax).Data();
   TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%smass", hadron.c_str()).Data();
@@ -818,7 +818,7 @@ void plotV0ctau(string inName = "", int setting = 2, double jetptmin = 10., doub
   setStyle(ctau, 0);
   histVector.push_back(ctau);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, lowv0pt, highv0pt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), lowjetpt, highjetpt, lowv0pt, highv0pt).Data();
   TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = "ctauK0S";
@@ -879,7 +879,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   ctau->Scale(1./ctau->Integral());
   setStyle(ctau, 0);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   saveName = "ctauK0SLambda";
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
@@ -926,7 +926,7 @@ void plotV0mass(string inName = "AnalysisResults.root", int setting = 2, double 
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   yTitle = "normalised count";
   string dataSet = "LHC23y_pass1";
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -988,7 +988,7 @@ void plotV0massKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#Lambda)";
   string dataSet = "LHC23y_pass1";
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -1051,7 +1051,7 @@ void plotV0massKaL(string inName = "AnalysisResults.root", double jetptmin = 10.
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#bar{#Lambda})";
   string dataSet = "LHC23y_pass1";
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -1114,7 +1114,7 @@ void plotV0massLL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   xTitle = "#it{M} (#Lambda)";
   yTitle = "#it{M} (#bar{#Lambda})";
   string dataSet = "LHC23y_pass1";
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -1225,7 +1225,7 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
   onlyJet->Scale(1./onlyJet->Integral());
   onlyJet->Rebin(5);
   setStyle(onlyJet, 0);
-  legend->AddEntry(onlyJet, TString::Format("#it{p}_{T, jet} = %.0f - %.0f GeV/#it{c}", jetptmin, jetptmax).Data());
+  legend->AddEntry(onlyJet, TString::Format("#it{p}_{T, ch. jet} = %.0f - %.0f GeV/#it{c}", jetptmin, jetptmax).Data());
   histVector.push_back(onlyJet);
 
   thn->GetAxis(v0ptAxis)->SetRange(firstBinV0Pt, lastBinV0Pt);

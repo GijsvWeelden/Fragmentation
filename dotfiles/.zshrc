@@ -4,13 +4,6 @@
 # equip with conda loader if needed
 
 # Change prompt to show environment name
-# if [ x$O2_ROOT != x ]
-# then
-# export PS1='%T %F{208}[O2 ninja] %F{magenta}%~%F{105}${vcs_info_msg_0_}%F{208} %#> %f'
-# else
-# export PS1='%T %F{magenta}%~%F{105}${vcs_info_msg_0_}%f %# '
-# fi
-# Change prompt to show environment name
 hostname=${HOST:0:7}
 environment=""
 promptend="%f%% "
@@ -32,6 +25,7 @@ if [[ x${environment} != x ]]; then
   promptend="%F{208}%#> %f"
 fi
 export PS1='%T ${hostname}%F{208}${environment}%F{magenta}%~%F{105}${vcs_info_msg_0_} ${promptend}'
+
 export CLICOLOR=1
 export LSCOLORS=gxgxBxDxCxEgEdxbxgxcxd
 

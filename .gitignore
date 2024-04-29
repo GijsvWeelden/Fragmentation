@@ -4,6 +4,7 @@ pythia/pythia8_simple
 pythia/pythia8_v0study
 pythia/v0studyWithDecays
 pythia/v0studyWithoutDecays
+plotting_macros/V0Jets/SpectraChecks
 
 **/.DS_Store
 **/test.*

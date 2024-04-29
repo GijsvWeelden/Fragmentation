@@ -1,7 +1,6 @@
 #! /bin/bash
 
 # This script loads an O2Physics environment for a given tag
-
 TAG="${1}"
 
 packages=$(find ${ALIBUILD_WORK_DIR}/BUILD/O2Physics* -maxdepth 0 -print)
@@ -12,7 +11,9 @@ nx=$(echo "${x}" | wc -l)
 if [[ "$TAG" == "" ]]; then
   echo "No tag specified. Entering O2Physics/latest"
   alienv enter O2Physics/latest ninja/latest
+  exit 0
 fi
+
 echo "Searching \$ALIBUILD_WORK_DIR/BUILD for packages"
 if [[ "$x" == "" ]]; then
   echo "No packages found for \"${TAG}\". Available packages:"

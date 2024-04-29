@@ -20,5 +20,5 @@ precmd() { vcs_info }
 zstyle ':vcs_info:git*' formats ' (%b)'
 setopt PROMPT_SUBST
 
-source .aliases
-source .zsh_aliases
+source ${FRAGMENTATION_DIR}/dotfiles/.aliases
+source ${FRAGMENTATION_DIR}/dotfiles/.zsh_aliases

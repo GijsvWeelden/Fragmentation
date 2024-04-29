@@ -1,4 +1,5 @@
 export ALIBUILD_WORK_DIR="$HOME/alice/sw"
+export FRAGMENTATION_DIR="$HOME/cernbox/Fragmentation"
 eval "`alienv shell-helper`"
 # Change prompt to show environment name
 # Can be made fancier by checking $LOADEDMODULES for O2/ninja or other libraries. Could also show git branch, etc.
@@ -16,33 +17,9 @@ autoload -Uz vcs_info
 precmd() { vcs_info }
 zstyle ':vcs_info:git*' formats ' (%b)'
 setopt PROMPT_SUBST
-# Aliases
-alias o2="alienv enter --shellrc O2Physics/latest ninja/latest"
-alias unfold="alienv enter --shellrc O2Physics/latest ninja/latest RooUnfold/latest"
-alias ls="ls -GF"
-alias ll="ls -GF -lht"
-alias lg=LG
-alias lgalt=LGalt
-alias nikhef="ssh -A gweelden@login.nikhef.nl"
-alias stoom="ssh -A stbc-i1"
-alias stoomboot="ssh -A stbc-i2"
-alias stoomboter="ssh -A stbc-i3"
-alias dep="$O2PHYSICS_ROOT/share/scripts/find_dependencies.py -t" # Finds table producer
-alias applyformatting="clang-format -style=file -i" # Usage: format <file> # Applies O2Physics formatting
-alias copytrainresults="~/Documents/Fragmentation/scripts/copyTrainResults" # Requires to be in O2 environment
 
-# ls show if dir is git repo
-LGalt() {
-  paste <(CLICOLOR_FORCE=true ls -ld *) <(for i in *; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi;
-  done)
-}
-LG() {
-  if [ x$1 != x ]; then
-  paste <(CLICOLOR_FORCE=true ls -ld $1) <(for i in $1; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi; done)
-  else
-  LGalt
-  fi
-}
+source .aliases
+source .zsh_aliases
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!

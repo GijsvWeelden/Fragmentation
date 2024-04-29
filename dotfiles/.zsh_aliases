@@ -1,0 +1,19 @@
+
+alias ls="ls -GF"
+alias ll="ls -GF -lht"
+alias la="ls -GF -a"
+alias lg=LG
+alias lgalt=LGalt
+
+# ls show if dir is git repo
+LGalt() {
+  paste <(CLICOLOR_FORCE=true ls -ld *) <(for i in *; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi;
+  done)
+}
+LG() {
+  if [ x$1 != x ]; then
+  paste <(CLICOLOR_FORCE=true ls -ld $1) <(for i in $1; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi; done)
+  else
+  LGalt
+  fi
+}

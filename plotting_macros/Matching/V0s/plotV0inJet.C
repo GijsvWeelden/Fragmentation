@@ -93,7 +93,7 @@ void ptResolution(string inName = "", double partjetptmin = 10., double partjetp
   rms = TMath::Sqrt(rms);
   // v0res->Print("all");
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{#splitline{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }{ RMS: %.2f } } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0, rms).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{#splitline{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }{ RMS: %.2f } } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0, rms).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%sPtResolution", hadron.c_str()).Data();
@@ -133,7 +133,7 @@ void matchedPtZ(string inName = "", double partjetptmin = 10., double partjetptm
     xMinFrame = 1e-3; xMaxFrame = 1.+1e-3;
   }
   yTitle = "normalised count";
-  dataSet = "LHC23k4b_pass1";
+  dataSet = "LHC24b1";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -159,7 +159,7 @@ void matchedPtZ(string inName = "", double partjetptmin = 10., double partjetptm
   setStyle(matchedjetpt, 0);
   histVector.push_back(matchedjetpt);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, jet}^{part.} = %.0f - %.0f (GeV/#it{c}) }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f (GeV/#it{c}) }", dataSet.c_str(), lowjetpt, highjetpt).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sV0%s", detector ? "Det" : "Part" , doZ ? "Z" : "Pt").Data();
@@ -207,7 +207,7 @@ void matchedCtau(string inName = "", string hadron = "", string hypothesis = "",
   // yTitle = TString::Format("#it{p}_{T, %s}^{part.} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   // if (doZ) { yTitle = TString::Format("#it{z}_{%s}^{part.}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = "normalised count";
-  dataSet = "LHC23k4b_pass1_small";
+  dataSet = "LHC24b1";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -243,9 +243,9 @@ void matchedCtau(string inName = "", string hadron = "", string hypothesis = "",
   // if (doZ) { v0ctau->SetName(TString::Format("%sZCtau%s", hadron.c_str(), hypothesis.c_str()).Data()); }
   histVector.push_back(v0ctau);
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
   if (doZ) {
-    latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.0f - %.0f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
+    latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.0f - %.0f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
   }
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
@@ -300,7 +300,7 @@ void matchedMass(string inName = "", string hadron = "", string hypothesis = "",
   // yTitle = TString::Format("#it{p}_{T, %s}^{part.} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   // if (doZ) { yTitle = TString::Format("#it{z}_{%s}^{part.}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = "normalised count";
-  dataSet = "LHC23k4b_pass1_small";
+  dataSet = "LHC24b1";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -335,8 +335,8 @@ void matchedMass(string inName = "", string hadron = "", string hypothesis = "",
   // if (doZ) { v0mass->SetName(TString::Format("%sTrackProjMass%s", hadron.c_str(), hypothesis.c_str()).Data()); }
   histVector.push_back(v0mass);
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
-  if (doZ) { latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.0f - %.0f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
+  if (doZ) { latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{z}_{%s}^{part.} = %.0f - %.0f }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sMass%s", hadron.c_str(), hypothesis.c_str()).Data();
@@ -410,7 +410,7 @@ void matchedRadius(string inName = "", string hadron = "", double partjetptmin =
   if (doZ) { v0radius->SetName(TString::Format("%sTrackProjRadius", hadron.c_str()).Data()); }
   histVector.push_back(v0radius);
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sPtRadius", hadron.c_str()).Data();
@@ -481,7 +481,7 @@ void matchedCosPA(string inName = "", string hadron = "", double partjetptmin = 
   if (doZ) { v0cospa->SetName(TString::Format("%sZCosPA", hadron.c_str()).Data()); }
   histVector.push_back(v0cospa);
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sPtCosPA", hadron.c_str()).Data();
@@ -553,7 +553,7 @@ void matchedDCAposneg(string inName = "", string hadron = "", bool doNeg = false
   if (doZ) { v0dca->SetName(TString::Format("%sZDCA", hadron.c_str()).Data()); }
   histVector.push_back(v0dca);
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sPtDCA", hadron.c_str()).Data();
@@ -625,7 +625,7 @@ void matchedDCAd(string inName = "", string hadron = "", double partjetptmin = 1
   if (doZ) { v0dca->SetName(TString::Format("%sZDCAd", hadron.c_str()).Data()); }
   histVector.push_back(v0dca);
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ Matched %s in matched jets }}", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("matched%sPtDCAd", hadron.c_str()).Data();

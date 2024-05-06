@@ -38,10 +38,10 @@ void matchedJetPt(string inName = "AnalysisResults.root", bool detector = false)
   double xLatex = 0.1, yLatex = 0.93;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
-  xTitle = "#it{p}_{T, jet}^{part.} (GeV/#it{c})";
-  if (detector) { xTitle = "#it{p}_{T, jet}^{det.} (GeV/#it{c})"; }
+  xTitle = "#it{p}_{T, ch. jet}^{part.} (GeV/#it{c})";
+  if (detector) { xTitle = "#it{p}_{T, ch. jet}^{det.} (GeV/#it{c})"; }
   yTitle = "normalised count";
-  dataSet = "LHC23k4b_pass1";
+  dataSet = "LHC24b1";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -84,7 +84,7 @@ void matchedJetPt2D(string inName = "AnalysisResults.root")
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, V0}^{det.} (GeV/#it{c})";
   yTitle = "#it{p}_{T, V0}^{part.} (GeV/#it{c})";
-  dataSet = "LHC23k4b_pass1_small";
+  dataSet = "LHC24b1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -124,10 +124,10 @@ void jetEnergyScale(string inName = "AnalysisResults.root", double partjetptmin 
   double xLatex = 0.4, yLatex = 0.8;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
-  xTitle = "(#it{p}_{T, jet}^{det.} - #it{p}_{T, jet}^{part.})/#it{p}_{T, jet}^{part.}";
-  // yTitle = "#it{p}_{T, jet}^{part.} (GeV/#it{c})";
+  xTitle = "(#it{p}_{T, ch. jet}^{det.} - #it{p}_{T, ch. jet}^{part.})/#it{p}_{T, ch. jet}^{part.}";
+  // yTitle = "#it{p}_{T, ch. jet}^{part.} (GeV/#it{c})";
   yTitle = "normalised count";
-  dataSet = "LHC23k4b_pass1";
+  dataSet = "LHC24b1";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -136,8 +136,8 @@ void jetEnergyScale(string inName = "AnalysisResults.root", double partjetptmin 
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
 
-  // histName = "jet-fragmentation/matching/jets/matchPartJetptRelDiffPt";
-  histName = "jet-fragmentation_id10235/matching/jets/matchPartJetPtRelDiffPt";
+  histName = "jet-fragmentation/matching/jets/matchPartJetPtRelDiffPt";
+  // histName = "jet-fragmentation_id10235/matching/jets/matchPartJetPtRelDiffPt";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   TH2D* th2 = (TH2D*)inFile->Get(histName.c_str());
 
@@ -156,11 +156,11 @@ void jetEnergyScale(string inName = "AnalysisResults.root", double partjetptmin 
     rms += binContent * binCenter * binCenter;
   }
   rms = TMath::Sqrt(rms);
-  jes->Print("all");
+  // jes->Print("all");
 
   double lowjetpt = th2->GetXaxis()->GetBinLowEdge(partjetptbins[0]);
   double highjetpt = th2->GetXaxis()->GetBinUpEdge(partjetptbins[1]);
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ RMS: %.2f } }", dataSet.c_str(), lowjetpt, highjetpt, rms).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ RMS: %.2f } }", dataSet.c_str(), lowjetpt, highjetpt, rms).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = "jetEnergyScale";

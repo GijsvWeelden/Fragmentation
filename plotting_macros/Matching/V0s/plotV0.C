@@ -102,7 +102,7 @@ void matchedPt(string inName = "", bool detector = false)
   xTitle = "#it{p}_{T, V0}^{part.} (GeV/#it{c})";
   if (detector) { xTitle = "#it{p}_{T, V0}^{det.} (GeV/#it{c})"; }
   yTitle = "normalised count";
-  dataSet = "LHC23k4b_pass1";
+  dataSet = "LHC24b1";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);

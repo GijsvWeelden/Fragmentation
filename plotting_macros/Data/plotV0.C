@@ -26,13 +26,13 @@ void plotV0Pt(string inName = "AnalysisResults.root")
   double titleSize = 0.04;
 
   bool setLogY = true;
-  double xMinFrame = 0, xMaxFrame = 100, yMinFrame = 1e-6, yMaxFrame = .1;
+  double xMinFrame = 0, xMaxFrame = 60, yMinFrame = 1e-8, yMaxFrame = 1.;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, V0}";
   yTitle = "normalised count";
-  latexText = "LHC23y_pass1";
+  latexText = "LHC22o_apass6_minBias";
 
   std::vector<TH1D*> histVector;
 
@@ -70,7 +70,7 @@ void plotV0Eta(string inName = "AnalysisResults.root", double v0ptmin = 0., doub
   int rebinNumber = 5;
   xTitle = "#eta_{V0}";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -114,7 +114,7 @@ void plotV0Phi(string inName = "AnalysisResults.root", double v0ptmin = 0., doub
   int rebinNumber = 5;
   xTitle = "#varphi_{V0}";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -160,7 +160,7 @@ void plotV0EtaPhi(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int rebinNumber = 5;
   xTitle = "#eta_{V0}";
   yTitle = "#varphi_{V0}";
-  latexText = TString::Format("LHC23y_pass1_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("LHC22o_apass6_minBias_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
 
   std::vector<TH2D*> histVector;
 
@@ -215,7 +215,7 @@ void plotV0Radius(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int rebinNumber = 5;
   xTitle = "V0 Radius";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -260,7 +260,7 @@ void plotV0CosPA(string inName = "AnalysisResults.root", double v0ptmin = 0., do
   int rebinNumber = 5;
   xTitle = "V0 cos(PA)";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -304,7 +304,7 @@ void plotV0DCAdaughters(string inName = "AnalysisResults.root", double v0ptmin =
   int rebinNumber = 5;
   xTitle = "DCA daughters";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -348,7 +348,7 @@ void plotV0DCApos(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int rebinNumber = 5;
   xTitle = "DCA pos";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -392,7 +392,7 @@ void plotV0DCAneg(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int rebinNumber = 5;
   xTitle = "DCA neg";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -436,7 +436,7 @@ void plotV0DCAposneg(string inName = "AnalysisResults.root", double v0ptmin = 0.
   int rebinNumber = 5;
   xTitle = "DCA pos";
   yTitle = "DCA neg";
-  latexText = TString::Format("LHC23y_pass1_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("LHC22o_apass6_minBias_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (setLogY) { myCanvas->SetLogy(); }
@@ -494,7 +494,7 @@ void plotV0ctau(string inName = "AnalysisResults.root", int setting = 1, double 
   if (setting == LambdaAxis) { xTitle = "#it{c}#tau (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{c}#tau (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -548,7 +548,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{c}#tau (K^{0}_{S})";
   yTitle = "#it{c}#tau (#Lambda)";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { myCanvas->SetLogz(); }
@@ -610,7 +610,7 @@ void plotV0mass(string inName = "AnalysisResults.root", int setting = 1, double 
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC23y_pass1_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -663,7 +663,7 @@ void plotV0massKL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#Lambda)";
-  latexText = TString::Format("LHC23y_pass1, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("LHC22o_apass6_minBias, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { myCanvas->SetLogz(); }
@@ -716,7 +716,7 @@ void plotV0massLL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (#Lambda)";
   yTitle = "#it{M} (#bar{#Lambda})";
-  latexText = TString::Format("LHC23y_pass1_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("LHC22o_apass6_minBias_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { myCanvas->SetLogz(); }

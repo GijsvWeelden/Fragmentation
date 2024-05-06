@@ -49,12 +49,12 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   bool SetLogy = true;
   double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 1e-7, yMaxFrame = 0.1;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
-  double xLatex = 0.3, yLatex = 0.8;
+  double xLatex = 0.35, yLatex = 0.8;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -63,7 +63,11 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   TLatex* latex;
 
-  histName = TString::Format("jetPt%sPtEtaPhi", hadron.c_str()).Data();
+  // histName = TString::Format("jetPt%sPtEtaPhi", hadron.c_str()).Data();
+  string hadronForHistname = hadron;
+  if ("Lambda0" == hadron) { hadronForHistname = "Lambda"; }
+  if ("AntiLambda0" == hadron) { hadronForHistname = "AntiLambda"; }
+  histName = TString::Format("jetPt%sPtDCAposneg", hadronForHistname.c_str()).Data();
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
@@ -82,7 +86,8 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   setStyle(v0pt, 0);
   histVector.push_back(v0pt);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ d#it{R}(jet, %s) #leq #it{R}} }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
+  // latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%sPt", hadron.c_str()).Data();
@@ -121,7 +126,7 @@ void plotV0Z(string inName = "", double jetptmin = 10., double jetptmax = 200.)
   int rebinNumber = 5;
   xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data();
   yTitle = TString::Format("#frac{1}{#it{N}_{jets}} #frac{d #it{N}}{d #it{z}_{%s}}", formatHadronName(hadron).c_str()).Data();
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -146,7 +151,8 @@ void plotV0Z(string inName = "", double jetptmin = 10., double jetptmax = 200.)
   setStyle(v0z, 0);
   histVector.push_back(v0z);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  // latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ d#it{R}(jet, %s) #leq #it{R}} }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%sZ", hadron.c_str()).Data();
@@ -184,7 +190,7 @@ void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double
 
   bool SetLogy = true;
   // bool SetLogy = false;
-  double xMinFrame = 1e-3, xMaxFrame = 1.+1e-3, yMinFrame = 1e-7, yMaxFrame = 3.;
+  double xMinFrame = 1e-3, xMaxFrame = 1.+1e-3, yMinFrame = 1e-7, yMaxFrame = 1e-3;
   // double xMinFrame = 1e-3, xMaxFrame = 1.+1e-3, yMinFrame = 0, yMaxFrame = 1.;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.4, yLatex = 0.8;
@@ -192,7 +198,7 @@ void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double
   int rebinNumber = 4;
   xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data();
   yTitle = TString::Format("#frac{1}{#it{N}_{jets}} #frac{d #it{N}}{d #it{z}_{%s}}", formatHadronName(hadron).c_str()).Data();
-  dataSet = "LHC22o_pass6_small";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -221,7 +227,8 @@ void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double
   setStyle(v0z, 0);
   histVector.push_back(v0z);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  // latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ d#it{R}(jet, %s) #leq #it{R}} }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str()).Data();
   latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = TString::Format("%sZ", hadron.c_str()).Data();
@@ -262,7 +269,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   int rebinNumber = 5;
   xTitle = TString::Format("%s Radius (cm)", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -330,7 +337,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   int rebinNumber = 5;
   xTitle = TString::Format("%s cos PA", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -389,7 +396,7 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   int rebinNumber = 5;
   xTitle = TString::Format("%s DCA daughters (cm)", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -453,7 +460,7 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   int rebinNumber = 5;
   xTitle = TString::Format("%s DCA pos", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -518,7 +525,7 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   int rebinNumber = 5;
   xTitle = TString::Format("%s DCA neg", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -573,7 +580,7 @@ void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10.
 
   gStyle->SetNdivisions(505, "xy");
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
@@ -651,7 +658,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   int xCanvas = 900, yCanvas = 900;
   xTitle = TString::Format("#it{c}#tau (%s)", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -718,7 +725,7 @@ void plotMass(string inName = "", string hadron = "", double jetptmin = 10., dou
   int xCanvas = 900, yCanvas = 900;
   xTitle = TString::Format("#it{M} (%s)", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -790,7 +797,7 @@ void plotV0ctau(string inName = "", int setting = 2, double jetptmin = 10., doub
   if (setting == LambdaAxis) { xTitle = TString::Format("#it{c}#tau (%s)", formatHadronName("Lambda0").c_str()).Data(); }
   if (setting == AntiLambdaAxis) { xTitle = TString::Format("#it{c}#tau (%s)", formatHadronName("AntiLambda0").c_str()).Data(); }
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -853,7 +860,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{c}#tau (K^{0}_{S})";
   yTitle = "#it{c}#tau (#Lambda)";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -925,7 +932,7 @@ void plotV0mass(string inName = "AnalysisResults.root", int setting = 2, double 
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
@@ -987,7 +994,7 @@ void plotV0massKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#Lambda)";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1050,7 +1057,7 @@ void plotV0massKaL(string inName = "AnalysisResults.root", double jetptmin = 10.
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#bar{#Lambda})";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1113,7 +1120,7 @@ void plotV0massLL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (#Lambda)";
   yTitle = "#it{M} (#bar{#Lambda})";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1187,7 +1194,7 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = "";
 
   std::vector<TH1D*> histVector;

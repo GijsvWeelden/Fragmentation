@@ -71,20 +71,24 @@ void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool SetLogy = false;
-  double xMinFrame = 0.4, xMaxFrame = 0.6, yMinFrame = 0., yMaxFrame = 1.;
+  double xMinFrame = 0.4, xMaxFrame = 0.6, yMinFrame = 0., yMaxFrame = .04;
   double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
   double xLatex = 0.23, yLatex = 0.93;
   int xCanvas = 1800, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName("K0S").c_str()).Data();
   yTitle = "count";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogy) { canvas->SetLogy(); }
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  TLine* line = new TLine(MassK0S, yMinFrame, MassK0S, yMaxFrame);
+  line->SetLineColor(GetColor(0));
+  line->SetLineWidth(2);
+  line->SetLineStyle(9);
 
   histName = "V0PtMass";
   histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
@@ -157,8 +161,8 @@ void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double
   double sigPlusBkgErr;
   double sigPlusBkg = mass->IntegralAndError(mass->FindBin(signalRegion[0]), mass->FindBin(signalRegion[1]), sigPlusBkgErr, "width");
   double purity = 1 - bkgEstimate / sigPlusBkg;
-  TLatex* latexS = CreateLatex(0.6, 0.5, TString::Format("S+B = %.1f #pm %.1f", sigPlusBkg, sigPlusBkgErr).Data(), textSize);
-  TLatex* latexB = CreateLatex(0.6, 0.4, TString::Format("B = %.1f #pm %.1f", bkgEstimate, bkgErr).Data(), textSize);
+  TLatex* latexS = CreateLatex(0.6, 0.5, TString::Format("S+B = %.1f #pm %.1f", sigPlusBkg * nV0s, sigPlusBkgErr * nV0s).Data(), textSize);
+  TLatex* latexB = CreateLatex(0.6, 0.4, TString::Format("B = %.1f #pm %.1f", bkgEstimate * nV0s, bkgErr * nV0s).Data(), textSize);
   TLatex* latexPurity = CreateLatex(0.6, 0.3, TString::Format("Purity = %.2f %%", purity * 1e2).Data(), textSize);
 
   latexMu->Draw("same");
@@ -168,6 +172,7 @@ void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double
   latexChi->Draw("same");
   latexPurity->Draw("same");
   background_extrapolated->Draw("same");
+  line->Draw("same");
 
   saveName = "K0S_purity";
   saveName = TString::Format("%s_pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax);
@@ -213,7 +218,7 @@ void Lambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0., do
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName("Lambda0").c_str()).Data();
   yTitle = "count";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -356,7 +361,7 @@ void AntiLambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0.
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName("AntiLambda0").c_str()).Data();
   yTitle = "count";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -508,7 +513,7 @@ void cutVarMassWrtNoCut(string inName = "", string hypothesis = "", int cutAxis 
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
   yTitle = "#frac{N}{N(uncut)}";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -647,7 +652,7 @@ void cutVarMassWrtStdCut(string inName = "", string hypothesis = "", int cutAxis
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
   yTitle = "#frac{N}{N(std)}";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
 
@@ -883,7 +888,7 @@ void cutVarK0SPurity(string inName = "", int cutAxis = -1, double ptmin = 0., do
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
   yTitle = "#frac{N}{N(uncut)}";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1081,7 +1086,7 @@ void cutVarLambdaPurity(string inName = "", int cutAxis = -1, double ptmin = 0.,
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
   yTitle = "#frac{N}{N(uncut)}";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1280,7 +1285,7 @@ void cutVarAntiLambdaPurity(string inName = "", int cutAxis = -1, double ptmin =
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
   yTitle = "#frac{N}{N(uncut)}";
-  dataSet = "LHC23y_pass1";
+  dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);

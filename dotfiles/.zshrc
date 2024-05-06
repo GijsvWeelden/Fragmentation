@@ -3,12 +3,15 @@
 # eval "`alienv shell-helper`" wherever you call this from
 # equip with conda loader if needed
 
+# List of hosts you don't need to show in the prompt
+localhosts=("dhcp" "Gijs")
+
 # Change prompt to show environment name
 hostname=${HOST:0:7}
 environment=""
 promptend="%f%% "
 
-if [[ ${hostname:0:4} == "dhcp" ]]; then
+if (( $localhosts[(Ie)${hostname:0:4}] )); then
   hostname=""
 else
   hostname="${hostname} "

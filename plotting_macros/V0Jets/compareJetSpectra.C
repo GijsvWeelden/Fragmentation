@@ -15,6 +15,8 @@
 
 #include "/Users/gijsvanweelden/Documents/Fragmentation/plotting_macros/histUtils.C"
 
+// Use this script to check that the introduction of V0Jets has not changed the charged-particle jets spectra
+
 void comparePt(string dataSet, vector<string> inNames, vector<string> legendEntries, bool doPart = false, bool doRatio = false)
 {
   gStyle->SetNdivisions(505, "xy");
@@ -233,20 +235,14 @@ void comparephidata(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = 
 
 void compareptmcd(bool doRatio = false)
 { comparePt("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, false, doRatio); }
-// { comparePt("MC: LHC23d4", {"ChJets:ChJets_MC.root", "ChJets:V0Jets_MC.root", "V0Jets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, false, doRatio); }
 void compareetamcd(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
 { compareEta("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, jetptmin, jetptmax, false, doRatio); }
-// { compareEta("MC: LHC23d4", {"ChJets:ChJets_MC.root", "ChJets:V0Jets_MC.root", "V0Jets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, jetptmin, jetptmax, false, doRatio); }
 void comparephimcd(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
 { comparePhi("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, jetptmin, jetptmax, false, doRatio); }
-// { comparePhi("MC: LHC23d4", {"ChJets:ChJets_MC.root", "ChJets:V0Jets_MC.root", "V0Jets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, jetptmin, jetptmax, false, doRatio); }
 
 void compareptmcp(bool doRatio = false)
 { comparePt("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, true, doRatio); }
-// { comparePt("MC: LHC23d4", {"ChJets:ChJets_MC.root", "ChJets:V0Jets_MC.root", "V0Jets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, true, doRatio); }
 void compareetamcp(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
 { compareEta("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, jetptmin, jetptmax, true, doRatio); }
-// { compareEta("MC: LHC23d4", {"ChJets:ChJets_MC.root", "ChJets:V0Jets_MC.root", "V0Jets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, jetptmin, jetptmax, true, doRatio); }
 void comparephimcp(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
 { comparePhi("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, jetptmin, jetptmax, true, doRatio); }
-// { comparePhi("MC: LHC23d4", {"ChJets:ChJets_MC.root", "ChJets:V0Jets_MC.root", "V0Jets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, jetptmin, jetptmax, true, doRatio); }

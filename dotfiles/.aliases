@@ -1,5 +1,4 @@
 
-alias o2="alienv enter --shellrc O2Physics/latest ninja/latest"
 alias unfold="alienv enter --shellrc O2Physics/latest ninja/latest RooUnfold/latest"
 alias nikhef="ssh -A gweelden@login.nikhef.nl"
 alias stoom="ssh -A stbc-i1"
@@ -9,7 +8,7 @@ alias dep="$O2PHYSICS_ROOT/share/scripts/find_dependencies.py -t" # Finds table 
 alias applyformatting="clang-format -style=file -i" # Usage: format <file> # Applies O2Physics formatting
 alias copytrainresults="${FRAGMENTATION_DIR}/scripts/copyTrainResults" # Requires to be in O2 environment
 
-alias loado2="${FRAGMENTATION_DIR}/scripts/load-o2"
+alias o2="${FRAGMENTATION_DIR}/scripts/load-o2"
 alias atag="${FRAGMENTATION_DIR}/scripts/load-alien-tag -a -y"
 alias otag="${FRAGMENTATION_DIR}/scripts/load-alien-tag"
 alias o2dir="cd ${ALIBUILD_WORK_DIR}/../O2Physics"

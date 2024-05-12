@@ -1,9 +1,14 @@
 Plots/
 inputfiles/
+
 pythia/pythia8_simple
 pythia/pythia8_v0study
+pythia/pythia8_chjets-v0jets
+
 pythia/v0studyWithDecays
 pythia/v0studyWithoutDecays
+pythia/chJetsV0Jets
+
 plotting_macros/V0Jets/SpectraChecks
 
 **/.DS_Store

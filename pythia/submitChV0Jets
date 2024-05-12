@@ -1,0 +1,25 @@
+
+#! /bin/bash
+nJobs=2
+nEvents=2000
+
+outdir=/data/alice/gweelden/Fragmentation/pythia/chJetsV0Jets
+
+rm -r ${outdir} 2> /dev/null
+if [ ! -d ${outdir} ]; then
+  mkdir -p ${outdir}
+fi
+
+iJob=1
+while [ $iJob -le ${nJobs} ]; do
+  jobdir=${outdir}/${iJob}
+  if [ ! -d ${jobdir} ]; then
+    mkdir -p ${jobdir}
+  fi
+  if [ ! -d ${jobdir}/logs/ ]; then
+    mkdir -p ${jobdir}/logs/
+  fi
+  # rm ${jobdir}/*.root ${jobdir}/logs/*
+  qsub -q generic -v nEvents="${nEvents}" -d ${jobdir} -o ${jobdir}/logs -e ${jobdir}/logs ${outdir}/../runstbcChV0Jets
+  let iJob++
+done

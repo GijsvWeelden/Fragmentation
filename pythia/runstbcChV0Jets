@@ -1,0 +1,7 @@
+
+#!/bin/bash
+# This script should be ran only by submitChV0Jets
+source /cvmfs/alice.cern.ch/etc/login.sh
+eval $(alienv printenv VO_ALICE@O2Physics::nightly-20220928-1, VO_ALICE@GCC-Toolchain::v10.2.0-alice2-14)
+
+/data/alice/gweelden/Fragmentation/pythia/pythia8_chjets-v0jets ${nEvents}

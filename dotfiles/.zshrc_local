@@ -5,6 +5,13 @@ eval "`alienv shell-helper`"
 source ~/cernbox/Fragmentation/dotfiles/.zshrc
 autoload -Uz compinit && compinit
 
+# Redefine alias. Otherwise o2 will give message:
+# The default interactive shell is now zsh.
+# To update your account to use zsh, please run `chsh -s /bin/zsh`.
+# For more details, please visit https://support.apple.com/kb/HT208050.
+# bash-3.2$
+alias o2="zsh ${FRAGMENTATION_DIR}/scripts/load-o2"
+
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/Users/gijsvanweelden/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"

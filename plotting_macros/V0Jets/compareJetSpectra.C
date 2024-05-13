@@ -15,9 +15,16 @@
 
 #include "/Users/gijsvanweelden/Documents/Fragmentation/plotting_macros/histUtils.C"
 
-// Use this script to check that the introduction of V0Jets has not changed the charged-particle jets spectra
+// This script compares the jet spectra of Ch. jets and Ch+V0 jets
 
-void comparePt(string dataSet, vector<string> inNames, vector<string> legendEntries, bool doPart = false, bool doRatio = false)
+double getNevts(string inName)
+{
+  TFile* inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
+  TH1D* hNEvents = (TH1D*)inFile->Get("jet-fragmentation/data/V0/nV0sEvent");
+  return hNEvents->Integral();
+}
+
+void comparePtData(string dataSet, vector<string> inNames, vector<string> legendEntries, bool doRatio = false)
 {
   gStyle->SetNdivisions(505, "xy");
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, drawoption;
@@ -25,15 +32,19 @@ void comparePt(string dataSet, vector<string> inNames, vector<string> legendEntr
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogY = true;
-  double xMinFrame = 0., xMaxFrame = 200., yMinFrame = 1e-7, yMaxFrame = 1.;
-  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
-  double xLatex = 0.4, yLatex = 0.8;
+  double xMinFrame = 0., xMaxFrame = 200., yMinFrame = 1e-11, yMaxFrame = 1e-3;
+  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.4, yMaxLegend = 0.55;
+  double xLatex = 0.3, yLatex = 0.93;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, jet}";
   yTitle = "normalised count";
+  yTitle = "#it{N}_{jets} / #it{N}_{evts}";
   drawoption = "same";
   saveName = "ptComparison";
+  histName = "jet-fragmentation/data/jets/jetPtEtaPhi";
+
+  vector<double> integrals; vector<double> nevents;
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -43,21 +54,31 @@ void comparePt(string dataSet, vector<string> inNames, vector<string> legendEntr
   TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   for (int i = 0; i < inNames.size(); i++) {
-    TFile *inFile = TFile::Open(TString::Format("./%s", inNames[i].c_str()).Data());
-    histName = "jet-finder-charged-qa/h_jet_pt";
-    if (2 == i) { histName = "jet-finder-charged-v0-qa/h_jet_pt"; }
-    if (doPart) { histName = TString::Format("%s_part", histName.c_str()).Data(); }
+    TH1D* th1;
+    string inName = inNames[i];
+    TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
 
-    TH1D* th1 = (TH1D*)inFile->Get(histName.c_str());
-    th1->Print();
+    if (inName.find("203281") != std::string::npos) {
+      histName = "jet-fragmentation/data/jets/V0/jetPtnV0";
+      TH2D* th2 = (TH2D*)inFile->Get(histName.c_str());
+      th1 = th2->ProjectionX(TString::Format("pt_%s", inName.c_str()).Data(), 2, th2->GetYaxis()->GetNbins());
+    }
+    else {
+      histName = "jet-fragmentation/data/jets/jetPtEtaPhi";
+      TH3D* th3 = (TH3D*)inFile->Get(histName.c_str());
+      th1 = th3->ProjectionX(TString::Format("pt_%s", inName.c_str()).Data());
+    }
+
     setStyle(th1, i);
-    legend->AddEntry(th1, legendEntries[i].c_str(), "l");
+    legend->AddEntry(th1, legendEntries[i].c_str());
     histVector.push_back(th1);
+    integrals.push_back(th1->Integral());
+    nevents.push_back(getNevts(inName));
   }
   if (doRatio) {
     canvas->SetLogy(false);
     yMinFrame = 0.5; yMaxFrame = 1.1;
-    drawoption = "same hist p";
+    // drawoption = "same hist p";
     saveName = "ptRatio";
     yTitle = TString::Format("ratio w.r.t. %s", legendEntries[0].c_str()).Data();
     for (int i = 1; i < histVector.size(); i++) {
@@ -65,184 +86,153 @@ void comparePt(string dataSet, vector<string> inNames, vector<string> legendEntr
     }
     histVector[0]->Divide(histVector[0]);
   }
+
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   frame->Draw();
-  for (auto hist : histVector) {
+  for (int i = 0; i < histVector.size(); i++) {
+    TH1D* hist = histVector[i];
     if (!doRatio) {
-      for (auto hist : histVector) {
-        hist->Scale(1./hist->Integral());
-      }
+      hist->Scale(1./nevents[i]);
     }
     hist->Draw(drawoption.c_str());
   }
   legend->Draw("same");
   latex->Draw("same");
+
+  TLatex* integralsLatex0 = CreateLatex(0.4, 0.8, TString::Format("#splitline{%.2g ch. jets}{ %.2g events}", integrals[0], nevents[0]).Data(), textSize);
+  integralsLatex0->Draw("same");
+  TLatex* integralsLatex1 = CreateLatex(0.4, 0.7, TString::Format("#splitline{%.2g ch.+V0 jets}{ %.2g events}", integrals[1], nevents[1]).Data(), textSize);
+  integralsLatex1->Draw("same");
+
   saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
-void compareEta(string dataSet, vector<string> inNames, vector<string> legendEntries, double jetptmin = 0., double jetptmax = 1e6, bool doPart = false, bool doRatio = false)
+
+void compareZData(string dataSet, vector<string> inNames, vector<string> legendEntries, string hadron, double jetptmin = 10., double jetptmax = 1e3, bool doRatio = false, bool doCounts = false)
 {
+  if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
+    cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+
+  const int nDim                = 5;
+  const int jetptAxis           = 0;
+  const int v0zAxis             = 1;
+  const int K0SMassAxis         = 2;
+  const int Lambda0MassAxis     = 3;
+  const int AntiLambda0MassAxis = 4;
+
   gStyle->SetNdivisions(505, "xy");
-  string saveName, histDir, histName, histTitle, xTitle, yTitle, legendTitle, latexText, drawoption;
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, drawoption;
+  double lowjetpt, highjetpt;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
-  bool setLogY = false;
-  double xMinFrame = -1., xMaxFrame = +1., yMinFrame = 0., yMaxFrame = .05;
-  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.58, yMaxLegend = 0.78;
-  double xLatex = 0.25, yLatex = 0.8;
+  bool setLogY = true;
+  double xMinFrame = 1e-3, xMaxFrame = 1.+1e-3, yMinFrame = 1e-10, yMaxFrame = 1e-5;
+  double xMinLegend = 0.5, xMaxLegend = 0.8, yMinLegend = 0.74, yMaxLegend = 0.89;
+  // double xMinLegend = 0.25, xMaxLegend = 0.8, yMinLegend = 0.175, yMaxLegend = 0.325;
+  double xLatex = 0.15, yLatex = 0.93;
   int xCanvas = 900, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = "#eta_{jet}";
-  yTitle = "normalised count";
+  int rebinNumber = 4;
+  xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data();
+  // yTitle = TString::Format("#it{N}_{%s}/#it{N}_{evts}", formatHadronName(hadron).c_str()).Data();
+  yTitle = TString::Format("#frac{1}{#it{N}_{evts}} #frac{d #it{N}}{d #it{z}_{%s}}", formatHadronName(hadron).c_str()).Data();
+  if (doCounts) { yTitle = "Counts"; }
   drawoption = "same";
-  saveName = "etaComparison";
+  saveName = TString::Format("z%sComparison", hadron.c_str()).Data();
 
+  string hadronForHistname = hadron;
+  if ("Lambda0" == hadron) { hadronForHistname = "Lambda"; }
+  if ("AntiLambda0" == hadron) { hadronForHistname = "AntiLambda"; }
+  histName = "jet-fragmentation/data/jets/V0";
+  histName = TString::Format("%s/jetPt%sTrackProjAllMasses", histName.c_str(), hadronForHistname.c_str()).Data();
+
+  vector<double> integrals; vector<double> nevents;
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (setLogY) { canvas->SetLogy(); }
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   for (int i = 0; i < inNames.size(); i++) {
-    TFile *inFile = TFile::Open(TString::Format("./%s", inNames[i].c_str()).Data());
-    histDir = "jet-finder-charged-qa";
-    histName = "jet-finder-charged-qa/h3_jet_r_jet_pt_jet_eta";
-    if (2 == i) { histDir = "jet-finder-charged-v0-qa"; }
-    if (doPart) { histName = "h3_jet_r_part_jet_pt_part_jet_eta_part"; }
+    TFile *inFile = TFile::Open(TString::Format("%s", inNames[i].c_str()).Data());
+    THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
-    TH3D* th3 = (TH3D*)inFile->Get(TString::Format("%s/%s", histDir.c_str(), histName.c_str()).Data());
-    th3->Print();
-    std::array<int, 2> jetptbins = getProjectionBins(th3->GetYaxis(), jetptmin, jetptmax);
-    TH1D* th1 = (TH1D*)th3->ProjectionZ(TString::Format("jeteta_%.0f-%.0f_%s",
-                                          jetptmin, jetptmax, inNames[i].c_str()).Data(),
-                                        0, th3->GetNbinsX()+1, jetptbins[0], jetptbins[1]);
-    th1->Print();
-    setStyle(th1, i);
-    legend->AddEntry(th1, legendEntries[i].c_str(), "l");
-    histVector.push_back(th1);
+    std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
+    thn->GetAxis(jetptAxis)->SetRange(jetptbins[0], jetptbins[1]);
+    lowjetpt = thn->GetAxis(jetptAxis)->GetBinLowEdge(jetptbins[0]);
+    highjetpt = thn->GetAxis(jetptAxis)->GetBinUpEdge(jetptbins[1]);
 
-    double lowjetpt = th3->GetYaxis()->GetBinLowEdge(jetptbins[0]);
-    double highjetpt = th3->GetYaxis()->GetBinUpEdge(jetptbins[1]);
-    latexText = TString::Format("%s, #it{p}_{T, jet}: %.0f - %.0f GeV/#it{c}", dataSet.c_str(), lowjetpt, highjetpt).Data();
-  }
-  if (doRatio) {
-    canvas->SetLogy(false);
-    yMinFrame = 0.; yMaxFrame = 1.1;
-    drawoption = "same hist p";
-    saveName = "etaRatio";
-    yTitle = TString::Format("ratio w.r.t. %s", legendEntries[0].c_str()).Data();
-    for (int i = 1; i < histVector.size(); i++) {
-      histVector[i]->Divide(histVector[0]);
-    }
-    histVector[0]->Divide(histVector[0]);
-  }
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  frame->Draw();
-  for (auto hist : histVector) {
-    if (!doRatio) {
-      for (auto hist : histVector) {
-        hist->Scale(1./hist->Integral());
-      }
-    }
-    hist->Draw(drawoption.c_str());
-  }
-  legend->Draw("same");
-  latex->Draw("same");
-  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
-  canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
-}
-void comparePhi(string dataSet, vector<string> inNames, vector<string> legendEntries, double jetptmin = 0., double jetptmax = 1e6, bool doPart = false, bool doRatio = false)
-{
-  gStyle->SetNdivisions(505, "xy");
-  string saveName, histDir, histName, histTitle, xTitle, yTitle, legendTitle, latexText, drawoption;
-  double textSize = 0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool setLogY = false;
-  double xMinFrame = 0., xMaxFrame = 6.3, yMinFrame = 0., yMaxFrame = .05;
-  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.58, yMaxLegend = 0.78;
-  double xLatex = 0.25, yLatex = 0.8;
-  int xCanvas = 900, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = "#varphi_{jet}";
-  yTitle = "normalised count";
-  drawoption = "same";
-  saveName = "phiComparison";
-
-  std::vector<TH1D*> histVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  for (int i = 0; i < inNames.size(); i++) {
-    TFile *inFile = TFile::Open(TString::Format("./%s", inNames[i].c_str()).Data());
-    histDir = "jet-finder-charged-qa";
-    histName = "h3_jet_r_jet_pt_jet_phi";
-    if (2 == i) { histDir = "jet-finder-charged-v0-qa"; }
-    if (doPart) { histName = "h3_jet_r_part_jet_pt_part_jet_phi_part"; }
-    histDir = "jet-finder-charged-qa";
-
-    TH3D* th3 = (TH3D*)inFile->Get(TString::Format("%s/%s", histDir.c_str(), histName.c_str()).Data());
-    th3->Print();
-    std::array<int, 2> jetptbins = getProjectionBins(th3->GetYaxis(), jetptmin, jetptmax);
-    TH1D* th1 = (TH1D*)th3->ProjectionZ(TString::Format("jetphi_%.0f-%.0f_%s",
-                                          jetptmin, jetptmax, inNames[i].c_str()).Data(),
-                                        0, th3->GetNbinsX()+1, jetptbins[0], jetptbins[1]);
-    th1->Print();
+    TH1D* th1 = thn->Projection(v0zAxis);
+    th1->SetName(TString::Format("z%s_%s", hadron.c_str(), inNames[i].c_str()).Data());
+    th1->Rebin(rebinNumber);
     setStyle(th1, i);
     legend->AddEntry(th1, legendEntries[i].c_str());
     histVector.push_back(th1);
-
-    double lowjetpt = th3->GetYaxis()->GetBinLowEdge(jetptbins[0]);
-    double highjetpt = th3->GetYaxis()->GetBinUpEdge(jetptbins[1]);
-    latexText = TString::Format("%s, #it{p}_{T, jet}: %.0f - %.0f GeV/#it{c}", dataSet.c_str(), lowjetpt, highjetpt).Data();
+    integrals.push_back(th1->Integral());
+    nevents.push_back(getNevts(inNames[i]));
+    // legend->AddEntry(th1, TString::Format("#splitline{%g %s #in %s}{  in %g events}", th1->Integral(), formatHadronName(hadron).c_str(), legendEntries[i].c_str(), getNevts(inNames[i])).Data());
   }
   if (doRatio) {
     canvas->SetLogy(false);
     yMinFrame = 0.; yMaxFrame = 1.1;
-    drawoption = "same hist p";
-    saveName = "phiRatio";
+    // drawoption = "same hist p";
+    saveName = TString::Format("z%sRatio", hadron.c_str()).Data();
     yTitle = TString::Format("ratio w.r.t. %s", legendEntries[0].c_str()).Data();
     for (int i = 1; i < histVector.size(); i++) {
       histVector[i]->Divide(histVector[0]);
     }
     histVector[0]->Divide(histVector[0]);
   }
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   frame->Draw();
-  for (auto hist : histVector) {
-    if (!doRatio) {
-      for (auto hist : histVector) {
-        hist->Scale(1./hist->Integral());
-      }
+  for (int i = 0; i < histVector.size(); i++) {
+    TH1D* hist = histVector[i];
+    if (!doRatio && !doCounts) {
+      hist->Scale(1./nevents[i], "width");
     }
     hist->Draw(drawoption.c_str());
   }
   legend->Draw("same");
+
+  latexText = TString::Format("%s, #it{p}_{T, jet} = %.0f - %.0f GeV/#it{c}", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
   latex->Draw("same");
+
+  TLatex* integralsLatex0 = CreateLatex(0.25, 0.3, TString::Format("#splitline{%g %s #in ch. jets}{ %g events}", integrals[0], formatHadronName(hadron).c_str(), nevents[0]).Data(), textSize);
+  integralsLatex0->Draw("same");
+  TLatex* integralsLatex1 = CreateLatex(0.25, 0.2, TString::Format("#splitline{%g %s #in ch.+V0 jets}{ %g events}", integrals[1], formatHadronName(hadron).c_str(), nevents[1]).Data(), textSize);
+  integralsLatex1->Draw("same");
+
+  saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
   saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
 
-void compareptdata(bool doRatio = false)
-{ comparePt("Data: LHC23y", {"ChJets:ChJets.root", "ChJets:V0Jets.root", "V0Jets:V0Jets.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, false, doRatio); }
-void compareetadata(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
-{ compareEta("Data: LHC23y", {"ChJets:ChJets.root", "ChJets:V0Jets.root", "V0Jets:V0Jets.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, jetptmin, jetptmax, false, doRatio); }
-void comparephidata(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
-{ comparePhi("Data: LHC23y", {"ChJets:ChJets.root", "ChJets:V0Jets.root", "V0Jets:V0Jets.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)", "Ch.+V0 jets"}, jetptmin, jetptmax, false, doRatio); }
+void compare22o(bool doRatio = false, string hadron = "", double jetptmin = 10., double jetptmax = 1e3, bool doCounts = false)
+{
+  vector<string> inNames; vector<string> legendEntries;
+  string dataSet = "LHC22o_pass6_minBias";
 
-void compareptmcd(bool doRatio = false)
-{ comparePt("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, false, doRatio); }
-void compareetamcd(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
-{ compareEta("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, jetptmin, jetptmax, false, doRatio); }
-void comparephimcd(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
-{ comparePhi("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, jetptmin, jetptmax, false, doRatio); }
+  // array<string, 2> file203281 = {"~/Documents/TrainOutput/203281/AnalysisResults.root", "Ch. jets"};
+  array<string, 2> file203281 = {"~/Documents/TrainOutput/203281/AnalysisResults.root", "Ch. jets w. V0"};
+  inNames.push_back(file203281[0]);
+  legendEntries.push_back(file203281[1]);
 
-void compareptmcp(bool doRatio = false)
-{ comparePt("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, true, doRatio); }
-void compareetamcp(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
-{ compareEta("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, jetptmin, jetptmax, true, doRatio); }
-void comparephimcp(double jetptmin = 0., double jetptmax = 1e6, bool doRatio = false)
-{ comparePhi("MC: LHC23d4", {"26-04-ChJets:ChJets_MC.root", "26-04-ChJets:V0Jets_MC.root"}, {"Ch. jets (master branch)", "Ch. jets (V0 jets branch)"}, jetptmin, jetptmax, true, doRatio); }
+  // array<string, 2> file210823 = {"~/Documents/TrainOutput/210823/AnalysisResults.root", "Ch+V0 jets (small dataset)"};
+  // inNames.push_back(file210823[0]);
+  // legendEntries.push_back(file210823[1]);
+
+  array<string, 2> file211540 = {"~/Documents/TrainOutput/211540/AnalysisResults.root", "Ch+V0 jets"};
+  inNames.push_back(file211540[0]);
+  legendEntries.push_back(file211540[1]);
+
+  if ("" == hadron) {
+    comparePtData(dataSet, inNames, legendEntries, doRatio);
+  }
+  else {
+    compareZData(dataSet, inNames, legendEntries, hadron, jetptmin, jetptmax, doRatio, doCounts);
+  }
+}
+

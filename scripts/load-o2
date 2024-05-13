@@ -10,7 +10,7 @@ nx=$(echo "${x}" | wc -l)
 
 if [[ "$TAG" == "" ]]; then
   echo "No tag specified. Entering O2Physics/latest"
-  alienv enter O2Physics/latest ninja/latest
+  alienv enter --shellrc O2Physics/latest ninja/latest
   exit 0
 fi
 
@@ -27,4 +27,4 @@ fi
 
 x=${x#*O2Physics-}
 echo "Package found for \"${TAG}\": $x"
-alienv enter O2Physics/${x}-o2 ninja/latest
+alienv enter --shellrc O2Physics/${x}-o2 ninja/latest

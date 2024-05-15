@@ -1,0 +1,80 @@
+# this shell script downloads the results from a hyperloop train run to stbc.
+# The script expects a train number, and tries to get the test dir using this number.
+# Once the train numbers exceed 6 digits this procedure will fail, but hopefully I'll have finished my PhD by then
+# Run it as follows from inside an O2 environment:
+#   `bash copyTrainResults.sh 123456`
+# or in one go like:
+#   `alienv setenv O2Physics/latest -c bash copyTrainResults.sh 123456`
+# Sometimes, this script will fail to download the output, saying the specified source could not be found.
+# Running the script again resolves this.
+
+if [[ ${O2_ROOT} == "" ]]; then
+  echo "You need to be in an O2 environment to run this script!"
+  exit 1
+fi
+
+JOB=$1
+[ -z "${JOB}" ] && echo "Please provide a train run number as an argument!" && exit 1
+# try to get the testdir from the train run number
+DIGITS=${JOB:0:2}
+
+JOBDIR=/alice/cern.ch/user/a/alihyperloop/jobs/00${DIGITS}/hy_${JOB}
+if [[ $? != 0 ]]; then
+  echo "Couldn't find job dir ${JOBDIR}. Exiting..."
+  exit 1
+fi
+
+# make sure we are in the right directory...
+OUTPUTDIR=/data/alice/gweelden/TrainMerging
+[ ! -d "${OUTPUTDIR}" ] && echo "The directory for merging does not exist! Check that you know where you are writing to! Requested directory: ${OUTPUTDIR}" && exit 1
+
+# make and enter the relevant dir
+[ ! -d "${OUTPUTDIR}/${JOB}" ] && mkdir ${OUTPUTDIR}/${JOB}
+OUTPUTDIR=${OUTPUTDIR}/${JOB}
+
+# Copy output from latest possible merging stage
+tmp=`alien_ls ${JOBDIR}/Stage_2`
+if [[ $? != 0 ]]; then
+  echo "Stage 2 is not available for this train run. Exiting..."
+  exit 1
+fi
+for NUM in $(alien_ls ${JOBDIR}/Stage_2); do
+  echo "Downloading ${NUM}"
+  alien_cp alien:${JOBDIR}/Stage_2/${NUM}/AnalysisResults.root file:${OUTPUTDIR}/${NUM}AnalysisResults.root
+done
+# Attempt to merge output
+hadd -fk -k -j 4 ${OUTPUTDIR}/MergedAnalysisResults.root ${OUTPUTDIR}/*/AnalysisResults.root
+exit 0
+# Do the same thing for stage 1 and "stage 0"
+
+
+
+alien_ls ${JOBDIR}/Stage_1
+if [[ $? != 0 ]]; then
+  echo "Stage 1 is not available for this train run. We'll need to merge many small files. This may take a while."
+fi
+
+alien_ls ${JOBDIR}/${NUM}
+
+exit 0
+
+### 1 Download the full merged output AnalysisResults.root
+# there is an extra nested directory
+NEST=/alice/cern.ch/user/a/alihyperloop/jobs/00${DIGITS}/hy_${JOB}
+
+alien_cp alien:/alice/cern.ch/user/a/alihyperloop/outputs/00${DIGITS}/${JOB}/${NEST_A}/AnalysisResults.root file:${OUTPUTDIR}/AnalysisResults.root
+
+### 2 Download config, stdout from the test directory
+curl -k --cert ~/.globus/usercert.pem --cert-type PEM --key ~/.globus/userkey.pem \
+https://alimonitor.cern.ch/train-workdir/tests/${TESTID}/stdout.log -o ${OUTPUTDIR}/stdout.log \
+https://alimonitor.cern.ch/train-workdir/tests/${TESTID}/dpl-config.json -o ${OUTPUTDIR}/dpl-config.json \
+https://alimonitor.cern.ch/train-workdir/tests/${TESTID}/configuration.json -o ${OUTPUTDIR}/configuration.json
+
+# check if curl was succesful.
+CURLEXIT=$?
+[[ ${CURLEXIT} != 0 ]] && echo curl failed with exit code ${CURLEXIT}!!!
+
+# check if the first line of the json file starts with a '{', if not then curl probably downloaded the text of a 404 error...
+JSONCHECK=$(head -n 1 ${OUTPUTDIR}/dpl-config.json)
+[[ ${JSONCHECK} != "{" ]] && echo "WARNING!! The first line of 'dpl-config.json' is not '{', you've probably just downloaded the text of a 404 error..."
+# this check can probably be nicer, using grep 404 or something...

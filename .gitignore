@@ -4,6 +4,7 @@ inputfiles/
 pythia/pythia8_simple
 pythia/pythia8_v0study
 pythia/pythia8_chjets-v0jets
+pythia/pythia8_v0jetclustering
 
 pythia/v0studyWithDecays
 pythia/v0studyWithoutDecays

@@ -347,6 +347,143 @@ void matchedMass(string inName = "", string hadron = "", string hypothesis = "",
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
+
+// ----------------------------------------------------------
+// Number of taggedV0s in jets
+// ----------------------------------------------------------
+void plotNV0sInJet(string inName, string hadron, double jetptmin = 10., double jetptmax = 200., bool doRatio = false)
+{
+  const int nDim           = 5;
+  const int jetptAxis      = 0;
+  const int v0Axis         = 1;
+  const int K0SAxis        = 2;
+  const int LambdaAxis     = 3;
+  const int AntiLambdaAxis = 4;
+
+  gStyle->SetNdivisions(505, "xy");
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+
+  bool setLogY = true;
+  double xMinFrame = -0.5, xMaxFrame = 9.5, yMinFrame = 1e-1, yMaxFrame = 1e7;
+  double xMinLegend = 0.4, xMaxLegend = 0.8, yMinLegend = 0.6, yMaxLegend = 0.85;
+
+  int xCanvas = 900, yCanvas = 900;
+  xTitle = TString::Format("#it{N} (%s) #in jet", formatHadronName(hadron).c_str()).Data();
+  yTitle = "#it{N}_{jets}";
+  string dataSet = "LHC24b1";
+  latexText = "";
+
+  std::vector<TH1D*> histVector;
+
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogY) { canvas->SetLogy(); }
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+
+  histName = "jet-fragmentation/matching/jets/V0/jetPtnV0MatchednK0SnLambdanAntiLambda";
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+  thn->Sumw2();
+
+  int firstBinJetPt = 1, lastBinJetPt = thn->GetAxis(jetptAxis)->GetNbins();
+  int firstBinK0SMass = 1, lastBinK0SMass = thn->GetAxis(K0SAxis)->GetNbins();
+  int firstBinLambdaMass = 1, lastBinLambdaMass = thn->GetAxis(LambdaAxis)->GetNbins();
+  int firstBinAntiLambdaMass = 1, lastBinAntiLambdaMass = thn->GetAxis(AntiLambdaAxis)->GetNbins();
+
+  array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
+  double lowjetpt = thn->GetAxis(jetptAxis)->GetBinLowEdge(jetptbins[0]);
+  double highjetpt = thn->GetAxis(jetptAxis)->GetBinUpEdge(jetptbins[1]);
+
+  TH1D* hJets = (TH1D*) thn->Projection(jetptAxis);
+  double nJets = hJets->Integral(lowjetpt, highjetpt);
+
+  int projectionAxis;
+  array<int, 3> otherAxes = {0, 0, 0};
+  array<string, 4> labels = {"No sel", "", "", ""};
+
+  if ("K0S" == hadron) {
+    projectionAxis = K0SAxis;
+    otherAxes[1] = LambdaAxis;
+    otherAxes[2] =  AntiLambdaAxis;
+    labels[1] = "#it{N} (#Lambda) > 0";
+    labels[2] = "#it{N} (#bar{#Lambda}) > 0";
+  }
+  if ("Lambda0" == hadron) {
+    projectionAxis = LambdaAxis;
+    otherAxes[1] = K0SAxis;
+    otherAxes[2] =  AntiLambdaAxis;
+    labels[1] = "#it{N} (K^{0}_{S}) > 0";
+    labels[2] = "#it{N} (#bar{#Lambda}) > 0";
+  }
+  if ("AntiLambda0" == hadron) {
+    projectionAxis = AntiLambdaAxis;
+    otherAxes[1] = LambdaAxis;
+    otherAxes[2] =  K0SAxis;
+    labels[1] = "#it{N} (K^{0}_{S}) > 0";
+    labels[2] = "#it{N} (#Lambda) > 0";
+  }
+  labels[3] = TString::Format("%s, %s", labels[1].c_str(), labels[2].c_str());
+
+  for (int i = 0; i < 4; i++) {
+    THnSparseD* tmp = (THnSparseD*) thn->Clone("temporary");
+    tmp->GetAxis(jetptAxis)->SetRange(firstBinJetPt, lastBinJetPt);
+
+    if (otherAxes.size() == i) {
+      tmp->GetAxis(otherAxes[1])->SetRange(2, thn->GetAxis(otherAxes[1])->GetNbins());
+      tmp->GetAxis(otherAxes[2])->SetRange(2, thn->GetAxis(otherAxes[2])->GetNbins());
+    }
+    else if (0 < i) {
+      tmp->GetAxis(otherAxes[i])->SetRange(2, thn->GetAxis(otherAxes[i])->GetNbins());
+    }
+
+    TH1D* h = tmp->Projection(projectionAxis);
+    h->SetName(TString::Format("h%d", i));
+    // h->Scale(1./nJets);
+    // h->Scale(1./h->Integral());
+    setStyle(h, i);
+    legend->AddEntry(h, labels[i].c_str());
+    histVector.push_back(h);
+  }
+
+  latexText = TString::Format("%s, %.0f < #it{p}_{T, jet} < %.0f", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  TLatex* latex = CreateLatex(0.2, 0.94, latexText, textSize);
+
+  // Scale hists with content of first bin, to get some measure of relative probability (?)
+  if (doRatio) {
+    double firstBin = 0.;
+    for (auto hist : histVector) {
+      firstBin = hist->GetBinContent(1);
+      hist->Scale(1./firstBin);
+    }
+    yMinFrame = 1e-3, yMaxFrame = 10.;
+  }
+
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->Draw();
+  legend->Draw("same");
+  latex->Draw("same");
+  for (auto hist : histVector) {
+    hist->Draw("same");
+    hist->Print();
+    for (int i = 1; i < hist->GetNbinsX(); i++) {
+      double binContent = hist->GetBinContent(i);
+      if (binContent < 1e-15) {
+        break;
+      }
+      cout << hist->GetBinContent(i) << endl;
+    }
+  }
+
+  saveName = "nK";
+  if ("Lambda0" == hadron) { saveName = "nL"; }
+  if ("AntiLambda0" == hadron) { saveName = "nAL"; }
+  saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
+  if (doRatio) { saveName = TString::Format("%s_ratio", saveName.c_str()); }
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  canvas->SaveAs(saveName.c_str());
+}
 /*
 void matchedRadius(string inName = "", string hadron = "", double partjetptmin = 10., double partjetptmax = 200., double partv0min = -1., double partv0max = 1e6, bool doZ = false)
 {

@@ -4,4 +4,4 @@
 # This script loads the environment you need for running the pythia code. It's put here so it's easy to know which specific environment you can/should use
 # Requires a cvmfs connection
 
-/cvmfs/alice.cern.ch/bin/alienv enter VO_ALICE@O2Physics::nightly-20220928-1, VO_ALICE@GCC-Toolchain::v10.2.0-alice2-14
+/cvmfs/alice.cern.ch/bin/alienv enter VO_ALICE@O2Physics::daily-20240501-0200-1

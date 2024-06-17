@@ -4,12 +4,13 @@ alias nikhef="ssh -A gweelden@login.nikhef.nl"
 alias stoom="ssh -A stbc-i1"
 alias stoomboot="ssh -A stbc-i2"
 alias stoomboter="ssh -A stbc-i3"
-
-alias o2dir="cd ${ALIBUILD_WORK_DIR}/../O2Physics"
 alias dep="$O2PHYSICS_ROOT/share/scripts/find_dependencies.py -t" # Finds table producer
 alias applyformatting="clang-format -style=file -i" # Usage: format <file> # Applies O2Physics formatting
 alias copytrainresults="${FRAGMENTATION_DIR}/scripts/copyTrainResults" # Requires to be in O2 environment
+alias mergetrainoutput="${FRAGMENTATION_DIR}/scripts/mergeTrainOutput" # Requires to be in O2 environment
 
 alias o2="${FRAGMENTATION_DIR}/scripts/load-o2"
 alias atag="${FRAGMENTATION_DIR}/scripts/load-alien-tag -a -y"
 alias otag="${FRAGMENTATION_DIR}/scripts/load-alien-tag"
+alias o2dir="cd ${ALIBUILD_WORK_DIR}/../O2Physics"
+alias fragdir="cd ${FRAGMENTATION_DIR}"

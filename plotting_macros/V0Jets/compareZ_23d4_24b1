@@ -1,0 +1,57 @@
+
+#! /bin/bash
+
+INPUT="212261.root"
+PTMIN=20.
+PTMAX=40.
+HADRON="all"
+
+while getopts 'i:h:' OPTION; do
+  case "$OPTION" in
+    i)
+      INPUT="${OPTARG}"
+      ;;
+    h)
+      HADRON="${OPTARG}"
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-h hadron (K0S, Lambda0, AntiLambda0), -i input]"
+      exit 1
+      ;;
+  esac
+done
+
+RUN () {
+echo "Running for ${1}"
+command="compareZ_23d4_24b1(\"${1}\", ${PTMIN}, ${PTMAX}, 0)"
+echo "${command}"
+root -l -b <<EOF
+  .L compareJetSpectra.C
+  ${command}
+EOF
+
+command="compareZ_23d4_24b1(\"${1}\", ${PTMIN}, ${PTMAX}, 1)"
+echo "${command}"
+root -l -b <<EOF
+  .L compareJetSpectra.C
+  ${command}
+EOF
+}
+
+declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
+
+if [[ ${HADRON} == "all" ]];
+then
+  echo "Running for all hadrons"
+  for hadron in ${hadrons[@]}
+  do
+    RUN ${hadron}
+  done
+  exit 0
+elif [[ ! " ${hadrons[@]} " =~ " ${HADRON} " ]];
+then
+  echo "Please specify a hadron with -h (K0S, Lambda0, AntiLambda0) or all"
+  exit 1
+fi
+
+RUN ${HADRON}

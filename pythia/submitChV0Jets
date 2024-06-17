@@ -1,8 +1,8 @@
 
 #! /bin/bash
-firstJob=1
+firstJob=391
 nJobs=100
-nEvents=100000
+nEvents=16000000
 
 outdir=/data/alice/gweelden/Fragmentation/pythia/chJetsV0Jets
 

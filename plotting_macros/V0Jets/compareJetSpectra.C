@@ -197,7 +197,7 @@ void compareDataZ(string dataSet, vector<string> inNames, vector<string> legendE
   }
   if (doRatio) {
     canvas->SetLogy(false);
-    yMinFrame = 0.; yMaxFrame = 1.1;
+    yMinFrame = 0.; yMaxFrame = 3.;
     // drawoption = "same hist p";
     saveName = TString::Format("z%sRatio", hadron.c_str()).Data();
     yTitle = TString::Format("ratio w.r.t. %s", legendEntries[0].c_str()).Data();
@@ -355,13 +355,13 @@ void compareMcTrackingEfficiency(vector<string> inNames, vector<string> legendEn
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 4;
   xTitle = "#it{p}_{T}";
-  yTitle = "detector-level / particle-level";
+  yTitle = "#it{N}_{matched}^{part.} / #it{N}^{part.}_{generated}";
   // yTitle = "#frac{1}{#it{N}_{evts}} #frac{d #it{N}}{d #it{p}_{T}}";
   drawoption = "same";
 
   string histDir = "track-efficiency";
-  string histNameDet = TString::Format("%s/h3_track_pt_track_eta_track_phi_associatedtrack_primary", histDir.c_str()).Data();
-  // string histNamePart = TString::Format("%s/h3_particle_pt_particle_eta_particle_phi_associatedtrack_primary", histDir.c_str()).Data();
+  // string histNameDet = TString::Format("%s/h3_track_pt_track_eta_track_phi_associatedtrack_primary", histDir.c_str()).Data();
+  string histNameDet = TString::Format("%s/h3_particle_pt_particle_eta_particle_phi_associatedtrack_primary", histDir.c_str()).Data();
   string histNamePart = TString::Format("%s/h3_particle_pt_particle_eta_particle_phi_mcpartofinterest", histDir.c_str()).Data();
 
   vector<double> integrals; vector<double> nevents;
@@ -382,6 +382,84 @@ void compareMcTrackingEfficiency(vector<string> inNames, vector<string> legendEn
     th1_part->Rebin(rebinNumber);
 
     TH1D* efficiency = (TH1D*)th1_det->Clone(TString::Format("efficiency_%s", inNames[i].c_str()).Data());
+    efficiency->Divide(th1_part);
+
+    setStyle(efficiency, i);
+    legend->AddEntry(efficiency, TString::Format("%s: %g events", legendEntries[i].c_str(), getNevtsEfficiency(inNames[i])).Data());
+    histVector.push_back(efficiency);
+    integrals.push_back(efficiency->Integral());
+    nevents.push_back(getNevtsEfficiency(inNames[i]));
+    // legend->AddEntry(th1, TString::Format("#splitline{%g %s #in %s}{  in %g events}", th1->Integral(), formatHadronName(hadron).c_str(), legendEntries[i].c_str(), getNevts(inNames[i])).Data());
+  }
+
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->Draw();
+  for (int i = 0; i < histVector.size(); i++) {
+    TH1D* hist = histVector[i];
+    hist->Draw(drawoption.c_str());
+  }
+  legend->Draw("same");
+
+  latexText = "Tracking efficiency";
+  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  latex->Draw("same");
+
+  // TLatex* integralsLatex0 = CreateLatex(0.25, 0.3, TString::Format("#splitline{%g %s #in ch. jets}{ %g events}", integrals[0], formatHadronName(hadron).c_str(), nevents[0]).Data(), textSize);
+  // integralsLatex0->Draw("same");
+  // TLatex* integralsLatex1 = CreateLatex(0.25, 0.2, TString::Format("#splitline{%g %s #in ch.+V0 jets}{ %g events}", integrals[1], formatHadronName(hadron).c_str(), nevents[1]).Data(), textSize);
+  // integralsLatex1->Draw("same");
+
+  saveName = "trackingEfficiencyComparison";
+  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
+  canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
+}
+void compareMcTrackingEfficiency_v2(vector<string> inNames, vector<string> legendEntries)
+{
+  gStyle->SetNdivisions(505, "xy");
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, drawoption;
+  double lowjetpt, highjetpt;
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
+  bool setLogY = false;
+  double xMinFrame = 0., xMaxFrame = 10., yMinFrame = 0., yMaxFrame = 1.1;
+  double xMinLegend = 0.5, xMaxLegend = 0.8, yMinLegend = 0.74, yMaxLegend = 0.89;
+  double xLatex = 0.15, yLatex = 0.93;
+  int xCanvas = 900, yCanvas = 900;
+  int rebinNumber = 4;
+  xTitle = "#it{p}_{T}";
+  yTitle = "(#it{N}_{matched}^{part.} - #it{N}_{double-counted}^{part.}) / #it{N}^{part.}_{generated}";
+  // yTitle = "#frac{1}{#it{N}_{evts}} #frac{d #it{N}}{d #it{p}_{T}}";
+  drawoption = "same";
+
+  string histDir = "track-efficiency";
+  // string histNameDet = TString::Format("%s/h3_track_pt_track_eta_track_phi_associatedtrack_primary", histDir.c_str()).Data();
+  string histNameDet = TString::Format("%s/h3_particle_pt_particle_eta_particle_phi_associatedtrack_primary", histDir.c_str()).Data();
+  string histNameDouble = TString::Format("%s/h3_particle_pt_particle_eta_particle_phi_associatedtrack_split", histDir.c_str()).Data();
+  string histNamePart = TString::Format("%s/h3_particle_pt_particle_eta_particle_phi_mcpartofinterest", histDir.c_str()).Data();
+
+  vector<double> integrals; vector<double> nevents;
+  std::vector<TH1D*> histVector;
+  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogY) { canvas->SetLogy(); }
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+
+  for (int i = 0; i < inNames.size(); i++) {
+    TFile *inFile = TFile::Open(TString::Format("%s", inNames[i].c_str()).Data());
+    TH3D* th3_det = (TH3D*)inFile->Get(histNameDet.c_str());
+    TH3D* th3_double = (TH3D*)inFile->Get(histNameDouble.c_str());
+    TH3D* th3_part = (TH3D*)inFile->Get(histNamePart.c_str());
+
+    TH1D* th1_det = th3_det->ProjectionX();
+    TH1D* th1_double = th3_double->ProjectionX();
+    TH1D* th1_part = th3_part->ProjectionX();
+
+    th1_det->Rebin(rebinNumber);
+    th1_double->Rebin(rebinNumber);
+    th1_part->Rebin(rebinNumber);
+
+    TH1D* efficiency = (TH1D*)th1_det->Clone(TString::Format("efficiency_%s", inNames[i].c_str()).Data());
+    efficiency->Add(th1_double, -1);
     efficiency->Divide(th1_part);
 
     setStyle(efficiency, i);
@@ -497,10 +575,10 @@ void compareMcV0ReconstructionEfficiency(vector<string> inNames, vector<string> 
 // ------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------
 
-void compare22o(bool doRatio = false, string hadron = "", double jetptmin = 10., double jetptmax = 1e3, bool doCounts = false)
+void compare22o(string hadron = "", double jetptmin = 10., double jetptmax = 1e3, bool doRatio = false, bool doCounts = false)
 {
   vector<string> inNames; vector<string> legendEntries;
-  string dataSet = "LHC22o_pass6_minBias";
+  string dataSet = "LHC22o_pass6_minBias_small";
 
   // array<string, 2> file203281 = {"~/Documents/TrainOutput/203281/AnalysisResults.root", "Ch. jets"};
   array<string, 2> file203281 = {"~/Documents/TrainOutput/203281/AnalysisResults.root", "Ch. jets w. V0"};
@@ -523,7 +601,7 @@ void compare22o(bool doRatio = false, string hadron = "", double jetptmin = 10.,
   }
 }
 
-void compareMassCuts(bool doRatio = false, string hadron = "", double jetptmin = 10., double jetptmax = 1e3, bool doCounts = false)
+void compareMassCuts(string hadron = "", double jetptmin = 10., double jetptmax = 1e3, bool doRatio = false, bool doCounts = false)
 {
   if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
     cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;

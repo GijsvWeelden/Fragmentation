@@ -63,7 +63,7 @@ void ptResolution(string inName = "", double partjetptmin = 10., double partjetp
 
   histName = "partJetPtDetJetPtPartV0PtRatioPtRelDiffPt";
   histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
@@ -145,7 +145,7 @@ void matchedPtZ(string inName = "", double partjetptmin = 10., double partjetptm
   histName = "partJetPtV0PtDetJetPtV0Pt";
   if (doZ) { histName = "matchDetJetPtV0TrackProjPartJetPtV0TrackProj"; }
   histName = TString::Format("jet-fragmentation_id10235/matching/jets/V0/%s", histName.c_str());
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
@@ -220,7 +220,7 @@ void matchedCtau(string inName = "", string hadron = "", string hypothesis = "",
   if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjCtau%s", hadron.c_str(), hadron.c_str(), hypothesis.c_str()).Data(); }
   // histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
   histName = TString::Format("jet-fragmentation_id10235/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
@@ -312,7 +312,7 @@ void matchedMass(string inName = "", string hadron = "", string hypothesis = "",
   histName = TString::Format("partJetPt%sPtDetJetPt%sPtMass%s", hadron.c_str(), hadron.c_str(), hypothesis.c_str()).Data();
   if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjMass%s", hadron.c_str(), hadron.c_str(), hypothesis.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation_id10235/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
@@ -531,7 +531,7 @@ void matchedRadius(string inName = "", string hadron = "", double partjetptmin =
   histName = TString::Format("partJetPt%sPtDetJetPt%sPtRadius", hadron.c_str(), hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjRadius", hadron.c_str(), hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
@@ -602,7 +602,7 @@ void matchedCosPA(string inName = "", string hadron = "", double partjetptmin = 
   histName = TString::Format("partJetPt%sPtDetJetPt%sPtCosPA", hadron.c_str(), hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjCosPA", hadron.c_str(), hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
@@ -674,7 +674,7 @@ void matchedDCAposneg(string inName = "", string hadron = "", bool doNeg = false
   histName = TString::Format("partJetPt%sPtDetJetPt%sPtDCAposneg", hadron.c_str(), hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjDCAposneg", hadron.c_str(), hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
@@ -746,7 +746,7 @@ void matchedDCAd(string inName = "", string hadron = "", double partjetptmin = 1
   histName = TString::Format("partJetPt%sPtDetJetPt%sPtDCAd", hadron.c_str(), hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjDCAd", hadron.c_str(), hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);

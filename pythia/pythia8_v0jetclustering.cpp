@@ -159,11 +159,15 @@ int main(int argc, char** argv)
 												new double[4]{max_pt_jet, max_eta_jet, max_phi_jet, max_z});
 	THnSparseD* hzV0_Lambda0 = (THnSparseD*) hzV0_K0S->Clone("hzV0_Lambda0");
 	hzV0_Lambda0->SetTitle(TString::Format("hzV0_Lambda0; %s; %s; %s", sPtV0jet.c_str(), sEtaJet.c_str(), sPhiJet.c_str(), szv0.c_str()).Data());
+	THnSparseD* hzV0_V0 = (THnSparseD*) hzV0_K0S->Clone("hzV0_V0");
+	hzV0_V0->SetTitle(TString::Format("hzV0_V0; %s; %s; %s", sPtV0jet.c_str(), sEtaJet.c_str(), sPhiJet.c_str(), szv0.c_str()).Data());
 
 	THnSparseD* hzK0_K0S = (THnSparseD*) hzV0_K0S->Clone("hzK0_K0S");
 	hzK0_K0S->SetTitle(TString::Format("hzK0_K0S; %s; %s; %s", sPtK0jet.c_str(), sEtaJet.c_str(), sPhiJet.c_str(), szk0.c_str()).Data());
 	THnSparseD* hzK0_Lambda0 = (THnSparseD*) hzV0_K0S->Clone("hzK0_Lambda0");
 	hzK0_Lambda0->SetTitle(TString::Format("hzK0_Lambda0; %s; %s; %s", sPtK0jet.c_str(), sEtaJet.c_str(), sPhiJet.c_str(), szk0.c_str()).Data());
+	THnSparseD* hzK0_V0 = (THnSparseD*) hzV0_K0S->Clone("hzK0_V0");
+	hzK0_V0->SetTitle(TString::Format("hzK0_V0; %s; %s; %s", sPtK0jet.c_str(), sEtaJet.c_str(), sPhiJet.c_str(), szk0.c_str()).Data());
 
   for (int iEvent = 0; iEvent < nEvents; iEvent++)
 	{
@@ -250,10 +254,12 @@ int main(int argc, char** argv)
 				if (abs(part.id()) == 310) {
 					jetContainsV0s = true;
 					hzV0_K0S->Fill(jet.pt(), jet.eta(), jet.phi(), z(jet, constituent));
+					hzV0_V0->Fill(jet.pt(), jet.eta(), jet.phi(), z(jet, constituent));
 				}
 				if (abs(part.id()) == 3122) {
 					jetContainsV0s = true;
 					hzV0_Lambda0->Fill(jet.pt(), jet.eta(), jet.phi(), z(jet, constituent));
+					hzV0_V0->Fill(jet.pt(), jet.eta(), jet.phi(), z(jet, constituent));
 				}
 			} // constituent loop
 			if (!jetContainsV0s) { continue; }
@@ -270,10 +276,12 @@ int main(int argc, char** argv)
 				if (abs(part.id()) == 310) {
 					jetContainsV0s = true;
 					hzK0_K0S->Fill(jet.pt(), jet.eta(), jet.phi(), z(jet, constituent));
+					hzK0_V0->Fill(jet.pt(), jet.eta(), jet.phi(), z(jet, constituent));
 				}
 				if (abs(part.id()) == 3122) {
 					jetContainsV0s = true;
 					hzK0_Lambda0->Fill(jet.pt(), jet.eta(), jet.phi(), z(jet, constituent));
+					hzK0_V0->Fill(jet.pt(), jet.eta(), jet.phi(), z(jet, constituent));
 				}
 			} // constituent loop
 			if (!jetContainsV0s) { continue; }
@@ -290,8 +298,10 @@ int main(int argc, char** argv)
 
 	hzV0_K0S->Write(hzV0_K0S->GetName(), TObject::kOverwrite);
 	hzV0_Lambda0->Write(hzV0_Lambda0->GetName(), TObject::kOverwrite);
+	hzV0_V0->Write(hzV0_V0->GetName(), TObject::kOverwrite);
 	hzK0_K0S->Write(hzK0_K0S->GetName(), TObject::kOverwrite);
 	hzK0_Lambda0->Write(hzK0_Lambda0->GetName(), TObject::kOverwrite);
+	hzK0_V0->Write(hzK0_V0->GetName(), TObject::kOverwrite);
 
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;

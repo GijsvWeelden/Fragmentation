@@ -362,7 +362,7 @@ void getProjectionBinsAndEdges(const THnSparse* inputHist, const int axis, const
   lastEdge = axisPtr->GetBinUpEdge(lastBin);
 }
 
-
+// Set histogram colours and markers
 template <typename T>
 void setStyle(T hist, int styleNumber, int lineWidth = 3)
 {
@@ -385,13 +385,30 @@ string formatHadronName(string hadron)
   else if (hadron == "K0S"){
     had = "K^{0}_{S}";
   }
-  else if (hadron == "Lambda0"){
-    had = "#Lambda^{0}";
+  else if (hadron == "Lambda0" || hadron == "Lambda"){
+    // had = "#Lambda^{0}";
+    had = "#Lambda";
   }
-  else if (hadron == "AntiLambda0"){
-    had = "#bar{#Lambda}^{0}";
+  else if (hadron == "AntiLambda0" || hadron == "AntiLambda"){
+    // had = "#bar{#Lambda}^{0}";
+    had = "#bar{#Lambda}";
   }
   return had;
+}
+// Returns decay products given a hadron
+string formatHadronDaughters(string hadron)
+{
+  string daughters = "";
+  if ("K0S" == hadron) {
+    daughters = "#pi^{+}#pi^{-}";
+  }
+  else if ("Lambda0" == hadron) {
+    daughters = "p#pi^{-}";
+  }
+  else if ("AntiLambda0" == hadron) {
+    daughters = "#bar{p}#pi^{+}";
+  }
+  return daughters;
 }
 // Normalise 2D histogram row-by-row
 void normaliseHistRowByRow(TH2* hist)

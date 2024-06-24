@@ -2,11 +2,12 @@
 #! /bin/bash
 
 INPUT=""
+HADRON=""
 PTMIN=0.0
 DPT=1.0
 PTMAX=10.0
 
-while getopts 'i:d:x:y:' OPTION; do
+while getopts 'i:d:x:y:h:' OPTION; do
   case "$OPTION" in
     i)
       INPUT="${OPTARG}"
@@ -19,6 +20,9 @@ while getopts 'i:d:x:y:' OPTION; do
       ;;
     y)
       PTMAX="${OPTARG}"
+      ;;
+    h)
+      HADRON="${OPTARG}"
       ;;
     ?)
       echo "Script usage: $(basename \$0) [-i input, -d dpt, -x ptmin, -y ptmax]"
@@ -35,18 +39,23 @@ if [[ ! -f "$INPUT.root" ]]; then
   fi
 fi
 
-# declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
-command="K0SPurity"
+declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
+if [[ ! " ${hadrons[@]} " =~ " ${HADRON} " ]];
+then
+  echo "Please specify a hadron with -h (K0S, Lambda0, AntiLambda0)"
+  exit 1
+fi
 
+command="${HADRON}Purity"
 pt=$PTMIN
 while (( $(echo "$pt < $PTMAX" | bc -l) ));
 do
 pt2=$(echo "$pt + $DPT" | bc -l)
 echo "${command}(\"${INPUT}\", ${pt}, ${pt2})"
-root -l <<EOF
-.L plotPurity.C
-${command}(\"${INPUT}\", ${pt}, ${pt2})
-EOF
+# root -l -q <<EOF
+# .L plotPurity.C
+# ${command}(\"${INPUT}\", ${pt}, ${pt2})
+# EOF
 pt=${pt2}
 done
 

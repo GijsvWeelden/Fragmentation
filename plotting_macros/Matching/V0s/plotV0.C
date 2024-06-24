@@ -51,7 +51,7 @@ void ptResolution(string inName = "", double partv0min = -1., double partv0max =
 
   histName = "V0PartPtRatioPtRelDiffPt";
   histName = TString::Format("jet-fragmentation/matching/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   TH3D* th3 = (TH3D*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partv0bins = getProjectionBins(th3->GetXaxis(), partv0min, partv0max);
@@ -112,7 +112,7 @@ void matchedPt(string inName = "", bool detector = false)
   TLatex* latex;
 
   histName = "jet-fragmentation/matching/V0/V0PartPtDetPt";
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   TH2D* th2 = (TH2D*)inFile->Get(histName.c_str());
   TH1D* matchedjetpt = (TH1D*)th2->ProjectionX("matchedjetpt", 0, th2->GetNbinsY()+1);
   if (detector) { matchedjetpt = (TH1D*)th2->ProjectionY("matchedjetpt", 0, th2->GetNbinsX()+1);}

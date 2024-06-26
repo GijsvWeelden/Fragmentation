@@ -336,11 +336,11 @@ array<double, 3> getPurityAndRelEfficiency(THnSparseD* thn, array<int, 2> ptBins
   lPurity->Draw("same");
   lEff->Draw("same");
 
-  string saveName = TString::Format("purity%s", hadron.c_str()).Data();
-  saveName = TString::Format("%s_%s", saveName.c_str(), axisNames[cutAxis].c_str()).Data();
+  string saveName = hadron;
+  saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt).Data();
+  saveName += "_" + axisNames[cutAxis];
   saveName = TString::Format("%s_bin%d", saveName.c_str(), iBin).Data();
-  saveName = TString::Format("%s_v0pt%.1f-%.1f", saveName.c_str(), lowpt, highpt).Data();
-  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
+  saveName += ".pdf";
   canvas->SaveAs(saveName.c_str());
   return refValues;
 }
@@ -417,10 +417,10 @@ void cutVarPurity(string inName, string dataSet, string hadron, int cutAxis, dou
   lPt->Draw("same");
   lEP->Draw("same");
 
-  string saveName = "eff-pur";
-  saveName += hadron;
-  saveName += "_" + axisNames[cutAxis];
+  string saveName = hadron;
   saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt).Data();
+  saveName += "_" + axisNames[cutAxis];
+  saveName += "_EffPur";
   saveName += ".pdf";
   cEP->SaveAs(saveName.c_str());
 }

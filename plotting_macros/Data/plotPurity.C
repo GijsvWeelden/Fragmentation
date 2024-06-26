@@ -67,9 +67,9 @@ void parsK0S(TF1* f, bool doubleGauss, int bkg)
 void parsL0(TF1* f, bool doubleGauss, int bkg)
 {
   double gausPar[3] = {1., MassLambda0, 0.01};
-  double gausVar[6] = {0.4, 1., MassLambda0 - 0.01, MassLambda0 + 0.01, 1e-4, 0.02};
+  double gausVar[6] = {0.4, 1., MassLambda0 - 0.01, MassLambda0 + 0.01, 1e-6, 0.02};
   double doubleGaussPar[3] = {0.1, MassLambda0, 0.05};
-  double doubleGaussVar[6] = {0.1, 0.6, MassLambda0 - 0.03, MassLambda0 + 0.03, 1e-3, 0.1};
+  double doubleGaussVar[6] = {1e-2, 0.6, MassLambda0 - 0.03, MassLambda0 + 0.03, 1e-3, 0.1};
   double bkgPar[3] = {0., 0., 0.};
   double bkgVar[6] = {-3., 3., -3., 3., -3., 3.};
 
@@ -148,7 +148,7 @@ array<TH1*, 2> getSigBkgRegions(TH1* mass, double mean, double sigma, double nSi
 // bkg = n: background is polynomial of order n
 // doubleGauss = true: fit with 2 Gaussian
 // flipGaussians = true: flip which Gaussian is treated as the signal peak
-void v0Purity(string inName, string dataSet, string hadron, double ptmin = 0., double ptmax = 100., int bkg = 1, bool doubleGauss = true, bool flipGaussians = false)
+void v0Purity(string inName, string dataSet, string hadron, double ptmin = 0., double ptmax = 100., int bkg = 1, bool doubleGauss = true, bool flipGaussians = false, int rebinNumber = 1)
 {
   int nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = 8;
 
@@ -170,7 +170,7 @@ void v0Purity(string inName, string dataSet, string hadron, double ptmin = 0., d
   double xMinLegend = 0.6, xMaxLegend = 0.85, yMinLegend = 0.45, yMaxLegend = 0.7;
   double xLatex = 0.23, yLatex = 0.93;
   int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
+  // int rebinNumber = 5;
   xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
   yTitle = "arb. units";
 
@@ -195,6 +195,7 @@ void v0Purity(string inName, string dataSet, string hadron, double ptmin = 0., d
   double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
   double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
   TH1D* mass = (TH1D*)thn->Projection(projectionAxis);
+  mass->Rebin(rebinNumber);
 
   double normalisationFactor = mass->GetBinContent(mass->GetMaximumBin());
   mass->Scale(1./normalisationFactor);
@@ -250,7 +251,7 @@ void v0Purity(string inName, string dataSet, string hadron, double ptmin = 0., d
   lSigma->Draw("same");
   lChiSq->Draw("same");
 
-  saveName = TString::Format("%s_tmpPurity", hadron.c_str());
+  saveName = TString::Format("%sPurity", hadron.c_str());
   saveName = TString::Format("%s_pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax);
   if (doubleGauss) { saveName = TString::Format("%s_doubleGauss", saveName.c_str()); }
   saveName = TString::Format("%s_pol%d", saveName.c_str(), bkg);
@@ -264,3 +265,12 @@ void Lambda0Purity(string inName, string dataSet, double ptmin = 0., double ptma
 { v0Purity(inName, dataSet, "Lambda0", ptmin, ptmax, bkg, doubleGauss, flipGaussians); }
 void AntiLambda0Purity(string inName, string dataSet, double ptmin = 0., double ptmax = 100., int bkg = 1, bool doubleGauss = true, bool flipGaussians = false)
 { v0Purity(inName, dataSet, "AntiLambda0", ptmin, ptmax, bkg, doubleGauss, flipGaussians); }
+
+// -------------------------------------------------------------------------------------------------
+
+void purity225406(string hadron, double ptmin, double ptmax, int rebinNumber = 1, bool doubleGauss = true, bool flipGaussians = false)
+{
+  string inName = "~/cernbox/TrainOutput/225406/AnalysisResults.root";
+  string dataSet = "LHC22o_pass6_minBias_small";
+  v0Purity(inName, dataSet, hadron, ptmin, ptmax, 2, doubleGauss, flipGaussians, rebinNumber);
+}

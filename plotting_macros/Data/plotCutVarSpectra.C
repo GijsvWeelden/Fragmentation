@@ -71,7 +71,7 @@ void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool SetLogy = false;
-  double xMinFrame = 0.4, xMaxFrame = 0.6, yMinFrame = 0., yMaxFrame = .04;
+  double xMinFrame = 0.4, xMaxFrame = 0.6, yMinFrame = 0., yMaxFrame = .06;
   double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
   double xLatex = 0.23, yLatex = 0.93;
   int xCanvas = 1800, yCanvas = 900;
@@ -109,21 +109,31 @@ void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double
   frame->Draw();
   mass->Draw("same");
 
-  double parameters[5];
-  double sidebandRegion[2] = {0.46221947, 0.53135842}; // mu ± 7 sigma
-  double signalRegion[2] = {0.47209646, 0.52148143}; // mu ± 5 sigma
-  double fitRegion[2] = {0.4, 0.6};
-  TF1* background_extrapolated = new TF1("background_extrapolated", "pol1", fitRegion[0], fitRegion[1]);
-  // TF1* background = new TF1("background", "pol1", fitRegion[0], fitRegion[1]);
-  TF1* background = new TF1("background", pol1bkg, fitRegion[0], fitRegion[1], 4);
+  // double parameters[5];
+  double sidebandRegion[2] = {0.465, 0.525}; // mu ± 7 sigma
+  double signalRegion[2] = {0.48, 0.51}; // mu ± 5 sigma
+  double fitRegion[2] = {0.44, 0.555};
+  // double sidebandRegion[2] = {0.46221947, 0.53135842}; // mu ± 7 sigma
+  // double signalRegion[2] = {0.47209646, 0.52148143}; // mu ± 5 sigma
+  // double fitRegion[2] = {0.4, 0.6};
+  // TF1* background_extrapolated = new TF1("background_extrapolated", "pol1", fitRegion[0], fitRegion[1]);
+  // TF1* background = new TF1("background", pol1bkg, fitRegion[0], fitRegion[1], 4);
+  // TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
+  // TF1* signalFromTotal = new TF1("signalFromTotal", "gaus", signalRegion[0], signalRegion[1]);
+  // TF1* total = new TF1("total", "pol1(0) + gaus(2)", fitRegion[0], fitRegion[1]);
+
+  double parameters[6];
+  TF1* background_extrapolated = new TF1("background_extrapolated", "pol2", fitRegion[0], fitRegion[1]);
+  TF1* background = new TF1("background", pol2bkgVar, fitRegion[0], fitRegion[1], 5);
   TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
   TF1* signalFromTotal = new TF1("signalFromTotal", "gaus", signalRegion[0], signalRegion[1]);
-  TF1* total = new TF1("total", "pol1(0) + gaus(2)", fitRegion[0], fitRegion[1]);
+  TF1* total = new TF1("total", "pol2(0) + gaus(3)", fitRegion[0], fitRegion[1]);
 
   background->SetParameter(0, sidebandRegion[0]); background->SetParameter(1, sidebandRegion[1]);
   setStyle(background, 1);
   TFitResultPtr bkgPtr = mass->Fit("background", "S");
-  parameters[0] = background->GetParameter(2); parameters[1] = background->GetParameter(3);
+  parameters[0] = background->GetParameter(2); parameters[1] = background->GetParameter(3); parameters[2] = background->GetParameter(4);
+  // parameters[0] = background->GetParameter(2); parameters[1] = background->GetParameter(3);
   legend->AddEntry(background, "background");
 
   setStyle(background_extrapolated, 1);
@@ -132,7 +142,8 @@ void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double
 
   setStyle(signal, 2);
   mass->Fit("signal", "R+");
-  signal->GetParameters(&parameters[2]);
+  signal->GetParameters(&parameters[3]);
+  // signal->GetParameters(&parameters[2]);
   legend->AddEntry(signal, "signal");
 
   setStyle(total, 3);
@@ -211,13 +222,13 @@ void Lambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0., do
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool SetLogy = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 80e6;
+  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 1.1;
   double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
   double xLatex = 0.23, yLatex = 0.93;
   int xCanvas = 1800, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName("Lambda0").c_str()).Data();
-  yTitle = "count";
+  yTitle = "";
   dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
@@ -236,6 +247,8 @@ void Lambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0., do
   double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
   double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
   TH1D* mass = (TH1D*)thn->Projection(Lambda0massAxis);
+  double nV0s = mass->GetBinContent(mass->GetMaximumBin()); //mass->Integral();
+  mass->Scale(1./nV0s);
   setStyle(mass, 0);
   legend->AddEntry(mass, "data");
 
@@ -301,8 +314,8 @@ void Lambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0., do
   double sigPlusBkgErr;
   double sigPlusBkg = mass->IntegralAndError(mass->FindBin(signalRegion[0]), mass->FindBin(signalRegion[1]), sigPlusBkgErr, "width");
   double purity = 1 - bkgEstimate / sigPlusBkg;
-  TLatex* latexS = CreateLatex(0.6, 0.5, TString::Format("S+B = %.1f #pm %.1f", sigPlusBkg, sigPlusBkgErr).Data(), textSize);
-  TLatex* latexB = CreateLatex(0.6, 0.4, TString::Format("B = %.1f #pm %.1f", bkgEstimate, bkgErr).Data(), textSize);
+  TLatex* latexS = CreateLatex(0.6, 0.5, TString::Format("S+B = %.1f #pm %.1f", sigPlusBkg * nV0s, sigPlusBkgErr * nV0s).Data(), textSize);
+  TLatex* latexB = CreateLatex(0.6, 0.4, TString::Format("B = %.1f #pm %.1f", bkgEstimate * nV0s, bkgErr * nV0s).Data(), textSize);
   TLatex* latexPurity = CreateLatex(0.6, 0.3, TString::Format("Purity = %.2f %%", purity * 1e2).Data(), textSize);
 
   latexMu->Draw("same");
@@ -470,6 +483,7 @@ void AntiLambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0.
 
 // -------------------------------------------------------------------------------------------------
 
+// Plot mass spectrum for different V0 cuts in one figure
 void cutVarMassWrtNoCut(string inName = "", string hypothesis = "", int cutAxis = -1, double ptmin = 0., double ptmax = 100., bool doRatio = false)
 {
   if ("" == inName) {
@@ -780,6 +794,7 @@ void cutDCAdMassWrtStdCut(string inName = "", string hypothesis = "", double ptm
 
 // -------------------------------------------------------------------------------------------------
 
+// Plot mass spectrum for different V0 cuts in separate figures with purity calculation
 array<TFitResultPtr, 3> fitK0S(TH1D* mass, double* sidebandRegion, double* signalRegion, double* fitRegion)
 {
   double parameters[5];

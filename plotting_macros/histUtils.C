@@ -23,6 +23,8 @@
 
 #include "plotUtils.C"
 
+#ifndef HISTUTILS_H
+#define HISTUTILS_H
 template <typename T>
 T loadHist(TFile* inFile, string histName)
 {
@@ -440,3 +442,4 @@ void normaliseHistColByCol(TH2* hist)
     }
   }
 }
+#endif // HISTUTILS_H

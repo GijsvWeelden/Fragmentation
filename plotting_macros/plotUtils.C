@@ -4,6 +4,9 @@
 #include "TLatex.h"
 #include "TLegend.h"
 
+#ifndef PLOTUTILS_H
+#define PLOTUTILS_H
+
 static  int      myDarkRed     = TColor::GetColor(128,0,0);
 static  int      myDarkGreen   = TColor::GetColor(0,128,0);
 static  int      myDarkBlue    = TColor::GetColor(0,0,128);
@@ -86,3 +89,5 @@ Int_t GetMarker(Int_t i) {
   if(i<nc) return markerStyle[i];
   else     return 20+i;
 }
+
+#endif // PLOTUTILS_H

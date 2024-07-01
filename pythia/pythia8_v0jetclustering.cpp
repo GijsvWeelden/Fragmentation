@@ -133,7 +133,10 @@ int main(int argc, char** argv)
 	string szk0   = "#it{z}_{K0}";
 
 	// Output histograms
-	TFile* outFile = new TFile(TString::Format("%s.root", outName.c_str()).Data(), "RECREATE");
+	if (outName.find(".root") == string::npos) {
+		outName += ".root";
+	}
+	TFile* outFile = new TFile(TString::Format("%s", outName.c_str()).Data(), "RECREATE");
 
 	TH1D* hNEvts = new TH1D("hNEvts", "hNEvts", 2, -0.5, 1.5);
 

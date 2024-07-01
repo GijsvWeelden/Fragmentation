@@ -2,40 +2,66 @@
 #! /bin/bash
 
 INPUT="225406"
+DATA=""
 PTMIN=0.
 PTMAX=100.
 HADRON=""
+REBIN=1
 
-while getopts 'i:h:' OPTION; do
+BKG=2
+DOUBLEGAUSS=true
+FLIPGAUSSIANS=false
+
+while getopts 'b:d:fgh:i:r:x:y:' OPTION; do
   case "$OPTION" in
-    i)
-      INPUT="${OPTARG}"
+    b)
+      BKG="${OPTARG}"
+      ;;
+    d)
+      DATA="${OPTARG}"
+      ;;
+    f)
+      FLIPGAUSSIANS=true
+      ;;
+    g)
+      DOUBLEGAUSS=false
       ;;
     h)
       HADRON="${OPTARG}"
       ;;
+    i)
+      INPUT="${OPTARG}"
+      ;;
+    r)
+      REBIN="${OPTARG}"
+      ;;
+    x)
+      PTMIN="${OPTARG}"
+      ;;
+    y)
+      PTMAX="${OPTARG}"
+      ;;
     ?)
-      echo "Script usage: $(basename \$0) [-h hadron (K0S, Lambda, AntiLambda), -i input]"
+      echo "Script usage: $(basename \$0) [-h hadron (K0S, Lambda0, AntiLambda0), -i input]"
       exit 1
       ;;
   esac
 done
 
-declare -a hadrons=("K0S" "Lambda" "AntiLambda")
+declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
 
 if [[ ! " ${hadrons[@]} " =~ " ${HADRON} " ]];
 then
-  echo "Please specify a hadron with -h (K0S, Lambda, AntiLambda)"
+  echo "Please specify a hadron with -h (K0S, Lambda0, AntiLambda0)"
   exit 1
 fi
 echo "Starting: purity estimation for V0 cut variation."
 
 INPUT="~/Documents/TrainOutput/${INPUT}/AnalysisResults.root"
 
-# .L plotPurity.C
 for AXIS in 4 5 6 7 8 9
 do
-command="cutVar${HADRON}Purity(\"${INPUT}\", ${AXIS}, ${PTMIN}, ${PTMAX})"
+command="cutVarPurity(\"${INPUT}\", \"${DATA}\", \"${HADRON}\", ${AXIS}, ${PTMIN}, ${PTMAX}, ${BKG}, ${DOUBLEGAUSS}, ${FLIPGAUSSIANS}, ${REBIN})"
 echo "${command}"
 root -l -b <<EOF
 .L plotCutVariation.C

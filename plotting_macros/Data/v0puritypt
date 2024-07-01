@@ -52,10 +52,6 @@ while (( $(echo "$pt < $PTMAX" | bc -l) ));
 do
 pt2=$(echo "$pt + $DPT" | bc -l)
 echo "${command}(\"${INPUT}\", ${pt}, ${pt2})"
-# root -l -q <<EOF
-# .L plotPurity.C
-# ${command}(\"${INPUT}\", ${pt}, ${pt2})
-# EOF
 pt=${pt2}
 done
 

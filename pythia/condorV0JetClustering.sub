@@ -1,0 +1,10 @@
+Universe   = vanilla
+Executable = condorV0JetClustering
+JobID = $(Process) + 1
+Arguments  = "2000 condorv0jets$INT(JobID)"
+Log        = V0JetClustering/$INT(JobID).log
+Output     = V0JetClustering/$INT(JobID).out
+Error      = V0JetClustering/$INT(JobID).error
++JobCategory = "short"
++SingularityImage = "/user/templon/ALICEnikhef.sif"
+queue

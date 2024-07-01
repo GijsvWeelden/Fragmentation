@@ -9,6 +9,7 @@ pythia/pythia8_v0jetclustering
 pythia/v0studyWithDecays
 pythia/v0studyWithoutDecays
 pythia/chJetsV0Jets
+pythia/V0JetClustering
 
 plotting_macros/V0Jets/SpectraChecks
 

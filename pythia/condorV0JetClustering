@@ -1,0 +1,23 @@
+
+#!/bin/bash
+MYDIR="/data/alice/gweelden/Fragmentation/pythia"
+NEVENTS=2000
+OUTFILE="condorv0jets"
+
+if [[ $# -gt 0 ]] ; then
+    NEVENTS=$1
+fi
+if [[ $# -gt 1 ]] ; then
+    OUTFILE=$2
+fi
+
+source /cvmfs/alice.cern.ch/etc/login.sh
+eval $(alienv printenv VO_ALICE@O2Physics::daily-20240501-0200-1)
+
+outdir=${MYDIR}/V0JetClustering
+if [ ! -d ${outdir} ]; then
+  mkdir -p ${outdir}
+fi
+
+# make pythia8_v0jetclustering
+${MYDIR}/pythia8_v0jetclustering ${NEVENTS} ${outdir}/${OUTFILE}

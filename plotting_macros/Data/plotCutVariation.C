@@ -167,9 +167,8 @@ void parsL0(TF1* f, bool doubleGauss, int bkg, double scale = 1.)
 // Get fit function for signal and background, still need to initialise parameters
 TF1* getSigBkgFit(string hadron, int bkg, bool doubleGauss)
 {
-  double fitRegion[2] = {1.08, 1.215};
-  // if ("K0S" == hadron) { fitRegion[0] = 0.42, fitRegion[1] = 0.58; }
-  if ("K0S" == hadron) { fitRegion[0] = 0.44, fitRegion[1] = 0.555; }
+  double fitRegion[2] = {1.08, 1.2};
+  if ("K0S" == hadron) { fitRegion[0] = 0.42, fitRegion[1] = 0.58; }
 
   int arg = 3;
   string sFit = "gaus(0)";
@@ -334,7 +333,7 @@ array<double, 3> getPurityAndRelEfficiency(THnSparseD* thn, array<int, 2> ptBins
   bkgRegion->Draw("bars same");
 
   // Line for hadron mass
-  TLine* lineMass = new TLine(("K0S" == hadron) ? MassK0S : MassLambda0, yMinFrame, ("K0S" == hadron) ? MassK0S : MassLambda0, yMaxFrame);
+  TLine* lineMass = new TLine(("K0S" == hadron) ? MassK0S : MassLambda0, yMinFrame, ("K0S" == hadron) ? MassK0S : MassLambda0, yMaxFrame * scale);
   lineMass->SetLineColor(GetColor(0));
   lineMass->SetLineWidth(2);
   lineMass->SetLineStyle(9);
@@ -377,8 +376,14 @@ array<double, 3> getPurityAndRelEfficiency(THnSparseD* thn, array<int, 2> ptBins
   lEff->Draw("same");
 
   if (refBin == iBin) {
-    TLatex* lMean  = CreateLatex(0.1, 0.6, TString::Format("Mean: %.3f GeV/#it{c}^{2}", mean).Data(), textSize);
-    TLatex* lSigma = CreateLatex(0.1, 0.55, TString::Format("Sigma: %.3f GeV/#it{c}^{2}", sigma).Data(), textSize);
+    string sMean  = TString::Format("Mean: %.3f GeV/#it{c}^{2}", mean).Data();
+    string sSigma = TString::Format("Sigma: %.3f GeV/#it{c}^{2}", sigma).Data();
+    if ("K0S" == hadron) {
+      sMean  = TString::Format("Mean: %.3f MeV/#it{c}^{2}", mean*1e3).Data();
+      sSigma = TString::Format("Sigma: %.3f MeV/#it{c}^{2}", sigma*1e3).Data();
+    }
+    TLatex* lMean  = CreateLatex(0.1, 0.6, sMean.c_str(), textSize);
+    TLatex* lSigma = CreateLatex(0.1, 0.55, sSigma.c_str(), textSize);
     TLatex* lChiSq = CreateLatex(0.1, 0.5, TString::Format("#chi^{2}/NDF: %.2f", chiSq).Data(), textSize);
     lMean->Draw("same");
     lSigma->Draw("same");
@@ -458,7 +463,7 @@ array<double, 3> getPurityAndRelEfficiency(TH3D* th3, array<int, 2> ptBins,
   bkgRegion->Draw("bars same");
 
   // Line for hadron mass
-  TLine* lineMass = new TLine(("K0S" == hadron) ? MassK0S : MassLambda0, yMinFrame, ("K0S" == hadron) ? MassK0S : MassLambda0, yMaxFrame);
+  TLine* lineMass = new TLine(("K0S" == hadron) ? MassK0S : MassLambda0, yMinFrame, ("K0S" == hadron) ? MassK0S : MassLambda0, yMaxFrame * scale);
   lineMass->SetLineColor(GetColor(0));
   lineMass->SetLineWidth(2);
   lineMass->SetLineStyle(9);
@@ -503,8 +508,14 @@ array<double, 3> getPurityAndRelEfficiency(TH3D* th3, array<int, 2> ptBins,
   lCutString->Draw("same");
 
   if (refBin == iBin) {
-    TLatex* lMean  = CreateLatex(0.1, 0.6, TString::Format("Mean: %.3f MeV/#it{c}^{2}", mean*1e3).Data(), textSize);
-    TLatex* lSigma = CreateLatex(0.1, 0.55, TString::Format("Sigma: %.3f MeV/#it{c}^{2}", sigma*1e3).Data(), textSize);
+    string sMean  = TString::Format("Mean: %.3f GeV/#it{c}^{2}", mean).Data();
+    string sSigma = TString::Format("Sigma: %.3f GeV/#it{c}^{2}", sigma).Data();
+    if ("K0S" == hadron) {
+      sMean  = TString::Format("Mean: %.3f MeV/#it{c}^{2}", mean*1e3).Data();
+      sSigma = TString::Format("Sigma: %.3f MeV/#it{c}^{2}", sigma*1e3).Data();
+    }
+    TLatex* lMean  = CreateLatex(0.1, 0.6, sMean.c_str(), textSize);
+    TLatex* lSigma = CreateLatex(0.1, 0.55, sSigma.c_str(), textSize);
     TLatex* lChiSq = CreateLatex(0.1, 0.5, TString::Format("#chi^{2}/NDF: %.2f", chiSq).Data(), textSize);
     lMean->Draw("same");
     lSigma->Draw("same");

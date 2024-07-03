@@ -12,6 +12,8 @@ pythia/chJetsV0Jets
 pythia/V0JetClustering
 
 plotting_macros/V0Jets/SpectraChecks
+plotting_macros/Data/2*
+plotting_macros/Data/NV0sInJets
 
 **/.DS_Store
 **/test.*

@@ -274,3 +274,10 @@ void purity225406(string hadron, double ptmin, double ptmax, int rebinNumber = 1
   string dataSet = "LHC22o_pass6_minBias_small";
   v0Purity(inName, dataSet, hadron, ptmin, ptmax, 2, doubleGauss, flipGaussians, rebinNumber);
 }
+
+void purity233079(string hadron, double ptmin, double ptmax, int rebinNumber = 1, bool doubleGauss = true, bool flipGaussians = false)
+{
+  string inName = "~/cernbox/TrainOutput/233079/AnalysisResults.root";
+  string dataSet = "LHC22o_pass6_minBias_small";
+  v0Purity(inName, dataSet, hadron, ptmin, ptmax, 2, doubleGauss, flipGaussians, rebinNumber);
+}

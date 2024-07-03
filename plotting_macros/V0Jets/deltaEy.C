@@ -75,7 +75,7 @@ void plotEnergyAndRapidity()
   cy->SaveAs("dy.pdf");
 }
 
-void plotRapidity(bool doStrange = true)
+void plotRapidityDiff(bool doStrange = true)
 {
   double pMin = 0.; double pMax = 50.; int pBins = 100;
   double etaMin = -1.; double etaMax = 1.; int etaBins = 100;
@@ -89,8 +89,6 @@ void plotRapidity(bool doStrange = true)
       double eta = yL0->GetYaxis()->GetBinCenter(ieta);
       yK0S->Fill(p, eta, rapidity(doStrange ? MassK0S : MassPi, p, eta));
       yL0->Fill(p, eta, rapidity(doStrange ? MassLambda0 : MassProton, p, eta));
-      // yK0S->Fill(p, eta, rapidity(MassK0S, p, eta));
-      // yL0->Fill(p, eta, rapidity(MassLambda0, p, eta));
     }
   }
   dy = (TH2D*) yL0->Clone("dy");
@@ -119,4 +117,33 @@ void plotRapidity(bool doStrange = true)
   saveName = TString::Format("%s_%s", saveName.c_str(), doStrange ? "LK" : "ppi").Data();
   saveName = TString::Format("%s.pdf", saveName.c_str());
   cdy->SaveAs(saveName.c_str());
+}
+
+void plotEnergyDiff(bool doStrange = true)
+{
+  double pMin = 0.; double pMax = 50.; int pBins = 100;
+
+  TH1D* eLight = new TH1D("eLight", "Light particle energy;|#bf{#it{p}}| (GeV/#it{c});E (GeV)", pBins, pMin, pMax);
+  TH1D* eHeavy = new TH1D("eHeavy", "Heavy particle energy;|#bf{#it{p}}| (GeV/#it{c});E (GeV)", pBins, pMin, pMax);
+  TH1D* dE;
+
+  for (int ip = 0; ip < pBins; ip++) {
+    double p = eHeavy->GetBinCenter(ip);
+    eLight->Fill(p, energy(doStrange ? MassK0S : MassPi, p));
+    eHeavy->Fill(p, energy(doStrange ? MassLambda0 : MassProton, p));
+  }
+
+  TCanvas* cE = new TCanvas("cE", "cE", 800, 600);
+  string yTitle = doStrange ? "E(#Lambda) - E(K^{0}_{S}) (GeV)" : "E(p) - E(#pi^{#pm}) (GeV)";
+  TH1F* Eframe = DrawFrame(0., 10., 0, 0.6, "|#bf{#it{p}}| (GeV/#it{c})", yTitle);
+  dE = (TH1D*) eHeavy->Clone("dE");
+  dE->Add(eLight, -1);
+  dE->SetLineWidth(3);
+
+  Eframe->Draw();
+  dE->Draw("hist L same");
+  string saveName = "dE";
+  saveName = TString::Format("%s_%s", saveName.c_str(), doStrange ? "LK" : "ppi").Data();
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  cE->SaveAs(saveName.c_str());
 }

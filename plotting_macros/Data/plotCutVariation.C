@@ -254,8 +254,6 @@ TH1D* getMassHist(THnSparseD* thn, array<int, 2> ptBins, int iBin, int cutAxis, 
 TH1D* getMassHist(TH3D* th3, array<int, 2> ptBins, int iBin, int cutAxis)
 {
   TH3D* th3_copy = (TH3D*)th3->Clone("th3_copy");
-  th3_copy->GetXaxis()->SetRange(ptBins[0], ptBins[1]);
-
   int overflowBin = 1 + th3->GetYaxis()->GetNbins();
   int firstBin = 0, lastBin = overflowBin;
   if (reverseCuts(cutAxis)) {
@@ -264,8 +262,7 @@ TH1D* getMassHist(TH3D* th3, array<int, 2> ptBins, int iBin, int cutAxis)
   else {
     firstBin = iBin;
   }
-  th3_copy->GetYaxis()->SetRange(firstBin, lastBin);
-  TH1D* mass = (TH1D*)th3_copy->ProjectionZ();
+  TH1D* mass = (TH1D*)th3_copy->ProjectionZ("mass", ptBins[0], ptBins[1], firstBin, lastBin);
   mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
   return mass;
 }
@@ -504,7 +501,7 @@ array<double, 3> getPurityAndRelEfficiency(TH3D* th3, array<int, 2> ptBins,
   lPurity->Draw("same");
   lEff->Draw("same");
 
-  TLatex* lCutString = CreateLatex(0.3, 0.75, cutString.c_str(), textSize);
+  TLatex* lCutString = CreateLatex(0.6, 0.75, cutString.c_str(), textSize);
   lCutString->Draw("same");
 
   if (refBin == iBin) {
@@ -629,9 +626,9 @@ void cutVarPurityWithExtraCuts(string inName, string dataSet, string hadron, int
     return;
   }
 
-  int nSigmaSignal = 2, nSigmaBkgMin = 3, nSigmaBkgMax = 5;
+  int nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = nSigmaBkgMin + nSigmaSignal;
   if ("K0S" == hadron) {
-    nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = 8;
+    nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = nSigmaBkgMin + nSigmaSignal;
   }
   int refBin = 0;
   double mean = ("K0S" == hadron) ? MassK0S : MassLambda0, sigma = 0.03, refSignal = -1.;
@@ -657,32 +654,38 @@ void cutVarPurityWithExtraCuts(string inName, string dataSet, string hadron, int
   string cutString = "", axisString = "";
   int axisBin = 0;
 
-  axisBin = 0; axisString = formatBinLabel(thn, axisBin, RAxis);
+  axisBin = 0;
+  axisString = formatBinLabel(thn, axisBin, RAxis);
   thn->GetAxis(RAxis)->SetRange(axisBin, 1 + thn->GetAxis(RAxis)->GetNbins());
   if (!("Default cut" == axisString)) {
     cutString = axisString;
   }
-  axisBin = 0; axisString = formatBinLabel(thn, axisBin, ctauAxis);
+  axisBin = 0;
+  axisString = formatBinLabel(thn, axisBin, ctauAxis);
   thn->GetAxis(ctauAxis)->SetRange(0, -1 * axisBin + 1 + thn->GetAxis(ctauAxis)->GetNbins());
   if (!("Default cut" == axisString)) {
     cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
   }
-  axisBin = 0; axisString = formatBinLabel(thn, axisBin, cosPAAxis);
+  axisBin = 1;
+  axisString = formatBinLabel(thn, axisBin, cosPAAxis);
   thn->GetAxis(cosPAAxis)->SetRange(axisBin, 1 + thn->GetAxis(cosPAAxis)->GetNbins());
   if (!("Default cut" == axisString)) {
     cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
   }
-  axisBin = 0; axisString = formatBinLabel(thn, axisBin, DCApAxis);
+  axisBin = 0;
+  axisString = formatBinLabel(thn, axisBin, DCApAxis);
   thn->GetAxis(DCApAxis)->SetRange(0, -1 * axisBin + 1 + thn->GetAxis(DCApAxis)->GetNbins());
   if (!("Default cut" == axisString)) {
     cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
   }
-  axisBin = 0; axisString = formatBinLabel(thn, axisBin, DCAnAxis);
+  axisBin = 0;
+  axisString = formatBinLabel(thn, axisBin, DCAnAxis);
   thn->GetAxis(DCAnAxis)->SetRange(axisBin, 1 + thn->GetAxis(DCAnAxis)->GetNbins());
   if (!("Default cut" == axisString)) {
     cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
   }
-  axisBin = 0; axisString = formatBinLabel(thn, axisBin, DCAnAxis);
+  axisBin = 0;
+  axisString = formatBinLabel(thn, axisBin, DCAnAxis);
   thn->GetAxis(DCAdAxis)->SetRange(axisBin, 1 + thn->GetAxis(DCAdAxis)->GetNbins());
   if (!("Default cut" == axisString)) {
     cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
@@ -703,9 +706,10 @@ void cutVarPurityWithExtraCuts(string inName, string dataSet, string hadron, int
   string canvasName = TString::Format("cEP_%s_%s_%.1f-%.1f", hadron.c_str(), axisNames[cutAxis].c_str(), lowpt, highpt).Data();
   TCanvas* cEP   = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
   cEP->cd();
-  TLatex*  lData = CreateLatex(0.25, 0.35, dataSet.c_str(), 0.04);
-  TLatex*  lPt   = CreateLatex(0.25, 0.3, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data(), 0.04);
-  TLegend* lEP   = CreateLegend(0.25, 0.5, 0.15, 0.25, "", 0.04);
+  TLatex*  lData      = CreateLatex(0.25, 0.35, dataSet.c_str(), 0.04);
+  TLatex*  lPt        = CreateLatex(0.25, 0.3, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data(), 0.04);
+  TLatex*  lCutString = CreateLatex(0.7, 0.35, cutString.c_str(), 0.04);
+  TLegend* lEP        = CreateLegend(0.25, 0.5, 0.15, 0.25, "", 0.04);
 
   setStyle(hEfficiency, 0);
   setStyle(hPurity, 1);
@@ -724,6 +728,7 @@ void cutVarPurityWithExtraCuts(string inName, string dataSet, string hadron, int
 
   lData->Draw("same");
   lPt->Draw("same");
+  lCutString->Draw("same");
   lEP->Draw("same");
 
   string saveName = hadron;

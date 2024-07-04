@@ -8,13 +8,17 @@ PTMIN=0.
 PTMAX=100.
 HADRON=""
 REBIN=1
+AXIS=0
 
 BKG=2
 DOUBLEGAUSS=true
 FLIPGAUSSIANS=false
 
-while getopts 'b:cd:fgh:i:r:x:y:' OPTION; do
+while getopts 'a:b:cd:fgh:i:r:x:y:' OPTION; do
   case "$OPTION" in
+    a)
+      AXIS="${OPTARG}"
+      ;;
     b)
       BKG="${OPTARG}"
       ;;
@@ -59,24 +63,23 @@ then
   echo "Please specify a hadron with -h (K0S, Lambda0, AntiLambda0)"
   exit 1
 fi
+if [[ $AXIS -lt 4 || $AXIS -gt 9 ]]
+then
+  echo "Please specify an axis between 4 and 9"
+  exit 1
+fi
+
 echo "Starting: purity estimation for V0 cut variation."
 
 INPUT="~/Documents/TrainOutput/${INPUT}/AnalysisResults.root"
 
-for AXIS in 4 5 6 7 8 9
-do
-flags="-i ${INPUT} -d ${DATA} -r ${REBIN} -a ${AXIS} -h ${HADRON} -x ${PTMIN} -y ${PTMAX} -b ${BKG}"
+command="cutVarPurity(\"${INPUT}\", \"${DATA}\", \"${HADRON}\", ${AXIS}, ${PTMIN}, ${PTMAX}, ${BKG}, ${DOUBLEGAUSS}, ${FLIPGAUSSIANS}, ${REBIN})"
 if [[ "$EXTRACUTS" = true ]]
 then
-  flags="${flags} -c"
+  command="cutVarPurityWithExtraCuts(\"${INPUT}\", \"${DATA}\", \"${HADRON}\", ${AXIS}, ${PTMIN}, ${PTMAX}, ${BKG}, ${DOUBLEGAUSS}, ${FLIPGAUSSIANS}, ${REBIN})"
 fi
-if [[ "$DOUBLEGAUSS" = false ]]
-then
-  flags="${flags} -g"
-fi
-if [[ "$FLIPGAUSSIANS" = true ]]
-then
-  flags="${flags} -f"
-fi
-./v0cutvarsingle ${flags}
-done
+echo "${command}"
+root -l -b <<EOF
+.L plotCutVariation.C
+${command}
+EOF

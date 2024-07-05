@@ -123,8 +123,8 @@ int main(int argc, char** argv)
 
 	string sPtK0jet = "#it{p}_{T, Ch+K0 jet} [GeV/#it{c}]";
 	string sPtV0jet = "#it{p}_{T, Ch+V0 jet} [GeV/#it{c}]";
-	string sEtaJet   = "#eta_{jet}";
-	string sPhiJet   = "#phi_{jet}";
+	string sEtaJet  = "#eta_{jet}";
+	string sPhiJet  = "#phi_{jet}";
 
 	string sv0pt  = "#it{p}_{T, V0}";
 	string sv0eta = "#eta_{V0}";
@@ -201,7 +201,7 @@ int main(int argc, char** argv)
 				K0SParticles.push_back(jInp);
 				hV0->Fill(jInp.pt(), jInp.eta(), jInp.phi());
 			}
-			else if (abs(part.id()) == 3312) {
+			else if (abs(part.id()) == 3122) {
 				v0Indices.push_back(iPart);
 				L0Particles.push_back(jInp);
 				hV0->Fill(jInp.pt(), jInp.eta(), jInp.phi());
@@ -211,8 +211,7 @@ int main(int argc, char** argv)
 				jInpK0S.set_user_index(iPart);
 				L0AsK0SParticles.push_back(jInpK0S);
 			}
-			else {
-				if (!part.isCharged()) continue;
+			else if (part.isCharged()) {
 				chParticles.push_back(jInp);
 				hTrack->Fill(jInp.pt(), jInp.eta(), jInp.phi());
 			}

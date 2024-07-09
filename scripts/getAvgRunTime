@@ -1,0 +1,45 @@
+
+#!/bin/bash
+BATCH="gweelden"
+if [[ -n $1 ]]; then
+  BATCH=$1
+fi
+history=$(condor_history $BATCH)
+history=$(echo "$history" | tr ' ' '\n' | grep 0+)
+# Split lines into an array, zsh only
+# For bash4+, use: readarray -t y <<<"$x"
+myarray=($history)
+runtimes=()
+
+# Convert to minutes
+for value in "${myarray[@]}"
+do
+  IFS=":"
+  Time=($value)
+  runtime=$((${Time[0]}*60 + ${Time[1]}))
+  runtimes+=($runtime)
+done
+
+mean=0
+variance=0
+n=0
+# Get the mean
+for rt in "${runtimes[@]}"
+do
+  mean=$(($mean + $rt))
+  n=$(($n + 1))
+done
+mean=$(($mean / $n))
+# Get the variance
+for rt in "${runtimes[@]}"
+do
+  var=$(($rt - $mean))
+  var=$(($var * $var))
+  variance=$(($variance + $var))
+done
+variance=$(($variance / $n))
+hours=$(($mean / 60))
+minutes=$(($mean % 60))
+# Add 0.5 to round to nearest integer
+sigma=$(echo "$variance" | awk '{print int(sqrt($0)+0.5)}')
+echo "${n} jobs, mean runtime: ${hours}h${minutes}m +/- ${sigma}m"

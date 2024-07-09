@@ -48,6 +48,7 @@ int main(int argc, char** argv)
 {
 	int nEvents = 200;
   string outName = "studyLambdaAsK0S";
+	bool doPtScheme = false;
 
 	if (argc >= 2){
 		nEvents = atoi(argv[1]);
@@ -58,6 +59,10 @@ int main(int argc, char** argv)
 	}
 	if (argc >= 3) {
 		outName = argv[2];
+	}
+	if (argc >= 4) {
+		doPtScheme = atoi(argv[3]);
+		cout << "Using pt recombination scheme" << endl;
 	}
 
 	double ptHatMin = -20;
@@ -230,6 +235,7 @@ int main(int argc, char** argv)
 		fastjet::AreaDefinition areaDefShape = fastjet::AreaDefinition(areaType, ghostSpec);
 		fastjet::RangeDefinition range(-1. * max_eta_jet, max_eta_jet, 0, 2.*fastjet::pi);
 		fastjet::RecombinationScheme recombScheme = fastjet::E_scheme; // need E scheme for jet mass
+		if (doPtScheme) { recombScheme = fastjet::pt_scheme; }
 		fastjet::JetDefinition jetDef(fastjet::antikt_algorithm, jetR, recombScheme, strategy);
 
 		std::vector <fastjet::PseudoJet> V0Inputs = chParticles;

@@ -170,7 +170,6 @@ void v0Purity(string inName, string dataSet, string hadron, double ptmin = 0., d
   double xMinLegend = 0.6, xMaxLegend = 0.85, yMinLegend = 0.45, yMaxLegend = 0.7;
   double xLatex = 0.23, yLatex = 0.93;
   int xCanvas = 1800, yCanvas = 900;
-  // int rebinNumber = 5;
   xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
   yTitle = "arb. units";
 
@@ -235,10 +234,16 @@ void v0Purity(string inName, string dataSet, string hadron, double ptmin = 0., d
        << "Background: " << background << endl
        << "Purity: " << purity << endl;
 
+  string sMean = TString::Format("#mu: %.3f GeV/#it{c}^{2}", mean).Data();
+  // string sSigma = TString::Format("#sigma: %.3f GeV/#it{c}^{2}", sigma).Data();
+  if ("K0S" == hadron) {
+    sMean = TString::Format("#mu: %.3f MeV/#it{c}^{2}", mean*1e3).Data();
+  }
+  string sSigma = TString::Format("#sigma: %.3f MeV/#it{c}^{2}", sigma*1e3).Data();
   TLatex* lData   = CreateLatex(0.55, 0.85, dataSet.c_str(), textSize);
   TLatex* lPt     = CreateLatex(0.55, 0.8, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt), textSize);
-  TLatex* lMean   = CreateLatex(0.25, 0.8, TString::Format("#mu: %.3f", mean), textSize);
-  TLatex* lSigma  = CreateLatex(0.25, 0.75, TString::Format("#sigma: %.3f", sigma), textSize);
+  TLatex* lMean   = CreateLatex(0.25, 0.8, sMean.c_str(), textSize);
+  TLatex* lSigma  = CreateLatex(0.25, 0.75, sSigma.c_str(), textSize);
   TLatex* lChiSq  = CreateLatex(0.25, 0.7, TString::Format("#chi^{2}/NDF: %.3f", chiSq), textSize);
   TLatex* lPurity = CreateLatex(0.25, 0.65, TString::Format("Purity: %.1f%%", purity*1e2), textSize);
 

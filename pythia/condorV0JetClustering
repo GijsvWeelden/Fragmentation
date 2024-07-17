@@ -27,4 +27,11 @@ if [ ! -d ${outdir} ]; then
   mkdir -p ${outdir}
 fi
 
+if [ ! -f ${MYDIR}/pythia8_v0jetclustering.cpp ]; then
+    cp ${MYDIR}/pythia8_v0jetclustering.cpp ${outdir}/
+fi
+if [ ! -f ${MYDIR}/condorV0JetClustering.sub ]; then
+    cp ${MYDIR}/condorV0JetClustering.sub ${outdir}/
+fi
+
 ${MYDIR}/pythia8_v0jetclustering ${NEVENTS} ${outdir}/${OUTFILE} ${DOPTSCHEME}

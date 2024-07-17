@@ -31,7 +31,7 @@ double getNjets(TH1* h, int minBin, int maxBin)
   return h->Integral(minBin, maxBin);
 }
 
-void comparePt(string inName, bool doRatio = false)
+void comparePt(vector<string> inNames, vector<string> histNames, vector<string> legendEntries, TLatex* additionalLatex = nullptr, bool doRatio = false)
 {
   double minEta = -0.5, maxEta = 0.5;
 
@@ -42,8 +42,8 @@ void comparePt(string inName, bool doRatio = false)
   double titleSize = 0.04;
   bool setLogY = true;
   double xMinFrame = 0., xMaxFrame = 150., yMinFrame = 1e-1, yMaxFrame = 2.;
-  double xMinLegend = 0.4, xMaxLegend = 0.8, yMinLegend = 0.5, yMaxLegend = 0.65;
-  double xLatex = 0.4, yLatex = 0.81;
+  double xMinLegend = 0.25, xMaxLegend = 0.65, yMinLegend = 0.25, yMaxLegend = 0.4;
+  double xLatex = 0.25, yLatex = 0.81;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, jet}";
@@ -51,8 +51,6 @@ void comparePt(string inName, bool doRatio = false)
   yTitle = "#it{N}_{jets}";
   drawoption = "same";
   saveName = "Pythia-V0JetClustering-jetpt";
-  vector<string> histNames = { "hV0Jet", "hK0Jet"};
-  vector<string> legendEntries = { "#Lambda mass = #it{m}_{#Lambda}", "#Lambda mass = #it{m}_{K^{0}_{S}}"};
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -66,10 +64,10 @@ void comparePt(string inName, bool doRatio = false)
                               );
   TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
-  // string inName = "./Pythia-chjets-v0jets.root";
   double scale = 1.;
-  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   for (int i = 0; i < histNames.size(); i++) {
+    string inName = inNames[i];
+    TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
     string histName = histNames[i];
     TH3D* jets = (TH3D*)inFile->Get(histName.c_str());
     array<int, 2> etabins = getProjectionBins(jets->GetYaxis(), minEta, maxEta);
@@ -100,13 +98,11 @@ void comparePt(string inName, bool doRatio = false)
   frame->Draw();
   for (int i = 0; i < histVector.size(); i++) {
     TH1D* hist = histVector[i];
-    // if (!doRatio) {
-    //   hist->Scale(1./getNevts(inFile));
-    // }
     hist->Draw(drawoption.c_str());
   }
   legend->Draw("same");
   latex->Draw("same");
+  if (additionalLatex) additionalLatex->Draw("same");
 
   saveName += (doRatio ? "Ratio" : "Comparison");
   saveName += ".pdf";
@@ -114,10 +110,10 @@ void comparePt(string inName, bool doRatio = false)
 }
 
 // /*
-void compareZ(string inName, string hadron, double jetptmin = 10., double jetptmax = 1e3, bool doRatio = false)
+void compareZ(vector<string> inNames, vector<string> histNames, vector<string> njetsNames, vector<string> legendEntries, string hadron, double jetptmin = 10., double jetptmax = 1e3, bool doRatio = false)
 {
   double minEta = -0.5, maxEta = 0.5;
-  cout << "jetptmin: " << jetptmin << ", jetptmax: " << jetptmax << endl;
+  // cout << "jetptmin: " << jetptmin << ", jetptmax: " << jetptmax << endl;
   if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("V0" == hadron) != 1) {
     cout << "Hadron " << hadron << " not recognised. Should be K0S, Lambda0 or V0" << endl;
     return;
@@ -147,9 +143,9 @@ void compareZ(string inName, string hadron, double jetptmin = 10., double jetptm
   saveName = "Pythia-z";
   saveName += hadron;
 
-  vector<string> histNames = { "hzV0_" + hadron, "hzK0_" + hadron};
-  vector<string> legendEntries = { "#Lambda mass = #it{m}_{#Lambda}", "#Lambda mass = #it{m}_{K^{0}_{S}}"};
-  vector<string> njetsNames = { "hV0Jet", "hK0Jet"};
+  // vector<string> histNames = { "hzV0_" + hadron, "hzK0_" + hadron};
+  // vector<string> legendEntries = { "#Lambda mass = #it{m}_{#Lambda}", "#Lambda mass = #it{m}_{K^{0}_{S}}"};
+  // vector<string> njetsNames = { "hV0Jet", "hK0Jet"};
   vector<double> njets = { 0., 0. };
 
   vector<double> integrals; vector<double> nevents;
@@ -158,9 +154,12 @@ void compareZ(string inName, string hadron, double jetptmin = 10., double jetptm
   if (setLogY) { canvas->SetLogy(); }
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
-  TFile *inFile = TFile::Open(inName.c_str());
+  // TFile *inFile = TFile::Open(inName.c_str());
+  cout << "Before loop" << endl;
   for (int i = 0; i < histNames.size(); i++) {
+    string inName = inNames[i];
     string histName = histNames[i];
+    TFile *inFile = TFile::Open(inName.c_str());
     THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
     std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
@@ -207,11 +206,6 @@ void compareZ(string inName, string hadron, double jetptmin = 10., double jetptm
   }
   legend->Draw("same");
 
-  // latexText = TString::Format("#splitline{ %s }{#splitline{ %s }{ %s }}",
-  //                               "Pythia simulation pp, #sqrt{#it{s}} = 13.6 TeV",
-  //                               "Anti-k_{T} jets, #it{R} = 0.4, |#it{#eta}_{jet}| < 0.5",
-  //                               TString::Format("%.0f < #it{p}_{T, ch.+V0 jet} < %.0f GeV/#it{c}", lowjetpt, highjetpt).Data()
-  //                             );
   latexText = TString::Format("#splitline{ %s }{#splitline{ %s }{#splitline{ %s }{ %s }}}",
                                 "Pythia simulation pp",
                                 "#sqrt{#it{s}} = 13.6 TeV",
@@ -228,14 +222,64 @@ void compareZ(string inName, string hadron, double jetptmin = 10., double jetptm
 }
 // */
 
-void pythiaComparison(string hadron, bool doRatio = false, double jetptmin = 10., double jetptmax = 1e3)
+void LasK_Escheme(string hadron, bool doRatio = false, double jetptmin = 10., double jetptmax = 1e3)
 {
-  string inName = "../../inputfiles/pythia/V0Study/v0jetclustering.root";
+  string inName = "../../inputfiles/pythia/V0Study/v0jetclustering-Escheme.root";
+  vector<string> jHistNames = { "hV0Jet", "hK0Jet"};
+  vector<string> zHistNames = { "hzV0_" + hadron, "hzK0_" + hadron};
+  vector<string> legendEntries = { "#Lambda mass = #it{m}_{#Lambda}", "#Lambda mass = #it{m}_{K^{0}_{S}}"};
+
+  TLatex* additionalLatex = CreateLatex(0.65, 0.81, "#it{E} scheme", 0.04);
 
   if ("" == hadron) {
-    comparePt(inName, doRatio);
+    comparePt({inName, inName}, jHistNames, legendEntries, additionalLatex, doRatio);
   }
   else {
-    compareZ(inName, hadron, jetptmin, jetptmax, doRatio);
+    compareZ({inName, inName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, doRatio);
+  }
+}
+
+void LasK_Ptscheme(string hadron, bool doRatio = false, double jetptmin = 10., double jetptmax = 1e3)
+{
+  string inName = "../../inputfiles/pythia/V0Study/v0jetclustering-ptscheme.root";
+  vector<string> jHistNames = { "hV0Jet", "hK0Jet"};
+  vector<string> zHistNames = { "hzV0_" + hadron, "hzK0_" + hadron};
+  vector<string> legendEntries = { "#Lambda mass = #it{m}_{#Lambda}", "#Lambda mass = #it{m}_{K^{0}_{S}}"};
+
+  TLatex* additionalLatex = CreateLatex(0.65, 0.81, "#it{p}_{T} scheme", 0.04);
+
+  if ("" == hadron) {
+    comparePt({inName, inName}, jHistNames, legendEntries, additionalLatex, doRatio);
+  }
+  else {
+    compareZ({inName, inName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, doRatio);
+  }
+}
+
+void EvsPtScheme(string hadron, bool V0Jets, bool doRatio = false, double jetptmin = 10., double jetptmax = 1e3)
+{
+  string EName = "../../inputfiles/pythia/V0Study/v0jetclustering-Escheme.root";
+  string ptName = "../../inputfiles/pythia/V0Study/v0jetclustering-ptscheme.root";
+
+  string jHistName = "hK0Jet";
+  string zHistName = "hzK0_" + hadron;
+  string legendEntry = "#Lambda mass = #it{m}_{K^{0}_{S}}";
+  if (V0Jets) {
+    jHistName = "hV0Jet";
+    zHistName = "hzV0_" + hadron;
+    legendEntry = "#Lambda mass = #it{m}_{#Lambda}";
+  }
+
+  vector<string> jHistNames = {jHistName, jHistName};
+  vector<string> zHistNames = {zHistName, zHistName};
+  vector<string> legendEntries = {"#it{E} scheme", "#it{p}_{T} scheme"};
+
+  TLatex* additionalLatex = nullptr;
+
+  if ("" == hadron) {
+    comparePt({EName, ptName}, jHistNames, legendEntries, additionalLatex, doRatio);
+  }
+  else {
+    compareZ({EName, ptName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, doRatio);
   }
 }

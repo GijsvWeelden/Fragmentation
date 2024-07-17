@@ -62,7 +62,13 @@ int main(int argc, char** argv)
 	}
 	if (argc >= 4) {
 		doPtScheme = atoi(argv[3]);
-		cout << "Using pt recombination scheme" << endl;
+	}
+
+	cout << "Running " << nEvents << " events" << endl;
+	if (doPtScheme) {
+		cout << "Using pt scheme for jet clustering" << endl;
+	} else {
+		cout << "Using E scheme for jet clustering" << endl;
 	}
 
 	double ptHatMin = -20;

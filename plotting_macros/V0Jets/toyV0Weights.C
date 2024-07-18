@@ -303,3 +303,19 @@ void processState(uint32_t state, int nClasses = 4, int nParticles = 3)
   cout << ")" << endl;
 }
 
+void checkStateSum(int nClasses = 4, int nParticles = 3)
+{
+  vector<vector<double> > weights = getWeights(nClasses, nParticles);
+  double totalWeight = 0.;
+  for (int is = 0; is < pow(nClasses, nParticles); is++) {
+    cout << ".";
+    vector<int> particles = getState(is, nClasses, nParticles);
+    double stateWeight = 1.;
+    for (int ip = 0; ip < nParticles; ip++) {
+      stateWeight *= weights[ip][particles[ip]];
+    }
+    totalWeight += stateWeight;
+  }
+  cout << endl << "Total weight: " << totalWeight << " (" << totalWeight - 1 << ")" << endl;
+}
+

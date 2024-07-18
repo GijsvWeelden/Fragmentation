@@ -235,7 +235,6 @@ void v0Purity(string inName, string dataSet, string hadron, double ptmin = 0., d
        << "Purity: " << purity << endl;
 
   string sMean = TString::Format("#mu: %.3f GeV/#it{c}^{2}", mean).Data();
-  // string sSigma = TString::Format("#sigma: %.3f GeV/#it{c}^{2}", sigma).Data();
   if ("K0S" == hadron) {
     sMean = TString::Format("#mu: %.3f MeV/#it{c}^{2}", mean*1e3).Data();
   }

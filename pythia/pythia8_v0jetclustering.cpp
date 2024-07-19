@@ -150,10 +150,12 @@ int main(int argc, char** argv)
 	TFile* outFile = new TFile(TString::Format("%s", outName.c_str()).Data(), "RECREATE");
 
 	TH1D* hNEvts = new TH1D("hNEvts", "hNEvts", 2, -0.5, 1.5);
+	hNEvts->Sumw2();
 
 	// Jets
 	TH3D* hV0Jet = new TH3D("hV0Jet", TString::Format("hV0Jet; %s; %s; %s", sPtV0jet.c_str(), sEtaJet.c_str(), sPhiJet.c_str()).Data(),
 													nBins_pt_jet, min_pt_jet, max_pt_jet, nBins_eta_jet, -1.*max_eta_jet, max_eta_jet, nBins_phi_jet, min_phi_jet, max_phi_jet);
+	hV0Jet->Sumw2();
 
 	TH3D* hK0Jet = (TH3D*) hV0Jet->Clone("hK0Jet"); // Treating L as K
 	hK0Jet->SetTitle(TString::Format("hK0Jet; %s; %s; %s", sPtK0jet.c_str(), sEtaJet.c_str(), sPhiJet.c_str()).Data());
@@ -161,6 +163,7 @@ int main(int argc, char** argv)
 	// V0s
 	TH3D* hV0 = new TH3D("hV0", TString::Format("hV0; %s; %s; %s", sv0pt.c_str(), sv0eta.c_str(), sv0phi.c_str()).Data(),
 											 nBins_pt_track, min_pt_track, max_pt_track, nBins_eta_track, -1.*max_eta_track, max_eta_track, nBins_phi_track, min_phi_jet, max_phi_jet);
+	hV0->Sumw2();
 
 	TH3D* hTrack = (TH3D*) hV0->Clone("hTrack");
 	hTrack->SetTitle("hTrack; #it{p}_{T, track}; #eta; #phi");
@@ -171,6 +174,7 @@ int main(int argc, char** argv)
 										 4, new int[4]{nBins_pt_jet, nBins_eta_jet, nBins_phi_jet, nBins_z},
 												new double[4]{min_pt_jet, -1*max_eta_jet, min_phi_jet, min_z},
 												new double[4]{max_pt_jet, max_eta_jet, max_phi_jet, max_z});
+	hzV0_K0S->Sumw2();
 	THnSparseD* hzV0_Lambda0 = (THnSparseD*) hzV0_K0S->Clone("hzV0_Lambda0");
 	hzV0_Lambda0->SetTitle(TString::Format("hzV0_Lambda0; %s; %s; %s", sPtV0jet.c_str(), sEtaJet.c_str(), sPhiJet.c_str(), szv0.c_str()).Data());
 	THnSparseD* hzV0_V0 = (THnSparseD*) hzV0_K0S->Clone("hzV0_V0");

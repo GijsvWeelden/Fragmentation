@@ -162,7 +162,7 @@ void compareEnergyDiff()
 
   TCanvas* cE = new TCanvas("cE", "cE", 800, 600);
   TH1F* Eframe = DrawFrame(0., 10., 0, 0.6, "|#bf{#it{p}}| (GeV/#it{c})", "#Delta E (GeV)");
-  TLegend* legend = CreateLegend(0.5, 0.8, 0.2, 0.55);
+  TLegend* legend = CreateLegend(0.5, 0.8, 0.3, 0.6);
 
   setStyle(dE_LK, 0);
   setStyle(dE_ppi, 1);

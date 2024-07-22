@@ -24,8 +24,6 @@ const double MassLambda0 = 1.115683;
 double energy(double m, double p)
 { return sqrt(m * m + p * p); }
 
-// double rapidity(double m, double p, double pz)
-// { return 0.5 * TMath::Log((energy(m, p) + pz) / (energy(m, p) - pz)); }
 double rapidity(double m, double p, double eta)
 { return 0.5 * TMath::Log((energy(m, p) + p * TMath::TanH(eta)) / (energy(m, p) - p * TMath::TanH(eta))); }
 
@@ -146,4 +144,36 @@ void plotEnergyDiff(bool doStrange = true)
   saveName = TString::Format("%s_%s", saveName.c_str(), doStrange ? "LK" : "ppi").Data();
   saveName = TString::Format("%s.pdf", saveName.c_str());
   cE->SaveAs(saveName.c_str());
+}
+
+void compareEnergyDiff()
+{
+  double pMin = 0.; double pMax = 50.; int pBins = 100;
+
+  TH1D* eHeavy = new TH1D("eHeavy", "Heavy particle energy;|#bf{#it{p}}| (GeV/#it{c});E (GeV)", pBins, pMin, pMax);
+  TH1D* dE_LK = (TH1D*) eHeavy->Clone("dE_LK");
+  TH1D* dE_ppi = (TH1D*) eHeavy->Clone("dE_ppi");
+
+  for (int ip = 0; ip < pBins; ip++) {
+    double p = eHeavy->GetBinCenter(ip);
+    dE_LK->Fill(p, energy(MassLambda0, p) - energy(MassK0S, p));
+    dE_ppi->Fill(p, energy(MassProton, p) - energy(MassPi, p));
+  }
+
+  TCanvas* cE = new TCanvas("cE", "cE", 800, 600);
+  TH1F* Eframe = DrawFrame(0., 10., 0, 0.6, "|#bf{#it{p}}| (GeV/#it{c})", "#Delta E (GeV)");
+  TLegend* legend = CreateLegend(0.5, 0.8, 0.2, 0.55);
+
+  setStyle(dE_LK, 0);
+  setStyle(dE_ppi, 1);
+
+  legend->AddEntry(dE_LK, "E(#Lambda) - E(K^{0}_{S})", "l");
+  legend->AddEntry(dE_ppi, "E(p) - E(#pi^{#pm})", "l");
+
+  Eframe->Draw();
+  dE_LK->Draw("same hist L");
+  dE_ppi->Draw("same hist L");
+  legend->Draw("same");
+
+  cE->SaveAs("dE_LKppi.pdf");
 }

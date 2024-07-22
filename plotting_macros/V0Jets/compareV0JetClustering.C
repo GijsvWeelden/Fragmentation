@@ -110,10 +110,9 @@ void comparePt(vector<string> inNames, vector<string> histNames, vector<string> 
 }
 
 // /*
-void compareZ(vector<string> inNames, vector<string> histNames, vector<string> njetsNames, vector<string> legendEntries, string hadron, double jetptmin = 10., double jetptmax = 1e3, bool doRatio = false)
+void compareZ(vector<string> inNames, vector<string> histNames, vector<string> njetsNames, vector<string> legendEntries, string hadron, double jetptmin = 10., double jetptmax = 1e3, TLatex* additionalLatex = nullptr, bool doRatio = false)
 {
   double minEta = -0.5, maxEta = 0.5;
-  // cout << "jetptmin: " << jetptmin << ", jetptmax: " << jetptmax << endl;
   if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("V0" == hadron) != 1) {
     cout << "Hadron " << hadron << " not recognised. Should be K0S, Lambda0 or V0" << endl;
     return;
@@ -143,19 +142,13 @@ void compareZ(vector<string> inNames, vector<string> histNames, vector<string> n
   saveName = "Pythia-z";
   saveName += hadron;
 
-  // vector<string> histNames = { "hzV0_" + hadron, "hzK0_" + hadron};
-  // vector<string> legendEntries = { "#Lambda mass = #it{m}_{#Lambda}", "#Lambda mass = #it{m}_{K^{0}_{S}}"};
-  // vector<string> njetsNames = { "hV0Jet", "hK0Jet"};
   vector<double> njets = { 0., 0. };
-
   vector<double> integrals; vector<double> nevents;
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (setLogY) { canvas->SetLogy(); }
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
-  // TFile *inFile = TFile::Open(inName.c_str());
-  cout << "Before loop" << endl;
   for (int i = 0; i < histNames.size(); i++) {
     string inName = inNames[i];
     string histName = histNames[i];
@@ -214,6 +207,7 @@ void compareZ(vector<string> inNames, vector<string> histNames, vector<string> n
                               );
   TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
   latex->Draw("same");
+  if (additionalLatex) additionalLatex->Draw("same");
 
   saveName += (doRatio ? "_Ratio" : "_Comparison");
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
@@ -235,7 +229,7 @@ void LasK_Escheme(string hadron, bool doRatio = false, double jetptmin = 10., do
     comparePt({inName, inName}, jHistNames, legendEntries, additionalLatex, doRatio);
   }
   else {
-    compareZ({inName, inName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, doRatio);
+    compareZ({inName, inName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, additionalLatex, doRatio);
   }
 }
 
@@ -252,7 +246,7 @@ void LasK_Ptscheme(string hadron, bool doRatio = false, double jetptmin = 10., d
     comparePt({inName, inName}, jHistNames, legendEntries, additionalLatex, doRatio);
   }
   else {
-    compareZ({inName, inName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, doRatio);
+    compareZ({inName, inName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, additionalLatex, doRatio);
   }
 }
 
@@ -274,12 +268,12 @@ void EvsPtScheme(string hadron, bool V0Jets, bool doRatio = false, double jetptm
   vector<string> zHistNames = {zHistName, zHistName};
   vector<string> legendEntries = {"#it{E} scheme", "#it{p}_{T} scheme"};
 
-  TLatex* additionalLatex = nullptr;
+  TLatex* additionalLatex = CreateLatex(0.6, 0.6, legendEntry.c_str(), 0.04);
 
   if ("" == hadron) {
     comparePt({EName, ptName}, jHistNames, legendEntries, additionalLatex, doRatio);
   }
   else {
-    compareZ({EName, ptName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, doRatio);
+    compareZ({EName, ptName}, zHistNames, jHistNames, legendEntries, hadron, jetptmin, jetptmax, additionalLatex, doRatio);
   }
 }

@@ -10,6 +10,7 @@ pythia/V0studyWithDecays
 pythia/V0studyWithoutDecays
 pythia/ChJetsV0Jets
 pythia/V0JetClustering
+pythia/JetClusteringCorrections
 
 plotting_macros/V0Jets/SpectraChecks
 plotting_macros/Data/2*

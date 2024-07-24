@@ -1,0 +1,37 @@
+
+#!/bin/bash
+MYDIR="/data/alice/gweelden/Fragmentation/pythia"
+NEVENTS=2000
+OUTFILE="test"
+DOPTSCHEME="false"
+CLUSTERID="test"
+
+if [[ $# -gt 0 ]] ; then
+    NEVENTS=$1
+fi
+if [[ $# -gt 1 ]] ; then
+    OUTFILE=$2
+fi
+if [[ $# -gt 2 ]] ; then
+    DOPTSCHEME=$3
+fi
+if [[ $# -gt 3 ]] ; then
+    CLUSTERID=$4
+fi
+
+source /cvmfs/alice.cern.ch/etc/login.sh
+eval $(alienv printenv VO_ALICE@O2Physics::daily-20240501-0200-1)
+
+outdir=${MYDIR}/JetClusteringCorrections/Batch${CLUSTERID}
+if [ ! -d ${outdir} ]; then
+  mkdir -p ${outdir}
+fi
+
+if [ ! -f ${outdir}/pythia8_jetclusteringcorrections.cpp ]; then
+    cp ${MYDIR}/pythia8_jetclusteringcorrections.cpp ${outdir}/
+fi
+if [ ! -f ${outdir}/condorV0JetClustering.sub ]; then
+    cp ${MYDIR}/SubmitScripts/condorJetClusteringCorrections.sub ${outdir}/
+fi
+
+${MYDIR}/pythia8_jetclusteringcorrections.cpp ${NEVENTS} ${outdir}/${OUTFILE} ${DOPTSCHEME}

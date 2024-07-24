@@ -34,4 +34,4 @@ if [ ! -f ${outdir}/condorV0JetClustering.sub ]; then
     cp ${MYDIR}/SubmitScripts/condorJetClusteringCorrections.sub ${outdir}/
 fi
 
-${MYDIR}/pythia8_jetclusteringcorrections.cpp ${NEVENTS} ${outdir}/${OUTFILE} ${DOPTSCHEME}
+${MYDIR}/pythia8_jetclusteringcorrections ${NEVENTS} ${outdir}/${OUTFILE} ${DOPTSCHEME}

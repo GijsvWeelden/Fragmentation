@@ -5,6 +5,7 @@ pythia/pythia8_simple
 pythia/pythia8_v0study
 pythia/pythia8_chjets-v0jets
 pythia/pythia8_v0jetclustering
+pythia/pythia8_jetclusteringcorrections
 
 pythia/V0studyWithDecays
 pythia/V0studyWithoutDecays

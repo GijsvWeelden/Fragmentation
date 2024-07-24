@@ -136,8 +136,6 @@ int main(int argc, char** argv)
 	string sPtCorjet = "#it{p}_{T, Ch+V0 jet - V0} [GeV/#it{c}]";
 	string sPtChjet  = "#it{p}_{T, Ch jet} [GeV/#it{c}]";
 
-	string sPtK0jet = "#it{p}_{T, Ch+K0 jet} [GeV/#it{c}]";
-	// string sPtV0jet = "#it{p}_{T, Ch+V0 jet} [GeV/#it{c}]";
 	string sEtaJet  = "#eta_{jet}";
 	string sPhiJet  = "#phi_{jet}";
 
@@ -181,7 +179,9 @@ int main(int argc, char** argv)
 	hJetDiff->Sumw2();
 
 	THnSparseD* hEJetDiff = (THnSparseD*) hJetDiff->Clone("hEJetDiff");
+	THnSparseD* hEJetDiffMatched = (THnSparseD*) hJetDiff->Clone("hEJetDiffMatched");
 	THnSparseD* hPtJetDiff = (THnSparseD*) hJetDiff->Clone("hPtJetDiff");
+	THnSparseD* hPtJetDiffMatched = (THnSparseD*) hJetDiff->Clone("hPtJetDiffMatched");
 
 	// V0s
 	TH3D* hV0 = new TH3D("hV0", TString::Format("hV0; %s; %s; %s", sv0pt.c_str(), sv0eta.c_str(), sv0phi.c_str()).Data(),
@@ -313,8 +313,8 @@ int main(int argc, char** argv)
 			hPtJetMatched->Fill(ptSub, v0Jet.eta(), v0Jet.phi());
 
 			hJetDiff->Fill(chjet.pt(), chjet.pt() - v0Jet.pt(), chjet.eta() - v0Jet.eta(), chjet.delta_phi_to(v0Jet));
-			hEJetDiff->Fill(chjet.pt(), chjet.pt() - jetSubE.pt(), chjet.eta() - jetSubE.eta(), chjet.delta_phi_to(jetSubE));
-			hPtJetDiff->Fill(chjet.pt(), chjet.pt() - ptSub, chjet.eta() - v0Jet.eta(), chjet.delta_phi_to(v0Jet));
+			hEJetDiffMatched->Fill(chjet.pt(), chjet.pt() - jetSubE.pt(), chjet.eta() - jetSubE.eta(), chjet.delta_phi_to(jetSubE));
+			hPtJetDiffMatched->Fill(chjet.pt(), chjet.pt() - ptSub, chjet.eta() - v0Jet.eta(), chjet.delta_phi_to(v0Jet));
 		} // chjet loop
 
 		for (auto& v0jet : v0Jets) {
@@ -345,6 +345,9 @@ int main(int argc, char** argv)
 			}
 			hEJet->Fill(jetSubE.pt(), jetSubE.eta(), jetSubE.phi());
 			hPtJet->Fill(ptSub, v0jet.eta(), v0jet.phi());
+
+			hEJetDiff->Fill(v0jet.pt(), v0jet.pt() - jetSubE.pt(), v0jet.eta() - jetSubE.eta(), v0jet.delta_phi_to(jetSubE));
+			hPtJetDiff->Fill(v0jet.pt(), v0jet.pt() - ptSub, v0jet.eta() - v0jet.eta(), v0jet.delta_phi_to(v0jet));
 		} // v0jet loop
 	} // Event loop
 
@@ -361,8 +364,8 @@ int main(int argc, char** argv)
 	hPtJetMatched->Write(hPtJetMatched->GetName(), TObject::kOverwrite);
 
 	hJetDiff->Write(hJetDiff->GetName(), TObject::kOverwrite);
-	hEJetDiff->Write(hEJetDiff->GetName(), TObject::kOverwrite);
-	hPtJetDiff->Write(hPtJetDiff->GetName(), TObject::kOverwrite);
+	hEJetDiffMatched->Write(hEJetDiffMatched->GetName(), TObject::kOverwrite);
+	hPtJetDiffMatched->Write(hPtJetDiffMatched->GetName(), TObject::kOverwrite);
 
 	hV0->Write(hV0->GetName(), TObject::kOverwrite);
 	hTrack->Write(hTrack->GetName(), TObject::kOverwrite);

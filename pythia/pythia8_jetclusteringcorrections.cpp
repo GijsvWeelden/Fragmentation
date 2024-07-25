@@ -364,7 +364,9 @@ int main(int argc, char** argv)
 	hPtJetMatched->Write(hPtJetMatched->GetName(), TObject::kOverwrite);
 
 	hJetDiff->Write(hJetDiff->GetName(), TObject::kOverwrite);
+	hEJetDiff->Write(hEJetDiff->GetName(), TObject::kOverwrite);
 	hEJetDiffMatched->Write(hEJetDiffMatched->GetName(), TObject::kOverwrite);
+	hPtJetDiff->Write(hPtJetDiff->GetName(), TObject::kOverwrite);
 	hPtJetDiffMatched->Write(hPtJetDiffMatched->GetName(), TObject::kOverwrite);
 
 	hV0->Write(hV0->GetName(), TObject::kOverwrite);

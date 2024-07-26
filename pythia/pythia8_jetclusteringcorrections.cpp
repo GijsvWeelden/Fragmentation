@@ -325,7 +325,7 @@ int main(int argc, char** argv)
 				const Particle &part = pythia.event[idx];
 				if (abs(part.id()) == 310 || abs(part.id()) == 3122) {
 					jetContainsV0s = true;
-					hV0Jet->Fill(v0jet.pt(), v0jet.eta(), v0jet.phi());
+					// hV0Jet->Fill(v0jet.pt(), v0jet.eta(), v0jet.phi());
 				}
 			}
 			if (!jetContainsV0s) { continue; }

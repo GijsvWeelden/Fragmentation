@@ -1,0 +1,45 @@
+
+#!/bin/bash
+MYDIR="/data/alice/gweelden/Fragmentation/pythia"
+NEVENTS=2000
+OUTFILE="test"
+DOPTSCHEME="false"
+WSIGNAL=1.0
+VSETTING=1
+CLUSTERID="test"
+
+if [[ $# -gt 0 ]] ; then
+    NEVENTS=$1
+fi
+if [[ $# -gt 1 ]] ; then
+    OUTFILE=$2
+fi
+if [[ $# -gt 2 ]] ; then
+    DOPTSCHEME=$3
+fi
+if [[ $# -gt 3 ]] ; then
+    WSIGNAL=$4
+fi
+if [[ $# -gt 4 ]] ; then
+    VSETTING=$5
+fi
+if [[ $# -gt 5 ]] ; then
+    CLUSTERID=$6
+fi
+
+source /cvmfs/alice.cern.ch/etc/login.sh
+eval $(alienv printenv VO_ALICE@O2Physics::daily-20240501-0200-1)
+
+outdir=${MYDIR}/WeightedJetFinder/Batch${CLUSTERID}
+if [ ! -d ${outdir} ]; then
+  mkdir -p ${outdir}
+fi
+
+if [ ! -f ${outdir}/pythia8_weightedjetfinder.cpp ]; then
+    cp ${MYDIR}/pythia8_weightedjetfinder.cpp ${outdir}/
+fi
+if [ ! -f ${outdir}/condorV0JetClustering.sub ]; then
+    cp ${MYDIR}/SubmitScripts/WeightedJetFinder.sub ${outdir}/
+fi
+
+${MYDIR}/pythia8_weightedjetfinder ${NEVENTS} ${outdir}/${OUTFILE} ${DOPTSCHEME} ${WSIGNAL} ${VSETTING}

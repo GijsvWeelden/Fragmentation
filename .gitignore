@@ -6,12 +6,14 @@ pythia/pythia8_v0study
 pythia/pythia8_chjets-v0jets
 pythia/pythia8_v0jetclustering
 pythia/pythia8_jetclusteringcorrections
+pythia/pythia8_weightedjetfinder
 
 pythia/V0studyWithDecays
 pythia/V0studyWithoutDecays
 pythia/ChJetsV0Jets
 pythia/V0JetClustering
 pythia/JetClusteringCorrections
+pythia/WeightedJetFinder
 
 plotting_macros/V0Jets/SpectraChecks
 plotting_macros/Data/2*

@@ -6,6 +6,7 @@ pythia/pythia8_v0study
 pythia/pythia8_chjets-v0jets
 pythia/pythia8_v0jetclustering
 pythia/pythia8_jetclusteringcorrections
+pythia/pythia8_jetreclusteringcorrections
 pythia/pythia8_weightedjetfinder
 
 pythia/V0studyWithDecays

@@ -1,7 +1,7 @@
 Universe   = vanilla
 Executable = WeightedJetFinder
 JobID = $(Process)
-Arguments  = "5000000 $INT(ClusterId)_$INT(JobID) 1 0.8 1 $INT(ClusterId)"
+Arguments  = "20000000 $INT(ClusterId)_$INT(JobID) 1 0.8 1 $INT(ClusterId)"
 Log        = ../WeightedJetFinder/$INT(ClusterId)_$INT(JobID).log
 Output     = ../WeightedJetFinder/$INT(ClusterId)_$INT(JobID).out
 Error      = ../WeightedJetFinder/$INT(ClusterId)_$INT(JobID).error

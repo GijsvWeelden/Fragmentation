@@ -246,9 +246,9 @@ int main(int argc, char** argv)
 																					 new double[4]{max_pt_jet, 100.5, max_eta_jet, max_phi_jet});
 	hJetDiff->Sumw2();
 
-	THnSparseD* hEJetDiff = (THnSparseD*) hJetDiff->Clone("hEJetDiff");
+	// THnSparseD* hEJetDiff = (THnSparseD*) hJetDiff->Clone("hEJetDiff");
 	THnSparseD* hEJetDiffMatched = (THnSparseD*) hJetDiff->Clone("hEJetDiffMatched");
-	THnSparseD* hPtJetDiff = (THnSparseD*) hJetDiff->Clone("hPtJetDiff");
+	// THnSparseD* hPtJetDiff = (THnSparseD*) hJetDiff->Clone("hPtJetDiff");
 	THnSparseD* hPtJetDiffMatched = (THnSparseD*) hJetDiff->Clone("hPtJetDiffMatched");
 
 	// V0 in jets
@@ -385,6 +385,8 @@ int main(int argc, char** argv)
 			hV0JetMatched->Fill(v0jet.pt(), v0jet.eta(), v0jet.phi());
 			hEJet->Fill(jetSubE.pt(), jetSubE.eta(), jetSubE.phi());
 			hPtJet->Fill(ptSub, v0jet.eta(), v0jet.phi());
+			hEJetDiffMatched->Fill(v0jet.pt(), v0jet.pt() - jetSubE.pt(), v0jet.eta() - jetSubE.eta(), v0jet.phi() - jetSubE.phi());
+			hPtJetDiffMatched->Fill(v0jet.pt(), v0jet.pt() - ptSub, v0jet.eta() - v0jet.eta(), v0jet.phi() - v0jet.phi());
 
 			// We don't know which V0s were randomly selected as signal, but we've saved their z values
 			for (auto& z : zValues) {
@@ -421,6 +423,9 @@ int main(int argc, char** argv)
 
 	hV0JetMatched->Write(hV0JetMatched->GetName(), TObject::kOverwrite);
 	hW0JetMatched->Write(hW0JetMatched->GetName(), TObject::kOverwrite);
+
+	hEJetDiffMatched->Write(hEJetDiffMatched->GetName(), TObject::kOverwrite);
+	hPtJetDiffMatched->Write(hPtJetDiffMatched->GetName(), TObject::kOverwrite);
 
 	hV0inJet->Write(hV0inJet->GetName(), TObject::kOverwrite);
 	hW0inJet->Write(hW0inJet->GetName(), TObject::kOverwrite);

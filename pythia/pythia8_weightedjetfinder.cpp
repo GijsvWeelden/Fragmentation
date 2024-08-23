@@ -234,10 +234,10 @@ int main(int argc, char** argv)
 
 	TH3D* hEJet = (TH3D*) hV0Jet->Clone("hEJet"); // Corrected with E scheme
 	hEJet->SetTitle(TString::Format("hEJet; %s; %s; %s", sPtCorjet.c_str(), sEtaJet.c_str(), sPhiJet.c_str()).Data());
-	TH3D* hV0inEJet = (TH3D*) hEJet->Clone("hV0inEJet");
+	TH3D* hEJetMatched = (TH3D*) hEJet->Clone("hEJetMatched");
 
 	TH3D* hPtJet = (TH3D*) hEJet->Clone("hPtJet"); // Corrected with pt scheme
-	TH3D* hV0inPtJet = (TH3D*) hPtJet->Clone("hV0inPtJet");
+	TH3D* hPtJetMatched = (TH3D*) hPtJet->Clone("hPtJetMatched");
 
 	// Difference hists
 	THnSparseD* hJetDiff = new THnSparseD("hJetDiff", TString::Format("hJetDiff; %s - %s; %s; %s", sPtChjet.c_str(), sPtCorjet.c_str(), sEtaJet.c_str(), sPhiJet.c_str()).Data(),
@@ -381,10 +381,12 @@ int main(int argc, char** argv)
 					}
 				}
 			}
-			if (!jetContainsV0s) { continue; }
-			hV0JetMatched->Fill(v0jet.pt(), v0jet.eta(), v0jet.phi());
 			hEJet->Fill(jetSubE.pt(), jetSubE.eta(), jetSubE.phi());
 			hPtJet->Fill(ptSub, v0jet.eta(), v0jet.phi());
+			if (!jetContainsV0s) { continue; }
+			hV0JetMatched->Fill(v0jet.pt(), v0jet.eta(), v0jet.phi());
+			hEJetMatched->Fill(jetSubE.pt(), jetSubE.eta(), jetSubE.phi());
+			hPtJetMatched->Fill(ptSub, v0jet.eta(), v0jet.phi());
 			hEJetDiffMatched->Fill(v0jet.pt(), v0jet.pt() - jetSubE.pt(), v0jet.eta() - jetSubE.eta(), v0jet.phi() - jetSubE.phi());
 			hPtJetDiffMatched->Fill(v0jet.pt(), v0jet.pt() - ptSub, v0jet.eta() - v0jet.eta(), v0jet.phi() - v0jet.phi());
 

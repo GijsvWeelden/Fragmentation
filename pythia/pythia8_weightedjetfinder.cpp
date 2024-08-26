@@ -246,9 +246,9 @@ int main(int argc, char** argv)
 																					 new double[4]{max_pt_jet, 100.5, max_eta_jet, max_phi_jet});
 	hJetDiff->Sumw2();
 
-	// THnSparseD* hEJetDiff = (THnSparseD*) hJetDiff->Clone("hEJetDiff");
+	THnSparseD* hEJetDiff = (THnSparseD*) hJetDiff->Clone("hEJetDiff");
 	THnSparseD* hEJetDiffMatched = (THnSparseD*) hJetDiff->Clone("hEJetDiffMatched");
-	// THnSparseD* hPtJetDiff = (THnSparseD*) hJetDiff->Clone("hPtJetDiff");
+	THnSparseD* hPtJetDiff = (THnSparseD*) hJetDiff->Clone("hPtJetDiff");
 	THnSparseD* hPtJetDiffMatched = (THnSparseD*) hJetDiff->Clone("hPtJetDiffMatched");
 
 	// V0 in jets
@@ -383,6 +383,8 @@ int main(int argc, char** argv)
 			}
 			hEJet->Fill(jetSubE.pt(), jetSubE.eta(), jetSubE.phi());
 			hPtJet->Fill(ptSub, v0jet.eta(), v0jet.phi());
+			hEJetDiff->Fill(v0jet.pt(), v0jet.pt() - jetSubE.pt(), v0jet.eta() - jetSubE.eta(), v0jet.phi() - jetSubE.phi());
+			hPtJetDiff->Fill(v0jet.pt(), v0jet.pt() - ptSub, v0jet.eta() - v0jet.eta(), v0jet.phi() - v0jet.phi());
 			if (!jetContainsV0s) { continue; }
 			hV0JetMatched->Fill(v0jet.pt(), v0jet.eta(), v0jet.phi());
 			hEJetMatched->Fill(jetSubE.pt(), jetSubE.eta(), jetSubE.phi());
@@ -425,7 +427,11 @@ int main(int argc, char** argv)
 
 	hV0JetMatched->Write(hV0JetMatched->GetName(), TObject::kOverwrite);
 	hW0JetMatched->Write(hW0JetMatched->GetName(), TObject::kOverwrite);
+	hEJetMatched->Write(hEJetMatched->GetName(), TObject::kOverwrite);
+	hPtJetMatched->Write(hPtJetMatched->GetName(), TObject::kOverwrite);
 
+	hEJetDiff->Write(hEJetDiff->GetName(), TObject::kOverwrite);
+	hPtJetDiff->Write(hPtJetDiff->GetName(), TObject::kOverwrite);
 	hEJetDiffMatched->Write(hEJetDiffMatched->GetName(), TObject::kOverwrite);
 	hPtJetDiffMatched->Write(hPtJetDiffMatched->GetName(), TObject::kOverwrite);
 

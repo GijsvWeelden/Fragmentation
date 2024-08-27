@@ -35,7 +35,6 @@ const vector<string> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0ma
 
 // -------------------------------------------------------------------------------------------------
 
-// Check if input is ok
 bool inputIssue(string inName, string hadron, int cutAxis)
 {
   if ("" == inName) {
@@ -61,28 +60,28 @@ bool reverseCuts(int cutAxis)
 // Format text for variable selections
 string formatLatexText(int cutAxis, double binEdge)
 {
-  string latexText;
+  string text;
   switch (cutAxis) {
     case RAxis:
-      latexText = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
+      text = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
       break;
     case ctauAxis:
-      latexText = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
+      text = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
       break;
     case cosPAAxis:
-      latexText = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
+      text = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
       break;
     case DCApAxis:
-      latexText = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
+      text = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
       break;
     case DCAnAxis:
-      latexText = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
+      text = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
       break;
     case DCAdAxis:
-      latexText = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
+      text = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
       break;
   } // switch (cutAxis)
-  return latexText;
+  return text;
 }
 // THn version: Format bin label for a given cut using formatLatexText
 string formatBinLabel(THnSparseD* thn, int iBin, int cutAxis)
@@ -223,7 +222,6 @@ array<TH1*, 2> getSigBkgRegions(TH1* mass, double mean, double sigma, double nSi
   return {sigRegion, bkgRegion};
 }
 
-// -------------------------------------------------------------------------------------------------
 // Fit the signal+background for a mass spectrum. Returns mean and sigma of the signal peak
 array<double, 3> doFitForRefBin(TH1* mass, string hadron, array<int, 3> fitSettings, TLegend* legend)
 {
@@ -284,152 +282,20 @@ TH1D* getMassHist(TH3D* th3, array<int, 2> ptBins, int iBin, int cutAxis)
   mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
   return mass;
 }
+
 // -------------------------------------------------------------------------------------------------
-// THn version: For a given bin (i.e. cut), calculate the purity and relative efficiency
-array<double, 3> getPurityAndRelEfficiency(THnSparseD* thn, array<int, 2> ptBins,
-                                           int iBin, int refBin, int cutAxis, int rebinNumber,
-                                           string hadron, string dataSet,
-                                           array<int, 3> fitSettings, array<int, 3> nSigma,
-                                           array<double, 3> refValues,
-                                           array<TH1D*, 4> hists)
-{
-  // Setup
-  double textSize  = 0.04;
-  double xMinFrame = 1.07, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 1.1;
-  if ("K0S" == hadron) { xMinFrame = 0.4, xMaxFrame = 0.6; }
-  double xMinLegend = 0.1, xMaxLegend = 0.7, yMinLegend = 0.1, yMaxLegend = 0.45;
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-  int xCanvas = 1800, yCanvas = 900;
-  int projectionAxis = ("K0S" == hadron)*K0SmassAxis + ("Lambda0" == hadron)*Lambda0massAxis + ("AntiLambda0" == hadron)*AntiLambda0massAxis;
-  string sPt = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data();
-  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
-  string yTitle = "counts";
-  string canvasName = TString::Format("canvas_%s_%s_%d", hadron.c_str(), axisNames[cutAxis].c_str(), iBin).Data();
-
-  TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), xCanvas, yCanvas);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, "", textSize);
-  canvas->Divide(2,1);
-  canvas->cd(1);
-  gPad->SetRightMargin(0.05);
-
-  TH1D* mass = getMassHist(thn, ptBins, iBin, cutAxis, projectionAxis);
-  mass->Rebin(rebinNumber);
-  double scale = mass->GetBinContent(mass->GetMaximumBin());
-  setStyle(mass, 0);
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, 1.1 * scale, xTitle, yTitle);
-  frame->Draw();
-  mass->Draw("same");
-  legend->AddEntry(mass, "Data");
-
-  double chiSq = -1.;
-  // Fit mass peak only for the reference bin
-  if (refBin == iBin) {
-    array<double, 3> fitResults = doFitForRefBin(mass, hadron, fitSettings, legend);
-    refValues[0] = fitResults[0];
-    refValues[1] = fitResults[1];
-    chiSq = fitResults[2];
-  }
-
-  double mean         = refValues[0];
-  double sigma        = refValues[1];
-  double nSigmaSignal = nSigma[0];
-  double nSigmaBkgMin = nSigma[1];
-  double nSigmaBkgMax = nSigma[2];
-  // Get Signal and Background regions
-  array<TH1*, 2> regions = getSigBkgRegions(mass, mean, sigma, nSigmaSignal, nSigmaBkgMin, nSigmaBkgMax);
-  TH1D* sigRegion = (TH1D*)regions[0];
-  TH1D* bkgRegion = (TH1D*)regions[1];
-  sigRegion->SetFillColorAlpha(kGreen, 0.3);
-  bkgRegion->SetFillColorAlpha(kRed, 0.3);
-  legend->AddEntry(sigRegion, TString::Format("Signal+Background (#mu #pm %.0f #sigma)", nSigmaSignal).Data(), "f");
-  legend->AddEntry(bkgRegion, TString::Format("Background (#mu #pm %.0f - %.0f #sigma)", nSigmaBkgMin, nSigmaBkgMax).Data(), "f");
-  sigRegion->Draw("bars same");
-  bkgRegion->Draw("bars same");
-
-  // Line for hadron mass
-  TLine* lineMass = new TLine(("K0S" == hadron) ? MassK0S : MassLambda0, yMinFrame, ("K0S" == hadron) ? MassK0S : MassLambda0, yMaxFrame * scale);
-  lineMass->SetLineColor(GetColor(0));
-  lineMass->SetLineWidth(2);
-  lineMass->SetLineStyle(9);
-  lineMass->Draw("same");
-
-  // Calculate purity and relative efficiency
-  double sigPlusBkg   = sigRegion->Integral();
-  double background   = bkgRegion->Integral();
-  double signal       = sigPlusBkg - background;
-  double purity       = signal / sigPlusBkg;
-  double significance = signal / TMath::Sqrt(sigPlusBkg);
-  double sigOverBkg   = signal / ( (background > 0) ? background : -1.);
-
-  if (refBin == iBin) {
-    refValues[2] = signal;
-  }
-  double efficiency = signal / refValues[2];
-  if (efficiency > 1) {
-    cout << "Warning: relative efficiency > 1 (" << efficiency << "). Signal: " << signal << ", reference signal: " << refValues[2] << endl;
-  }
-
-  // Format latex text, same as bin label
-  string binLabel = formatBinLabel(thn, iBin, cutAxis);
-  hists[0]->SetBinContent(iBin + 1, purity);
-  hists[0]->GetXaxis()->SetBinLabel(iBin + 1, binLabel.c_str());
-  hists[1]->SetBinContent(iBin + 1, efficiency);
-  hists[1]->GetXaxis()->SetBinLabel(iBin + 1, binLabel.c_str());
-  hists[2]->SetBinContent(iBin + 1, significance);
-  hists[2]->GetXaxis()->SetBinLabel(iBin + 1, binLabel.c_str());
-  hists[3]->SetBinContent(iBin + 1, sigOverBkg);
-  hists[3]->GetXaxis()->SetBinLabel(iBin + 1, binLabel.c_str());
-
-  // On pad 2, we put important text and the legend
-  canvas->cd(2);
-  gPad->SetLeftMargin(0.);
-  TLatex* lData   = CreateLatex(0.1, 0.9, dataSet.c_str(), textSize);
-  TLatex* lPt     = CreateLatex(0.1, 0.85, sPt.c_str(), textSize);
-  TLatex* lCut    = CreateLatex(0.1, 0.75, binLabel.c_str(), textSize);
-  TLatex* lPurity = CreateLatex(0.1, 0.7, TString::Format("Purity: %.1f%%", purity*1e2), textSize);
-  TLatex* lEff    = CreateLatex(0.1, 0.65, TString::Format("Rel. Efficiency: %.2f%%", 1e2*efficiency).Data(), textSize);
-  if (legend) legend->Draw("same");
-  lData->Draw("same");
-  lPt->Draw("same");
-  lCut->Draw("same");
-  lPurity->Draw("same");
-  lEff->Draw("same");
-
-  if (refBin == iBin) {
-    string sMean  = TString::Format("Mean: %.3f GeV/#it{c}^{2}", mean).Data();
-    string sSigma = TString::Format("Sigma: %.3f GeV/#it{c}^{2}", sigma).Data();
-    if ("K0S" == hadron) {
-      sMean  = TString::Format("Mean: %.3f MeV/#it{c}^{2}", mean*1e3).Data();
-      sSigma = TString::Format("Sigma: %.3f MeV/#it{c}^{2}", sigma*1e3).Data();
-    }
-    TLatex* lMean  = CreateLatex(0.1, 0.6, sMean.c_str(), textSize);
-    TLatex* lSigma = CreateLatex(0.1, 0.55, sSigma.c_str(), textSize);
-    TLatex* lChiSq = CreateLatex(0.1, 0.5, TString::Format("#chi^{2}/NDF: %.2f", chiSq).Data(), textSize);
-    lMean->Draw("same");
-    lSigma->Draw("same");
-    lChiSq->Draw("same");
-  }
-
-  string saveName = hadron;
-  saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt).Data();
-  saveName += "_" + axisNames[cutAxis];
-  saveName = TString::Format("%s_bin%d", saveName.c_str(), iBin).Data();
-  saveName += ".pdf";
-  canvas->SaveAs(saveName.c_str());
-  return refValues;
-}
-
 // TH3 version: For a given bin (i.e. cut), calculate the purity and relative efficiency
 // Allows you to put in a distribution that's been cut on another axis
 array<double, 3> getPurityAndRelEfficiency(TH3D* th3, array<int, 2> ptBins,
                                            int iBin, int refBin, int cutAxis, int rebinNumber,
-                                           string hadron, string dataSet, string cutString,
+                                           array<string, 4> strings,
                                            array<int, 3> fitSettings, array<int, 3> nSigma,
                                            array<double, 3> refValues,
                                            array<TH1D*, 4> hists)
 {
   // Input hist must be {pt, cutAxis, M}
+
+  string hadron = strings[0], dataSet = strings[1], cutString = strings[2], saveSuffix = strings[3];
   // Setup
   double textSize  = 0.04;
   double xMinFrame = 1.07, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 1.1;
@@ -441,7 +307,7 @@ array<double, 3> getPurityAndRelEfficiency(TH3D* th3, array<int, 2> ptBins,
   string sPt = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data();
   string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
   string yTitle = "counts";
-  string canvasName = TString::Format("canvas_%s_%s_%d", hadron.c_str(), axisNames[cutAxis].c_str(), iBin).Data();
+  string canvasName = TString::Format("canvas_%s_pt%.1f-%.1f_%s_%d", hadron.c_str(), lowpt, highpt, axisNames[cutAxis].c_str(), iBin).Data();
 
   TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), xCanvas, yCanvas);
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, "", textSize);
@@ -520,109 +386,69 @@ array<double, 3> getPurityAndRelEfficiency(TH3D* th3, array<int, 2> ptBins,
   // On pad 2, we put important text and the legend
   canvas->cd(2);
   gPad->SetLeftMargin(0.);
-  TLatex* lData   = CreateLatex(0.1, 0.9, dataSet.c_str(), textSize);
-  TLatex* lPt     = CreateLatex(0.1, 0.85, sPt.c_str(), textSize);
-  TLatex* lCut    = CreateLatex(0.1, 0.75, binLabel.c_str(), textSize);
-  TLatex* lPurity = CreateLatex(0.1, 0.7, TString::Format("Purity: %.1f%%", purity*1e2), textSize);
-  TLatex* lEff    = CreateLatex(0.1, 0.65, TString::Format("Rel. Efficiency: %.2f%%", 1e2*efficiency).Data(), textSize);
+  string sSigma = TString::Format("Sigma: %.3f MeV/#it{c}^{2}", sigma*1e3).Data();
+  string sMean  = TString::Format("Mean: %.3f GeV/#it{c}^{2}", mean).Data();
+  if ("K0S" == hadron) {
+    sMean  = TString::Format("Mean: %.3f MeV/#it{c}^{2}", mean*1e3).Data();
+  }
+
+  TLatex* lData       = CreateLatex(0.1, 0.9, dataSet.c_str(), textSize);
+  TLatex* lPt         = CreateLatex(0.1, 0.85, sPt.c_str(), textSize);
+  TLatex* lCut        = CreateLatex(0.1, 0.75, binLabel.c_str(), textSize);
+  TLatex* lPurity     = CreateLatex(0.1, 0.7, TString::Format("Purity: %.1f%%", purity*1e2), textSize);
+  TLatex* lEff        = CreateLatex(0.1, 0.65, TString::Format("Rel. Efficiency: %.2f%%", 1e2*efficiency).Data(), textSize);
+  TLatex* lSignif     = CreateLatex(0.1, 0.6, TString::Format("S/#sqrt{S+B}: %.2f", significance).Data(), textSize);
+  TLatex* lSigOverBkg = CreateLatex(0.1, 0.55, TString::Format("S/B: %.2f", sigOverBkg).Data(), textSize);
+
+  TLatex* lMean       = CreateLatex(0.6, 0.75, sMean.c_str(), textSize);
+  TLatex* lSigma      = CreateLatex(0.6, 0.7, sSigma.c_str(), textSize);
+  TLatex* lChiSq      = CreateLatex(0.6, 0.65, TString::Format("#chi^{2}/NDF: %.2f", chiSq).Data(), textSize);
+  TLatex* lCutString  = CreateLatex(0.6, 0.6, cutString.c_str(), textSize);
+
   if (legend) legend->Draw("same");
   lData->Draw("same");
   lPt->Draw("same");
   lCut->Draw("same");
   lPurity->Draw("same");
   lEff->Draw("same");
+  lSignif->Draw("same");
+  lSigOverBkg->Draw("same");
 
-  TLatex* lCutString = CreateLatex(0.6, 0.75, cutString.c_str(), textSize);
+  lMean->Draw("same");
+  lSigma->Draw("same");
+  if (refBin == iBin) lChiSq->Draw("same");
   lCutString->Draw("same");
-
-  if (refBin == iBin) {
-    string sMean  = TString::Format("Mean: %.3f GeV/#it{c}^{2}", mean).Data();
-    string sSigma = TString::Format("Sigma: %.3f GeV/#it{c}^{2}", sigma).Data();
-    if ("K0S" == hadron) {
-      sMean  = TString::Format("Mean: %.3f MeV/#it{c}^{2}", mean*1e3).Data();
-      sSigma = TString::Format("Sigma: %.3f MeV/#it{c}^{2}", sigma*1e3).Data();
-    }
-    TLatex* lMean  = CreateLatex(0.1, 0.6, sMean.c_str(), textSize);
-    TLatex* lSigma = CreateLatex(0.1, 0.55, sSigma.c_str(), textSize);
-    TLatex* lChiSq = CreateLatex(0.1, 0.5, TString::Format("#chi^{2}/NDF: %.2f", chiSq).Data(), textSize);
-    lMean->Draw("same");
-    lSigma->Draw("same");
-    lChiSq->Draw("same");
-  }
 
   string saveName = hadron;
   saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt).Data();
   saveName += "_" + axisNames[cutAxis];
   saveName = TString::Format("%s_bin%d", saveName.c_str(), iBin).Data();
+  saveName += saveSuffix;
   saveName += ".pdf";
   canvas->SaveAs(saveName.c_str());
   return refValues;
 }
+
 // -------------------------------------------------------------------------------------------------
-// Makes plots and extracts purity and relative efficiency for a given cut axis
-void cutVarPurity(string inName, string dataSet, string hadron, int cutAxis, double ptmin, double ptmax, int bkg, bool doubleGauss, bool flipGaussians, int rebinNumber)
+
+void cutQuality(array<TH1D*, 4> hists, vector<TLatex*> latex, vector<string> names)
 {
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1) {
-    cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if (cutAxis < 4 || cutAxis > 9) {
-    cout << "Error: cutAxis must be specified (4-9)" << endl;
-    return;
-  }
+  TH1D* hPurity       = hists[0];
+  TH1D* hEfficiency   = hists[1];
+  TH1D* hSignificance = hists[2];
+  TH1D* hSigOverBkg   = hists[3];
 
-  int refBin = 0;
-  int nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = nSigmaBkgMin + nSigmaSignal;
-  double mean = ("K0S" == hadron) ? MassK0S : MassLambda0, sigma = 0.03, refSignal = -1.;
+  string saveName, canvasName;
 
-  array<int, 3>    fitSettings = {bkg, doubleGauss, flipGaussians};
-  array<int, 3>    nSigma      = {nSigmaSignal, nSigmaBkgMin, nSigmaBkgMax};
-  array<double, 3> refValues   = {mean, sigma, refSignal};
-
-  gStyle->SetNdivisions(505, "xy");
-  string histName, histTitle, legendTitle, latexText;
-  histName = "V0CutVariation";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-
-  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
-  TH1D* hEfficiency = new TH1D("hEfficiency", "", overflowBin+1, thn->GetAxis(cutAxis)->GetBinLowEdge(0), thn->GetAxis(cutAxis)->GetBinUpEdge(overflowBin));
-  TH1D* hPurity = (TH1D*)hEfficiency->Clone("hPurity");
-  TH1D* hSignificance = (TH1D*)hEfficiency->Clone("hSignificance");
-  TH1D* hSigOverBkg = (TH1D*)hEfficiency->Clone("hSigOverBkg");
-  array<TH1D*, 4> hists = {hPurity, hEfficiency, hSignificance, hSigOverBkg};
-
-  // Do reference bin first
-  refValues = getPurityAndRelEfficiency(thn, ptBins, refBin, refBin, cutAxis, rebinNumber, hadron, dataSet, fitSettings, nSigma, refValues, hists);
-  for (int i = underflowBin; i <= overflowBin; i++) {
-    if (i == refBin) { continue; }
-    refValues = getPurityAndRelEfficiency(thn, ptBins, i, refBin, cutAxis, rebinNumber, hadron, dataSet, fitSettings, nSigma, refValues, hists);
-  }
-
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-
-  string canvasName = TString::Format("cEP_%s_%s_%.1f-%.1f", hadron.c_str(), axisNames[cutAxis].c_str(), lowpt, highpt).Data();
-  TCanvas* cEP   = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
+  // Plot Efficiency and purity together
+  canvasName = "cEP_" + names[0];
+  TCanvas* cEP = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
   cEP->cd();
-  TLatex*  lData = CreateLatex(0.25, 0.35, dataSet.c_str(), 0.04);
-  TLatex*  lPt   = CreateLatex(0.25, 0.3, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data(), 0.04);
-  TLegend* lEP   = CreateLegend(0.25, 0.5, 0.15, 0.25, "", 0.04);
-
-  hPurity = hists[0];
-  hEfficiency = hists[1];
-  hSignificance = hists[2];
-  hSigOverBkg = hists[3];
+  TLegend* legEP = CreateLegend(0.65, 0.9, 0.9, 1., "", 0.04);
   setStyle(hEfficiency, 0);
   setStyle(hPurity, 1);
-  lEP->AddEntry(hEfficiency, "Relative Efficiency");
-  lEP->AddEntry(hPurity, "Purity");
+  legEP->AddEntry(hEfficiency, "Relative Efficiency");
+  legEP->AddEntry(hPurity, "Purity");
 
   hEfficiency->SetStats(0);
   hEfficiency->GetYaxis()->SetRangeUser(0., 1.3);
@@ -634,51 +460,87 @@ void cutVarPurity(string inName, string dataSet, string hadron, int cutAxis, dou
   hPurity->Draw("same");
   hPurity->Draw("same text00");
 
-  lData->Draw("same");
-  lPt->Draw("same");
-  lEP->Draw("same");
+  latex[0]->Draw("same");
+  latex[1]->Draw("same");
+  latex[2]->Draw("same");
+  legEP->Draw("same");
 
-  string saveName = hadron;
-  saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt).Data();
-  saveName += "_" + axisNames[cutAxis];
+  saveName = names[1];
   saveName += "_EffPur";
   saveName += ".pdf";
   cEP->SaveAs(saveName.c_str());
+
+  // Plot Significance
+  canvasName = "cSig_" + names[0];
+  TCanvas* cSig = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
+  cSig->cd();
+  TLegend* legSignif = CreateLegend(0.65, 0.9, 0.9, 1., "", 0.04);
+
+  setStyle(hSignificance, 0);
+  legSignif->AddEntry(hSignificance, "S/#sqrt{S+B}");
+  hSignificance->SetStats(0);
+  hSignificance->Draw();
+  hSignificance->Draw("same text00");
+
+  latex[0]->Draw("same");
+  latex[1]->Draw("same");
+  latex[2]->Draw("same");
+  legSignif->Draw("same");
+
+  saveName = names[1];
+  saveName += "_Significance";
+  saveName += ".pdf";
+  cSig->SaveAs(saveName.c_str());
+
+  // Plot S/B
+  canvasName = "cSB_" + names[0];
+  TCanvas* cSB = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
+  cSB->cd();
+  TLegend* legSB = CreateLegend(0.65, 0.9, 0.9, 1., "", 0.04);
+  setStyle(hSigOverBkg, 0);
+  legSB->AddEntry(hSigOverBkg, "S/B");
+  hSigOverBkg->SetStats(0);
+  hSigOverBkg->Draw();
+  hSigOverBkg->Draw("same text00");
+
+  latex[0]->Draw("same");
+  latex[1]->Draw("same");
+  latex[2]->Draw("same");
+  legSB->Draw("same");
+
+  saveName = names[1];
+  saveName += "_SigOverBkg";
+  saveName += ".pdf";
+  cSB->SaveAs(saveName.c_str());
 }
 
-void cutVarPurityWithExtraCuts(string inName, string dataSet, string hadron, int cutAxis, double ptmin, double ptmax, int bkg, bool doubleGauss, bool flipGaussians, int rebinNumber)
+// -------------------------------------------------------------------------------------------------
+
+// Set inclusive mass cut with dM in MeV
+// Takes the part that satisfies the other mass condition
+void cutVarPurityIMC(string inName, string dataSet, string hadron, int cutAxis, double ptmin, double ptmax, array<int, 10> axisBins, double dM, int bkg, bool doubleGauss, bool flipGaussians, int rebinNumber)
 {
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
+  if (inputIssue(inName, hadron, cutAxis)) {
     return;
   }
-  if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1) {
-    cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if (cutAxis < 4 || cutAxis > 9) {
-    cout << "Error: cutAxis must be specified (4-9)" << endl;
+  if (dM < 1e-5) {
+    cout << "Error: Inclusive mass cut requires a mass difference dM > 0." << endl;
     return;
   }
 
   int nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = nSigmaBkgMin + nSigmaSignal;
-  if ("K0S" == hadron) {
-    nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = nSigmaBkgMin + nSigmaSignal;
-  }
+  double mean = ("K0S" == hadron) ? MassK0S : MassLambda0;
+  double sigma = 0.03, refSignal = -1.;
   int refBin = 0;
-  double mean = ("K0S" == hadron) ? MassK0S : MassLambda0, sigma = 0.03, refSignal = -1.;
 
   array<int, 3>    fitSettings = {bkg, doubleGauss, flipGaussians};
   array<int, 3>    nSigma      = {nSigmaSignal, nSigmaBkgMin, nSigmaBkgMax};
   array<double, 3> refValues   = {mean, sigma, refSignal};
 
   gStyle->SetNdivisions(505, "xy");
-  string histName, histTitle, legendTitle, latexText;
-  histName = "V0CutVariation";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
+  string histName = "jet-fragmentation/data/V0/V0CutVariation";
   TFile* inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
 
   int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
   TH1D* hEfficiency = new TH1D("hEfficiency", "", overflowBin+1, thn->GetAxis(cutAxis)->GetBinLowEdge(0), thn->GetAxis(cutAxis)->GetBinUpEdge(overflowBin));
@@ -687,131 +549,94 @@ void cutVarPurityWithExtraCuts(string inName, string dataSet, string hadron, int
   TH1D* hSigOverBkg = (TH1D*)hEfficiency->Clone("hSigOverBkg");
   array<TH1D*, 4> hists = {hPurity, hEfficiency, hSignificance, hSigOverBkg};
 
-  // Apply other cuts first: Change these to whatever you want
-  // Set up cutString to write what you did
-  string cutString = "", axisString = "";
-  int axisBin = 0;
+  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
+  string cutString = "", saveSuffix = "";
+  // Competing mass cut
+  if (dM > 1e-5) {
+    cutString = "dM = " + to_string(int(dM)) + " MeV/#it{c}^{2}";
+    saveSuffix = "_dM" + to_string(int(dM));
+    double massWindow = dM * 1e-3; // Convert to GeV
+    int* coord = new int[nDim]; //Carries the bin coordinates
+    if ("K0S" == hadron) {
+      array<int, 2> lBins = getProjectionBins(thn->GetAxis(Lambda0massAxis), MassLambda0 - massWindow, MassLambda0 + massWindow);
+      array<int, 2> aBins = getProjectionBins(thn->GetAxis(AntiLambda0massAxis), MassLambda0 - massWindow, MassLambda0 + massWindow);
+      thn->GetAxis(Lambda0massAxis)->SetRange(lBins[0], lBins[1]);
+      thn->GetAxis(AntiLambda0massAxis)->SetRange(aBins[0], aBins[1]);
+    } else {
+      array<int, 2> mBins = getProjectionBins(thn->GetAxis(K0SmassAxis), MassK0S - massWindow, MassK0S + massWindow);
+      thn->GetAxis(K0SmassAxis)->SetRange(mBins[0], mBins[1]);
+    }
+  }
 
-  axisBin = 0;
-  axisString = formatBinLabel(thn, axisBin, RAxis);
-  thn->GetAxis(RAxis)->SetRange(axisBin, 1 + thn->GetAxis(RAxis)->GetNbins());
-  if (!("Default cut" == axisString)) {
-    cutString = axisString;
-  }
-  axisBin = 0;
-  axisString = formatBinLabel(thn, axisBin, ctauAxis);
-  thn->GetAxis(ctauAxis)->SetRange(0, -1 * axisBin + 1 + thn->GetAxis(ctauAxis)->GetNbins());
-  if (!("Default cut" == axisString)) {
-    cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
-  }
-  axisBin = 1;
-  axisString = formatBinLabel(thn, axisBin, cosPAAxis);
-  thn->GetAxis(cosPAAxis)->SetRange(axisBin, 1 + thn->GetAxis(cosPAAxis)->GetNbins());
-  if (!("Default cut" == axisString)) {
-    cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
-  }
-  axisBin = 0;
-  axisString = formatBinLabel(thn, axisBin, DCApAxis);
-  thn->GetAxis(DCApAxis)->SetRange(0, -1 * axisBin + 1 + thn->GetAxis(DCApAxis)->GetNbins());
-  if (!("Default cut" == axisString)) {
-    cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
-  }
-  axisBin = 0;
-  axisString = formatBinLabel(thn, axisBin, DCAnAxis);
-  thn->GetAxis(DCAnAxis)->SetRange(axisBin, 1 + thn->GetAxis(DCAnAxis)->GetNbins());
-  if (!("Default cut" == axisString)) {
-    cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
-  }
-  axisBin = 0;
-  axisString = formatBinLabel(thn, axisBin, DCAnAxis);
-  thn->GetAxis(DCAdAxis)->SetRange(axisBin, 1 + thn->GetAxis(DCAdAxis)->GetNbins());
-  if (!("Default cut" == axisString)) {
-    cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
+  for (int iAxis = RAxis; iAxis < nDim; iAxis++) {
+    if (cutAxis == iAxis) {
+      continue;
+    }
+    int axisBin = axisBins[iAxis];
+    string axisString = formatBinLabel(thn, axisBin, iAxis);
+    if (0 == axisBin) {
+      continue;
+    }
+    if (reverseCuts(iAxis)) {
+      thn->GetAxis(iAxis)->SetRange(0, -1 * axisBin + 1 + thn->GetAxis(iAxis)->GetNbins());
+    } else {
+      thn->GetAxis(iAxis)->SetRange(axisBin, 1 + thn->GetAxis(iAxis)->GetNbins());
+    }
+    // Append cutstring
+    if (!("Default cut" == axisString)) {
+      saveSuffix += "_" + axisNames[iAxis] + to_string(axisBin);
+      cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
+    }
   }
 
   int projectionAxis = ("K0S" == hadron)*K0SmassAxis + ("Lambda0" == hadron)*Lambda0massAxis + ("AntiLambda0" == hadron)*AntiLambda0massAxis;
   TH3D* th3 = (TH3D*) thn->Projection(ptAxis, cutAxis, projectionAxis);
+  array<string, 4> strings = {hadron, dataSet, cutString, saveSuffix};
+
   // Do reference bin first
-  refValues = getPurityAndRelEfficiency(th3, ptBins, refBin, refBin, cutAxis, rebinNumber, hadron, dataSet, cutString, fitSettings, nSigma, refValues, hists);
+  refValues = getPurityAndRelEfficiency(th3, ptBins, refBin, refBin, cutAxis, rebinNumber, strings, fitSettings, nSigma, refValues, hists);
   for (int i = underflowBin; i <= overflowBin; i++) {
     if (i == refBin) { continue; }
-    refValues = getPurityAndRelEfficiency(th3, ptBins, i, refBin, cutAxis, rebinNumber, hadron, dataSet, cutString, fitSettings, nSigma, refValues, hists);
+    refValues = getPurityAndRelEfficiency(th3, ptBins, i, refBin, cutAxis, rebinNumber, strings, fitSettings, nSigma, refValues, hists);
   }
 
+  // Plot efficiency and purity
+  // Plot significance
+  // Plot S/B
   double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
   double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-
-  string canvasName = TString::Format("cEP_%s_%s_%.1f-%.1f", hadron.c_str(), axisNames[cutAxis].c_str(), lowpt, highpt).Data();
-  TCanvas* cEP   = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
-  cEP->cd();
-  TLatex*  lData      = CreateLatex(0.25, 0.35, dataSet.c_str(), 0.04);
-  TLatex*  lPt        = CreateLatex(0.25, 0.3, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data(), 0.04);
+  TLatex*  lData      = CreateLatex(0.15, 0.95, dataSet.c_str(), 0.04);
+  TLatex*  lPt        = CreateLatex(0.3, 0.95, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data(), 0.04);
   TLatex*  lCutString = CreateLatex(0.7, 0.35, cutString.c_str(), 0.04);
-  TLegend* lEP        = CreateLegend(0.25, 0.5, 0.15, 0.25, "", 0.04);
-
-  hPurity = hists[0];
-  hEfficiency = hists[1];
-  hSignificance = hists[2];
-  hSigOverBkg = hists[3];
-  setStyle(hEfficiency, 0);
-  setStyle(hPurity, 1);
-  lEP->AddEntry(hEfficiency, "Relative Efficiency");
-  lEP->AddEntry(hPurity, "Purity");
-
-  hEfficiency->SetStats(0);
-  hEfficiency->GetYaxis()->SetRangeUser(0., 1.3);
-  hEfficiency->SetMarkerSize(2.5);
-  hEfficiency->Draw();
-  hEfficiency->Draw("same text00");
-
-  hPurity->SetMarkerSize(2.5);
-  hPurity->Draw("same");
-  hPurity->Draw("same text00");
-
-  lData->Draw("same");
-  lPt->Draw("same");
-  lCutString->Draw("same");
-  lEP->Draw("same");
 
   string saveName = hadron;
   saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt).Data();
   saveName += "_" + axisNames[cutAxis];
-  saveName += "_EffPur";
-  saveName += ".pdf";
-  cEP->SaveAs(saveName.c_str());
+  saveName += saveSuffix;
+  string canvasName = saveName;
+  cutQuality(hists, {lData, lPt, lCutString}, {canvasName, saveName});
 }
 
-void cutVarPurityWithCompetingMass(string inName, string dataSet, string hadron, int cutAxis, double ptmin, double ptmax, int bkg, bool doubleGauss, bool flipGaussians, int rebinNumber)
+// Set competing mass cut with dM in MeV
+void cutVarPurityCMC(string inName, string dataSet, string hadron, int cutAxis, double ptmin, double ptmax, array<int, 10> axisBins, double dM, int bkg, bool doubleGauss, bool flipGaussians, int rebinNumber)
 {
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1) {
-    cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if (cutAxis < 4 || cutAxis > 9) {
-    cout << "Error: cutAxis must be specified (4-9)" << endl;
+  if (inputIssue(inName, hadron, cutAxis)) {
     return;
   }
 
-  int refBin = 0;
   int nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = nSigmaBkgMin + nSigmaSignal;
-  double mean = ("K0S" == hadron) ? MassK0S : MassLambda0, sigma = 0.03, refSignal = -1.;
+  double mean = ("K0S" == hadron) ? MassK0S : MassLambda0;
+  double sigma = 0.03, refSignal = -1.;
+  int refBin = 0;
 
   array<int, 3>    fitSettings = {bkg, doubleGauss, flipGaussians};
   array<int, 3>    nSigma      = {nSigmaSignal, nSigmaBkgMin, nSigmaBkgMax};
   array<double, 3> refValues   = {mean, sigma, refSignal};
 
   gStyle->SetNdivisions(505, "xy");
-  string histName, histTitle, legendTitle, latexText;
-  histName = "V0CutVariation";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
+  string histName = "jet-fragmentation/data/V0/V0CutVariation";
   TFile* inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-  THnSparseD* thn2 = (THnSparseD*)thn->Clone("thn2");
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
 
   int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
   TH1D* hEfficiency = new TH1D("hEfficiency", "", overflowBin+1, thn->GetAxis(cutAxis)->GetBinLowEdge(0), thn->GetAxis(cutAxis)->GetBinUpEdge(overflowBin));
@@ -820,69 +645,130 @@ void cutVarPurityWithCompetingMass(string inName, string dataSet, string hadron,
   TH1D* hSigOverBkg = (TH1D*)hEfficiency->Clone("hSigOverBkg");
   array<TH1D*, 4> hists = {hPurity, hEfficiency, hSignificance, hSigOverBkg};
 
+  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
+  string cutString = "", saveSuffix = "";
   // Competing mass cut
-  double competingMassCut = 1e-2; // 10 MeV
-  int b = thn2->GetAxis(K0SmassAxis)->FindBin(MassK0S);
-  // array<int, 2> kBins = getProjectionBins(thn->GetAxis(K0SmassAxis), MassK0S - competingMassCut, MassK0S + competingMassCut);
-  // thn->GetAxis(K0SmassAxis)->SetRange(kBins[0], kBins[1]);
-  thn2->GetAxis(K0SmassAxis)->SetRange(b, b);
-  cout << "K0S mass bin: " << b << " = " << thn2->GetAxis(K0SmassAxis)->GetBinLowEdge(b) << " GeV" << endl;
-  // cout << "K0S mass range: " << kBins[0] << " = " << thn->GetAxis(K0SmassAxis)->GetBinLowEdge(kBins[0]) << " GeV" << endl;
-  // cout << "K0S mass range: " << kBins[1] << " = " << thn->GetAxis(K0SmassAxis)->GetBinLowEdge(kBins[1]) << " GeV" << endl;
-
-  // thn2->Scale(-1.);
-  // thn->Add(thn2, -1.);
-
-  TH1D* hMass = (TH1D*)thn->Projection(Lambda0massAxis);
-  TH1D* hMass2 = (TH1D*)thn2->Projection(Lambda0massAxis);
-  hMass->Add(hMass2);
-  setStyle(hMass, 0);
-  hMass->Draw();
-  return;
-  // Do reference bin first
-  refValues = getPurityAndRelEfficiency(thn, ptBins, refBin, refBin, cutAxis, rebinNumber, hadron, dataSet, fitSettings, nSigma, refValues, hists);
-  for (int i = underflowBin; i <= overflowBin; i++) {
-    if (i == refBin) { continue; }
-    refValues = getPurityAndRelEfficiency(thn, ptBins, i, refBin, cutAxis, rebinNumber, hadron, dataSet, fitSettings, nSigma, refValues, hists);
+  if (dM > 1e-5) {
+    cutString = "dM = " + to_string(int(dM)) + " MeV";
+    saveSuffix = "_dM" + to_string(int(dM));
+    double massWindow = dM * 1e-3; // Convert to GeV
+    int* coord = new int[nDim]; //Carries the bin coordinates
+    if ("K0S" == hadron) {
+      array<int, 2> lBins = getProjectionBins(thn->GetAxis(Lambda0massAxis), MassLambda0 - massWindow, MassLambda0 + massWindow);
+      array<int, 2> aBins = getProjectionBins(thn->GetAxis(AntiLambda0massAxis), MassLambda0 - massWindow, MassLambda0 + massWindow);
+      for (int ib = 0; ib < thn->GetNbins(); ib++) {
+        double w = thn->GetBinContent(ib, coord);
+        int lb = coord[Lambda0massAxis];
+        int ab = coord[AntiLambda0massAxis];
+        if (lb >= lBins[0] && ab <= lBins[1]) {
+          thn->SetBinContent(ib, 0);
+        }
+        if (ab >= aBins[0] && ab <= aBins[1]) {
+          thn->SetBinContent(ib, 0);
+        }
+      }
+    } else {
+      array<int, 2> mBins = getProjectionBins(thn->GetAxis(K0SmassAxis), MassK0S - massWindow, MassK0S + massWindow);
+      for (int ib = 0; ib < thn->GetNbins(); ib++) {
+        double w = thn->GetBinContent(ib, coord);
+        int mb = coord[K0SmassAxis];
+        if (mb >= mBins[0] && mb <= mBins[1]) {
+          thn->SetBinContent(ib, 0);
+        }
+      }
+    }
   }
 
+  for (int iAxis = RAxis; iAxis < nDim; iAxis++) {
+    if (cutAxis == iAxis) {
+      continue;
+    }
+    int axisBin = axisBins[iAxis];
+    string axisString = formatBinLabel(thn, axisBin, iAxis);
+    if (0 == axisBin) {
+      continue;
+    }
+    if (reverseCuts(iAxis)) {
+      thn->GetAxis(iAxis)->SetRange(0, -1 * axisBin + 1 + thn->GetAxis(iAxis)->GetNbins());
+    } else {
+      thn->GetAxis(iAxis)->SetRange(axisBin, 1 + thn->GetAxis(iAxis)->GetNbins());
+    }
+    // Append cutstring
+    if (!("Default cut" == axisString)) {
+      saveSuffix += "_" + axisNames[iAxis] + to_string(axisBin);
+      cutString = TString::Format("#splitline{%s}{%s}", cutString.c_str(), axisString.c_str()).Data();
+    }
+  }
+
+  int projectionAxis = ("K0S" == hadron)*K0SmassAxis + ("Lambda0" == hadron)*Lambda0massAxis + ("AntiLambda0" == hadron)*AntiLambda0massAxis;
+  TH3D* th3 = (TH3D*) thn->Projection(ptAxis, cutAxis, projectionAxis);
+  array<string, 4> strings = {hadron, dataSet, cutString, saveSuffix};
+
+  // Do reference bin first
+  refValues = getPurityAndRelEfficiency(th3, ptBins, refBin, refBin, cutAxis, rebinNumber, strings, fitSettings, nSigma, refValues, hists);
+  for (int i = underflowBin; i <= overflowBin; i++) {
+    if (i == refBin) { continue; }
+    refValues = getPurityAndRelEfficiency(th3, ptBins, i, refBin, cutAxis, rebinNumber, strings, fitSettings, nSigma, refValues, hists);
+  }
+
+  // Plot efficiency and purity
+  // Plot significance
+  // Plot S/B
   double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
   double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-
-  string canvasName = TString::Format("cEP_%s_%s_%.1f-%.1f", hadron.c_str(), axisNames[cutAxis].c_str(), lowpt, highpt).Data();
-  TCanvas* cEP   = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
-  cEP->cd();
-  TLatex*  lData = CreateLatex(0.25, 0.35, dataSet.c_str(), 0.04);
-  TLatex*  lPt   = CreateLatex(0.25, 0.3, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data(), 0.04);
-  TLegend* lEP   = CreateLegend(0.25, 0.5, 0.15, 0.25, "", 0.04);
-
-  hPurity = hists[0];
-  hEfficiency = hists[1];
-  hSignificance = hists[2];
-  hSigOverBkg = hists[3];
-  setStyle(hEfficiency, 0);
-  setStyle(hPurity, 1);
-  lEP->AddEntry(hEfficiency, "Relative Efficiency");
-  lEP->AddEntry(hPurity, "Purity");
-
-  hEfficiency->SetStats(0);
-  hEfficiency->GetYaxis()->SetRangeUser(0., 1.3);
-  hEfficiency->SetMarkerSize(2.5);
-  hEfficiency->Draw();
-  hEfficiency->Draw("same text00");
-
-  hPurity->SetMarkerSize(2.5);
-  hPurity->Draw("same");
-  hPurity->Draw("same text00");
-
-  lData->Draw("same");
-  lPt->Draw("same");
-  lEP->Draw("same");
+  TLatex*  lData      = CreateLatex(0.15, 0.95, dataSet.c_str(), 0.04);
+  TLatex*  lPt        = CreateLatex(0.3, 0.95, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data(), 0.04);
+  TLatex*  lCutString = CreateLatex(0.7, 0.35, cutString.c_str(), 0.04);
 
   string saveName = hadron;
   saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt).Data();
   saveName += "_" + axisNames[cutAxis];
-  saveName += "_EffPur";
-  saveName += ".pdf";
-  cEP->SaveAs(saveName.c_str());
+  saveName += saveSuffix;
+  string canvasName = saveName;
+  cutQuality(hists, {lData, lPt, lCutString}, {canvasName, saveName});
+}
+
+// -------------------------------------------------------------------------------------------------
+
+void plot22o(string hadron, int cutAxis, double ptmin, double ptmax, double dM = 10 /* in MeV */, int rebinNumber = 1)
+{
+  string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+  string dataSet = "LHC22o_pass6";
+  // Which bins to cut with on each of the axes. First 4 should always be 0
+  array<int, 10> axisBins = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  cutVarPurityCMC(inName, dataSet, hadron, cutAxis, ptmin, ptmax, axisBins, dM, 2, 1, 0, rebinNumber);
+}
+
+void test(double dM)
+{
+  plot22o("K0S", 4, 5., 10., dM, 1);
+}
+
+void k22o(int axis, double dM /* in MeV */)
+{
+  gROOT->SetBatch();
+  vector<double> pt = {0.0, 2.5, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
+  int rebinNumber = 1;
+  for (int i = 0; i < pt.size() - 1; i++) {
+    double ptmin = pt[i], ptmax = pt[i+1];
+    plot22o("K0S", axis, ptmin, ptmax, dM, rebinNumber);
+  }
+}
+void l22o(int axis, double dM /* in MeV */)
+{
+  vector<double> pt = {0.0, 2.5, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
+  int rebinNumber = 1;
+  for (int i = 0; i < pt.size() - 1; i++) {
+    double ptmin = pt[i], ptmax = pt[i+1];
+    plot22o("Lambda0", axis, ptmin, ptmax, dM, rebinNumber);
+  }
+}
+void a22o(int axis, double dM /* in MeV */)
+{
+  vector<double> pt = {0.0, 2.5, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
+  int rebinNumber = 1;
+  for (int i = 0; i < pt.size() - 1; i++) {
+    double ptmin = pt[i], ptmax = pt[i+1];
+    plot22o("AntiLambda0", axis, ptmin, ptmax, dM, rebinNumber);
+  }
 }

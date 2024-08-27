@@ -35,6 +35,24 @@ const vector<string> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0ma
 
 // -------------------------------------------------------------------------------------------------
 
+// Check if input is ok
+bool inputIssue(string inName, string hadron, int cutAxis)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return true;
+  }
+  if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1) {
+    cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;
+    return true;
+  }
+  if (cutAxis < 4 || cutAxis > 9) {
+    cout << "Error: cutAxis must be specified (4-9)" << endl;
+    return true;
+  }
+  return false;
+}
+
 // Check if the cut is reversed (var < binUpEdge)
 bool reverseCuts(int cutAxis)
 {
@@ -122,7 +140,7 @@ void parsK0S(TF1* f, bool doubleGauss, int bkg, double scale = 1.)
     f->SetParameter(5, doubleGaussPar[2]); f->SetParLimits(5, doubleGaussVar[4], doubleGaussVar[5]);
     f->SetParameter(6, bkgPar[0]);         f->SetParLimits(6, bkgVar[0], bkgVar[1]);
     f->SetParameter(7, bkgPar[1]);         f->SetParLimits(7, bkgVar[2], bkgVar[3]);
-    if (2 =< bkg) {
+    if (bkg >= 2) {
       f->SetParameter(8, bkgPar[2]);       f->SetParLimits(8, bkgVar[4], bkgVar[5]);
     }
   }
@@ -152,14 +170,14 @@ void parsL0(TF1* f, bool doubleGauss, int bkg, double scale = 1.)
     f->SetParameter(5, doubleGaussPar[2]); f->SetParLimits(5, doubleGaussVar[4], doubleGaussVar[5]);
     f->SetParameter(6, bkgPar[0]);         f->SetParLimits(6, bkgVar[0], bkgVar[1]);
     f->SetParameter(7, bkgPar[1]);         f->SetParLimits(7, bkgVar[2], bkgVar[3]);
-    if (2 =< bkg) {
+    if (bkg >= 2) {
       f->SetParameter(8, bkgPar[2]);       f->SetParLimits(8, bkgVar[4], bkgVar[5]);
     }
   }
   else {
     f->SetParameter(3, bkgPar[0]);   f->SetParLimits(3, bkgVar[0], bkgVar[1]);
     f->SetParameter(4, bkgPar[1]);   f->SetParLimits(4, bkgVar[2], bkgVar[3]);
-    if (2 =< bkg) {
+    if (bkg >= 2) {
       f->SetParameter(5, bkgPar[2]); f->SetParLimits(5, bkgVar[4], bkgVar[5]);
     }
   }
@@ -753,6 +771,112 @@ void cutVarPurityWithExtraCuts(string inName, string dataSet, string hadron, int
   lData->Draw("same");
   lPt->Draw("same");
   lCutString->Draw("same");
+  lEP->Draw("same");
+
+  string saveName = hadron;
+  saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt).Data();
+  saveName += "_" + axisNames[cutAxis];
+  saveName += "_EffPur";
+  saveName += ".pdf";
+  cEP->SaveAs(saveName.c_str());
+}
+
+void cutVarPurityWithCompetingMass(string inName, string dataSet, string hadron, int cutAxis, double ptmin, double ptmax, int bkg, bool doubleGauss, bool flipGaussians, int rebinNumber)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
+  }
+  if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1) {
+    cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;
+    return;
+  }
+  if (cutAxis < 4 || cutAxis > 9) {
+    cout << "Error: cutAxis must be specified (4-9)" << endl;
+    return;
+  }
+
+  int refBin = 0;
+  int nSigmaSignal = 3, nSigmaBkgMin = 5, nSigmaBkgMax = nSigmaBkgMin + nSigmaSignal;
+  double mean = ("K0S" == hadron) ? MassK0S : MassLambda0, sigma = 0.03, refSignal = -1.;
+
+  array<int, 3>    fitSettings = {bkg, doubleGauss, flipGaussians};
+  array<int, 3>    nSigma      = {nSigmaSignal, nSigmaBkgMin, nSigmaBkgMax};
+  array<double, 3> refValues   = {mean, sigma, refSignal};
+
+  gStyle->SetNdivisions(505, "xy");
+  string histName, histTitle, legendTitle, latexText;
+  histName = "V0CutVariation";
+  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
+  TFile* inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+  THnSparseD* thn2 = (THnSparseD*)thn->Clone("thn2");
+  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
+
+  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
+  TH1D* hEfficiency = new TH1D("hEfficiency", "", overflowBin+1, thn->GetAxis(cutAxis)->GetBinLowEdge(0), thn->GetAxis(cutAxis)->GetBinUpEdge(overflowBin));
+  TH1D* hPurity = (TH1D*)hEfficiency->Clone("hPurity");
+  TH1D* hSignificance = (TH1D*)hEfficiency->Clone("hSignificance");
+  TH1D* hSigOverBkg = (TH1D*)hEfficiency->Clone("hSigOverBkg");
+  array<TH1D*, 4> hists = {hPurity, hEfficiency, hSignificance, hSigOverBkg};
+
+  // Competing mass cut
+  double competingMassCut = 1e-2; // 10 MeV
+  int b = thn2->GetAxis(K0SmassAxis)->FindBin(MassK0S);
+  // array<int, 2> kBins = getProjectionBins(thn->GetAxis(K0SmassAxis), MassK0S - competingMassCut, MassK0S + competingMassCut);
+  // thn->GetAxis(K0SmassAxis)->SetRange(kBins[0], kBins[1]);
+  thn2->GetAxis(K0SmassAxis)->SetRange(b, b);
+  cout << "K0S mass bin: " << b << " = " << thn2->GetAxis(K0SmassAxis)->GetBinLowEdge(b) << " GeV" << endl;
+  // cout << "K0S mass range: " << kBins[0] << " = " << thn->GetAxis(K0SmassAxis)->GetBinLowEdge(kBins[0]) << " GeV" << endl;
+  // cout << "K0S mass range: " << kBins[1] << " = " << thn->GetAxis(K0SmassAxis)->GetBinLowEdge(kBins[1]) << " GeV" << endl;
+
+  // thn2->Scale(-1.);
+  // thn->Add(thn2, -1.);
+
+  TH1D* hMass = (TH1D*)thn->Projection(Lambda0massAxis);
+  TH1D* hMass2 = (TH1D*)thn2->Projection(Lambda0massAxis);
+  hMass->Add(hMass2);
+  setStyle(hMass, 0);
+  hMass->Draw();
+  return;
+  // Do reference bin first
+  refValues = getPurityAndRelEfficiency(thn, ptBins, refBin, refBin, cutAxis, rebinNumber, hadron, dataSet, fitSettings, nSigma, refValues, hists);
+  for (int i = underflowBin; i <= overflowBin; i++) {
+    if (i == refBin) { continue; }
+    refValues = getPurityAndRelEfficiency(thn, ptBins, i, refBin, cutAxis, rebinNumber, hadron, dataSet, fitSettings, nSigma, refValues, hists);
+  }
+
+  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
+  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
+
+  string canvasName = TString::Format("cEP_%s_%s_%.1f-%.1f", hadron.c_str(), axisNames[cutAxis].c_str(), lowpt, highpt).Data();
+  TCanvas* cEP   = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
+  cEP->cd();
+  TLatex*  lData = CreateLatex(0.25, 0.35, dataSet.c_str(), 0.04);
+  TLatex*  lPt   = CreateLatex(0.25, 0.3, TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", lowpt, highpt).Data(), 0.04);
+  TLegend* lEP   = CreateLegend(0.25, 0.5, 0.15, 0.25, "", 0.04);
+
+  hPurity = hists[0];
+  hEfficiency = hists[1];
+  hSignificance = hists[2];
+  hSigOverBkg = hists[3];
+  setStyle(hEfficiency, 0);
+  setStyle(hPurity, 1);
+  lEP->AddEntry(hEfficiency, "Relative Efficiency");
+  lEP->AddEntry(hPurity, "Purity");
+
+  hEfficiency->SetStats(0);
+  hEfficiency->GetYaxis()->SetRangeUser(0., 1.3);
+  hEfficiency->SetMarkerSize(2.5);
+  hEfficiency->Draw();
+  hEfficiency->Draw("same text00");
+
+  hPurity->SetMarkerSize(2.5);
+  hPurity->Draw("same");
+  hPurity->Draw("same text00");
+
+  lData->Draw("same");
+  lPt->Draw("same");
   lEP->Draw("same");
 
   string saveName = hadron;

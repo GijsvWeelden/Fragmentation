@@ -739,11 +739,6 @@ void plot22o(string hadron, int cutAxis, double ptmin, double ptmax, double dM =
   cutVarPurityCMC(inName, dataSet, hadron, cutAxis, ptmin, ptmax, axisBins, dM, 2, 1, 0, rebinNumber);
 }
 
-void test(double dM)
-{
-  plot22o("K0S", 4, 5., 10., dM, 1);
-}
-
 void k22o(int axis, double dM /* in MeV */)
 {
   gROOT->SetBatch();
@@ -756,6 +751,7 @@ void k22o(int axis, double dM /* in MeV */)
 }
 void l22o(int axis, double dM /* in MeV */)
 {
+  gROOT->SetBatch();
   vector<double> pt = {0.0, 2.5, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
   int rebinNumber = 1;
   for (int i = 0; i < pt.size() - 1; i++) {
@@ -765,10 +761,41 @@ void l22o(int axis, double dM /* in MeV */)
 }
 void a22o(int axis, double dM /* in MeV */)
 {
+  gROOT->SetBatch();
   vector<double> pt = {0.0, 2.5, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
   int rebinNumber = 1;
   for (int i = 0; i < pt.size() - 1; i++) {
     double ptmin = pt[i], ptmax = pt[i+1];
     plot22o("AntiLambda0", axis, ptmin, ptmax, dM, rebinNumber);
+  }
+}
+
+// Inclusive mass cut
+void plot22o_imc(string hadron, int cutAxis, double ptmin, double ptmax, double dM = 10 /* in MeV */, int rebinNumber = 1)
+{
+  string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+  string dataSet = "LHC22o_pass6";
+  // Which bins to cut with on each of the axes. First 4 should always be 0
+  array<int, 10> axisBins = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  cutVarPurityIMC(inName, dataSet, hadron, cutAxis, ptmin, ptmax, axisBins, dM, 2, 1, 0, rebinNumber);
+}
+void l22o_imc(int axis, double dM /* in MeV */)
+{
+  gROOT->SetBatch();
+  vector<double> pt = {0.0, 2.5, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
+  int rebinNumber = 1;
+  for (int i = 0; i < pt.size() - 1; i++) {
+    double ptmin = pt[i], ptmax = pt[i+1];
+    plot22o_imc("Lambda0", axis, ptmin, ptmax, dM, rebinNumber);
+  }
+}
+void a22o_imc(int axis, double dM /* in MeV */)
+{
+  gROOT->SetBatch();
+  vector<double> pt = {0.0, 2.5, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
+  int rebinNumber = 1;
+  for (int i = 0; i < pt.size() - 1; i++) {
+    double ptmin = pt[i], ptmax = pt[i+1];
+    plot22o_imc("AntiLambda0", axis, ptmin, ptmax, dM, rebinNumber);
   }
 }

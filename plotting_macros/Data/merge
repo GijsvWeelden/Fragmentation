@@ -1,0 +1,147 @@
+
+#! /bin/bash
+
+AXIS=""
+HADRON=""
+MODE=0
+SUFFIX=""
+while getopts 'a:h:m:s:' OPTION; do
+  case "$OPTION" in
+    a)
+      AXIS="${OPTARG}"
+      ;;
+    h)
+      HADRON="${OPTARG}"
+      ;;
+    m)
+      MODE="${OPTARG}"
+      ;;
+    s)
+      SUFFIX="${OPTARG}"
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-a axis -h hadron -m mode]"
+      exit 1
+      ;;
+  esac
+done
+
+declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
+if [[ ! " ${hadrons[@]} " =~ " ${HADRON} " ]];
+then
+  echo "Please specify a hadron with -h (K0S, Lambda0, AntiLambda0)"
+  exit 1
+fi
+declare -a axes=("pt" "K0Smass" "Lambda0mass" "AntiLambda0mass" "R" "ctau" "cosPA" "DCAp" "DCAn" "DCAd")
+if [[ ! " ${axes[@]} " =~ " ${AXIS} " ]];
+then
+  echo "Please specify an axis with -a (R, ctau, cosPA, DCAp, DCAn, DCAd)"
+  exit 1
+fi
+
+if [[ ${MODE} -lt 1 || ${MODE} -gt 4 ]]
+then
+  echo "Please specify a mode between 1 and 4"
+  exit 1
+fi
+
+if [[ "${HADRON}" == "K0S" ]]
+then
+  case ${MODE} in
+    1)
+      echo "Merging fits into ${HADRON}_${AXIS}_bin0${SUFFIX}.pdf"
+      gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${HADRON}_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt0.0-3.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt2.0-5.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt5.0-10.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt10.0-15.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt15.0-20.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt20.0-25.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt25.0-30.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt30.0-40.0_${AXIS}_bin0${SUFFIX}.pdf
+      ;;
+    2)
+      echo "Merging efficiency and purity into ${HADRON}_${AXIS}${SUFFIX}_EffPur.pdf"
+      gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${HADRON}_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt0.0-3.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt2.0-5.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt5.0-10.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt10.0-15.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt15.0-20.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt20.0-25.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt25.0-30.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt30.0-40.0_${AXIS}${SUFFIX}_EffPur.pdf
+      ;;
+    3)
+      echo "Merging signal over background into ${HADRON}_${AXIS}${SUFFIX}_SigOverBkg.pdf"
+      gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${HADRON}_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt0.0-3.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt2.0-5.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt5.0-10.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt10.0-15.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt15.0-20.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt20.0-25.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt25.0-30.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt30.0-40.0_${AXIS}${SUFFIX}_SigOverBkg.pdf
+      ;;
+    4)
+      echo "Merging significance into ${HADRON}_${AXIS}${SUFFIX}_Significance.pdf"
+      gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${HADRON}_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt0.0-3.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt2.0-5.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt5.0-10.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt10.0-15.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt15.0-20.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt20.0-25.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt25.0-30.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt30.0-40.0_${AXIS}${SUFFIX}_Significance.pdf
+      ;;
+  esac
+else # Lambda0 or AntiLambda0
+    case ${MODE} in
+    1)
+      echo "Merging fits into ${HADRON}_${AXIS}_bin0${SUFFIX}.pdf"
+      gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${HADRON}_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt0.0-3.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt2.0-5.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt5.0-10.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt10.0-15.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt15.0-20.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt20.0-30.0_${AXIS}_bin0${SUFFIX}.pdf \
+        ${HADRON}_v0pt30.0-40.0_${AXIS}_bin0${SUFFIX}.pdf
+      ;;
+    2)
+      echo "Merging efficiency and purity into ${HADRON}_${AXIS}${SUFFIX}_EffPur.pdf"
+      gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${HADRON}_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt0.0-3.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt2.0-5.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt5.0-10.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt10.0-15.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt15.0-20.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt20.0-30.0_${AXIS}${SUFFIX}_EffPur.pdf \
+        ${HADRON}_v0pt30.0-40.0_${AXIS}${SUFFIX}_EffPur.pdf
+      ;;
+    3)
+      echo "Merging signal over background into ${HADRON}_${AXIS}${SUFFIX}_SigOverBkg.pdf"
+      gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${HADRON}_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt0.0-3.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt2.0-5.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt5.0-10.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt10.0-15.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt15.0-20.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt20.0-30.0_${AXIS}${SUFFIX}_SigOverBkg.pdf \
+        ${HADRON}_v0pt30.0-40.0_${AXIS}${SUFFIX}_SigOverBkg.pdf
+      ;;
+    4)
+      echo "Merging significance into ${HADRON}_${AXIS}${SUFFIX}_Significance.pdf"
+      gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${HADRON}_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt0.0-3.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt2.0-5.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt5.0-10.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt10.0-15.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt15.0-20.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt20.0-30.0_${AXIS}${SUFFIX}_Significance.pdf \
+        ${HADRON}_v0pt30.0-40.0_${AXIS}${SUFFIX}_Significance.pdf
+      ;;
+  esac
+fi

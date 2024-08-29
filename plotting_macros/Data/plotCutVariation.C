@@ -742,8 +742,7 @@ void plot22o(string hadron, int cutAxis, double ptmin, double ptmax, double dM =
 void k22o(int axis, double dM /* in MeV */)
 {
   gROOT->SetBatch();
-  // vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
-  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0}; // FIXME: change back
+  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
   int rebinNumber = 1;
   for (int i = 0; i < pt.size() - 1; i++) {
     double ptmin = pt[i], ptmax = pt[i+1];
@@ -753,8 +752,7 @@ void k22o(int axis, double dM /* in MeV */)
 void l22o(int axis, double dM /* in MeV */)
 {
   gROOT->SetBatch();
-  // vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
-  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0}; // FIXME: change back
+  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
   int rebinNumber = 1;
   for (int i = 0; i < pt.size() - 1; i++) {
     double ptmin = pt[i], ptmax = pt[i+1];
@@ -764,8 +762,7 @@ void l22o(int axis, double dM /* in MeV */)
 void a22o(int axis, double dM /* in MeV */)
 {
   gROOT->SetBatch();
-  // vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
-  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0}; // FIXME: change back
+  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0};
   int rebinNumber = 1;
   for (int i = 0; i < pt.size() - 1; i++) {
     double ptmin = pt[i], ptmax = pt[i+1];

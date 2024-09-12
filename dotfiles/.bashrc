@@ -33,7 +33,7 @@ export PS1='\A (bash) \[\e[1;35m\]\w\[\e[38;5;99m\]$(__git_ps1)\[\e[0m\] ${promp
 if [[ x${environment} != x ]]; then
   environment="[${environment}]"
   promptend="> "
-  export PS1='\A (bash)\e[38;5;208m\]${environment} \[\e[1;35m\]\w\[\e[38;5;99m\]$(__git_ps1)\e[38;5;208m\] ${promptend}\[\e[0m\]'
+  export PS1='\A (bash)\[\e[38;5;208m\]${environment} \[\e[1;35m\]\w\[\e[38;5;99m\]$(__git_ps1)\[\e[38;5;208m\] ${promptend}\[\e[0m\]'
 fi
 
 source ${FRAGMENTATION_DIR}/dotfiles/.aliases

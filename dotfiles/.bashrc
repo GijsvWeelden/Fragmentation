@@ -20,9 +20,12 @@ parse_git_branch() {
 environment=""
 promptend="% "
 if [[ x${O2_ROOT} != x ]]; then
-  environment="O2 "
+  environment="O2"
 fi
-if [[ x${NINJA_ROOT} != x ]]; then
+if [[ x$(echo ${LOADEDMODULES} | grep "ninja") != x ]]; then
+  if [[ x${environment} != x ]]; then
+    environment="${environment} "
+  fi
   environment="${environment}ninja"
 fi
 

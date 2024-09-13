@@ -14,3 +14,5 @@ alias atag="${FRAGMENTATION_DIR}/scripts/load-alien-tag -a -y"
 alias otag="${FRAGMENTATION_DIR}/scripts/load-alien-tag"
 alias o2dir="cd ${ALIBUILD_WORK_DIR}/../O2Physics"
 alias fragdir="cd ${FRAGMENTATION_DIR}"
+
+alias xcodeversion="pkgutil --pkg-info=com.apple.pkg.CLTools_Executables"

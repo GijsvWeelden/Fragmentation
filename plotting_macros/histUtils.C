@@ -132,6 +132,26 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend
   if (latex) { latex->Draw("same"); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
+// Plot n histograms, but set all colours, markers, etc. manually
+template <typename T>
+void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, vector<TLatex*> latexVector, string setDrawOption = "")
+{
+  canvas->cd();
+  frame->Draw();
+  string drawOption = "same";
+  if (setDrawOption != "") {
+    drawOption += " " + setDrawOption;
+  }
+  for (unsigned int i = 0; i < histVector.size(); i++) {
+    T hist = histVector[i];
+    hist->Draw(drawOption.c_str());
+  }
+  if (legend) { legend->Draw("same"); }
+  for (auto latex : latexVector) {
+    latex->Draw("same");
+  }
+  canvas->SaveAs(canvas->GetName());
+}
 // Plot only histograms
 void plotNHists(std::vector<TH1F*> histVector, std::vector<string> histNameVector,
                 string xTitle, string yTitle, string histTitle, string legendTitle, string saveName,
@@ -319,49 +339,14 @@ TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, str
   return outputHist;
 }
 
+// Get bins corresponding to a range on an axis
+// Default behaviour is to include overflow and underflow bins
 std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const double max, double epsilon = 1e-5)
 {
-  // Default behaviour is to include overflow and underflow bins
   int firstBin = 0, lastBin = axis->GetNbins() + 1;
   if (min > -900) { firstBin = axis->FindBin(min + epsilon); }
   if (max > -900) { lastBin = axis->FindBin(max - epsilon); }
   return std::array{firstBin, lastBin};
-}
-std::array<int, 2> getProjectionBins(TH1* inputHist, const int axis, const double min, const double max, double epsilon = 1e-5)
-{
-  TAxis* axisPtr = inputHist->GetXaxis();
-  if (axis == 1) { axisPtr = inputHist->GetYaxis(); }
-  if (axis == 2) { axisPtr = inputHist->GetZaxis(); }
-  return getProjectionBins(axisPtr, min, max, epsilon);
-}
-std::array<int, 2> getProjectionBins(const THnSparse* inputHist, const int axis, const double min, const double max, double epsilon = 1e-5)
-{
-  TAxis* axisPtr = inputHist->GetAxis(axis);
-  return getProjectionBins(axisPtr, min, max, epsilon);
-}
-// Return bin numbers and edges for a range on a given axis
-void getProjectionBinsAndEdges(TH1* inputHist, const int axis, const double min, const double max,
-                               int& firstBin, int& lastBin, double& firstEdge, double& lastEdge, double epsilon = 1e-5)
-{
-  TAxis* axisPtr = inputHist->GetXaxis();
-  if (axis == 1) { axisPtr = inputHist->GetYaxis(); }
-  if (axis == 2) { axisPtr = inputHist->GetZaxis(); }
-
-  std::array<int, 2> bins = getProjectionBins(axisPtr, min, max, epsilon);
-  firstBin = bins[0];
-  lastBin = bins[1];
-  firstEdge = axisPtr->GetBinLowEdge(firstBin);
-  lastEdge = axisPtr->GetBinUpEdge(lastBin);
-}
-void getProjectionBinsAndEdges(const THnSparse* inputHist, const int axis, const double min, const double max,
-                               int& firstBin, int& lastBin, double& firstEdge, double& lastEdge, double epsilon = 1e-5)
-{
-  TAxis* axisPtr = inputHist->GetAxis(axis);
-  std::array<int, 2> bins = getProjectionBins(axisPtr, min, max, epsilon);
-  firstBin = bins[0];
-  lastBin = bins[1];
-  firstEdge = axisPtr->GetBinLowEdge(firstBin);
-  lastEdge = axisPtr->GetBinUpEdge(lastBin);
 }
 
 // Set histogram colours and markers

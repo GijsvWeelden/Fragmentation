@@ -734,7 +734,7 @@ void plot22o(string hadron, int cutAxis, double ptmin, double ptmax, double dM =
 {
   string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
   string dataSet = "LHC22o_pass6";
-  // Which bins to cut with on each of the axes. First 4 should always be 0
+  // Which bins to cut with on each of the axes. First 4 are ignored
   array<int, 10> axisBins = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   cutVarPurityCMC(inName, dataSet, hadron, cutAxis, ptmin, ptmax, axisBins, dM, 2, 1, 0, rebinNumber);
 }

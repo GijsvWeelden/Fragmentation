@@ -10,5 +10,6 @@ zstyle ':completion:*:*:git:*' script ~/.zsh/git-completion.bash
 fpath=(~/.zsh $fpath)
 autoload -Uz compinit && compinit
 
+alias o2="echo 'You need to be in bash to load O2."
 alias ls="ls -F --color"
 alias ll="ls -lht"

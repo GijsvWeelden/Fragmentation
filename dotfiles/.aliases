@@ -12,7 +12,9 @@ alias mergetrainoutput="${FRAGMENTATION_DIR}/scripts/mergeTrainOutput" # Require
 alias o2="${FRAGMENTATION_DIR}/scripts/load-o2"
 alias atag="${FRAGMENTATION_DIR}/scripts/load-alien-tag -a -y"
 alias otag="${FRAGMENTATION_DIR}/scripts/load-alien-tag"
-alias o2dir="cd ${ALIBUILD_WORK_DIR}/../O2Physics"
 alias fragdir="cd ${FRAGMENTATION_DIR}"
+alias aoddir="cd ${FRAGMENTATION_DIR}/../AO2D"
+alias swdir="cd ${ALIBUILD_WORK_DIR}"
+alias o2dir="cd ${ALIBUILD_WORK_DIR}/../O2Physics"
 
 alias xcodeversion="pkgutil --pkg-info=com.apple.pkg.CLTools_Executables"

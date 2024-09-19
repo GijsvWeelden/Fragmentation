@@ -389,10 +389,10 @@ string formatHadronDaughters(string hadron)
   if ("K0S" == hadron) {
     daughters = "#pi^{+}#pi^{-}";
   }
-  else if ("Lambda0" == hadron) {
+  else if ("Lambda0" == hadron || "Lambda" == hadron) {
     daughters = "p#pi^{-}";
   }
-  else if ("AntiLambda0" == hadron) {
+  else if ("AntiLambda0" == hadron || "AntiLambda" == hadron) {
     daughters = "#bar{p}#pi^{+}";
   }
   return daughters;

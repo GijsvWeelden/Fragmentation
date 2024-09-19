@@ -25,7 +25,7 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 
 // ----------------------------------------------------------
 
-void plotPt(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200.)
+void plotPt(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -42,7 +42,7 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   const int v0phiAxis  = 3;
 
   gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
@@ -54,7 +54,7 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   int rebinNumber = 5;
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  dataSet = "LHC22o_pass6_minBias";
+  // dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -95,7 +95,7 @@ void plotPt(string inName = "", string hadron = "", double jetptmin = 10., doubl
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotV0Z(string inName = "", double jetptmin = 10., double jetptmax = 200.)
+void plotV0Z(string inName = "", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -113,7 +113,7 @@ void plotV0Z(string inName = "", double jetptmin = 10., double jetptmax = 200.)
   const int dcanegAxis = 3;
 
   gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
@@ -126,7 +126,7 @@ void plotV0Z(string inName = "", double jetptmin = 10., double jetptmax = 200.)
   int rebinNumber = 5;
   xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data();
   yTitle = TString::Format("#frac{1}{#it{N}_{jets}} #frac{d #it{N}}{d #it{z}_{%s}}", formatHadronName(hadron).c_str()).Data();
-  dataSet = "LHC22o_pass6_minBias";
+  // dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -160,7 +160,7 @@ void plotV0Z(string inName = "", double jetptmin = 10., double jetptmax = 200.)
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200.)
+void plotZ(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -183,7 +183,7 @@ void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double
   const int AntiLambda0MassAxis = 4;
 
   gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
@@ -198,7 +198,7 @@ void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double
   int rebinNumber = 4;
   xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data();
   yTitle = TString::Format("#frac{1}{#it{N}_{jets}} #frac{d #it{N}}{d #it{z}_{%s}}", formatHadronName(hadron).c_str()).Data();
-  dataSet = "LHC22o_pass6_minBias";
+  // dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -239,7 +239,7 @@ void plotZ(string inName = "", string hadron = "", double jetptmin = 10., double
 
 // ----------------------------------------------------------
 
-void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotRadius(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -269,7 +269,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   int rebinNumber = 5;
   xTitle = TString::Format("%s Radius (cm)", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -308,7 +308,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 
 }
-void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotCosPA(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -337,7 +337,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   int rebinNumber = 5;
   xTitle = TString::Format("%s cos PA", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -374,7 +374,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotDCAdaughters(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -396,7 +396,7 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   int rebinNumber = 5;
   xTitle = TString::Format("%s DCA daughters (cm)", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -432,7 +432,7 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotDCApos(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -460,7 +460,7 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   int rebinNumber = 5;
   xTitle = TString::Format("%s DCA pos", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -497,7 +497,7 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotDCAneg(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -525,7 +525,7 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   int rebinNumber = 5;
   xTitle = TString::Format("%s DCA neg", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -562,7 +562,7 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotDCAposneg(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -580,7 +580,7 @@ void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10.
 
   gStyle->SetNdivisions(505, "xy");
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
@@ -632,7 +632,7 @@ void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10.
   latex->Draw("same");
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
-void plotctau(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotctau(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -658,7 +658,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   int xCanvas = 900, yCanvas = 900;
   xTitle = TString::Format("#it{c}#tau (%s)", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -695,7 +695,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotMass(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotMass(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -725,7 +725,7 @@ void plotMass(string inName = "", string hadron = "", double jetptmin = 10., dou
   int xCanvas = 900, yCanvas = 900;
   xTitle = TString::Format("#it{M} (%s)", formatHadronName(hadron).c_str()).Data();
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -765,7 +765,7 @@ void plotMass(string inName = "", string hadron = "", double jetptmin = 10., dou
 // ----------------------------------------------------------
 // Unidentified V0s
 // ----------------------------------------------------------
-void plotV0ctau(string inName = "", int setting = 2, double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0ctau(string inName = "", string dataSet = "dataSet", int setting = 2, double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -797,7 +797,7 @@ void plotV0ctau(string inName = "", int setting = 2, double jetptmin = 10., doub
   if (setting == LambdaAxis) { xTitle = TString::Format("#it{c}#tau (%s)", formatHadronName("Lambda0").c_str()).Data(); }
   if (setting == AntiLambdaAxis) { xTitle = TString::Format("#it{c}#tau (%s)", formatHadronName("AntiLambda0").c_str()).Data(); }
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   std::vector<TH1D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -860,7 +860,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{c}#tau (K^{0}_{S})";
   yTitle = "#it{c}#tau (#Lambda)";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -932,7 +932,7 @@ void plotV0mass(string inName = "AnalysisResults.root", int setting = 2, double 
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
@@ -994,7 +994,7 @@ void plotV0massKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#Lambda)";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1057,7 +1057,7 @@ void plotV0massKaL(string inName = "AnalysisResults.root", double jetptmin = 10.
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#bar{#Lambda})";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1120,7 +1120,7 @@ void plotV0massLL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (#Lambda)";
   yTitle = "#it{M} (#bar{#Lambda})";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1194,7 +1194,7 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  string dataSet = "LHC22o_pass6_minBias";
+  // string dataSet = "LHC22o_pass6_minBias";
   latexText = "";
 
   std::vector<TH1D*> histVector;
@@ -1292,7 +1292,7 @@ void plotNV0sInJet(string inName, string hadron, double jetptmin = 10., double j
   int xCanvas = 900, yCanvas = 900;
   xTitle = TString::Format("#it{N} (%s) #in jet", formatHadronName(hadron).c_str()).Data();
   yTitle = "#it{N}_{jets}";
-  string dataSet = "LHC22o_pass6_minBias_small";
+  // string dataSet = "LHC22o_pass6_minBias_small";
   latexText = "";
 
   std::vector<TH1D*> histVector;
@@ -1391,74 +1391,117 @@ void plotNV0sInJet(string inName, string hadron, double jetptmin = 10., double j
 // ----------------------------------------------------------
 // Lambda0
 // ----------------------------------------------------------
-void plotLambda0Pt(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
+void plotLambda0Pt(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
 { plotPt(inName, "Lambda0", jetptmin, jetptmax); }
-void plotLambda0Z(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
+void plotLambda0Z(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
 { plotZ(inName, "Lambda0", jetptmin, jetptmax); }
 
-void plotLambda0Radius(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotLambda0Radius(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotRadius(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0CosPA(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotLambda0CosPA(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotCosPA(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0DCAdaughters(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotLambda0DCAdaughters(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAdaughters(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0DCApos(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotLambda0DCApos(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCApos(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0DCAneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotLambda0DCAneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAneg(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0DCAposneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotLambda0DCAposneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAposneg(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0ctau(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotLambda0ctau(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotctau(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0Mass(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotLambda0Mass(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotMass(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
 
 // ----------------------------------------------------------
 // AntiLambda0
 // ----------------------------------------------------------
-void plotAntiLambda0Pt(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
+void plotAntiLambda0Pt(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
 { plotPt(inName, "AntiLambda0", jetptmin, jetptmax); }
-void plotAntiLambda0Z(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
+void plotAntiLambda0Z(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
 { plotZ(inName, "AntiLambda0", jetptmin, jetptmax); }
 
-void plotAntiLambda0Radius(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotAntiLambda0Radius(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotRadius(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0CosPA(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotAntiLambda0CosPA(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotCosPA(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0DCAdaughters(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotAntiLambda0DCAdaughters(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAdaughters(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0DCApos(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotAntiLambda0DCApos(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCApos(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0DCAneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotAntiLambda0DCAneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAneg(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0DCAposneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotAntiLambda0DCAposneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAposneg(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0ctau(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotAntiLambda0ctau(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotctau(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0Mass(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotAntiLambda0Mass(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotMass(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
 
 // ----------------------------------------------------------
 // K0S
 // ----------------------------------------------------------
-void plotK0SPt(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
+void plotK0SPt(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
 { plotPt(inName, "K0S", jetptmin, jetptmax); }
-void plotK0SZ(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
+void plotK0SZ(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
 { plotZ(inName, "K0S", jetptmin, jetptmax); }
 
-void plotK0SRadius(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotK0SRadius(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotRadius(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SCosPA(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotK0SCosPA(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotCosPA(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SDCAdaughters(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotK0SDCAdaughters(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAdaughters(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SDCApos(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotK0SDCApos(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCApos(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SDCAneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotK0SDCAneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAneg(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SDCAposneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotK0SDCAposneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotDCAposneg(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0Sctau(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotK0Sctau(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotctau(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SMass(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotK0SMass(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
 { plotMass(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
+
+// ----------------------------------------------------------
+// ----------------------------------------------------------
+// ----------------------------------------------------------
+
+void plot22o(double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, string hadron, int setting)
+{
+  string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+  string dataSet = "LHC22o_pass6";
+
+  switch(setting) {
+    case 0:
+      plotRadius(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      break;
+    case 1:
+      plotCosPA(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      break;
+    case 2:
+      plotDCAdaughters(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      break;
+    case 3:
+      plotDCApos(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      break;
+    case 4:
+      plotDCAneg(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      break;
+    case 5:
+      plotctau(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      break;
+    default:
+      cout << "Invalid setting!" << endl;
+      break;
+  }
+}
+
+void plotAll22o(double jetptmin, double jetptmax, string hadron, int setting)
+{
+  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
+  for (int i = 0; i < pt.size() - 1; i++) {
+    if pt[i] > jetptmax { break; }
+    plot22o(jetptmin, jetptmax, pt[i], pt[i+1], hadron, setting);
+  }
+}

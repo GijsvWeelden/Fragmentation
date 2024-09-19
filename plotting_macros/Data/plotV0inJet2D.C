@@ -28,7 +28,7 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 
 // ----------------------------------------------------------
 
-void plotV0Radius(string inName = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotV0Radius(string inName = "", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -47,7 +47,7 @@ void plotV0Radius(string inName = "", double jetptmin = 10., double jetptmax = 2
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 0., yMaxFrame = 50.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 0., yMaxFrame = 100.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.45, yLatex = 0.8;
@@ -56,7 +56,7 @@ void plotV0Radius(string inName = "", double jetptmin = 10., double jetptmax = 2
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("%s Radius (cm)", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -69,7 +69,7 @@ void plotV0Radius(string inName = "", double jetptmin = 10., double jetptmax = 2
   histName = TString::Format("jetPt%sPtRadiusCosPA", hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjRadiusCosPA", hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
@@ -79,15 +79,17 @@ void plotV0Radius(string inName = "", double jetptmin = 10., double jetptmax = 2
 
   TH2D* v0Radius = (TH2D*)thn->Projection(radiusAxis, v0ptAxis);
   v0Radius->SetName(TString::Format("v0Radius_jetpt%.0f-%.0f", lowjetpt, highjetpt).Data());
-  v0Radius->Rebin2D(doZ ? 1 : 5, rebinNumber);
+  // v0Radius->Rebin2D(doZ ? 1 : 5, rebinNumber);
   normaliseHistColByCol(v0Radius);
   v0Radius->SetMinimum(1e-5);
   v0Radius->SetMaximum(1.);
   histVector.push_back(v0Radius);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }",
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c",
                               dataSet.c_str(), lowjetpt, highjetpt).Data();
-  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  // latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtRadius", hadron.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZRadius", hadron.c_str()).Data(); }
@@ -95,7 +97,7 @@ void plotV0Radius(string inName = "", double jetptmin = 10., double jetptmax = 2
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotV0CosPA(string inName = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotV0CosPA(string inName = "", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -114,16 +116,16 @@ void plotV0CosPA(string inName = "", double jetptmin = 10., double jetptmax = 20
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 0.95, yMaxFrame = 1.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 0.95, yMaxFrame = 1.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
-  double xLatex = 0.4, yLatex = 0.25;
+  double xLatex = 0.2, yLatex = 0.95;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("%s cos PA", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -135,7 +137,7 @@ void plotV0CosPA(string inName = "", double jetptmin = 10., double jetptmax = 20
   histName = TString::Format("jetPt%sPtRadiusCosPA", hadron.c_str()).Data();
   if(doZ) { histName = TString::Format("jetPt%sTrackProjRadiusCosPA", hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
@@ -145,14 +147,16 @@ void plotV0CosPA(string inName = "", double jetptmin = 10., double jetptmax = 20
 
   TH2D* v0CosPA = (TH2D*)thn->Projection(cospaAxis, v0ptAxis);
   v0CosPA->SetName(TString::Format("v0CosPA_jetpt%.0f-%.0f", lowjetpt, highjetpt).Data());
-  v0CosPA->Rebin2D(doZ ? 1 : 5, rebinNumber);
+  // // v0CosPA->Rebin2D(doZ ? 1 : 5, rebinNumber);
   normaliseHistColByCol(v0CosPA);
   v0CosPA->SetMinimum(1e-5);
   v0CosPA->SetMaximum(1.);
   histVector.push_back(v0CosPA);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
-  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  // latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtCosPA", hadron.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZCosPA", hadron.c_str()).Data(); }
@@ -160,7 +164,7 @@ void plotV0CosPA(string inName = "", double jetptmin = 10., double jetptmax = 20
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotV0ctau(string inName = "", string hypothesis = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotV0ctau(string inName = "", string dataSet = "dataSet", string hypothesis = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -184,7 +188,7 @@ void plotV0ctau(string inName = "", string hypothesis = "", double jetptmin = 10
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 0., yMaxFrame = 40.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 0., yMaxFrame = 40.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.45, yLatex = 0.8;
@@ -193,7 +197,7 @@ void plotV0ctau(string inName = "", string hypothesis = "", double jetptmin = 10
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("#it{c}#tau (%s)", formatHadronName(hypothesis).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -204,7 +208,7 @@ void plotV0ctau(string inName = "", string hypothesis = "", double jetptmin = 10
   histName = "jetPtV0PtCtau";
   if (doZ) { histName = "jetPtV0TrackProjCtau"; }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -214,13 +218,15 @@ void plotV0ctau(string inName = "", string hypothesis = "", double jetptmin = 10
   double highjetpt = thn->GetAxis(jetptAxis)->GetBinUpEdge(jetptbins[1]);
 
   TH2D* ctau = (TH2D*)thn->Projection(K0SAxis * ("K0S" == hypothesis) + LambdaAxis * ("Lambda0" == hypothesis) + AntiLambdaAxis * ("AntiLambda0" == hypothesis), v0ptAxis);
-  ctau->Rebin2D(doZ ? 1 : 5, rebinNumber);
+  // ctau->Rebin2D(doZ ? 1 : 5, rebinNumber);
   normaliseHistColByCol(ctau);
   ctau->SetName(TString::Format("ctau_jetpt%.0f-%.0f", lowjetpt, highjetpt).Data());
   histVector.push_back(ctau);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  // TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  TLatex* latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("V0Ptctau%s", hypothesis.c_str());
   if (doZ) { saveName = TString::Format("V0Zctau%s", hypothesis.c_str()); }
@@ -228,7 +234,7 @@ void plotV0ctau(string inName = "", string hypothesis = "", double jetptmin = 10
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotV0Mass(string inName = "", string hypothesis = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotV0Mass(string inName = "", string dataSet = "dataSet", string hypothesis = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -252,7 +258,7 @@ void plotV0Mass(string inName = "", string hypothesis = "", double jetptmin = 10
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 1.05, yMaxFrame = 1.215;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 1.05, yMaxFrame = 1.215;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   if ("K0S" == hypothesis) { yMinFrame = 0.4, yMaxFrame = 0.6; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
@@ -262,7 +268,7 @@ void plotV0Mass(string inName = "", string hypothesis = "", double jetptmin = 10
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("#it{M} (%s)", formatHadronName(hypothesis).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -273,7 +279,7 @@ void plotV0Mass(string inName = "", string hypothesis = "", double jetptmin = 10
   histName = TString::Format("jetPt%sPtMass", hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjMass", hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -284,15 +290,17 @@ void plotV0Mass(string inName = "", string hypothesis = "", double jetptmin = 10
 
   TH2D* mass = (TH2D*)thn->Projection(K0SAxis * ("K0S" == hypothesis) + LambdaAxis * ("Lambda0" == hypothesis) + AntiLambdaAxis * ("AntiLambda0" == hypothesis), v0ptAxis);
   mass->SetName("v0mass");
-  mass->Rebin2D(doZ ? 1 : 5, rebinNumber);
+  // mass->Rebin2D(doZ ? 1 : 5, rebinNumber);
   normaliseHistColByCol(mass);
   mass->SetMinimum(1e-5);
   mass->SetMaximum(1.);
   histVector.push_back(mass);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }",
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c",
                               dataSet.c_str(), jetptmin, jetptmax).Data();
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  // TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  TLatex* latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtmass%s", hadron.c_str(), hypothesis.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZmass%s", hadron.c_str(), hypothesis.c_str()).Data(); }
@@ -300,7 +308,7 @@ void plotV0Mass(string inName = "", string hypothesis = "", double jetptmin = 10
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotV0Masses(string inName = "", std::array<string, 2> hypotheses = {"", ""}, double jetptmin = 10., double jetptmax = 200., double v0min = 0., double v0max = 100., bool doZ = false)
+void plotV0Masses(string inName = "", string dataSet = "dataSet", std::array<string, 2> hypotheses = {"", ""}, double jetptmin = 10., double jetptmax = 200., double v0min = 0., double v0max = 100., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -341,7 +349,7 @@ void plotV0Masses(string inName = "", std::array<string, 2> hypotheses = {"", ""
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M} (%s)", formatHadronName(hypotheses[0]).c_str()).Data();
   yTitle = TString::Format("#it{M} (%s)", formatHadronName(hypotheses[1]).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -352,7 +360,7 @@ void plotV0Masses(string inName = "", std::array<string, 2> hypotheses = {"", ""
   histName = TString::Format("jetPt%sPtMass", hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjMass", hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -375,13 +383,15 @@ void plotV0Masses(string inName = "", std::array<string, 2> hypotheses = {"", ""
   mass->SetMaximum(1.);
   histVector.push_back(mass);
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/#it{c} }}",
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/#it{c} }}",
                               dataSet.c_str(), jetptmin, jetptmax, hadron.c_str(), lowv0, highv0).Data();
   if (doZ) {
-    latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{z}_{%s} = %.0f - %.0f }}",
+    latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{z}_{%s} = %.0f - %.0f }}",
                                 dataSet.c_str(), jetptmin, jetptmax, hadron.c_str(), lowv0, highv0).Data();
   }
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  // TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  TLatex* latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%smass%s-%s", hadron.c_str(), hypotheses[0].c_str(), hypotheses[1].c_str()).Data();
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
@@ -393,7 +403,7 @@ void plotV0Masses(string inName = "", std::array<string, 2> hypotheses = {"", ""
 
 // ----------------------------------------------------------
 
-void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotRadius(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -401,7 +411,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   }
   if ( "V0" == hadron ) {
     cout << "V0 selected. Redirecting to plotV0Radius" << endl;
-    plotV0Radius(inName, jetptmin, jetptmax, doZ);
+    plotV0Radius(inName, dataSet, jetptmin, jetptmax, doZ);
     return;
   }
   if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
@@ -415,7 +425,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   double titleSize = 0.04;
 
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 0., yMaxFrame = 50.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 0., yMaxFrame = 50.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.45, yLatex = 0.8;
@@ -424,7 +434,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("%s Radius (cm)", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -441,7 +451,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   if (doZ) { histName = TString::Format("jetPt%sTrackProjRadius", hadronForHist.c_str()).Data(); }
 
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   TH3D* th3 = (TH3D*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(th3->GetXaxis(), jetptmin, jetptmax);
@@ -451,15 +461,17 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
 
   TH2D* v0Radius = (TH2D*)th3->Project3D("zy");
   v0Radius->SetName(TString::Format("v0Radius_jetpt%.0f-%.0f", lowjetpt, highjetpt).Data());
-  v0Radius->Rebin2D(doZ ? 1 : 5, rebinNumber);
+  // v0Radius->Rebin2D(doZ ? 1 : 5, rebinNumber);
   normaliseHistColByCol(v0Radius);
   v0Radius->SetMinimum(1e-5);
   v0Radius->SetMaximum(1.);
   histVector.push_back(v0Radius);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }",
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c",
                               dataSet.c_str(), lowjetpt, highjetpt).Data();
-  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  // latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtRadius", hadron.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZRadius", hadron.c_str()).Data(); }
@@ -467,7 +479,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotCosPA(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -475,7 +487,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   }
   if ( "V0" == hadron ) {
     cout << "V0 selected. Redirecting to plotV0CosPA" << endl;
-    plotV0CosPA(inName, jetptmin, jetptmax, doZ);
+    plotV0CosPA(inName, dataSet, jetptmin, jetptmax, doZ);
     return;
   }
   if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
@@ -494,7 +506,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 0.995, yMaxFrame = 1.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 0.995, yMaxFrame = 1.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.5, yLatex = 0.25;
@@ -503,7 +515,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("%s cos PA", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -519,7 +531,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   histName = TString::Format("jetPt%sPtCosPA", hadronForHist.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjCosPA", hadronForHist.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   TH3D* th3 = (TH3D*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(th3->GetXaxis(), jetptmin, jetptmax);
@@ -529,14 +541,16 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
 
   TH2D* v0CosPA = (TH2D*)th3->Project3D("zy");
   v0CosPA->SetName(TString::Format("v0CosPA_jetpt%.0f-%.0f", lowjetpt, highjetpt).Data());
-  v0CosPA->Rebin2D(doZ ? 1 : 5, rebinNumber);
+  // v0CosPA->Rebin2D(doZ ? 1 : 5, rebinNumber);
   normaliseHistColByCol(v0CosPA);
   v0CosPA->SetMinimum(1e-5);
   v0CosPA->SetMaximum(1.);
   histVector.push_back(v0CosPA);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
-  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  // latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtCosPA", hadron.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZCosPA", hadron.c_str()).Data(); }
@@ -544,7 +558,7 @@ void plotCosPA(string inName = "", string hadron = "", double jetptmin = 10., do
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotDCAdaughters(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -560,7 +574,7 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 0., yMaxFrame = 1.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 0., yMaxFrame = 1.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
@@ -568,7 +582,7 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();;
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("%s DCA daughters (cm)", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -584,7 +598,7 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   histName = TString::Format("jetPt%sPtDCAd", hadronForHist.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjDCAd", hadronForHist.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   TH3D* th3 = (TH3D*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(th3->GetXaxis(), jetptmin, jetptmax);
@@ -599,9 +613,11 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   v0DCAdaughters->SetMaximum(1.);
   histVector.push_back(v0DCAdaughters);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }",
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c",
                               dataSet.c_str(), jetptmin, jetptmax).Data();
-  latex = CreateLatex(0.45, 0.8, latexText, textSize);
+  // latex = CreateLatex(0.45, 0.8, latexText, textSize);
+  latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtDCAdaughters", hadron.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZDCAdaughters", hadron.c_str()).Data(); }
@@ -609,7 +625,7 @@ void plotDCAdaughters(string inName = "", string hadron = "", double jetptmin = 
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotDCApos(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -631,7 +647,7 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = -10., yMaxFrame = 10.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = -10., yMaxFrame = 10.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
@@ -639,7 +655,7 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("%s DCA pos", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -655,7 +671,7 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   histName = TString::Format("jetPt%sPtDCAposneg", hadronForHist.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjDCAposneg", hadronForHist.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
@@ -670,9 +686,11 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   v0DCApos->SetMaximum(1.);
   histVector.push_back(v0DCApos);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }",
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c",
                               dataSet.c_str(), lowjetpt, highjetpt).Data();
-  latex = CreateLatex(0.4, 0.8, latexText, textSize);
+  // latex = CreateLatex(0.4, 0.8, latexText, textSize);
+  latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtDCApos", hadron.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZDCApos", hadron.c_str()).Data(); }
@@ -680,7 +698,7 @@ void plotDCApos(string inName = "", string hadron = "", double jetptmin = 10., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotDCAneg(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -702,7 +720,7 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = -10., yMaxFrame = 10.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = -10., yMaxFrame = 10.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
@@ -710,7 +728,7 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("%s DCA neg", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -725,7 +743,7 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   histName = TString::Format("jetPt%sPtDCAposneg", hadronForHist.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjDCAposneg", hadronForHist.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
@@ -740,9 +758,11 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   v0DCAneg->SetMaximum(1.);
   histVector.push_back(v0DCAneg);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }",
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c",
                               dataSet.c_str(), lowjetpt, highjetpt).Data();
-  TLatex* latex = CreateLatex(0.4, 0.8, latexText, textSize);
+  // TLatex* latex = CreateLatex(0.4, 0.8, latexText, textSize);
+  TLatex* latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtDCAneg", hadron.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZDCAneg", hadron.c_str()).Data(); }
@@ -750,7 +770,7 @@ void plotDCAneg(string inName = "", string hadron = "", double jetptmin = 10., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotctau(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotctau(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -758,7 +778,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   }
   if ("V0" == hadron) {
     cout << "V0 selected. Use plotV0ctau instead" << endl;
-    // plotV0ctau(inName, hadron, jetptmin, jetptmax, doZ);
+    // plotV0ctau(inName, dataSet, hadron, jetptmin, jetptmax, doZ);
     return;
   }
   if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
@@ -771,7 +791,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 0., yMaxFrame = 40.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 0., yMaxFrame = 40.;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.45, yLatex = 0.7;
@@ -780,7 +800,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("#it{c}#tau (%s)", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -795,7 +815,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   histName = TString::Format("jetPt%sPtCtau", hadronForHist.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjCtau", hadronForHist.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   TH3D* th3 = (TH3D*)inFile->Get(histName.c_str());
   th3->Sumw2();
 
@@ -805,16 +825,18 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   double highjetpt = th3->GetXaxis()->GetBinUpEdge(jetptbins[1]);
 
   TH2D* ctau = (TH2D*)th3->Project3D("zy");
-  ctau->Rebin2D(doZ ? 1 : 5, rebinNumber);
+  // ctau->Rebin2D(doZ ? 1 : 5, rebinNumber);
   normaliseHistColByCol(ctau);
   ctau->SetMinimum(1e-5);
   ctau->SetMaximum(1.);
   ctau->SetName(TString::Format("ctau_jetpt%.0f-%.0f", lowjetpt, highjetpt).Data());
   histVector.push_back(ctau);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }",
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c",
                               dataSet.c_str(), lowjetpt, highjetpt).Data();
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  // TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  TLatex* latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtctau", hadron.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZctau", hadron.c_str()).Data(); }
@@ -822,7 +844,7 @@ void plotctau(string inName = "", string hadron = "", double jetptmin = 10., dou
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotMass(string inName = "", string hadron = "", string hypothesis = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotMass(string inName = "", string dataSet = "dataSet", string hadron = "", string hypothesis = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -830,7 +852,7 @@ void plotMass(string inName = "", string hadron = "", string hypothesis = "", do
   }
   if ("V0" == hadron) { // Need different plotting function for V0s
     cout << "V0 selected. Redirecting to plotV0Mass" << endl;
-    plotV0Mass(inName, hypothesis, jetptmin, jetptmax, doZ);
+    plotV0Mass(inName, dataSet, hypothesis, jetptmin, jetptmax, doZ);
     return;
   }
   if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
@@ -854,7 +876,7 @@ void plotMass(string inName = "", string hadron = "", string hypothesis = "", do
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 1.05, yMaxFrame = 1.215;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 1.05, yMaxFrame = 1.215;
   if (doZ) { xMinFrame = 1e-3; xMaxFrame = 1. + 1e-3; }
   if ("K0S" == hypothesis) { yMinFrame = 0.4, yMaxFrame = 0.6; }
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
@@ -864,7 +886,7 @@ void plotMass(string inName = "", string hadron = "", string hypothesis = "", do
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("#it{M} (%s)", formatHadronName(hypothesis).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -879,7 +901,7 @@ void plotMass(string inName = "", string hadron = "", string hypothesis = "", do
   histName = TString::Format("jetPt%sPtAllMasses", hadronForHist.c_str()).Data();
   if (doZ) { histName = TString::Format("jetPt%sTrackProjAllMasses", hadronForHist.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -890,15 +912,17 @@ void plotMass(string inName = "", string hadron = "", string hypothesis = "", do
 
   TH2D* mass = (TH2D*)thn->Projection(K0SAxis * ("K0S" == hypothesis) + LambdaAxis * ("Lambda0" == hypothesis) + AntiLambdaAxis * ("AntiLambda0" == hypothesis), v0ptAxis);
   mass->SetName("v0mass");
-  mass->Rebin2D(doZ ? 1 : 5, rebinNumber);
+  // mass->Rebin2D(doZ ? 1 : 5, rebinNumber);
   normaliseHistColByCol(mass);
   mass->SetMinimum(1e-5);
   mass->SetMaximum(1.);
   histVector.push_back(mass);
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c}{ %s tagged V0s } }",
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c}{ %s tagged V0s } }",
                               dataSet.c_str(), jetptmin, jetptmax, hadron.c_str()).Data();
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  // TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  TLatex* latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%sPtmass%s", hadron.c_str(), hypothesis.c_str()).Data();
   if (doZ) { saveName = TString::Format("%sZmass%s", hadron.c_str(), hypothesis.c_str()).Data(); }
@@ -906,7 +930,7 @@ void plotMass(string inName = "", string hadron = "", string hypothesis = "", do
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "colz");
 }
-void plotMasses(string inName = "", string hadron = "", std::array<string, 2> hypotheses = {"", ""}, double jetptmin = 10., double jetptmax = 200., double v0min = 0., double v0max = 100., bool doZ = false)
+void plotMasses(string inName = "", string dataSet = "dataSet", string hadron = "", std::array<string, 2> hypotheses = {"", ""}, double jetptmin = 10., double jetptmax = 200., double v0min = 0., double v0max = 100., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -914,7 +938,7 @@ void plotMasses(string inName = "", string hadron = "", std::array<string, 2> hy
   }
   if ("V0" == hadron) {
     cout << "V0 selected. Use plotV0Masses instead" << endl;
-    plotV0Masses(inName, hypotheses, jetptmin, jetptmax, v0min, v0max, doZ);
+    plotV0Masses(inName, dataSet, hypotheses, jetptmin, jetptmax, v0min, v0max, doZ);
     return;
   }
   if (("K0S" != hadron) + ("Lambda0" != hadron) + ("AntiLambda0" != hadron) != 1) {
@@ -955,7 +979,7 @@ void plotMasses(string inName = "", string hadron = "", std::array<string, 2> hy
   int rebinNumber = 5;
   xTitle = TString::Format("#it{M} (%s)", formatHadronName(hypotheses[0]).c_str()).Data();
   yTitle = TString::Format("#it{M} (%s)", formatHadronName(hypotheses[1]).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -966,7 +990,7 @@ void plotMasses(string inName = "", string hadron = "", std::array<string, 2> hy
   histName = TString::Format("partJetPt%sPtDetJetPt%sPtAllMasses", hadron.c_str(), hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProjAllMasses", hadron.c_str(), hadron.c_str()).Data(); }
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -989,13 +1013,15 @@ void plotMasses(string inName = "", string hadron = "", std::array<string, 2> hy
   mass->SetMaximum(1.);
   histVector.push_back(mass);
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/#it{c} }}",
+  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/#it{c} }}",
                               dataSet.c_str(), jetptmin, jetptmax, hadron.c_str(), lowv0, highv0).Data();
   if (doZ) {
-    latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{z}_{%s} = %.0f - %.0f }}",
+    latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{z}_{%s} = %.0f - %.0f }}",
                                 dataSet.c_str(), jetptmin, jetptmax, hadron.c_str(), lowv0, highv0).Data();
   }
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  // TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  TLatex* latex = nullptr;
+  frame->SetTitle(latexText.c_str());
 
   saveName = TString::Format("%smass%s-%s", hadron.c_str(), hypotheses[0].c_str(), hypotheses[1].c_str()).Data();
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
@@ -1006,7 +1032,7 @@ void plotMasses(string inName = "", string hadron = "", std::array<string, 2> hy
 }
 
 /*
-void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotDCAposneg(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -1024,12 +1050,12 @@ void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10.
 
   gStyle->SetNdivisions(505, "xy");
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool SetLogz = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = -10, yMaxFrame = 10;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = -10, yMaxFrame = 10;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.2, yLatex = 0.93;
   int xCanvas = 900, yCanvas = 900;
@@ -1043,7 +1069,7 @@ void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10.
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   histName = TString::Format("jet-fragmentation/data/jets/V0/jetPt%sPtDCAposneg", hadron.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
@@ -1061,8 +1087,9 @@ void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10.
   v0DCAposneg->SetMinimum(1e-5);
   v0DCAposneg->SetMaximum(1.);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }", dataSet.c_str(), lowjetpt, highjetpt).Data();
-  TLatex* latex = CreateLatex(0.2, 0.93, latexText, textSize);
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c", dataSet.c_str(), lowjetpt, highjetpt).Data();
+  // TLatex* latex = CreateLatex(0.2, 0.93, latexText, textSize);
+  frame->SetTitle
 
   saveName = TString::Format("%sDCAposneg", hadron.c_str()).Data();
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
@@ -1080,7 +1107,7 @@ void plotDCAposneg(string inName = "", string hadron = "", double jetptmin = 10.
 // ----------------------------------------------------------
 // Unidentified V0s
 // ----------------------------------------------------------
-void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
+void plotRadius(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., bool doZ = false)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -1103,7 +1130,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   double titleSize = 0.04;
 
   bool setLogZ = true;
-  double xMinFrame = 0., xMaxFrame = 100., yMinFrame = 0., yMaxFrame = 50.;
+  double xMinFrame = 0., xMaxFrame = jetptmax, yMinFrame = 0., yMaxFrame = 50.;
   double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   double xLatex = 0.3, yLatex = 0.8;
   int xCanvas = 900, yCanvas = 900;
@@ -1111,7 +1138,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   xTitle = TString::Format("#it{p}_{T, %s} (GeV/#it{c})", formatHadronName(hadron).c_str()).Data();
   if (doZ) { xTitle = TString::Format("#it{z}_{%s}", formatHadronName(hadron).c_str()).Data(); }
   yTitle = TString::Format("%s Radius (cm)", formatHadronName(hadron).c_str()).Data();
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   std::vector<TH2D*> histVector;
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1128,7 +1155,7 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
   if (doZ) { histName = TString::Format("jetPt%sTrackProjRadiusCosPA", hadronForHist.c_str()).Data(); }
 
   histName = TString::Format("jet-fragmentation/data/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
@@ -1138,13 +1165,14 @@ void plotRadius(string inName = "", string hadron = "", double jetptmin = 10., d
 
   TH2D* v0Radius = (TH2D*)thn->Projection(radiusAxis, v0ptAxis);
   v0Radius->SetName(TString::Format("v0Radius_jetpt%.0f-%.0f", lowjetpt, highjetpt).Data());
-  v0Radius->Rebin2D(rebinNumber, rebinNumber);
+  // v0Radius->Rebin2D(rebinNumber, rebinNumber);
   normaliseHistColByCol(v0Radius);
   histVector.push_back(v0Radius);
 
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }",
+  latexText = TString::Format("%s, #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c",
                               dataSet.c_str(), lowjetpt, highjetpt).Data();
-  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  // latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  frame->SetTitle
 
   saveName = TString::Format("%sRadius", hadron.c_str()).Data();
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
@@ -1176,7 +1204,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{c}#tau (K^{0}_{S})";
   yTitle = "#it{c}#tau (#Lambda)";
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -1184,7 +1212,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   histName = "jet-fragmentation/data/jets/V0/jetPtV0PtCtau";
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -1201,7 +1229,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   TH2D* ctau = (TH2D*)thn->Projection(LambdaAxis, K0SAxis);
   ctau->Scale(1./ctau->Integral());
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
 
   saveName = "ctauK0SLambda";
   saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
@@ -1247,8 +1275,8 @@ void plotV0Mass(string inName = "AnalysisResults.root", int setting = 2, double 
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   xTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
+  // string dataSet = "LHC23y_pass1";
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
 
   std::vector<TH2D*> histVector;
 
@@ -1258,7 +1286,7 @@ void plotV0Mass(string inName = "AnalysisResults.root", int setting = 2, double 
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   histName = "jet-fragmentation/data/jets/V0/jetPtV0PtMass";
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -1308,8 +1336,8 @@ void plotV0MassKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#Lambda)";
-  string dataSet = "LHC23y_pass1";
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
+  // string dataSet = "LHC23y_pass1";
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -1317,7 +1345,7 @@ void plotV0MassKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   histName = "jet-fragmentation/data/jets/V0/jetPtV0PtMass";
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -1370,8 +1398,8 @@ void plotV0MassKaL(string inName = "AnalysisResults.root", double jetptmin = 10.
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#bar{#Lambda})";
-  string dataSet = "LHC23y_pass1";
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
+  // string dataSet = "LHC23y_pass1";
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -1379,7 +1407,7 @@ void plotV0MassKaL(string inName = "AnalysisResults.root", double jetptmin = 10.
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   histName = "jet-fragmentation/data/jets/V0/jetPtV0PtMass";
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -1432,8 +1460,8 @@ void plotV0MassLL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (#Lambda)";
   yTitle = "#it{M} (#bar{#Lambda})";
-  string dataSet = "LHC23y_pass1";
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
+  // string dataSet = "LHC23y_pass1";
+  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -1441,7 +1469,7 @@ void plotV0MassLL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   histName = "jet-fragmentation/data/jets/V0/jetPtV0PtMass";
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -1505,7 +1533,7 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   xTitle = "normalised count";
-  string dataSet = "LHC23y_pass1";
+  // string dataSet = "LHC23y_pass1";
   latexText = "";
 
   std::vector<TH2D*> histVector;
@@ -1516,7 +1544,7 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
 
   histName = "jet-fragmentation/data/jets/V0/jetPtV0PtMass";
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
@@ -1543,7 +1571,7 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
   onlyJet->Scale(1./onlyJet->Integral());
   onlyJet->Rebin(5);
   setStyle(onlyJet, 0);
-  legend->AddEntry(onlyJet, TString::Format("#it{p}_{T, ch. jet} = %.0f - %.0f GeV/#it{c}", jetptmin, jetptmax).Data());
+  legend->AddEntry(onlyJet, TString::Format("#it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/#it{c}", jetptmin, jetptmax).Data());
   histVector.push_back(onlyJet);
 
   thn->GetAxis(v0ptAxis)->SetRange(firstBinV0Pt, lastBinV0Pt);
@@ -1581,59 +1609,93 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
 // ----------------------------------------------------------
 // Lambda0
 // ----------------------------------------------------------
-void plotLambda0Radius(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotRadius(inName, "Lambda0", jetptmin, jetptmax); }
-void plotLambda0CosPA(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotCosPA(inName, "Lambda0", jetptmin, jetptmax); }
-void plotLambda0DCAdaughters(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCAdaughters(inName, "Lambda0", jetptmin, jetptmax); }
-void plotLambda0DCApos(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCApos(inName, "Lambda0", jetptmin, jetptmax); }
-void plotLambda0DCAneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCAneg(inName, "Lambda0", jetptmin, jetptmax); }
-// void plotLambda0DCAposneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-// { plotDCAposneg(inName, "Lambda0", jetptmin, jetptmax); }
-void plotLambda0ctau(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotctau(inName, "Lambda0", jetptmin, jetptmax); }
-void plotLambda0Mass(string inName = "AnalysisResults.root", string hypothesis = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotMass(inName, "Lambda0", hypothesis, jetptmin, jetptmax); }
+void plotLambda0Radius(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotRadius(inName, dataSet, "Lambda0", jetptmin, jetptmax); }
+void plotLambda0CosPA(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotCosPA(inName, dataSet, "Lambda0", jetptmin, jetptmax); }
+void plotLambda0DCAdaughters(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCAdaughters(inName, dataSet, "Lambda0", jetptmin, jetptmax); }
+void plotLambda0DCApos(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCApos(inName, dataSet, "Lambda0", jetptmin, jetptmax); }
+void plotLambda0DCAneg(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCAneg(inName, dataSet, "Lambda0", jetptmin, jetptmax); }
+// void plotLambda0DCAposneg(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+// {, dataSet plotDCAposneg(inName, "Lambda0", jetptmin, jetptmax); }
+void plotLambda0ctau(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotctau(inName, dataSet, "Lambda0", jetptmin, jetptmax); }
+void plotLambda0Mass(string inName = "AnalysisResults.root", string dataSet = "dataSet", string hypothesis = "", double jetptmin = 10., double jetptmax = 200.)
+{ plotMass(inName, dataSet, "Lambda0", hypothesis, jetptmin, jetptmax); }
 
 // ----------------------------------------------------------
 // AntiLambda0
 // ----------------------------------------------------------
-void plotAntiLambda0Radius(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotRadius(inName, "AntiLambda0", jetptmin, jetptmax); }
-void plotAntiLambda0CosPA(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotCosPA(inName, "AntiLambda0", jetptmin, jetptmax); }
-void plotAntiLambda0DCAdaughters(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCAdaughters(inName, "AntiLambda0", jetptmin, jetptmax); }
-void plotAntiLambda0DCApos(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCApos(inName, "AntiLambda0", jetptmin, jetptmax); }
-void plotAntiLambda0DCAneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCAneg(inName, "AntiLambda0", jetptmin, jetptmax); }
-// void plotAntiLambda0DCAposneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-// { plotDCAposneg(inName, "AntiLambda0", jetptmin, jetptmax); }
-void plotAntiLambda0ctau(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotctau(inName, "AntiLambda0", jetptmin, jetptmax); }
-void plotAntiLambda0Mass(string inName = "AnalysisResults.root", string hypothesis = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotMass(inName, "AntiLambda0", hypothesis, jetptmin, jetptmax); }
+void plotAntiLambda0Radius(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotRadius(inName, dataSet, "AntiLambda0", jetptmin, jetptmax); }
+void plotAntiLambda0CosPA(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotCosPA(inName, dataSet, "AntiLambda0", jetptmin, jetptmax); }
+void plotAntiLambda0DCAdaughters(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCAdaughters(inName, dataSet, "AntiLambda0", jetptmin, jetptmax); }
+void plotAntiLambda0DCApos(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCApos(inName, dataSet, "AntiLambda0", jetptmin, jetptmax); }
+void plotAntiLambda0DCAneg(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCAneg(inName, dataSet, "AntiLambda0", jetptmin, jetptmax); }
+// void plotAntiLambda0DCAposneg(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+// {, dataSet plotDCAposneg(inName, "AntiLambda0", jetptmin, jetptmax); }
+void plotAntiLambda0ctau(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotctau(inName, dataSet, "AntiLambda0", jetptmin, jetptmax); }
+void plotAntiLambda0Mass(string inName = "AnalysisResults.root", string dataSet = "dataSet", string hypothesis = "", double jetptmin = 10., double jetptmax = 200.)
+{ plotMass(inName, dataSet, "AntiLambda0", hypothesis, jetptmin, jetptmax); }
 
 // ----------------------------------------------------------
 // K0S
 // ----------------------------------------------------------
-void plotK0SRadius(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotRadius(inName, "K0S", jetptmin, jetptmax); }
-void plotK0SCosPA(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotCosPA(inName, "K0S", jetptmin, jetptmax); }
-void plotK0SDCAdaughters(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCAdaughters(inName, "K0S", jetptmin, jetptmax); }
-void plotK0SDCApos(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCApos(inName, "K0S", jetptmin, jetptmax); }
-void plotK0SDCAneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotDCAneg(inName, "K0S", jetptmin, jetptmax); }
-// void plotK0SDCAposneg(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-// { plotDCAposneg(inName, "K0S", jetptmin, jetptmax); }
-void plotK0Sctau(string inName = "AnalysisResults.root", double jetptmin = 10., double jetptmax = 200.)
-{ plotctau(inName, "K0S", jetptmin, jetptmax); }
-void plotK0SMass(string inName = "AnalysisResults.root", string hypothesis = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotMass(inName, "K0S", hypothesis, jetptmin, jetptmax); }
+void plotK0SRadius(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotRadius(inName, dataSet, "K0S", jetptmin, jetptmax); }
+void plotK0SCosPA(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotCosPA(inName, dataSet, "K0S", jetptmin, jetptmax); }
+void plotK0SDCAdaughters(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCAdaughters(inName, dataSet, "K0S", jetptmin, jetptmax); }
+void plotK0SDCApos(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCApos(inName, dataSet, "K0S", jetptmin, jetptmax); }
+void plotK0SDCAneg(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotDCAneg(inName, dataSet, "K0S", jetptmin, jetptmax); }
+// void plotK0SDCAposneg(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+// {, dataSet plotDCAposneg(inName, "K0S", jetptmin, jetptmax); }
+void plotK0Sctau(string inName = "AnalysisResults.root", string dataSet = "dataSet", double jetptmin = 10., double jetptmax = 200.)
+{ plotctau(inName, dataSet, "K0S", jetptmin, jetptmax); }
+void plotK0SMass(string inName = "AnalysisResults.root", string dataSet = "dataSet", string hypothesis = "", double jetptmin = 10., double jetptmax = 200.)
+{ plotMass(inName, dataSet, "K0S", hypothesis, jetptmin, jetptmax); }
+
+// ----------------------------------------------------------
+// ----------------------------------------------------------
+// ----------------------------------------------------------
+
+void plot22o(double jetptmin, double jetptmax, string hadron, int setting, bool doZ)
+{
+  string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+  string dataSet = "LHC22o_pass6";
+
+  switch(setting) {
+    case 0:
+      plotRadius(inName, dataSet, hadron, jetptmin, jetptmax, doZ);
+      break;
+    case 1:
+      plotCosPA(inName, dataSet, hadron, jetptmin, jetptmax, doZ);
+      break;
+    case 2:
+      plotDCAdaughters(inName, dataSet, hadron, jetptmin, jetptmax, doZ);
+      break;
+    case 3:
+      plotDCApos(inName, dataSet, hadron, jetptmin, jetptmax, doZ);
+      break;
+    case 4:
+      plotDCAneg(inName, dataSet, hadron, jetptmin, jetptmax, doZ);
+      break;
+    case 5:
+      plotV0ctau(inName, dataSet, hadron, jetptmin, jetptmax, doZ);
+      break;
+    default:
+      cout << "Invalid setting! Pick a number from [0, 4]." << endl;
+      break;
+  }
+}

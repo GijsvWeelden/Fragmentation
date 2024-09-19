@@ -15,7 +15,7 @@
 
 #include "../histUtils.C"
 
-void plotV0Pt(string inName = "AnalysisResults.root")
+void plotV0Pt(string inName = "AnalysisResults.root", string dataSet = "dataSet")
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -32,7 +32,7 @@ void plotV0Pt(string inName = "AnalysisResults.root")
   int rebinNumber = 5;
   xTitle = "#it{p}_{T, V0}";
   yTitle = "normalised count";
-  latexText = "LHC22o_apass6_minBias";
+  latexText = dataSet;
 
   std::vector<TH1D*> histVector;
 
@@ -53,7 +53,7 @@ void plotV0Pt(string inName = "AnalysisResults.root")
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0Eta(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0Eta(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -70,7 +70,7 @@ void plotV0Eta(string inName = "AnalysisResults.root", double v0ptmin = 0., doub
   int rebinNumber = 5;
   xTitle = "#eta_{V0}";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -97,7 +97,7 @@ void plotV0Eta(string inName = "AnalysisResults.root", double v0ptmin = 0., doub
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0Phi(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0Phi(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -114,7 +114,7 @@ void plotV0Phi(string inName = "AnalysisResults.root", double v0ptmin = 0., doub
   int rebinNumber = 5;
   xTitle = "#varphi_{V0}";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -142,7 +142,7 @@ void plotV0Phi(string inName = "AnalysisResults.root", double v0ptmin = 0., doub
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0EtaPhi(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0EtaPhi(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -160,7 +160,7 @@ void plotV0EtaPhi(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int rebinNumber = 5;
   xTitle = "#eta_{V0}";
   yTitle = "#varphi_{V0}";
-  latexText = TString::Format("LHC22o_apass6_minBias_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("%s, #it{p}_{T, V0} = %.0f - %.0f GeV/c", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH2D*> histVector;
 
@@ -198,7 +198,7 @@ void plotV0EtaPhi(string inName = "AnalysisResults.root", double v0ptmin = 0., d
 
 // ----------------------------------------------------------
 
-void plotV0Radius(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0Radius(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -215,7 +215,7 @@ void plotV0Radius(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int rebinNumber = 5;
   xTitle = "V0 Radius";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -243,7 +243,7 @@ void plotV0Radius(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0CosPA(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0CosPA(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -260,7 +260,7 @@ void plotV0CosPA(string inName = "AnalysisResults.root", double v0ptmin = 0., do
   int rebinNumber = 5;
   xTitle = "V0 cos(PA)";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -287,7 +287,7 @@ void plotV0CosPA(string inName = "AnalysisResults.root", double v0ptmin = 0., do
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0DCAdaughters(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0DCAdaughters(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -304,7 +304,7 @@ void plotV0DCAdaughters(string inName = "AnalysisResults.root", double v0ptmin =
   int rebinNumber = 5;
   xTitle = "DCA daughters";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -331,7 +331,7 @@ void plotV0DCAdaughters(string inName = "AnalysisResults.root", double v0ptmin =
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0DCApos(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0DCApos(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -348,7 +348,7 @@ void plotV0DCApos(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int rebinNumber = 5;
   xTitle = "DCA pos";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -375,7 +375,7 @@ void plotV0DCApos(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0DCAneg(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0DCAneg(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -392,7 +392,7 @@ void plotV0DCAneg(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int rebinNumber = 5;
   xTitle = "DCA neg";
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -419,7 +419,7 @@ void plotV0DCAneg(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0DCAposneg(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0DCAposneg(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   double time = clock();
   gStyle->SetNdivisions(505);
@@ -436,7 +436,7 @@ void plotV0DCAposneg(string inName = "AnalysisResults.root", double v0ptmin = 0.
   int rebinNumber = 5;
   xTitle = "DCA pos";
   yTitle = "DCA neg";
-  latexText = TString::Format("LHC22o_apass6_minBias_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("%s, #it{p}_{T, V0} = %.0f - %.0f GeV/c", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (setLogY) { myCanvas->SetLogy(); }
@@ -494,7 +494,7 @@ void plotV0ctau(string inName = "AnalysisResults.root", int setting = 1, double 
   if (setting == LambdaAxis) { xTitle = "#it{c}#tau (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{c}#tau (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -526,7 +526,7 @@ void plotV0ctau(string inName = "AnalysisResults.root", int setting = 1, double 
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
 // This plot isn't very useful. ctauL = 2*ctauK0S?
-void plotV0ctauKL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0ctauKL(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   const int nDim           = 4;
   const int ptAxis         = 0;
@@ -548,7 +548,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{c}#tau (K^{0}_{S})";
   yTitle = "#it{c}#tau (#Lambda)";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { myCanvas->SetLogz(); }
@@ -610,7 +610,7 @@ void plotV0mass(string inName = "AnalysisResults.root", int setting = 1, double 
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  latexText = TString::Format("#splitline{LHC22o_apass6_minBias_small}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", v0ptmin, v0ptmax).Data();
+  latexText = TString::Format("#splitline{%s}{#it{p}_{T, V0} = %.0f - %.0f GeV/c}", dataSet.c_str(), v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
 
@@ -641,7 +641,7 @@ void plotV0mass(string inName = "AnalysisResults.root", int setting = 1, double 
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(myCanvas, frame, histVector, legend, saveName, "", latexText);
 }
-void plotV0massKL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0massKL(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   const int nDim           = 4;
   const int ptAxis         = 0;
@@ -657,44 +657,40 @@ void plotV0massKL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool SetLogz = true;
-  double xMinFrame = 0.4, xMaxFrame = 0.6, yMinFrame = 1.015, yMaxFrame = 1.215;
-  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
-  xTitle = "#it{M} (K^{0}_{S})";
-  yTitle = "#it{M} (#Lambda)";
-  latexText = TString::Format("LHC22o_apass6_minBias, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
-
-  TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogz) { myCanvas->SetLogz(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  xTitle = "#it{M}(" + formatHadronDaughters("K0S").c_str()    + ") (GeV/#it{c}^{2})";
+  yTitle = "#it{M}(" + formatHadronDaughters("Lamba0").c_str() + ") (GeV/#it{c}^{2})";
 
   histName = "jet-fragmentation/data/V0/V0PtMass";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
-  int firstBinPt = 1, lastBinPt = thn->GetAxis(ptAxis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptAxis)->FindBin(v0ptmin + 1e-3);
-  lastBinPt  = thn->GetAxis(ptAxis)->FindBin(v0ptmax - 1e-3);
-  thn->GetAxis(ptAxis)->SetRange(firstBinPt, lastBinPt);
+  array<int, 2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), v0ptmin, v0ptmax);
+  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
+  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
+  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
   TH2D* mass = (TH2D*)thn->Projection(LambdaAxis, K0SAxis);
   mass->SetName("mass_KL");
   mass->Scale(1./mass->Integral());
   setStyle(mass, 0);
 
-  saveName = "massK0SLambda";
-  saveName = TString::Format("%s_v0pt%.0f-%.0f", saveName.c_str(), v0ptmin, v0ptmax);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-
+  canvasName = "massK0SLambda";
+  canvasName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt);
+  canvasName += ".pdf";
+  TCanvas* myCanvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), xCanvas, yCanvas);
+  myCanvas->SetLogz();
   myCanvas->cd();
+
+  double xMinFrame = 0.4, xMaxFrame = 0.6, yMinFrame = 1.015, yMaxFrame = 1.215;
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   frame->Draw();
   mass->Draw("same colz");
+  latexText = TString::Format("%s, #it{p}_{T, V0} = %.0f - %.0f GeV/c", dataSet.c_str(), lowpt, highpt).Data();
   if (latexText != "") { DrawLatex(0.2, 0.93, latexText.c_str(), textSize); }
-  myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
+  myCanvas->SaveAs(canvas->GetName());
 }
-void plotV0massLL(string inName = "AnalysisResults.root", double v0ptmin = 0., double v0ptmax = 100.)
+void plotV0massLL(string inName = "AnalysisResults.root", string dataSet = "dataSet", double v0ptmin = 0., double v0ptmax = 100.)
 {
   const int nDim           = 4;
   const int ptAxis         = 0;
@@ -710,40 +706,74 @@ void plotV0massLL(string inName = "AnalysisResults.root", double v0ptmin = 0., d
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool SetLogz = true;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 1.015, yMaxFrame = 1.215;
-  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
   int xCanvas = 900, yCanvas = 900;
-  xTitle = "#it{M} (#Lambda)";
-  yTitle = "#it{M} (#bar{#Lambda})";
-  latexText = TString::Format("LHC22o_apass6_minBias_small, #it{p}_{T, V0} = %.0f - %.0f GeV/c", v0ptmin, v0ptmax).Data();
-
-  TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogz) { myCanvas->SetLogz(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+  xTitle = "#it{M}(" + formatHadronDaughters("Lamba0").c_str() + ") (GeV/#it{c}^{2})";
+  yTitle = "#it{M}(" + formatHadronDaughters("AntiLamba0").c_str() + ") (GeV/#it{c}^{2})";
 
   histName = "jet-fragmentation/data/V0/V0PtMass";
   TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
-  int firstBinPt = 1, lastBinPt = thn->GetAxis(ptAxis)->GetNbins();
-  firstBinPt = thn->GetAxis(ptAxis)->FindBin(v0ptmin + 1e-3);
-  lastBinPt  = thn->GetAxis(ptAxis)->FindBin(v0ptmax - 1e-3);
-  thn->GetAxis(ptAxis)->SetRange(firstBinPt, lastBinPt);
+  array<int, 2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), v0ptmin, v0ptmax);
+  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
+  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
+  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
   TH2D* mass = (TH2D*)thn->Projection(AntiLambdaAxis, LambdaAxis);
   mass->SetName("mass_LL");
   mass->Scale(1./mass->Integral());
   setStyle(mass, 0);
 
-  saveName = "massLambdaAntiLambda";
-  saveName = TString::Format("%s_v0pt%.0f-%.0f", saveName.c_str(), v0ptmin, v0ptmax);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-
+  canvasName = "massLambdaAntiLambda";
+  canvasName += TString::Format("_v0pt%.0f-%.0f", v0ptmin, v0ptmax);
+  canvasName += ".pdf";
+  TCanvas* myCanvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), xCanvas, yCanvas);
+  myCanvas->SetLogz();
   myCanvas->cd();
+
+  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 1.015, yMaxFrame = 1.215;
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   frame->Draw();
   mass->Draw("same colz");
+  latexText = TString::Format("%s, #it{p}_{T, V0} = %.0f - %.0f GeV/c", dataSet.c_str(), lowpt, highpt).Data();
   if (latexText != "") { DrawLatex(0.2, 0.93, latexText.c_str(), textSize); }
-  myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
+  myCanvas->SaveAs(myCanvas->GetName());
+}
+
+void plot22o(double ptmin, double ptmax, int setting)
+{
+  string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+  string dataSet = "LHC22o_pass6";
+
+  switch(setting) {
+    case 1:
+      plotV0Radius(inName, dataSet, ptmin, ptmax);
+      break;
+    case 2:
+      plotV0CosPA(inName, dataSet, ptmin, ptmax);
+      break;
+    case 3:
+      plotV0DCAdaughters(inName, dataSet, ptmin, ptmax);
+      break;
+    case 4:
+      plotV0DCApos(inName, dataSet, ptmin, ptmax);
+      return;
+    case 5:
+      plotV0DCAneg(inName, dataSet, ptmin, ptmax);
+      return;
+    case 6:
+      plotV0ctau(inName, dataSet, ptmin, ptmax);
+      return;
+    default:
+      cout << "Invalid setting!" << endl;
+      return;
+  }
+}
+
+void plotAll22o(int setting)
+{
+  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
+  for (int i = 0; i < pt.size() - 1; i++) {
+    plot22o(pt[i], pt[i + 1], setting);
+  }
 }

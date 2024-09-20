@@ -385,7 +385,7 @@ string formatHadronName(string hadron)
 // Returns decay products given a hadron
 string formatHadronDaughters(string hadron)
 {
-  string daughters = "";
+  string daughters = hadron;
   if ("K0S" == hadron) {
     daughters = "#pi^{+}#pi^{-}";
   }

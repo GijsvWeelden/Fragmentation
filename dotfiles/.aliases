@@ -20,4 +20,5 @@ alias swdir="cd ${ALIBUILD_WORK_DIR}"
 alias o2dir="cd ${ALIBUILD_WORK_DIR}/../O2Physics"
 
 alias notesdir="cd ${FRAGMENTATION_DIR}/../Notes"
+alias andir="cd ${FRAGMENTATION_DIR}/../AN-Jet-Fragmentation"
 alias xcodeversion="pkgutil --pkg-info=com.apple.pkg.CLTools_Executables"

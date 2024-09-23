@@ -258,6 +258,13 @@ int main(int argc, char** argv)
 
 	TH3D* hW0inJet = (TH3D*) hV0inJet->Clone("hW0inJet");
 
+	TH3D* hK0SinV0Jet = (TH3D*) hV0inJet->Clone("hK0SinV0Jet");
+	TH3D* hK0SinW0Jet = (TH3D*) hV0inJet->Clone("hK0SinW0Jet");
+	TH3D* hLambda0inV0Jet = (TH3D*) hV0inJet->Clone("hLambda0inV0Jet");
+	TH3D* hLambda0inW0Jet = (TH3D*) hV0inJet->Clone("hLambda0inW0Jet");
+	TH3D* hAntiLambda0inV0Jet = (TH3D*) hV0inJet->Clone("hAntiLambda0inV0Jet");
+	TH3D* hAntiLambda0inW0Jet = (TH3D*) hV0inJet->Clone("hAntiLambda0inW0Jet");
+
 	// V0s
 	TH3D* hV0 = new TH3D("hV0", TString::Format("hV0; %s; %s; %s", sv0pt.c_str(), sv0eta.c_str(), sv0phi.c_str()).Data(),
 											 nBins_pt_track, min_pt_track, max_pt_track, nBins_eta_track, -1.*max_eta_track, max_eta_track, nBins_phi_track, min_phi_jet, max_phi_jet);
@@ -265,6 +272,13 @@ int main(int argc, char** argv)
 
 	TH3D* hW0 = (TH3D*) hV0->Clone("hW0");
 	hW0->SetTitle("hV0 weighted; #it{p}_{T, W0}; #eta; #phi");
+
+	TH3D* hV0K0S = (TH3D*) hV0->Clone("hV0K0S");
+	TH3D* hW0K0S = (TH3D*) hV0->Clone("hW0K0S");
+	TH3D* hV0Lambda0 = (TH3D*) hV0->Clone("hV0Lambda0");
+	TH3D* hW0Lambda0 = (TH3D*) hV0->Clone("hW0Lambda0");
+	TH3D* hV0AntiLambda0 = (TH3D*) hV0->Clone("hV0AntiLambda0");
+	TH3D* hW0AntiLambda0 = (TH3D*) hV0->Clone("hW0AntiLambda0");
 
 	TH3D* hTrack = (TH3D*) hV0->Clone("hTrack");
 	hTrack->SetTitle("hTrack; #it{p}_{T, track}; #eta; #phi");
@@ -276,6 +290,21 @@ int main(int argc, char** argv)
 	TH3D* hW0JetZ = (TH3D*) hV0JetZ->Clone("hW0JetZ");
 	TH3D* hEJetZ = (TH3D*) hV0JetZ->Clone("hEJetZ");
 	TH3D* hPtJetZ = (TH3D*) hV0JetZ->Clone("hPtJetZ");
+
+	TH3D* hV0JetZK0S = (TH3D*) hV0JetZ->Clone("hV0JetZK0S");
+	TH3D* hW0JetZK0S = (TH3D*) hV0JetZ->Clone("hW0JetZK0S");
+	TH3D* hEJetZK0S  = (TH3D*) hV0JetZ->Clone("hEJetZK0S");
+	TH3D* hPtJetZK0S = (TH3D*) hV0JetZ->Clone("hPtJetZK0S");
+
+	TH3D* hV0JetZLambda0 = (TH3D*) hV0JetZ->Clone("hV0JetZLambda0");
+	TH3D* hW0JetZLambda0 = (TH3D*) hV0JetZ->Clone("hW0JetZLambda0");
+	TH3D* hEJetZLambda0  = (TH3D*) hV0JetZ->Clone("hEJetZLambda0");
+	TH3D* hPtJetZLambda0 = (TH3D*) hV0JetZ->Clone("hPtJetZLambda0");
+
+	TH3D* hV0JetZAntiLambda0 = (TH3D*) hV0JetZ->Clone("hV0JetZAntiLambda0");
+	TH3D* hW0JetZAntiLambda0 = (TH3D*) hV0JetZ->Clone("hW0JetZAntiLambda0");
+	TH3D* hEJetZAntiLambda0  = (TH3D*) hV0JetZ->Clone("hEJetZAntiLambda0");
+	TH3D* hPtJetZAntiLambda0 = (TH3D*) hV0JetZ->Clone("hPtJetZAntiLambda0");
 
   for (int iEvent = 0; iEvent < nEvents; iEvent++)
 	{
@@ -301,10 +330,16 @@ int main(int argc, char** argv)
 				v0Indices.push_back(iPart);
 				v0Particles.push_back(jInp);
 				hV0->Fill(jInp.pt(), jInp.eta(), jInp.phi());
+				if (abs(part.id()) == pdgK0S)  { hV0K0S->Fill(jInp.pt(), jInp.eta(), jInp.phi()); }
+				if (part.id() == pdgLambda)    { hV0Lambda0->Fill(jInp.pt(), jInp.eta(), jInp.phi()); }
+				if (part.id() == -1*pdgLambda) { hV0AntiLambda0->Fill(jInp.pt(), jInp.eta(), jInp.phi()); }
 
 				if (randsig(wSignal)) {
 					w0Particles.push_back(jInp);
 					hW0->Fill(jInp.pt(), jInp.eta(), jInp.phi());
+					if (abs(part.id()) == pdgK0S)  { hW0K0S->Fill(jInp.pt(), jInp.eta(), jInp.phi()); }
+					if (part.id() == pdgLambda)    { hW0Lambda0->Fill(jInp.pt(), jInp.eta(), jInp.phi()); }
+					if (part.id() == -1*pdgLambda) { hW0AntiLambda0->Fill(jInp.pt(), jInp.eta(), jInp.phi()); }
 				}
 			}
 			else if (part.isCharged()) {
@@ -364,17 +399,33 @@ int main(int argc, char** argv)
 
 			bool jetContainsV0s = false;
 			std::vector<double> zValues;
+			std::vector<int> v0IdsInJet;
 			for (const fastjet::PseudoJet &constituent : v0jet.constituents()) {
 				int idx = constituent.user_index();
 				const Particle &part = pythia.event[idx];
 				if (isV0(part.id(), v0setting)) {
 					jetContainsV0s = true;
+					double zv0 = z(v0jet, constituent);
 					hV0inJet->Fill(v0jet.pt(), v0jet.eta(), constituent.pt());
-					hV0JetZ->Fill(v0jet.pt(), v0jet.eta(), z(v0jet, constituent));
+					hV0JetZ->Fill(v0jet.pt(), v0jet.eta(), zv0);
+
+					if (abs(part.id()) == pdgK0S) {
+						hK0SinV0Jet->Fill(v0jet.pt(), v0jet.eta(), constituent.pt());
+						hV0JetZK0S->Fill(v0jet.pt(), v0jet.eta(), zv0);
+					}
+					if (part.id() == pdgLambda)    {
+						hLambda0inV0Jet->Fill(v0jet.pt(), v0jet.eta(), constituent.pt());
+						hV0JetZLambda0->Fill(v0jet.pt(), v0jet.eta(), zv0);
+					}
+					if (part.id() == -1*pdgLambda) {
+						hAntiLambda0inV0Jet->Fill(v0jet.pt(), v0jet.eta(), constituent.pt());
+						hV0JetZAntiLambda0->Fill(v0jet.pt(), v0jet.eta(), zv0);
+					}
 
 					// Subtract randomly
 					if (randsig(wSignal)) {
-						zValues.push_back(z(v0jet, constituent));
+						zValues.push_back(zv0);
+						v0IdsInJet.push_back(part.id());
 					} else {
 						jetSubE -= constituent;
 						ptSub -= constituent.pt();
@@ -392,10 +443,29 @@ int main(int argc, char** argv)
 			hEJetDiffMatched->Fill(v0jet.pt(), v0jet.pt() - jetSubE.pt(), v0jet.eta() - jetSubE.eta(), v0jet.phi() - jetSubE.phi());
 			hPtJetDiffMatched->Fill(v0jet.pt(), v0jet.pt() - ptSub, v0jet.eta() - v0jet.eta(), v0jet.phi() - v0jet.phi());
 
-			// We don't know which V0s were randomly selected as signal, but we've saved their z values
-			for (auto& z : zValues) {
-				hEJetZ->Fill(jetSubE.pt(), jetSubE.eta(), z * (v0jet.pt() / jetSubE.pt()));
-				hPtJetZ->Fill(ptSub, v0jet.eta(), z * (v0jet.pt() / ptSub));
+			// Change the V0 z values to account for removed momentum
+			for (int i = 0; i < zValues.size(); i++) {
+				double zv0  = zValues[i];
+				double idv0 = v0IdsInJet[i];
+
+				double zE  = zv0 * (v0jet.pt() / jetSubE.pt());
+				double zPt = zv0 * (v0jet.pt() / ptSub);
+
+				hEJetZ->Fill(jetSubE.pt(), jetSubE.eta(), zE);
+				hPtJetZ->Fill(ptSub, v0jet.eta(), zPt);
+
+				if (abs(idv0) == pdgK0S) {
+					hEJetZK0S->Fill(jetSubE.pt(), jetSubE.eta(), zE);
+					hPtJetZK0S->Fill(ptSub, v0jet.eta(), zPt);
+				}
+				if (idv0 == pdgLambda) {
+					hEJetZLambda0->Fill(jetSubE.pt(), jetSubE.eta(), zE);
+					hPtJetZLambda0->Fill(ptSub, v0jet.eta(), zPt);
+				}
+				if (idv0 == -1*pdgLambda) {
+					hEJetZAntiLambda0->Fill(jetSubE.pt(), jetSubE.eta(), zE);
+					hPtJetZAntiLambda0->Fill(ptSub, v0jet.eta(), zPt);
+				}
 			}
 		}
 
@@ -408,8 +478,22 @@ int main(int argc, char** argv)
 				const Particle &part = pythia.event[idx];
 				if (isV0(part.id(), v0setting)) {
 					jetContainsV0s = true;
+					double zw0 = z(w0jet, constituent);
 					hW0inJet->Fill(w0jet.pt(), w0jet.eta(), constituent.pt());
-					hW0JetZ->Fill(w0jet.pt(), w0jet.eta(), z(w0jet, constituent));
+					hW0JetZ->Fill(w0jet.pt(), w0jet.eta(), zw0);
+
+					if (abs(part.id()) == pdgK0S) {
+						hK0SinW0Jet->Fill(w0jet.pt(), w0jet.eta(), constituent.pt());
+						hW0JetZK0S->Fill(w0jet.pt(), w0jet.eta(), zw0);
+					}
+					if (part.id() == pdgLambda)    {
+						hLambda0inW0Jet->Fill(w0jet.pt(), w0jet.eta(), constituent.pt());
+						hW0JetZLambda0->Fill(w0jet.pt(), w0jet.eta(), zw0);
+					}
+					if (part.id() == -1*pdgLambda) {
+						hAntiLambda0inW0Jet->Fill(w0jet.pt(), w0jet.eta(), constituent.pt());
+						hW0JetZAntiLambda0->Fill(w0jet.pt(), w0jet.eta(), zw0);
+					}
 				}
 			}
 			if (!jetContainsV0s) { continue; }
@@ -435,16 +519,48 @@ int main(int argc, char** argv)
 	hEJetDiffMatched->Write(hEJetDiffMatched->GetName(), TObject::kOverwrite);
 	hPtJetDiffMatched->Write(hPtJetDiffMatched->GetName(), TObject::kOverwrite);
 
+	// V0s in jets
 	hV0inJet->Write(hV0inJet->GetName(), TObject::kOverwrite);
-	hW0inJet->Write(hW0inJet->GetName(), TObject::kOverwrite);
-	hV0JetZ->Write(hV0JetZ->GetName(), TObject::kOverwrite);
-	hW0JetZ->Write(hW0JetZ->GetName(), TObject::kOverwrite);
-	hEJetZ->Write(hEJetZ->GetName(), TObject::kOverwrite);
-	hPtJetZ->Write(hPtJetZ->GetName(), TObject::kOverwrite);
+	hK0SinV0Jet->Write(hK0SinV0Jet->GetName(), TObject::kOverwrite);
+	hLambda0inV0Jet->Write(hLambda0inV0Jet->GetName(), TObject::kOverwrite);
+	hAntiLambda0inV0Jet->Write(hAntiLambda0inV0Jet->GetName(), TObject::kOverwrite);
 
+	hW0inJet->Write(hW0inJet->GetName(), TObject::kOverwrite);
+	hK0SinW0Jet->Write(hK0SinW0Jet->GetName(), TObject::kOverwrite);
+	hLambda0inW0Jet->Write(hLambda0inW0Jet->GetName(), TObject::kOverwrite);
+	hAntiLambda0inW0Jet->Write(hAntiLambda0inW0Jet->GetName(), TObject::kOverwrite);
+
+	// Z hists
+	hV0JetZ->Write(hV0JetZ->GetName(), TObject::kOverwrite);
+	hV0JetZK0S->Write(hV0JetZK0S->GetName(), TObject::kOverwrite);
+	hV0JetZLambda0->Write(hV0JetZLambda0->GetName(), TObject::kOverwrite);
+	hV0JetZAntiLambda0->Write(hV0JetZAntiLambda0->GetName(), TObject::kOverwrite);
+
+	hW0JetZ->Write(hW0JetZ->GetName(), TObject::kOverwrite);
+	hW0JetZK0S->Write(hW0JetZK0S->GetName(), TObject::kOverwrite);
+	hW0JetZLambda0->Write(hW0JetZLambda0->GetName(), TObject::kOverwrite);
+	hW0JetZAntiLambda0->Write(hW0JetZAntiLambda0->GetName(), TObject::kOverwrite);
+
+	hEJetZ->Write(hEJetZ->GetName(), TObject::kOverwrite);
+	hEJetZK0S->Write(hEJetZK0S->GetName(), TObject::kOverwrite);
+	hEJetZLambda0->Write(hEJetZLambda0->GetName(), TObject::kOverwrite);
+	hEJetZAntiLambda0->Write(hEJetZAntiLambda0->GetName(), TObject::kOverwrite);
+
+	hPtJetZ->Write(hPtJetZ->GetName(), TObject::kOverwrite);
+	hPtJetZK0S->Write(hPtJetZK0S->GetName(), TObject::kOverwrite);
+	hPtJetZLambda0->Write(hPtJetZLambda0->GetName(), TObject::kOverwrite);
+	hPtJetZAntiLambda0->Write(hPtJetZAntiLambda0->GetName(), TObject::kOverwrite);
+
+	// Inclusive V0s
 	hTrack->Write(hTrack->GetName(), TObject::kOverwrite);
 	hV0->Write(hV0->GetName(), TObject::kOverwrite);
 	hW0->Write(hW0->GetName(), TObject::kOverwrite);
+	hV0K0S->Write(hV0K0S->GetName(), TObject::kOverwrite);
+	hW0K0S->Write(hW0K0S->GetName(), TObject::kOverwrite);
+	hV0Lambda0->Write(hV0Lambda0->GetName(), TObject::kOverwrite);
+	hW0Lambda0->Write(hW0Lambda0->GetName(), TObject::kOverwrite);
+	hV0AntiLambda0->Write(hV0AntiLambda0->GetName(), TObject::kOverwrite);
+	hW0AntiLambda0->Write(hW0AntiLambda0->GetName(), TObject::kOverwrite);
 
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;

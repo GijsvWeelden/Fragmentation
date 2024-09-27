@@ -371,7 +371,6 @@ void v0zmatched(double jetptmin, double jetptmax, bool doRatio = false)
   inputStrings.push_back({saveName});
   compareZ(inputStrings, jetptmin, jetptmax, additionalLatex, doRatio);
 }
-
 void v0zweighted(double jetptmin, double jetptmax, bool doRatio = false)
 {
   vector<vector<string> > inputStrings;
@@ -413,6 +412,119 @@ void v0zweightedmatched(double jetptmin, double jetptmax, bool doRatio = false)
   vector<string> w0JetsZ = { "hW0JetZ", "Weighted", "hW0JetMatched" };
   vector<string> eJetsZ  = { "hEJetZ",  "Ch+V0 jets - #it{p}_{V0} (weighted)", "hEJetMatched" };
   vector<string> ptJetsZ = { "hPtJetZ", "Ch+V0 jets - #it{p}_{T, V0} (weighted)", "hPtJetMatched" };
+
+  string latexText = TString::Format("#it{p}_{T} scheme, %.0f #leq #it{p}_{T, jet} < %.0f GeV/#it{c}", jetptmin, jetptmax).Data();
+  TLatex* additionalLatex = CreateLatex(0.25, 0.93, latexText.c_str(), 0.04);
+
+  inputStrings.push_back({inName, w0JetsZ[0], w0JetsZ[1], w0JetsZ[2]});
+  inputStrings.push_back({inName, eJetsZ[0],  eJetsZ[1],  eJetsZ[2]});
+  inputStrings.push_back({inName, ptJetsZ[0], ptJetsZ[1], ptJetsZ[2]});
+
+  inputStrings.push_back({saveName});
+  compareZ(inputStrings, jetptmin, jetptmax, additionalLatex, doRatio);
+}
+
+void v0z(string hadron, double jetptmin, double jetptmax, bool doRatio = false)
+{
+  vector<vector<string> > inputStrings;
+  string inName = "../../inputfiles/pythia/V0Study/weightedjetfinder.root";
+  bool ptscheme = true;
+  string saveName = "WeightedJetFinder";
+  saveName += "-z";
+  saveName += hadron;
+  saveName += (doRatio ? "Ratio" : "Comparison");
+  saveName += TString::Format("_jetpt%.0f-%.0f", jetptmin, jetptmax).Data();
+  saveName += "-all";
+  saveName += ".pdf";
+
+  vector<string> v0JetsZ = { "hV0JetZ" + hadron, "Unweighted", "hV0Jet" };
+  vector<string> w0JetsZ = { "hW0JetZ" + hadron, "Weighted", "hW0Jet" };
+  vector<string> eJetsZ  = { "hEJetZ"  + hadron, "Ch+V0 jets - #it{p}_{V0} (weighted)", "hEJet" };
+  vector<string> ptJetsZ = { "hPtJetZ" + hadron, "Ch+V0 jets - #it{p}_{T, V0} (weighted)", "hPtJet" };
+
+  string latexText = TString::Format("#it{p}_{T} scheme, %.0f #leq #it{p}_{T, jet} < %.0f GeV/#it{c}", jetptmin, jetptmax).Data();
+  TLatex* additionalLatex = CreateLatex(0.25, 0.93, latexText.c_str(), 0.04);
+
+  inputStrings.push_back({inName, v0JetsZ[0], v0JetsZ[1], v0JetsZ[2]});
+  inputStrings.push_back({inName, w0JetsZ[0], w0JetsZ[1], w0JetsZ[2]});
+  inputStrings.push_back({inName, eJetsZ[0],  eJetsZ[1],  eJetsZ[2]});
+  inputStrings.push_back({inName, ptJetsZ[0], ptJetsZ[1], ptJetsZ[2]});
+
+  inputStrings.push_back({saveName});
+  compareZ(inputStrings, jetptmin, jetptmax, additionalLatex, doRatio);
+}
+void v0zmatched(string hadron, double jetptmin, double jetptmax, bool doRatio = false)
+{
+  vector<vector<string> > inputStrings;
+  string inName = "../../inputfiles/pythia/V0Study/weightedjetfinder.root";
+  bool ptscheme = true;
+  string saveName = "WeightedJetFinder";
+  saveName += "-z";
+  saveName += hadron;
+  saveName += (doRatio ? "Ratio" : "Comparison");
+  saveName += TString::Format("_jetpt%.0f-%.0f", jetptmin, jetptmax).Data();
+  saveName += "-matched-all";
+  saveName += ".pdf";
+
+  vector<string> v0JetsZ = { "hV0JetZ" + hadron, "Unweighted", "hV0JetMatched" };
+  vector<string> w0JetsZ = { "hW0JetZ" + hadron, "Weighted", "hW0JetMatched" };
+  vector<string> eJetsZ  = { "hEJetZ"  + hadron, "Ch+V0 jets - #it{p}_{V0} (weighted)", "hEJetMatched" };
+  vector<string> ptJetsZ = { "hPtJetZ" + hadron, "Ch+V0 jets - #it{p}_{T, V0} (weighted)", "hPtJetMatched" };
+
+  string latexText = TString::Format("#it{p}_{T} scheme, %.0f #leq #it{p}_{T, jet} < %.0f GeV/#it{c}", jetptmin, jetptmax).Data();
+  TLatex* additionalLatex = CreateLatex(0.25, 0.93, latexText.c_str(), 0.04);
+
+  inputStrings.push_back({inName, v0JetsZ[0], v0JetsZ[1], v0JetsZ[2]});
+  inputStrings.push_back({inName, w0JetsZ[0], w0JetsZ[1], w0JetsZ[2]});
+  inputStrings.push_back({inName, eJetsZ[0],  eJetsZ[1],  eJetsZ[2]});
+  inputStrings.push_back({inName, ptJetsZ[0], ptJetsZ[1], ptJetsZ[2]});
+
+  inputStrings.push_back({saveName});
+  compareZ(inputStrings, jetptmin, jetptmax, additionalLatex, doRatio);
+}
+void v0zweighted(string hadron, double jetptmin, double jetptmax, bool doRatio = false)
+{
+  vector<vector<string> > inputStrings;
+  string inName = "../../inputfiles/pythia/V0Study/weightedjetfinder.root";
+  bool ptscheme = true;
+  string saveName = "WeightedJetFinder";
+  saveName += "-z";
+  saveName += hadron;
+  saveName += (doRatio ? "Ratio" : "Comparison");
+  saveName += TString::Format("_jetpt%.0f-%.0f", jetptmin, jetptmax).Data();
+  saveName += "-weighted";
+  saveName += ".pdf";
+
+  vector<string> w0JetsZ = { "hW0JetZ" + hadron, "Weighted", "hW0Jet" };
+  vector<string> eJetsZ  = { "hEJetZ"  + hadron, "Ch+V0 jets - #it{p}_{V0} (weighted)", "hEJet" };
+  vector<string> ptJetsZ = { "hPtJetZ" + hadron, "Ch+V0 jets - #it{p}_{T, V0} (weighted)", "hPtJet" };
+
+  string latexText = TString::Format("#it{p}_{T} scheme, %.0f #leq #it{p}_{T, jet} < %.0f GeV/#it{c}", jetptmin, jetptmax).Data();
+  TLatex* additionalLatex = CreateLatex(0.25, 0.93, latexText.c_str(), 0.04);
+
+  inputStrings.push_back({inName, w0JetsZ[0], w0JetsZ[1], w0JetsZ[2]});
+  inputStrings.push_back({inName, eJetsZ[0],  eJetsZ[1],  eJetsZ[2]});
+  inputStrings.push_back({inName, ptJetsZ[0], ptJetsZ[1], ptJetsZ[2]});
+
+  inputStrings.push_back({saveName});
+  compareZ(inputStrings, jetptmin, jetptmax, additionalLatex, doRatio);
+}
+void v0zweightedmatched(string hadron, double jetptmin, double jetptmax, bool doRatio = false)
+{
+  vector<vector<string> > inputStrings;
+  string inName = "../../inputfiles/pythia/V0Study/weightedjetfinder.root";
+  bool ptscheme = true;
+  string saveName = "WeightedJetFinder";
+  saveName += "-z";
+  saveName += hadron;
+  saveName += (doRatio ? "Ratio" : "Comparison");
+  saveName += TString::Format("_jetpt%.0f-%.0f", jetptmin, jetptmax).Data();
+  saveName += "-matched-weighted";
+  saveName += ".pdf";
+
+  vector<string> w0JetsZ = { "hW0JetZ" + hadron, "Weighted", "hW0JetMatched" };
+  vector<string> eJetsZ  = { "hEJetZ"  + hadron, "Ch+V0 jets - #it{p}_{V0} (weighted)", "hEJetMatched" };
+  vector<string> ptJetsZ = { "hPtJetZ" + hadron, "Ch+V0 jets - #it{p}_{T, V0} (weighted)", "hPtJetMatched" };
 
   string latexText = TString::Format("#it{p}_{T} scheme, %.0f #leq #it{p}_{T, jet} < %.0f GeV/#it{c}", jetptmin, jetptmax).Data();
   TLatex* additionalLatex = CreateLatex(0.25, 0.93, latexText.c_str(), 0.04);

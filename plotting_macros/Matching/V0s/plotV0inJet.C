@@ -15,6 +15,20 @@
 
 #include "../../histUtils.C"
 
+double getHistRMS(TH1* hInput)
+{
+  TH1* h = (TH1*)hInput->Clone("h");
+  h->Scale(1./h->Integral());
+  double rms = 0.;
+  for (int i = 1; i < h->GetNbinsX(); i++) {
+    double binContent = h->GetBinContent(i);
+    double binCenter = h->GetBinCenter(i);
+    rms += binContent * binCenter * binCenter;
+  }
+  rms = TMath::Sqrt(rms);
+  return rms;
+}
+
 double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 {
   string histName = "jet-fragmentation/matching/jets/matchPartJetPtEtaPhi";
@@ -25,7 +39,7 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 
 // -------------------------------------------------------------------------------------------------
 
-void ptResolution(string inName = "", double partjetptmin = 10., double partjetptmax = 1e6, double partv0min = -1., double partv0max = 1e6)
+void ptResolution(string inName, string dataSet, double partjetptmin, double partjetptmax, double partv0min, double partv0max)
 {
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
@@ -40,40 +54,24 @@ void ptResolution(string inName = "", double partjetptmin = 10., double partjetp
 
   string hadron = "V0";
   gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
-  bool setLogY = true;
-  double xMinFrame = -1., xMaxFrame = 10., yMinFrame = 1e-7, yMaxFrame = 2.;
-  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
-  double xLatex = 0.4, yLatex = 0.8;
-  int xCanvas = 900, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("(#it{p}_{T, %s}^{det.} - #it{p}_{T, %s}^{part.})/#it{p}_{T, %s}^{part.}", hadron.c_str(), hadron.c_str(), hadron.c_str()).Data();
-  yTitle = "normalised count";
-  dataSet = "LHC24b1";
 
-  std::vector<TH1D*> histVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-  TLatex* latex;
-
-  histName = "partJetPtDetJetPtPartV0PtRatioPtRelDiffPt";
-  histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
+  string histName = "jet-fragmentation/matching/jets/V0/";
+  histName += "partJetPtDetJetPtPartV0PtRatioPtRelDiffPt";
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
-  std::array<int, 2> partv0bins = getProjectionBins(thn->GetAxis(partV0PtAxis), partv0min, partv0max);
   thn->GetAxis(partJetPtAxis)->SetRange(jetptbins[0], jetptbins[1]);
-  thn->GetAxis(partV0PtAxis)->SetRange(partv0bins[0], partv0bins[1]);
-  double lowjetpt = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(jetptbins[0]);
+  double lowjetpt  = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(jetptbins[0]);
   double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(jetptbins[1]);
-  double lowv0 = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(partv0bins[0]);
-  double highv0 = thn->GetAxis(partV0PtAxis)->GetBinUpEdge(partv0bins[1]);
+
+  std::array<int, 2> v0ptbins  = getProjectionBins(thn->GetAxis(partV0PtAxis), partv0min, partv0max);
+  thn->GetAxis(partV0PtAxis)->SetRange(v0ptbins[0], v0ptbins[1]);
+  double lowv0  = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(v0ptbins[0]);
+  double highv0 = thn->GetAxis(partV0PtAxis)->GetBinUpEdge(v0ptbins[1]);
   if (lowv0 < 0.) { lowv0 = 0.; } // Avoids ugly pt>-0 in latextext
 
   TH1D* v0res = (TH1D*)thn->Projection(ptRelDiffAxis);
@@ -82,25 +80,105 @@ void ptResolution(string inName = "", double partjetptmin = 10., double partjetp
   setStyle(v0res, 0);
   histVector.push_back(v0res);
 
-  // Get RMS = V0 resolution for given pt range
-  double rms = 0.;
-  for (int i = 1; i < v0res->GetNbinsX(); i++) {
-    double binContent = v0res->GetBinContent(i);
-    double binCenter = v0res->GetBinCenter(i);
-    // Hist is self-normalised, so no need to divide by integral
-    rms += binContent * binCenter * binCenter;
+  double rms = getHistRMS(v0res);
+  string rmsText   = TString::Format("RMS: %.2f", rms).Data();
+  string ptV0Text  = TString::Format("#it{p}_{T, V0}^{part.} = %.1f - %.1f GeV/#it{c}", lowv0, highv0).Data();
+  string ptJetText = TString::Format("#it{p}_{T, ch+V0 jet}^{part.} = %.0f - %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
+
+  double xLatex = 0.4, yLatex = 0.8;
+  string latexText = TString::Format("#splitline{%s}{#splitline{%s}{#splitline{%s}{%s}}}", dataSet.c_str(), ptJetText.c_str(), ptV0Text.c_str(), rmsText.c_str()).Data();
+  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  saveName = "V0PtResolution";
+  saveName += TString::Format("_jetpt%.0f-%.0f", lowjetpt, highjetpt);
+  saveName += TString::Format("_v0pt%.1f-%.1f", lowv0, highv0);
+  saveName += ".pdf";
+  int xCanvas = 900, yCanvas = 900;
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), xCanvas, yCanvas);
+  canvas->SetLogy();
+
+  double xMinFrame = -1., xMaxFrame = 10., yMinFrame = 1e-7, yMaxFrame = 2.;
+  xTitle = "(#it{p}_{T, V0}^{det.} - #it{p}_{T, V0}^{part.})/#it{p}_{T, V0}^{part.}";
+  yTitle = "normalised count";
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+
+  canvas->cd();
+  frame->Draw();
+  v0res->Draw("same");
+  latex->Draw("same");
+  canvas->SaveAs(canvas->GetName());
+}
+void dauPtResolution(string inName, string dataSet, double partjetptmin, double partjetptmax, double partmin, double partmax, bool doPos)
+{
+  if ("" == inName) {
+    cout << "Error: inName must be specified" << endl;
+    return;
   }
-  rms = TMath::Sqrt(rms);
-  // v0res->Print("all");
+  const int nDim          = 6;
+  const int partJetPtAxis = 0;
+  const int detJetPtAxis  = 1;
+  const int partV0PtAxis  = 2;
+  const int partDauPtAxis = 3;
+  const int ptRatioAxis   = 4;
+  const int ptRelDiffAxis = 5;
 
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{#splitline{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} }{ RMS: %.2f } } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0, rms).Data();
-  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  gStyle->SetNdivisions(505, "xy");
+  double textSize = 0.04;
+  double labelSize = 0.04;
+  double titleSize = 0.04;
 
-  saveName = TString::Format("%sPtResolution", hadron.c_str()).Data();
-  saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
-  saveName = TString::Format("%s_partv0pt%.0f-%.0f", saveName.c_str(), lowv0, highv0);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
+  string histName = "jet-fragmentation/matching/jets/V0/";
+  if (doPos) histName += "partJetPtDetJetPtPartV0PtPosPtRatioPtRelDiffPt";
+  else histName += "partJetPtDetJetPtPartV0PtNegPtRatioPtRelDiffPt";
+  TFile *inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  std::array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
+  thn->GetAxis(partJetPtAxis)->SetRange(jetptbins[0], jetptbins[1]);
+  double lowjetpt  = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(jetptbins[0]);
+  double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(jetptbins[1]);
+
+  std::array<int, 2> v0ptbins  = getProjectionBins(thn->GetAxis(partDauPtAxis), partmin, partmax);
+  thn->GetAxis(partV0PtAxis)->SetRange(v0ptbins[0], v0ptbins[1]);
+  double lowv0  = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(v0ptbins[0]);
+  double highv0 = thn->GetAxis(partV0PtAxis)->GetBinUpEdge(v0ptbins[1]);
+  if (lowv0 < 0.) { lowv0 = 0.; } // Avoids ugly pt>-0 in latextext
+
+  TH1D* daures = (TH1D*)thn->Projection(ptRelDiffAxis);
+  daures->SetName("dauresolution");
+  daures->Scale(1./daures->Integral());
+  setStyle(daures, 0);
+  histVector.push_back(daures);
+
+  double rms = getHistRMS(daures);
+  string rmsText   = TString::Format("RMS: %.2f", rms).Data();
+  string ptV0Text  = TString::Format("#it{p}_{T, %s dau}^{part.} = %.1f - %.1f GeV/#it{c}", (doPos ? "pos" : "neg"), lowv0, highv0).Data();
+  string ptJetText = TString::Format("#it{p}_{T, ch+V0 jet}^{part.} = %.0f - %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
+
+  double xLatex = 0.4, yLatex = 0.8;
+  string latexText = TString::Format("#splitline{%s}{#splitline{%s}{#splitline{%s}{%s}}}", dataSet.c_str(), ptJetText.c_str(), ptV0Text.c_str(), rmsText.c_str()).Data();
+  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  string saveName = "V0";
+  saveName += (doPos ? "Pos" : "Neg");
+  saveName += "PtResolution";
+  saveName += TString::Format("_jetpt%.0f-%.0f", lowjetpt, highjetpt);
+  saveName += TString::Format("_pt%.1f-%.1f", lowv0, highv0);
+  saveName += ".pdf";
+  int xCanvas = 900, yCanvas = 900;
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), xCanvas, yCanvas);
+  canvas->SetLogy();
+
+  double xMinFrame = -1., xMaxFrame = 10., yMinFrame = 1e-7, yMaxFrame = 2.;
+  xTitle = "(#it{p}_{T}^{det.} - #it{p}_{T}^{part.})/#it{p}_{T}^{part.}";
+  yTitle = "normalised count";
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+
+  canvas->cd();
+  frame->Draw();
+  v0res->Draw("same");
+  latex->Draw("same");
+  canvas->SaveAs(canvas->GetName());
 }
 
 void matchedPtZ(string inName = "", double partjetptmin = 10., double partjetptmax = 1e6, bool detector = false, bool doZ = false)

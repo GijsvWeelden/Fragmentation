@@ -651,8 +651,13 @@ void AntiLambda0Mass(string inName = "", string hadron = "", double partjetptmin
 
 // -------------------------------------------------------------------------------------------------
 
-void Reflection(string inName, string hadron, string dataSet, double partv0min, double partv0max)
+void Reflection(vector<string> inputStrings, double partv0min, double partv0max, double dM /* in MeV */)
 {
+  gStyle->SetNdivisions(505, "xy");
+  string inName  = inputStrings[0];
+  string hadron  = inputStrings[1];
+  string dataSet = inputStrings[2];
+
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
     return;
@@ -661,7 +666,6 @@ void Reflection(string inName, string hadron, string dataSet, double partv0min, 
     cout << "Error: hadron must be either Lambda0, or AntiLambda0" << endl;
     return;
   }
-  string hypothesis = ("Lambda0" == hadron) ? "AntiLambda0" : "Lambda0";
   const int nDim                = 6;
   const int partV0PtAxis        = 0;
   const int detV0PtAxis         = 1;
@@ -670,102 +674,122 @@ void Reflection(string inName, string hadron, string dataSet, double partv0min, 
   const int AntiLambda0MassAxis = 4;
   const int ReflectionAxis      = 5;
 
-  gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
   bool setLogY = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
-  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.3, yMaxLegend = 0.5;
-  double xLatex = 0.3, yLatex = 0.8;
   int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
-  // xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
   xTitle = "Reflected mass (GeV/#it{c}^{2})";
-  yTitle = "normalised count";
-  // dataSet = "LHC24b1";
+  yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
 
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-  TLatex* latex;
-
-  histName = TString::Format("%sReflection", ("Lambda0" == hadron) ? "Lambda0" : "antiLambda0").Data();
-  histName = TString::Format("jet-fragmentation/matching/V0/%s", histName.c_str()).Data();
+  histName = "jet-fragmentation/matching/V0/";
+  histName += TString::Format("%sReflection", ("Lambda0" == hadron) ? "Lambda0" : "antiLambda0").Data();
   TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partv0bins = getProjectionBins(thn->GetAxis(partV0PtAxis), partv0min, partv0max);
   thn->GetAxis(partV0PtAxis)->SetRange(partv0bins[0], partv0bins[1]);
-  double lowv0 = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(partv0bins[0]);
+  double lowv0  = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(partv0bins[0]);
   double highv0 = thn->GetAxis(partV0PtAxis)->GetBinUpEdge(partv0bins[1]);
   if (lowv0 < 0.) { lowv0 = 0.; } // Avoids ugly pt>-0 in latextext
 
+  // Apply competing mass cut to K0S mass
+  string saveSuffix;
+  if (dM > 1e-3) {
+    saveSuffix = TString::Format("_dM%.0f", dM).Data();
+    double massWindow = dM * 1e-3; // Convert to GeV
+    array<int, 2> mBins = getProjectionBins(thn->GetAxis(K0SMassAxis), MassK0S - massWindow, MassK0S + massWindow);
+    int* coord = new int[nDim]; //Carries the bin coordinates
+    for (int ib = 0; ib <= thn->GetNbins(); ib++) {
+      double w = thn->GetBinContent(ib, coord);
+      int mb = coord[K0SMassAxis];
+      if (mb >= mBins[0] && mb <= mBins[1]) {
+        thn->SetBinContent(ib, 0.);
+      }
+    }
+  }
+
   TH1D* v0mass = (TH1D*)thn->Projection(ReflectionAxis);
-  v0mass->Scale(1./v0mass->Integral());
+  v0mass->Scale(1./v0mass->Integral(), "width");
   setStyle(v0mass, 0);
   v0mass->SetName(TString::Format("%sReflection", hadron.c_str()).Data());
-  legend->AddEntry(v0mass, "data");
+
+  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.3, yMaxLegend = 0.5;
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+
+  array<double, 2> fitRange = {1.09, 1.15};
+  TF1* pol = new TF1("pol", "pol1", fitRange[0], fitRange[1]);
+  for (int i = 0; i < pol->GetNpar(); i++) {
+    pol->SetParameter(i, 0.);
+    pol->SetParLimits(i, -1., 1.);
+  }
+  TF1* exp1 = new TF1("exp1", "expo", fitRange[0], fitRange[1]);
+  for (int i = 0; i < exp1->GetNpar(); i++) {
+    exp1->SetParameter(i, 0.);
+    exp1->SetParLimits(i, -1., 1.);
+  }
+
+  vector<TF1*> fits = {pol, exp1};
+  vector<TLatex*> latexFits;
+  double xLatex = 0.3, yLatex = 0.8;
+  for (int i = 0; i < fits.size(); i++) {
+    fits[i]->SetLineColor(GetColor(i+1));
+    fits[i]->SetLineWidth(3);
+    fits[i]->SetLineStyle(9);
+    TFitResultPtr fitptr = v0mass->Fit(fits[i], "RSBQ0");
+    string fitName = fits[i]->GetName();
+    double chiSq = fitptr->Chi2();
+    int ndf = fitptr->Ndf();
+    double chiSqNdf = chiSq / ndf;
+    TLatex* latexFit = CreateLatex(xLatex, yLatex - 0.05 * i, TString::Format("%s: #chi^{2}/NDF = %.2f / %d = %.2f", fitName.c_str(), chiSq, ndf, chiSqNdf).Data(), textSize);
+    legend->AddEntry(fits[i], fitName.c_str(), "l");
+    latexFits.push_back(latexFit);
+    fits[i]->SetRange(v0mass->GetXaxis()->GetXmin(), v0mass->GetXaxis()->GetXmax());
+  }
+
+  vector<TObject*> objList = {v0mass};
+  for (auto f : fits) {
+    objList.push_back(f);
+  }
+  for (auto l : latexFits) {
+    objList.push_back(l);
+  }
+
+  saveName  = hadron;
+  saveName += "Reflection";
+  saveName += TString::Format("_partv0pt%.0f-%.0f", lowv0, highv0);
+  saveName += saveSuffix;
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), xCanvas, yCanvas);
+
+  latexText = dataSet;
+  latexText += TString::Format(", #it{p}_{T, %s}^{part.} = %.1f - %.1f GeV/#it{c}}", formatHadronName(hadron).c_str(), lowv0, highv0).Data();
+  double xMinFrame = v0mass->GetXaxis()->GetXmin(), xMaxFrame = v0mass->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * v0mass->GetBinContent(v0mass->GetMaximumBin());
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle(latexText.c_str());
+
+  TLine* line = new TLine(MassLambda0, yMinFrame, MassLambda0, yMaxFrame);
+  line->SetLineStyle(9);
+  line->SetLineColor(GetColor(0));
+  objList.push_back(line);
+
+  if (fits.size() > 0) { objList.push_back(legend); } // Only add legend when plotting fits
 
   canvas->cd();
   frame->Draw();
-  v0mass->Draw("same");
-
-  // double parameters_pol[2];
-  // double parameters_pol2[3];
-  // double parameters_exp[2];
-  // double fitRegion[4] = {1.1, 1.15, 1.17, 1.215};
-  // TF1* pol = new TF1("pol", "pol1", fitRegion[0], fitRegion[1]);
-  // TF1* pol_extrapolated = new TF1("pol_extrapolated", "pol1", 1.05, 1.215);
-  // TF1* exp1 = new TF1("exp1", "expo", fitRegion[0], fitRegion[1]);
-  // TF1* exp1_extrapolated = new TF1("exp1_extrapolated", "expo", 1.05, 1.215);
-
-  // setStyle(pol, 1);
-  // TFitResultPtr polptr = v0mass->Fit(pol, "S R");
-  // pol->GetParameters(&parameters_pol[0]);
-  // legend->AddEntry(pol, "pol1 fit");
-
-  // setStyle(pol_extrapolated, 1);
-  // pol_extrapolated->SetLineStyle(9);
-  // pol_extrapolated->SetParameters(parameters_pol);
-  // pol_extrapolated->Draw("same");
-
-  // setStyle(exp1, 2);
-  // TFitResultPtr expptr = v0mass->Fit(exp1, "S R+");
-  // exp1->GetParameters(&parameters_exp[0]);
-  // legend->AddEntry(exp1, "expo fit");
-
-  // setStyle(exp1_extrapolated, 2);
-  // exp1_extrapolated->SetLineStyle(9);
-  // exp1_extrapolated->SetParameters(parameters_exp);
-  // exp1_extrapolated->Draw("same");
-
-  latexText = TString::Format("#splitline{%s}{#it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c}}", dataSet.c_str(), formatHadronName(hadron).c_str(), lowv0, highv0).Data();
-  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
-
-  // TLatex* latexPolChi2 = CreateLatex(0.26, 0.7, TString::Format("Pol: #chi^{2}/NDF = %.2f / %d = %.2f", polptr->Chi2(), polptr->Ndf(), polptr->Chi2() / polptr->Ndf()).Data(), textSize);
-  // TLatex* latexPol = CreateLatex(0.26, 0.65, TString::Format("Pol = %.2f + %.2f M", parameters_pol[0], parameters_pol[1]).Data(), textSize);
-  // TLatex* latexExpChi2 = CreateLatex(0.26, 0.6, TString::Format("Exp: #chi^{2}/NDF = %.2f / %d = %.2f", expptr->Chi2(), expptr->Ndf(), expptr->Chi2() / expptr->Ndf()).Data(), textSize);
-  // TLatex* latexExp = CreateLatex(0.26, 0.55, TString::Format("Exp = exp(%.2f + %.2f M)", parameters_exp[0], parameters_exp[1]).Data(), textSize);
-
-  TLine* line = new TLine(MassLambda0, yMinFrame, MassLambda0, yMaxFrame);
-
-  // legend->Draw("same");
-  latex->Draw("same");
-  // latexPolChi2->Draw("same");
-  // latexPol->Draw("same");
-  // latexExpChi2->Draw("same");
-  // latexExp->Draw("same");
-
-  saveName = TString::Format("%sReflection", hadron.c_str()).Data();
-  saveName = TString::Format("%s_partv0pt%.0f-%.0f", saveName.c_str(), lowv0, highv0);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  canvas->SaveAs(saveName.c_str());
+  for (auto obj : objList) {
+    obj->Draw("same");
+  }
+  canvas->SaveAs(canvas->GetName());
 }
-void Reflection(string inName, string hadron, string dataSet, double partjetptmin, double partjetptmax, double partv0min, double partv0max, bool doZ = false)
+void Reflection(vector<string> inputStrings, double partjetptmin, double partjetptmax, double partv0min, double partv0max, double dM /* in MeV */, bool doZ = false)
 {
+  string inName  = inputStrings[0];
+  string hadron  = inputStrings[1];
+  string dataSet = inputStrings[2];
   if ("" == inName) {
     cout << "Error: inName must be specified" << endl;
     return;
@@ -774,7 +798,7 @@ void Reflection(string inName, string hadron, string dataSet, double partjetptmi
     cout << "Error: hadron must be either Lambda0, or AntiLambda0" << endl;
     return;
   }
-  string hypothesis = ("Lambda0" == hadron) ? "AntiLambda0" : "Lambda0";
+
   const int nDim                = 8;
   const int partJetPtAxis       = 0;
   const int partV0PtAxis        = 1;
@@ -786,134 +810,152 @@ void Reflection(string inName, string hadron, string dataSet, double partjetptmi
   const int ReflectionAxis      = 7;
 
   gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
+  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
-  bool setLogY = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
-  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.3, yMaxLegend = 0.5;
-  double xLatex = 0.3, yLatex = 0.8;
-  int xCanvas = 900, yCanvas = 900;
   int rebinNumber = 5;
-  // xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
   xTitle = "Reflected mass (GeV/#it{c}^{2})";
-  yTitle = "normalised count";
-  dataSet = "LHC24b1";
-
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-  TLatex* latex;
+  yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
 
   histName = TString::Format("partJetPt%sPtDetJetPt%sPt%sReflection", hadron.c_str(), hadron.c_str(), hadron.c_str()).Data();
   if (doZ) { histName = TString::Format("partJetPt%sTrackProjDetJetPt%sTrackProj%sReflection", hadron.c_str(), hadron.c_str(), hadron.c_str()).Data();}
   histName = TString::Format("jet-fragmentation/matching/jets/V0/%s", histName.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
+  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetbins = getProjectionBins(thn->GetAxis(partJetPtAxis), partjetptmin, partjetptmax);
-  std::array<int, 2> partv0bins = getProjectionBins(thn->GetAxis(partV0PtAxis), partv0min, partv0max);
   thn->GetAxis(partJetPtAxis)->SetRange(partjetbins[0], partjetbins[1]);
-  thn->GetAxis(partV0PtAxis)->SetRange(partv0bins[0], partv0bins[1]);
   double lowjetpt = thn->GetAxis(partJetPtAxis)->GetBinLowEdge(partjetbins[0]);
   double highjetpt = thn->GetAxis(partJetPtAxis)->GetBinUpEdge(partjetbins[1]);
+
+  std::array<int, 2> partv0bins = getProjectionBins(thn->GetAxis(partV0PtAxis), partv0min, partv0max);
+  thn->GetAxis(partV0PtAxis)->SetRange(partv0bins[0], partv0bins[1]);
   double lowv0 = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(partv0bins[0]);
   double highv0 = thn->GetAxis(partV0PtAxis)->GetBinUpEdge(partv0bins[1]);
   if (lowv0 < 0.) { lowv0 = 0.; } // Avoids ugly pt>-0 in latextext
 
+  // Competing mass cut
+  string saveSuffix;
+  if (dM > 1e-3) {
+    saveSuffix = TString::Format("_dM%.0f", dM).Data();
+    double massWindow = dM * 1e-3; // Convert to GeV
+    array<int, 2> mBins = getProjectionBins(thn->GetAxis(K0SMassAxis), MassK0S - massWindow, MassK0S + massWindow);
+    int* coord = new int[nDim]; //Carries the bin coordinates
+    for (int ib = 0; ib <= thn->GetNbins(); ib++) {
+      double w = thn->GetBinContent(ib, coord);
+      int mb = coord[K0SMassAxis];
+      if (mb >= mBins[0] && mb <= mBins[1]) {
+        thn->SetBinContent(ib, 0.);
+      }
+    }
+  }
+
   TH1D* v0mass = (TH1D*)thn->Projection(ReflectionAxis);
-  v0mass->Scale(1./v0mass->Integral()); // FIXME: Should scale by Njets
-  setStyle(v0mass, 0);
+  v0mass->Scale(1./v0mass->Integral(), "width");
   v0mass->SetName(TString::Format("%sReflection", hadron.c_str()).Data());
-  legend->AddEntry(v0mass, "data");
+  setStyle(v0mass, 0);
+
+  double xMinLegend = 0.3, xMaxLegend = 0.9, yMinLegend = 0.3, yMaxLegend = 0.5;
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+
+  array<double, 2> fitRange = {1.09, 1.15};
+  TF1* pol = new TF1("pol", "pol1", fitRange[0], fitRange[1]);
+  for (int i = 0; i < pol->GetNpar(); i++) {
+    pol->SetParameter(i, 0.);
+    pol->SetParLimits(i, -1., 1.);
+  }
+  TF1* exp1 = new TF1("exp1", "expo", fitRange[0], fitRange[1]);
+  for (int i = 0; i < exp1->GetNpar(); i++) {
+    exp1->SetParameter(i, 0.);
+    exp1->SetParLimits(i, -1., 1.);
+  }
+  vector<TF1*> fits = {pol, exp1};
+  vector<TLatex*> latexFits;
+  double xLatex = 0.25, yLatex = 0.65;
+  for (int i = 0; i < fits.size(); i++) {
+    fits[i]->SetLineColor(GetColor(i+1));
+    fits[i]->SetLineWidth(3);
+    fits[i]->SetLineStyle(9);
+    TFitResultPtr fitptr = v0mass->Fit(fits[i], "RSBQ0");
+    string fitName = fits[i]->GetName();
+    double chiSq = fitptr->Chi2();
+    int ndf = fitptr->Ndf();
+    double chiSqNdf = chiSq / ndf;
+    TLatex* latexFit = CreateLatex(xLatex, yLatex - 0.05 * i, TString::Format("%s: #chi^{2}/NDF = %.2f / %d = %.2f", fitName.c_str(), chiSq, ndf, chiSqNdf).Data(), textSize);
+    legend->AddEntry(fits[i], fitName.c_str(), "l");
+    latexFits.push_back(latexFit);
+    fits[i]->SetRange(v0mass->GetXaxis()->GetXmin(), v0mass->GetXaxis()->GetXmax());
+  }
+
+  saveName = hadron;
+  saveName += "Reflection";
+  saveName += TString::Format("_partjetpt%.0f-%.0f", lowjetpt, highjetpt);
+  if (doZ) { saveName += TString::Format("_partv0z%.1f-%.1f", lowv0, highv0); }
+  else { saveName += TString::Format("_partv0pt%.0f-%.0f", lowv0, highv0); }
+  saveName += saveSuffix;
+  saveName += ".pdf";
+  int xCanvas = 900, yCanvas = 900;
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), xCanvas, yCanvas);
+
+  double xMinFrame = v0mass->GetXaxis()->GetXmin(), xMaxFrame = v0mass->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = max(0.1, 1.1 * v0mass->GetBinContent(v0mass->GetMaximumBin()));
+  if (yMaxFrame < 1e-3) { yMaxFrame = 1e-3; } // Change this number if necessary
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+
+  TLine* line = new TLine(MassLambda0, yMinFrame, MassLambda0, 0.1*yMaxFrame);
+  line->SetLineStyle(9);
+  line->SetLineColor(GetColor(0));
+  line->SetLineWidth(3);
+
+  string jetText = TString::Format("#it{p}_{T, ch. jet}^{part.} = %.0f-%.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
+  string v0Text  = TString::Format("#it{p}_{T, %s}^{part.} = %.1f-%.1f GeV/#it{c}", formatHadronName(hadron).c_str(), lowv0, highv0).Data();
+  if (doZ) { v0Text = TString::Format("#it{z}_{%s}^{part.} = %.2f-%.2f", formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
+  latexText = TString::Format("#splitline{%s}{#splitline{%s}{%s}}",
+                              dataSet.c_str(), jetText.c_str(), v0Text.c_str()).Data();
+  xLatex = 0.35, yLatex = 0.82;
+  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+
+  vector<TObject*> objList = {v0mass, line};
+  for (auto f : fits) { objList.push_back(f); }
+  for (auto l : latexFits) { objList.push_back(l); }
+  objList.push_back(latex);
+  if (fits.size() > 0) { objList.push_back(legend); } // Only add legend when plotting fits
 
   canvas->cd();
   frame->Draw();
-  v0mass->Draw("same");
-
-  // double parameters_pol[2];
-  // double parameters_pol2[3];
-  // double parameters_exp[2];
-  // double fitRegion[4] = {1.1, 1.15, 1.17, 1.215};
-  // TF1* pol = new TF1("pol", "pol1", fitRegion[0], fitRegion[1]);
-  // TF1* pol_extrapolated = new TF1("pol_extrapolated", "pol1", 1.05, 1.215);
-  // TF1* exp1 = new TF1("exp1", "expo", fitRegion[0], fitRegion[1]);
-  // TF1* exp1_extrapolated = new TF1("exp1_extrapolated", "expo", 1.05, 1.215);
-
-  // setStyle(pol, 1);
-  // TFitResultPtr polptr = v0mass->Fit(pol, "S R");
-  // pol->GetParameters(&parameters_pol[0]);
-  // legend->AddEntry(pol, "pol1 fit");
-
-  // setStyle(pol_extrapolated, 1);
-  // pol_extrapolated->SetLineStyle(9);
-  // pol_extrapolated->SetParameters(parameters_pol);
-  // pol_extrapolated->Draw("same");
-
-  // setStyle(exp1, 2);
-  // TFitResultPtr expptr = v0mass->Fit(exp1, "S R+");
-  // exp1->GetParameters(&parameters_exp[0]);
-  // legend->AddEntry(exp1, "expo fit");
-
-  // setStyle(exp1_extrapolated, 2);
-  // exp1_extrapolated->SetLineStyle(9);
-  // exp1_extrapolated->SetParameters(parameters_exp);
-  // exp1_extrapolated->Draw("same");
-
-  latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch. jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ #it{p}_{T, %s}^{part.} = %.0f - %.0f GeV/#it{c} } }", dataSet.c_str(), lowjetpt, highjetpt, formatHadronName(hadron).c_str(), lowv0, highv0).Data();
-  latex = CreateLatex(xLatex, yLatex, latexText, textSize);
-
-  // TLatex* latexPolChi2 = CreateLatex(0.26, 0.7, TString::Format("Pol: #chi^{2}/NDF = %.2f / %d = %.2f", polptr->Chi2(), polptr->Ndf(), polptr->Chi2() / polptr->Ndf()).Data(), textSize);
-  // TLatex* latexPol = CreateLatex(0.26, 0.65, TString::Format("Pol = %.2f + %.2f M", parameters_pol[0], parameters_pol[1]).Data(), textSize);
-  // TLatex* latexExpChi2 = CreateLatex(0.26, 0.6, TString::Format("Exp: #chi^{2}/NDF = %.2f / %d = %.2f", expptr->Chi2(), expptr->Ndf(), expptr->Chi2() / expptr->Ndf()).Data(), textSize);
-  // TLatex* latexExp = CreateLatex(0.26, 0.55, TString::Format("Exp = exp(%.2f + %.2f M)", parameters_exp[0], parameters_exp[1]).Data(), textSize);
-
-  TLine* line = new TLine(MassLambda0, yMinFrame, MassLambda0, yMaxFrame);
-
-  // legend->Draw("same");
-  latex->Draw("same");
-  // latexPolChi2->Draw("same");
-  // latexPol->Draw("same");
-  // latexExpChi2->Draw("same");
-  // latexExp->Draw("same");
-
-  saveName = TString::Format("%sReflection", hadron.c_str()).Data();
-  saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
-  if (doZ) {saveName = TString::Format("%s_partv0z%.1f-%.1f", saveName.c_str(), lowv0, highv0); }
-  else { saveName = TString::Format("%s_partv0pt%.0f-%.0f", saveName.c_str(), lowv0, highv0); }
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  canvas->SaveAs(saveName.c_str());
+  for (auto obj : objList) { obj->Draw("same"); }
+  canvas->SaveAs(canvas->GetName());
 }
 
 // -------------------------------------------------------------------------------------------------
 
-void plot24b1bReflection(string hadron, double partv0min, double partv0max)
+void plot24b1bReflection(string hadron, double partv0min, double partv0max, double dM /* in MeV */)
 {
-  string inName = "~/cernbox/TrainOutput/"; // FIXME: Update once you've run on 24b1b
+  string inName = "~/cernbox/TrainOutput/XXXXXX/AnalysisResults.root"; // FIXME: Update once you've run on 24b1b
   string dataSet = "LHC24b1b";
-  Reflection(inName, hadron, dataSet, partv0min, partv0max);
+  vector<string> inputStrings = {inName, hadron, dataSet};
+  Reflection(inputStrings, partv0min, partv0max, dM);
 }
-void plot24b1bReflection(string hadron, double partjetptmin, double partjetptmax, double partv0min, double partv0max, bool doZ)
+void plot24b1bReflection(string hadron, double partjetptmin, double partjetptmax, double partv0min, double partv0max, double dM, bool doZ)
 {
-  string inName = "~/cernbox/TrainOutput/"; // FIXME: Update once you've run on 24b1b
+  string inName = "~/cernbox/TrainOutput/210376/AnalysisResults.root"; // FIXME: Update once you've run on 24b1b
   string dataSet = "LHC24b1b";
-  Reflection(inName, hadron, dataSet, partjetptmin, partjetptmax, partv0min, partv0max, doZ);
+  vector<string> inputStrings = {inName, hadron, dataSet};
+  Reflection(inputStrings, partjetptmin, partjetptmax, partv0min, partv0max, dM, doZ);
 }
-void plotAll24b1bReflection(string hadron)
+void plotAll24b1bReflection(string hadron, double dM)
 {
   vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
   for (int i = 0; i < pt.size() - 1; i++) {
-    if pt[i] > jetptmax { break; }
-    plot22o(hadron, pt[i], pt[i+1]);
+    plot24b1bReflection(hadron, pt[i], pt[i+1], dM);
   }
 }
-void plotAll24b1bReflection(string hadron, double partjetptmin, double partjetptmax, bool doZ)
+void plotAll24b1bReflection(string hadron, double partjetptmin, double partjetptmax, double dM, bool doZ)
 {
   vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
   for (int i = 0; i < pt.size() - 1; i++) {
-    if pt[i] > jetptmax { break; }
-    plot22o(hadron, partjetptmin, partjetptmax, pt[i], pt[i+1], doZ);
+    if (pt[i] > partjetptmax) { break; }
+    plot24b1bReflection(hadron, partjetptmin, partjetptmax, pt[i], pt[i+1], dM, doZ);
   }
 }

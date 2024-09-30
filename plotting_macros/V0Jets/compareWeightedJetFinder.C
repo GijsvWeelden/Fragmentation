@@ -145,7 +145,7 @@ void compareZ(vector<vector<string> > inputStrings, double jetptmin = 10., doubl
   double scale = 0.;
   double lowjetpt = -1., highjetpt = -1.;
   vector<double> njets;
-  // size - 1 because the last entry is the saveName
+  // size - 1 because the last entry is the saveName and hadron
   for (int i = 0; i < inputStrings.size() - 1; i++) {
     string inName      = inputStrings[i][0];
     string histName    = inputStrings[i][1];
@@ -181,7 +181,7 @@ void compareZ(vector<vector<string> > inputStrings, double jetptmin = 10., doubl
   }
   if (doRatio) {
     canvas->SetLogy(false);
-    yMinFrame = 0.9; yMaxFrame = 1.1;
+    yMinFrame = 0.6; yMaxFrame = 1.2;
     scale = 1.;
     drawoption = "same hist";
     yTitle = TString::Format("ratio w.r.t. %s", inputStrings[0][2].c_str()).Data();
@@ -200,12 +200,6 @@ void compareZ(vector<vector<string> > inputStrings, double jetptmin = 10., doubl
   legend->Draw("same");
   latex->Draw("same");
   if (additionalLatex) additionalLatex->Draw("same");
-
-  // saveName = "Pythia-WeightedJetFinder";
-  // saveName += "-zv0";
-  // saveName += (doRatio ? "Ratio" : "Comparison");
-  // saveName += TString::Format("_jetpt%.0f-%.0f", jetptmin, jetptmax).Data();
-  // saveName += ".pdf";
   canvas->SaveAs(saveName.c_str());
 }
 

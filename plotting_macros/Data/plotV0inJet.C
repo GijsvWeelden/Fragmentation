@@ -168,7 +168,7 @@ void plotZ(string inName = "", string dataSet = "dataSet", string hadron = "", d
   }
   if ("V0" == hadron) {
     cout << "V0 selected. Redirecting to plotV0Z()" << endl;
-    plotV0Z(inName, jetptmin, jetptmax);
+    plotV0Z(inName, dataSet, jetptmin, jetptmax);
     return;
   }
   if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
@@ -860,7 +860,7 @@ void plotV0ctauKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{c}#tau (K^{0}_{S})";
   yTitle = "#it{c}#tau (#Lambda)";
-  // string dataSet = "LHC22o_pass6_minBias";
+  string dataSet = "LHC22o_pass6_minBias";
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
   if (SetLogz) { canvas->SetLogz(); }
@@ -932,7 +932,7 @@ void plotV0mass(string inName = "AnalysisResults.root", int setting = 2, double 
   if (setting == LambdaAxis) { xTitle = "#it{M} (#Lambda)"; }
   if (setting == AntiLambdaAxis) { xTitle = "#it{M} (#bar{#Lambda})"; }
   yTitle = "normalised count";
-  // string dataSet = "LHC22o_pass6_minBias";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   std::vector<TH1D*> histVector;
@@ -994,7 +994,7 @@ void plotV0massKL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#Lambda)";
-  // string dataSet = "LHC22o_pass6_minBias";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1057,7 +1057,7 @@ void plotV0massKaL(string inName = "AnalysisResults.root", double jetptmin = 10.
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (K^{0}_{S})";
   yTitle = "#it{M} (#bar{#Lambda})";
-  // string dataSet = "LHC22o_pass6_minBias";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1120,7 +1120,7 @@ void plotV0massLL(string inName = "AnalysisResults.root", double jetptmin = 10.,
   int xCanvas = 900, yCanvas = 900;
   xTitle = "#it{M} (#Lambda)";
   yTitle = "#it{M} (#bar{#Lambda})";
-  // string dataSet = "LHC22o_pass6_minBias";
+  string dataSet = "LHC22o_pass6_minBias";
   latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, V0} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, v0ptmin, v0ptmax).Data();
 
   TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
@@ -1270,8 +1270,11 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
 // ----------------------------------------------------------
 // Number of taggedV0s in jets
 // ----------------------------------------------------------
-void plotNV0sInJet(string inName, string hadron, double jetptmin = 10., double jetptmax = 200.)
+void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax, bool doRatio)
 {
+  string inName  = inputStrings[0];
+  string hadron  = inputStrings[1];
+  string dataSet = inputStrings[2];
   const int nDim           = 5;
   const int jetptAxis      = 0;
   const int v0Axis         = 1;
@@ -1280,40 +1283,18 @@ void plotNV0sInJet(string inName, string hadron, double jetptmin = 10., double j
   const int AntiLambdaAxis = 4;
 
   gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  bool setLogY = true;
-  double xMinFrame = -0.5, xMaxFrame = 5, yMinFrame = 1e-1, yMaxFrame = 1e7;
-  double xMinLegend = 0.4, xMaxLegend = 0.8, yMinLegend = 0.6, yMaxLegend = 0.85;
-
-  int xCanvas = 900, yCanvas = 900;
-  xTitle = TString::Format("#it{N} (%s) #in jet", formatHadronName(hadron).c_str()).Data();
-  yTitle = "#it{N}_{jets}";
-  // string dataSet = "LHC22o_pass6_minBias_small";
-  latexText = "";
-
-  std::vector<TH1D*> histVector;
-
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  histName = "jet-fragmentation/data/jets/V0/jetPtnV0nK0SnLambdanAntiLambda";
-  TFile *inFile = TFile::Open(TString::Format("%s", inName.c_str()).Data());
+  string histName = "jet-fragmentation/data/jets/V0/jetPtnV0nK0SnLambdanAntiLambda";
+  TFile *inFile = TFile::Open(inName.c_str());
   THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
   thn->Sumw2();
 
-  int firstBinJetPt = 1, lastBinJetPt = thn->GetAxis(jetptAxis)->GetNbins();
-  int firstBinK0SMass = 1, lastBinK0SMass = thn->GetAxis(K0SAxis)->GetNbins();
-  int firstBinLambdaMass = 1, lastBinLambdaMass = thn->GetAxis(LambdaAxis)->GetNbins();
-  int firstBinAntiLambdaMass = 1, lastBinAntiLambdaMass = thn->GetAxis(AntiLambdaAxis)->GetNbins();
-
-  firstBinJetPt = thn->GetAxis(jetptAxis)->FindBin(jetptmin + 1e-3);
-  lastBinJetPt  = thn->GetAxis(jetptAxis)->FindBin(jetptmax - 1e-3);
+  array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetptAxis), jetptmin, jetptmax);
+  double lowjetpt = thn->GetAxis(jetptAxis)->GetBinLowEdge(jetptbins[0]);
+  double highjetpt = thn->GetAxis(jetptAxis)->GetBinUpEdge(jetptbins[1]);
 
   TH1D* hJets = (TH1D*) thn->Projection(jetptAxis);
   double nJets = hJets->Integral();
@@ -1325,143 +1306,93 @@ void plotNV0sInJet(string inName, string hadron, double jetptmin = 10., double j
   if ("K0S" == hadron) {
     projectionAxis = K0SAxis;
     otherAxes[1] = LambdaAxis;
-    otherAxes[2] =  AntiLambdaAxis;
+    otherAxes[2] = AntiLambdaAxis;
     labels[1] = "#it{N} (#Lambda) > 0";
     labels[2] = "#it{N} (#bar{#Lambda}) > 0";
   }
   if ("Lambda0" == hadron) {
     projectionAxis = LambdaAxis;
     otherAxes[1] = K0SAxis;
-    otherAxes[2] =  AntiLambdaAxis;
+    otherAxes[2] = AntiLambdaAxis;
     labels[1] = "#it{N} (K^{0}_{S}) > 0";
     labels[2] = "#it{N} (#bar{#Lambda}) > 0";
   }
   if ("AntiLambda0" == hadron) {
     projectionAxis = AntiLambdaAxis;
-    otherAxes[1] = LambdaAxis;
-    otherAxes[2] =  K0SAxis;
+    otherAxes[1] = K0SAxis;
+    otherAxes[2] = LambdaAxis;
     labels[1] = "#it{N} (K^{0}_{S}) > 0";
     labels[2] = "#it{N} (#Lambda) > 0";
   }
   labels[3] = TString::Format("%s, %s", labels[1].c_str(), labels[2].c_str());
 
+  double xMinLegend = 0.4, xMaxLegend = 0.8, yMinLegend = 0.6, yMaxLegend = 0.85;
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, "", textSize);
+  std::vector<TH1D*> histVector;
   for (int i = 0; i < 4; i++) {
     THnSparseD* tmp = (THnSparseD*) thn->Clone("temporary");
-    tmp->GetAxis(jetptAxis)->SetRange(firstBinJetPt, lastBinJetPt);
+    tmp->GetAxis(jetptAxis)->SetRange(jetptbins[0], jetptbins[1]);
 
     if (otherAxes.size() == i) {
+      // Require 1 of both other hadrons
       tmp->GetAxis(otherAxes[1])->SetRange(2, thn->GetAxis(otherAxes[1])->GetNbins());
       tmp->GetAxis(otherAxes[2])->SetRange(2, thn->GetAxis(otherAxes[2])->GetNbins());
     }
     else if (0 < i) {
+      // Require 1 of another hadron
       tmp->GetAxis(otherAxes[i])->SetRange(2, thn->GetAxis(otherAxes[i])->GetNbins());
     }
 
     TH1D* h = tmp->Projection(projectionAxis);
     h->SetName(TString::Format("h%d", i));
-    // h->Scale(1./nJets);
-    // h->Scale(1./h->Integral());
     setStyle(h, i);
     legend->AddEntry(h, labels[i].c_str());
     histVector.push_back(h);
   }
 
-  latexText = TString::Format("%s, %.0f < #it{p}_{T, jet} < %.0f", dataSet.c_str(), jetptmin, jetptmax);
-  TLatex* latex = CreateLatex(0.2, 0.94, latexText, textSize);
+  double xMinFrame = -0.5, xMaxFrame = 9.5, yMinFrame = 1e-1, yMaxFrame = 1e7;
+  string xTitle = TString::Format("#it{N} (%s) #in jet", formatHadronName(hadron).c_str()).Data();
+  string yTitle = "#it{N}_{jets}";
+
+  // Scale hists with content of first bin, to get some measure of relative probability (?)
+  if (doRatio) {
+    for (auto hist : histVector) {
+      double firstBinContent = hist->GetBinContent(1);
+      hist->Scale(1./firstBinContent);
+    }
+    yTitle = "#it{N} / #it{N}_{0}";
+    yMinFrame = 1e-3, yMaxFrame = 10.;
+  }
+
+  int xCanvas = 900, yCanvas = 900;
+  string saveName = "nK";
+  if ("Lambda0" == hadron) { saveName = "nL"; }
+  if ("AntiLambda0" == hadron) { saveName = "nAL"; }
+  saveName += TString::Format("_jetpt%.0f-%.0f", jetptmin, jetptmax);
+  if (doRatio) { saveName += "_ratio"; }
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), xCanvas, yCanvas);
+  canvas->SetLogy();
+
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  string jetptText = TString::Format("%.0f #leq #it{p}_{T, ch+V0 jet} < %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
+  string latexText = dataSet + ", " + jetptText;
+  frame->SetTitle(latexText.c_str());
 
   frame->Draw();
   legend->Draw("same");
-  latex->Draw("same");
   for (auto hist : histVector) {
     hist->Draw("same");
     hist->Print();
     for (int i = 1; i < 4; i++) {
+      if (hist->GetBinContent(i) < 1e-15) {
+        break;
+      }
       cout << hist->GetBinContent(i) << endl;
     }
   }
-
-  saveName = "nK";
-  if ("Lambda0" == hadron) { saveName = "nL"; }
-  if ("AntiLambda0" == hadron) { saveName = "nAL"; }
-  saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  canvas->SaveAs(saveName.c_str());
+  canvas->SaveAs(canvas->GetName());
 }
-
-// ----------------------------------------------------------
-// Lambda0
-// ----------------------------------------------------------
-void plotLambda0Pt(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotPt(inName, "Lambda0", jetptmin, jetptmax); }
-void plotLambda0Z(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotZ(inName, "Lambda0", jetptmin, jetptmax); }
-
-void plotLambda0Radius(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotRadius(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0CosPA(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotCosPA(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0DCAdaughters(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAdaughters(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0DCApos(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCApos(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0DCAneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAneg(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0DCAposneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAposneg(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0ctau(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotctau(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotLambda0Mass(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotMass(inName, "Lambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-
-// ----------------------------------------------------------
-// AntiLambda0
-// ----------------------------------------------------------
-void plotAntiLambda0Pt(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotPt(inName, "AntiLambda0", jetptmin, jetptmax); }
-void plotAntiLambda0Z(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotZ(inName, "AntiLambda0", jetptmin, jetptmax); }
-
-void plotAntiLambda0Radius(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotRadius(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0CosPA(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotCosPA(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0DCAdaughters(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAdaughters(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0DCApos(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCApos(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0DCAneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAneg(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0DCAposneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAposneg(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0ctau(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotctau(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotAntiLambda0Mass(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotMass(inName, "AntiLambda0", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-
-// ----------------------------------------------------------
-// K0S
-// ----------------------------------------------------------
-void plotK0SPt(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotPt(inName, "K0S", jetptmin, jetptmax); }
-void plotK0SZ(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200.)
-{ plotZ(inName, "K0S", jetptmin, jetptmax); }
-
-void plotK0SRadius(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotRadius(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SCosPA(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotCosPA(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SDCAdaughters(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAdaughters(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SDCApos(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCApos(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SDCAneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAneg(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SDCAposneg(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotDCAposneg(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0Sctau(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotctau(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
-void plotK0SMass(string inName = "AnalysisResults.root", string dataSet = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
-{ plotMass(inName, "K0S", jetptmin, jetptmax, v0ptmin, v0ptmax); }
 
 // ----------------------------------------------------------
 // ----------------------------------------------------------
@@ -1501,7 +1432,17 @@ void plotAll22o(double jetptmin, double jetptmax, string hadron, int setting)
 {
   vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
   for (int i = 0; i < pt.size() - 1; i++) {
-    if pt[i] > jetptmax { break; }
+    if (pt[i] > jetptmax) { break; }
     plot22o(jetptmin, jetptmax, pt[i], pt[i+1], hadron, setting);
   }
+}
+
+void plot22oNV0s(string hadron, double jetptmin, double jetptmax)
+{
+  string inName  = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+  string dataSet = "LHC22o_pass6";
+  vector<string> inputStrings = {inName, hadron, dataSet};
+
+  plotNV0sInJet(inputStrings, jetptmin, jetptmax, false);
+  plotNV0sInJet(inputStrings, jetptmin, jetptmax, true);
 }

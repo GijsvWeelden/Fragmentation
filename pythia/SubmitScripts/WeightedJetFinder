@@ -3,7 +3,7 @@
 MYDIR="/data/alice/gweelden/Fragmentation/pythia"
 NEVENTS=2000
 OUTFILE="test"
-DOPTSCHEME="false"
+DOPTSCHEME=0
 WSIGNAL=1.0
 VSETTING=1
 CLUSTERID="test"
@@ -38,7 +38,10 @@ fi
 if [ ! -f ${outdir}/pythia8_weightedjetfinder.cpp ]; then
     cp ${MYDIR}/pythia8_weightedjetfinder.cpp ${outdir}/
 fi
-if [ ! -f ${outdir}/condorV0JetClustering.sub ]; then
+if [ ! -f ${outdir}/WeightedJetFinder ]; then
+    cp ${MYDIR}/SubmitScripts/WeightedJetFinder ${outdir}/
+fi
+if [ ! -f ${outdir}/WeightedJetFinder.sub ]; then
     cp ${MYDIR}/SubmitScripts/WeightedJetFinder.sub ${outdir}/
 fi
 

@@ -1,0 +1,21 @@
+
+#!/bin/bash
+BATCH=$1
+
+DIRECTORY="WeightedJetFinder"
+DIRECTORY="${FRAGMENTATION_DIR}/pythia/${DIRECTORY}"
+
+INFILE="${FRAGMENTATION_DIR}/pythia/WeightedJetFinder/Batch${BATCH}/${BATCH}_0.out"
+outfile="${DIRECTORY}/Description.txt"
+timestamp=$(ls -lrt --time-style="+:%Y.%m.%d:" ${INFILE} | grep :)
+timestamp=${timestamp#*:} # Remove everything before (and including) the first colon
+timestamp=${timestamp%:*} # Remove everything after (and including) the second colon
+
+echo "Appended info for condor batch $BATCH to $outfile"
+
+printf "%s \n"  "" "=====================" "$timestamp" "Batch $BATCH" \
+    >> $outfile
+# Print the first 4 lines of the file
+sed 4q $INFILE \
+    >> $outfile
+printf "%s \n" "=====================" >> $outfile

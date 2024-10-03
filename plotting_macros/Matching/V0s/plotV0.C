@@ -56,7 +56,6 @@ void ptResolution(string inName, string dataSet, double partv0min, double partv0
   TH1D* v0res = (TH1D*)th3->ProjectionZ("v0resolution", partv0bins[0], partv0bins[1], 0, th3->GetNbinsY() + 1);
   v0res->Scale(1./v0res->Integral());
   setStyle(v0res, 0);
-  histVector.push_back(v0res);
 
   double lowv0 = th3->GetXaxis()->GetBinLowEdge(partv0bins[0]);
   double highv0 = th3->GetXaxis()->GetBinUpEdge(partv0bins[1]);
@@ -80,7 +79,7 @@ void ptResolution(string inName, string dataSet, double partv0min, double partv0
   TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = "V0PtResolution";
-  saveName += TString::Format("_partv0pt%.1f-%.1f", saveName.c_str(), lowv0, highv0);
+  saveName += TString::Format("_partv0pt%.1f-%.1f", lowv0, highv0);
   saveName += ".pdf";
   int xCanvas = 900, yCanvas = 900;
   TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), xCanvas, yCanvas);
@@ -108,7 +107,7 @@ void dauPtResolution(string inName, string dataSet, double partmin, double partm
   double labelSize = 0.04;
   double titleSize = 0.04;
 
-  histName  = "jet-fragmentation/matching/V0/";
+  string histName  = "jet-fragmentation/matching/V0/";
   if (doPos) histName += "V0PosPartPtRatioPtRelDiffPt";
   else histName += "V0NegPartPtRatioPtRelDiffPt";
   TFile *inFile = TFile::Open(inName.c_str());
@@ -147,6 +146,7 @@ void dauPtResolution(string inName, string dataSet, double partmin, double partm
   string yTitle = "normalised count";
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
 
+  canvas->cd();
   frame->Draw();
   daures->Draw("same");
   latex->Draw("same");
@@ -196,4 +196,34 @@ void matchedPt(string inName = "", bool detector = false)
   if (detector) { saveName = "matchedDetV0Pt"; }
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
+}
+
+void plotTrain(string inName, string dataSet, double partv0min, double partv0max, int setting)
+{
+  switch (setting) {
+    case 0:
+      ptResolution(inName, dataSet, partv0min, partv0max);
+      break;
+    case 1:
+      dauPtResolution(inName, dataSet, partv0min, partv0max, true);
+      dauPtResolution(inName, dataSet, partv0min, partv0max, false);
+      break;
+    default:
+      cout << "Error: invalid setting" << endl;
+      break;
+  }
+}
+void plot271952(double partv0min, double partv0max, int setting)
+{
+  string inName = "~/cernbox/TrainOutput/271952/AnalysisResults.root";
+  string dataSet = "LHC24b1b";
+  plotTrain(inName, dataSet, partv0min, partv0max, setting);
+}
+void plot271952(int setting)
+{
+  gROOT->SetBatch();
+  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0};
+  for (int i = 0; i < pt.size() - 1; i++) {
+    plot271952(pt[i], pt[i+1], setting);
+  }
 }

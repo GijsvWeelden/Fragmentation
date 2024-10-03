@@ -557,6 +557,22 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
   canvas->SaveAs(canvas->GetName());
 }
 
+void plotTrain(string train, string dataSet, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, int setting)
+{
+  string inputName = "~/cernbox/TrainOutput/" + train + "/AnalysisResults.root";
+  switch (setting) {
+    case 0:
+      ptResolution(inputName, dataSet, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      break;
+    case 1:
+      dauPtResolution(inputName, dataSet, jetptmin, jetptmax, v0ptmin, v0ptmax, false);
+      dauPtResolution(inputName, dataSet, jetptmin, jetptmax, v0ptmin, v0ptmax, true);
+      break;
+    default:
+      cout << "Error: invalid setting" << endl;
+      return;
+  }
+}
 void plotTrain(string train, string dataSet, string hadron, double jetptmin, double jetptmax, int setting)
 {
   string inputName = "~/cernbox/TrainOutput/" + train + "/AnalysisResults.root";
@@ -579,6 +595,22 @@ void plot271952(string hadron, double jetptmin, double jetptmax, int setting)
   string dataSet = "LHC24b1b";
   plotTrain(train, dataSet, hadron, jetptmin, jetptmax, setting);
 }
+void plot271952(double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, int setting)
+{
+  string train = "271952";
+  string dataSet = "LHC24b1b";
+  plotTrain(train, dataSet, jetptmin, jetptmax, v0ptmin, v0ptmax, setting);
+}
+void plot271952(double jetptmin, double jetptmax, int setting)
+{
+  gROOT->SetBatch();
+  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0};
+  for (int i = 0; i < pt.size()-1; i++) {
+    if (pt[i] > jetptmin) break;
+    plot271952(jetptmin, jetptmax, pt[i], pt[i+1], setting);
+  }
+}
+
 void plot210373(string hadron, double jetptmin, double jetptmax, int setting)
 {
   string train = "210373";

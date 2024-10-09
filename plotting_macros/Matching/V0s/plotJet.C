@@ -124,7 +124,10 @@ void jetEnergyScale(vector<string> inputStrings, double partjetptmin, double par
   TH2D* th2 = (TH2D*)inFile->Get(histName.c_str());
 
   std::array<int, 2> partjetptbins = getProjectionBins(th2->GetXaxis(), partjetptmin, partjetptmax);
-  TH1D* jes = th2->ProjectionY(TString::Format("jetEnergyScale_%s_pt%.0f-%.0f").Data(), inName.c_str(), partjetptbins[0], partjetptbins[1]);
+  double lowjetpt  = th2->GetXaxis()->GetBinLowEdge(partjetptbins[0]);
+  double highjetpt = th2->GetXaxis()->GetBinUpEdge(partjetptbins[1]);
+  TH1D* jes = th2->ProjectionY("jes", partjetptbins[0], partjetptbins[1]);
+  jes->SetName(TString::Format("jes_partjetpt%.0f-%.0f", lowjetpt, highjetpt).Data());
   jes->Scale(1./ jes->Integral());
   setStyle(jes, 0);
 
@@ -140,16 +143,12 @@ void jetEnergyScale(vector<string> inputStrings, double partjetptmin, double par
   // jes->Print("all");
 
   double xLatex = 0.4, yLatex = 0.8;
-  double lowjetpt = th2->GetXaxis()->GetBinLowEdge(partjetptbins[0]);
-  double highjetpt = th2->GetXaxis()->GetBinUpEdge(partjetptbins[1]);
   latexText = TString::Format("#splitline{ %s }{#splitline{ #it{p}_{T, ch+V0 jet}^{part.} = %.0f - %.0f GeV/#it{c} }{ RMS: %.2f } }", dataSet.c_str(), lowjetpt, highjetpt, rms).Data();
   TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
 
   saveName = "jes";
   saveName = TString::Format("%s_partjetpt%.0f-%.0f", saveName.c_str(), lowjetpt, highjetpt);
   saveName = TString::Format("%s.pdf", saveName.c_str());
-  // double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
-  // TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
   int xCanvas = 900, yCanvas = 900;
   TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), xCanvas, yCanvas);
   canvas->SetLogy();
@@ -170,7 +169,7 @@ void jetEnergyScale(vector<string> inputStrings, vector<vector<double> > partjet
   string dataSet = inputStrings[1];
 
   string saveName = "jes";
-  TLegend* legend = CreateLegend(0.5, 0.9, 0.6, 0.8, "", 0.04);
+  TLegend* legend = CreateLegend(0.45, 0.9, 0.6, 0.8, "", 0.04);
 
   string histName = "jet-fragmentation/matching/jets/matchPartJetPtRelDiffPt";
   TFile *inFile = TFile::Open(inName.c_str());
@@ -181,7 +180,8 @@ void jetEnergyScale(vector<string> inputStrings, vector<vector<double> > partjet
     double lowpt = th2->GetXaxis()->GetBinLowEdge(partjetptbins[0]);
     double highpt = th2->GetXaxis()->GetBinUpEdge(partjetptbins[1]);
     saveName += TString::Format("_ptjet%.0f-%.0f", lowpt, highpt);
-    TH1D* jes = th2->ProjectionY(TString::Format("jetEnergyScale_jetpt%.0f-%.0f").Data(), lowpt, highpt);
+    TH1D* jes = th2->ProjectionY("jes", lowpt, highpt);
+    jes->SetName(TString::Format("jes_partjetpt%.0f-%.0f", lowpt, highpt).Data());
     jes->Scale(1./ jes->Integral());
 
     double rms = 0;
@@ -194,11 +194,21 @@ void jetEnergyScale(vector<string> inputStrings, vector<vector<double> > partjet
 
     setStyle(jes, i);
     jesVector.push_back(jes);
-    legend->AddEntry(jes, TString::Format("%.0f < #it{p}_{T, ch+V0 jet}^{part.} < %.0f GeV/#it{c} (RMS: %.2f)", lowpt, highpt, rms).Data());
+    // string ptText = TString::Format("#it{p}_{T, ch+V0 jet}^{part.} = %.0f - %.0f GeV/#it{c}", lowpt, highpt).Data();
+    string ptText = TString::Format("%.0f - %.0f GeV/#it{c}", lowpt, highpt).Data();
+    string rmsText = TString::Format("RMS: %.2f", rms).Data();
+    legend->AddEntry(jes, TString::Format("%s (%s)", ptText.c_str(), rmsText.c_str()).Data());
+    // legend->AddEntry(jes, TString::Format("#splitline{%s}{%s}", ptText.c_str(), rmsText.c_str()).Data());
   }
 
-  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 1800, 900);
   canvas->SetLogy();
+  // canvas->Divide(2, 1);
+  // canvas->cd(1);
+  // gPad->SetLogy();
+  // gPad->SetLeftMargin(0.15);
+  // gPad->SetRightMargin(0.);
 
   double xMinFrame = -1., xMaxFrame = 10., yMinFrame = 1e-5, yMaxFrame = 2.;
   string xTitle = "(#it{p}_{T, ch+V0 jet}^{det.} - #it{p}_{T, ch+V0 jet}^{part.})/#it{p}_{T, ch+V0 jet}^{part.}";
@@ -210,7 +220,26 @@ void jetEnergyScale(vector<string> inputStrings, vector<vector<double> > partjet
   for (auto jes : jesVector) {
     jes->Draw("same");
   }
+  // canvas->cd(2);
+  // gPad->SetLeftMargin(0.);
   legend->Draw("same");
   canvas->SaveAs(canvas->GetName());
 }
 
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+
+void plot271952(double partjetptmin, double partjetptmax)
+{
+  string inName = "~/cernbox/TrainOutput/271952/AnalysisResults.root";
+  string dataSet = "LHC24b1b";
+  jetEnergyScale({inName, dataSet}, partjetptmin, partjetptmax);
+}
+void plot271952()
+{
+  string inName = "~/cernbox/TrainOutput/271952/AnalysisResults.root";
+  string dataSet = "LHC24b1b";
+  vector<vector<double> > ptbins = {{10., 20.}, {20., 40.} };
+  jetEnergyScale({inName, dataSet}, ptbins);
+}

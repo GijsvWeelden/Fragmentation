@@ -31,6 +31,7 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
   return jets->Integral(jetptbins[0], jetptbins[1], 0, jets->GetNbinsY() + 1, 0, jets->GetNbinsZ() + 1);
 }
 
+// Check if histogram is empty in a range: 1D
 bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
 {
   double integral = h->Integral(low, high);
@@ -43,6 +44,77 @@ bool isHistEmptyInRange(TH1* h, double low, double high, double threshold = 1e-1
 {
   array<int, 2> bins = getProjectionBins(h->GetXaxis(), low, high);
   return isHistEmptyInRange(h, bins[0], bins[1], threshold);
+}
+
+// Check if histogram is empty in a range: 2D
+bool isHistEmptyInRange(TH2* h, int xlow, int xhigh, int ylow, int yhigh, double threshold = 1e-10)
+{
+  double integral = h->Integral(xlow, ylow, ylow, yhigh);
+  if (integral != integral)
+    return true;
+  else
+    return (integral < threshold);
+}
+bool isHistEmptyInRange(TH2* h, double xlow, double xhigh, double ylow, double yhigh, double threshold = 1e-10)
+{
+  array<int, 2> xBins = getProjectionBins(h->GetXaxis(), xlow, xhigh);
+  array<int, 2> yBins = getProjectionBins(h->GetYaxis(), ylow, yhigh);
+  return isHistEmptyInRange(h, xBins[0], xBins[1], yBins[0], yBins[1], threshold);
+}
+
+// Check if histogram is empty in a range: 3D
+bool isHistEmptyInRange(TH3* h, int xlow, int xhigh, int ylow, int yhigh, int zlow, int zhigh, double threshold = 1e-10)
+{
+  double integral = h->Integral(xlow, ylow, ylow, yhigh, zlow, zhigh);
+  if (integral != integral)
+    return true;
+  else
+    return (integral < threshold);
+}
+bool isHistEmptyInRange(TH3* h, double xlow, double xhigh, double ylow, double yhigh, double zlow, double zhigh, double threshold = 1e-10)
+{
+  array<int, 2> xBins = getProjectionBins(h->GetXaxis(), xlow, xhigh);
+  array<int, 2> yBins = getProjectionBins(h->GetYaxis(), ylow, yhigh);
+  array<int, 2> zBins = getProjectionBins(h->GetZaxis(), zlow, zhigh);
+  return isHistEmptyInRange(h, xBins[0], xBins[1], yBins[0], yBins[1], zBins[0], zBins[1], threshold);
+}
+
+bool isHistEmptyInRange(THn* h, vector<int> low, vector<int> high, double threshold = 1e-10)
+{
+  // Skip first axis, so we can project onto it
+  for (int i = 1; i < h->GetNdimensions(); i++) {
+    h->GetAxis(i)->SetRange(low[i], high[i]);
+  }
+  TH1* hist = (TH1*)h->Projection(1);
+  // Call 1D version
+  return isHistEmptyInRange(hist, low[0], high[0], threshold);
+}
+bool isHistEmptyInRange(THn* h, vector<double> low, vector<double> high, double threshold = 1e-10)
+{
+  vector<int> lowBins;
+  vector<int> highBins;
+  for (int i = 0; i < h->GetNdimensions(); i++) {
+    array<int, 2> bins = getProjectionBins(h->GetAxis(i), low[i], high[i]);
+    lowBins.push_back(low[i]);
+    highBins.push_back(high[i]);
+  }
+  return isHistEmptyInRange(h, lowBins, highBins, threshold);
+}
+
+
+// Returns the scale for drawing histogram. Accounts for bin content and error
+double getHistScale(TH1* h, bool doError)
+{
+  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
+
+  double scale = -900.;
+  for (int i = 1; i <= h->GetNbinsX(); i++) {
+    double bc = h->GetBinContent(i);
+    double be = h->GetBinError(i);
+    double s = be + bc;
+    if (s > scale) { scale = s; }
+  }
+  return scale;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -642,6 +714,8 @@ void combMass(vector<string> inputStrings, double v0min, double v0max, double dM
   string hadron  = inputStrings[1];
   string dataSet = inputStrings[2];
 
+  bool normalise = true;
+
   const int nDim            = 4;
   const int ptAxis          = 0;
   const int K0SAxis         = 1;
@@ -694,7 +768,8 @@ void combMass(vector<string> inputStrings, double v0min, double v0max, double dM
 
   int projectionAxis = (hadron == "K0S")*K0SAxis + (hadron == "Lambda0")*Lambda0Axis + (hadron == "AntiLambda0")*AntiLambda0Axis;
   TH1D* combMass = (TH1D*)thn->Projection(projectionAxis);
-  combMass->Scale(1./combMass->Integral(), "width");
+  combMass->Rebin(4);
+  if (normalise) combMass->Scale(1./combMass->Integral(), "width");
   setStyle(combMass, 0);
   combMass->SetName(TString::Format("combMass%spt%.1f-%.1f", hadron.c_str(), lowpt, highpt).Data());
   if (isHistEmptyInRange(combMass, 1, combMass->GetNbinsX())) {
@@ -706,23 +781,25 @@ void combMass(vector<string> inputStrings, double v0min, double v0max, double dM
   string saveName;
   saveName += "combMass";
   saveName += hadron;
-  saveName += TString::Format("_v0pt%.0f-%.0f", lowpt, highpt);
+  saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt);
   saveName += saveSuffix;
   saveName += ".pdf";
   TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
 
   string xTitle = "M(" + formatHadronDaughters(hadron) + ") (GeV/#it{c}^{2})";
-  string yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
+  string yTitle = "counts";
+  if (normalise) yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
   string ptText = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/#it{c}", lowpt, highpt).Data();
   double xMinFrame = combMass->GetXaxis()->GetXmin(), xMaxFrame = combMass->GetXaxis()->GetXmax();
-  double yMinFrame = 0., yMaxFrame = 1.1 * combMass->GetBinContent(combMass->GetMaximumBin());
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistScale(combMass, true);
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   frame->SetTitle((dataSet + ", " + ptText + latexSuffix).c_str());
 
   double mass = ("K0S" == hadron) ? MassK0S : MassLambda0;
   TLine* line = new TLine(mass, yMinFrame, mass, yMaxFrame);
   line->SetLineStyle(9);
-  line->SetLineColor(GetColor(0));
+  line->SetLineColor(GetColor(1));
+  line->SetLineWidth(3);
   objList.push_back(line);
 
   canvas->cd();
@@ -738,6 +815,7 @@ void combMass(vector<string> inputStrings, double jetmin, double jetmax, double 
   string dataSet = inputStrings[2];
 
   double textSize = 0.04;
+  bool normalise = true;
 
   const int nDim            = 5;
   const int jetPtAxis       = 0;
@@ -756,7 +834,7 @@ void combMass(vector<string> inputStrings, double jetmin, double jetmax, double 
   thn->GetAxis(jetPtAxis)->SetRange(jetptbins[0], jetptbins[1]);
   double lowjetpt  = thn->GetAxis(jetPtAxis)->GetBinLowEdge(jetptbins[0]);
   double highjetpt = thn->GetAxis(jetPtAxis)->GetBinUpEdge(jetptbins[1]);
-  array<int, 2> v0bins    = getProjectionBins(thn->GetAxis(v0PtAxis), v0min, v0max);
+  array<int, 2> v0bins    = getProjectionBins(thn->GetAxis(v0PtAxis), v0min, v0max, 2e-4);
   thn->GetAxis(v0PtAxis)->SetRange(v0bins[0], v0bins[1]);
   double lowv0  = thn->GetAxis(v0PtAxis)->GetBinLowEdge(v0bins[0]);
   double highv0 = thn->GetAxis(v0PtAxis)->GetBinUpEdge(v0bins[1]);
@@ -795,29 +873,33 @@ void combMass(vector<string> inputStrings, double jetmin, double jetmax, double 
     } // bin loop
   } // if dM > 1e-3
 
+  string saveName;
+  saveName += "combMass";
+  saveName += hadron;
+  saveName += TString::Format("_jetpt%.0f-%.0f", lowjetpt, highjetpt);
+  if (doZ) { saveName += TString::Format("_v0z%.2f-%.2f", lowv0, highv0); }
+  else { saveName += TString::Format("_v0pt%.1f-%.1f", lowv0, highv0); }
+  saveName += saveSuffix;
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
+
   int projectionAxis = (hadron == "K0S")*K0SAxis + (hadron == "Lambda0")*Lambda0Axis + (hadron == "AntiLambda0")*AntiLambda0Axis;
   TH1D* combMass = (TH1D*)thn->Projection(projectionAxis);
-  combMass->Scale(1./combMass->Integral(), "width");
+  combMass->Rebin(4);
+  combMass->SetName(saveName.c_str());
+  if (normalise) combMass->Scale(1./combMass->Integral(), "width");
   setStyle(combMass, 0);
-  combMass->SetName(TString::Format("combMass%spt%.1f-%.1f", hadron.c_str(), lowv0, highv0).Data());
   if (isHistEmptyInRange(combMass, 1, combMass->GetNbinsX())) {
     cout << "combMass: histogram empty in non-over/underflow for ptjet " << lowjetpt << " - " << highjetpt << ", " << (doZ ? "z" : "pt") << "v0 " << lowv0 << " - " << highv0 << ". Skipping..." << endl;
     return;
   }
   vector<TObject*> objList = {combMass};
 
-  string saveName;
-  saveName += "combMass";
-  saveName += hadron;
-  saveName += TString::Format("_v0pt%.0f-%.0f", lowv0, highv0);
-  saveName += saveSuffix;
-  saveName += ".pdf";
-  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
-
   string xTitle = "M(" + formatHadronDaughters(hadron) + ") (GeV/#it{c}^{2})";
-  string yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
+  string yTitle = "counts";
+  if (normalise) yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
   double xMinFrame = combMass->GetXaxis()->GetXmin(), xMaxFrame = combMass->GetXaxis()->GetXmax();
-  double yMinFrame = 0., yMaxFrame = 1.1 * combMass->GetBinContent(combMass->GetMaximumBin());
+  double yMinFrame = 0., yMaxFrame = 2.0 * getHistScale(combMass, true);
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   frame->SetTitle((dataSet + latexSuffix).c_str());
 
@@ -830,13 +912,167 @@ void combMass(vector<string> inputStrings, double jetmin, double jetmax, double 
   objList.push_back(latex);
 
   double mass = ("K0S" == hadron) ? MassK0S : MassLambda0;
-  TLine* line = new TLine(mass, yMinFrame, mass, yMaxFrame);
+  TLine* line = new TLine(mass, yMinFrame, mass, 1.5*getHistScale(combMass, true));
   line->SetLineStyle(9);
-  line->SetLineColor(GetColor(0));
+  line->SetLineColor(GetColor(1));
+  line->SetLineWidth(3);
   objList.push_back(line);
 
   canvas->cd();
   frame->Draw();
+  for (auto obj : objList) { obj->Draw("same"); }
+  canvas->SaveAs(canvas->GetName());
+}
+// 2D versions
+void combMass(vector<string> inputStrings, double v0min, double v0max)
+{
+  gStyle->SetNdivisions(505, "xy");
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadronX = inputStrings[2];
+  string hadronY = inputStrings[3];
+
+  const int nDim            = 4;
+  const int ptAxis          = 0;
+  const int K0SAxis         = 1;
+  const int Lambda0Axis     = 2;
+  const int AntiLambda0Axis = 3;
+
+  string histName = "jet-fragmentation/matching/V0/";
+  histName += "fakeV0PtMass";
+  TFile *inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  array<int, 2> ptbins = getProjectionBins(thn->GetAxis(ptAxis), v0min, v0max);
+  thn->GetAxis(ptAxis)->SetRange(ptbins[0], ptbins[1]);
+  double lowpt  = thn->GetAxis(ptAxis)->GetBinLowEdge(ptbins[0]);
+  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptbins[1]);
+  if (lowpt < 0.) { lowpt = 0.; } // Avoids ugly pt>-0 in latextext
+
+  int projectionAxisX = (hadronX == "K0S")*K0SAxis + (hadronX == "Lambda0")*Lambda0Axis + (hadronX == "AntiLambda0")*AntiLambda0Axis;
+  int projectionAxisY = (hadronY == "K0S")*K0SAxis + (hadronY == "Lambda0")*Lambda0Axis + (hadronY == "AntiLambda0")*AntiLambda0Axis;
+  TH2D* combMass = (TH2D*)thn->Projection(projectionAxisY, projectionAxisX);
+  combMass->Rebin2D(4, 4);
+  setStyle(combMass, 0);
+  combMass->SetName(TString::Format("combMass%s%spt%.1f-%.1f", hadronX.c_str(), hadronY.c_str(), lowpt, highpt).Data());
+  if (isHistEmptyInRange(combMass, 1, combMass->GetNbinsX(), 1, combMass->GetNbinsY())) {
+    cout << "combMass: histogram empty in non-over/underflow for (" << hadronX << ", " << hadronY << ") in pt range " << lowpt << " - " << highpt << endl;
+    return;
+  }
+  vector<TObject*> objList;
+
+  string saveName;
+  saveName += "combMass";
+  saveName += hadronX + hadronY;
+  saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt);
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
+
+  string xTitle = "M(" + formatHadronDaughters(hadronX) + ") (GeV/#it{c}^{2})";
+  string yTitle = "M(" + formatHadronDaughters(hadronY) + ") (GeV/#it{c}^{2})";
+  string ptText = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/#it{c}", lowpt, highpt).Data();
+  double xMinFrame = combMass->GetXaxis()->GetXmin(), xMaxFrame = combMass->GetXaxis()->GetXmax();
+  double yMinFrame = combMass->GetYaxis()->GetXmin(), yMaxFrame = combMass->GetYaxis()->GetXmax();
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle((dataSet + ", " + ptText).c_str());
+
+  double massX = ("K0S" == hadronX) ? MassK0S : MassLambda0;
+  double massY = ("K0S" == hadronY) ? MassK0S : MassLambda0;
+  TLine* lineX = new TLine(massX, yMinFrame, massX, yMaxFrame);
+  TLine* lineY = new TLine(xMinFrame, massY, xMaxFrame, massY);
+  lineX->SetLineStyle(9);
+  lineX->SetLineColor(GetColor(1));
+  lineX->SetLineWidth(3);
+  lineY->SetLineStyle(9);
+  lineY->SetLineColor(GetColor(1));
+  lineY->SetLineWidth(3);
+  objList.push_back(lineX);
+  objList.push_back(lineY);
+
+  canvas->cd();
+  frame->Draw();
+  combMass->Draw("colz same");
+  for (auto obj : objList) { obj->Draw("same"); }
+  canvas->SaveAs(canvas->GetName());
+}
+void combMass(vector<string> inputStrings, double jetmin, double jetmax, double v0min, double v0max, bool doZ)
+{
+  gStyle->SetNdivisions(505, "xy");
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadronX = inputStrings[2];
+  string hadronY = inputStrings[3];
+
+  const int nDim            = 5;
+  const int jetPtAxis       = 0;
+  const int v0PtAxis        = 1;
+  const int K0SAxis         = 2;
+  const int Lambda0Axis     = 3;
+  const int AntiLambda0Axis = 4;
+
+  string histName = "jet-fragmentation/matching/jets/V0/";
+  if (doZ) histName += "fakeJetPtV0TrackProjMass";
+  else histName += "fakeJetPtV0PtMass";
+  TFile *inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+
+  array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetPtAxis), jetmin, jetmax);
+  thn->GetAxis(jetPtAxis)->SetRange(jetptbins[0], jetptbins[1]);
+  double lowjetpt  = thn->GetAxis(jetPtAxis)->GetBinLowEdge(jetptbins[0]);
+  double highjetpt = thn->GetAxis(jetPtAxis)->GetBinUpEdge(jetptbins[1]);
+  array<int, 2> v0bins = getProjectionBins(thn->GetAxis(v0PtAxis), v0min, v0max, 2e-4);
+  thn->GetAxis(v0PtAxis)->SetRange(v0bins[0], v0bins[1]);
+  double lowv0  = thn->GetAxis(v0PtAxis)->GetBinLowEdge(v0bins[0]);
+  double highv0 = thn->GetAxis(v0PtAxis)->GetBinUpEdge(v0bins[1]);
+  if (lowv0 < 0.) { lowv0 = 0.; } // Avoids ugly pt>-0 in latextext
+
+  string saveName;
+  saveName += "combMass";
+  saveName += hadronX + hadronY;
+  saveName += TString::Format("_jetpt%.1f-%.1f", lowjetpt, highjetpt);
+  if (doZ) { saveName += TString::Format("_v0z%.2f-%.2f", lowv0, highv0); }
+  else { saveName += TString::Format("_v0pt%.1f-%.1f", lowv0, highv0); }
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
+
+  int projectionAxisX = (hadronX == "K0S")*K0SAxis + (hadronX == "Lambda0")*Lambda0Axis + (hadronX == "AntiLambda0")*AntiLambda0Axis;
+  int projectionAxisY = (hadronY == "K0S")*K0SAxis + (hadronY == "Lambda0")*Lambda0Axis + (hadronY == "AntiLambda0")*AntiLambda0Axis;
+  TH2D* combMass = (TH2D*)thn->Projection(projectionAxisY, projectionAxisX);
+  combMass->Rebin2D(4, 4);
+  combMass->SetName(saveName.c_str());
+  if (isHistEmptyInRange(combMass, 1, combMass->GetNbinsX(), 1, combMass->GetNbinsY())) {
+    cout << "combMass: histogram empty in non-over/underflow for (" << hadronX << ", " << hadronY << ") for ptjet " << lowjetpt << " - " << highjetpt << ", " << (doZ ? "z" : "pt") << "v0 " << lowv0 << " - " << highv0 << ". Skipping..." << endl;
+    return;
+  }
+  vector<TObject*> objList;
+
+  string xTitle = "M(" + formatHadronDaughters(hadronX) + ") (GeV/#it{c}^{2})";
+  string yTitle = "M(" + formatHadronDaughters(hadronY) + ") (GeV/#it{c}^{2})";
+  double xMinFrame = combMass->GetXaxis()->GetXmin(), xMaxFrame = combMass->GetXaxis()->GetXmax();
+  double yMinFrame = combMass->GetYaxis()->GetXmin(), yMaxFrame = combMass->GetYaxis()->GetXmax();
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+
+  string jetText = TString::Format("#it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
+  string v0Text = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/#it{c}", lowv0, highv0).Data();
+  if (doZ) v0Text = TString::Format("#it{z}_{V0} = %.2f - %.2f", lowv0, highv0).Data();
+  frame->SetTitle((dataSet + ", " + v0Text + ", " + jetText).c_str());
+
+  double massX = ("K0S" == hadronX) ? MassK0S : MassLambda0;
+  double massY = ("K0S" == hadronY) ? MassK0S : MassLambda0;
+  TLine* lineX = new TLine(massX, yMinFrame, massX, yMaxFrame);
+  TLine* lineY = new TLine(xMinFrame, massY, xMaxFrame, massY);
+  lineX->SetLineStyle(9);
+  lineX->SetLineColor(GetColor(1));
+  lineX->SetLineWidth(3);
+  lineY->SetLineStyle(9);
+  lineY->SetLineColor(GetColor(1));
+  lineY->SetLineWidth(3);
+  objList.push_back(lineX);
+  objList.push_back(lineY);
+
+  canvas->cd();
+  frame->Draw();
+  combMass->Draw("colz same");
   for (auto obj : objList) { obj->Draw("same"); }
   canvas->SaveAs(canvas->GetName());
 }
@@ -964,7 +1200,7 @@ void Reflection(vector<string> inputStrings, double partv0min, double partv0max,
 
   saveName  = hadron;
   saveName += "Reflection";
-  saveName += TString::Format("_partv0pt%.0f-%.0f", lowv0, highv0);
+  saveName += TString::Format("_partv0pt%.1f-%.1f", lowv0, highv0);
   saveName += saveSuffix;
   saveName += ".pdf";
   TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), xCanvas, yCanvas);
@@ -1110,8 +1346,8 @@ void Reflection(vector<string> inputStrings, double partjetptmin, double partjet
   saveName = hadron;
   saveName += "Reflection";
   saveName += TString::Format("_partjetpt%.0f-%.0f", lowjetpt, highjetpt);
-  if (doZ) { saveName += TString::Format("_partv0z%.1f-%.1f", lowv0, highv0); }
-  else { saveName += TString::Format("_partv0pt%.0f-%.0f", lowv0, highv0); }
+  if (doZ) { saveName += TString::Format("_partv0z%.2f-%.2f", lowv0, highv0); }
+  else { saveName += TString::Format("_partv0pt%.1f-%.1f", lowv0, highv0); }
   saveName += saveSuffix;
   saveName += ".pdf";
   int xCanvas = 900, yCanvas = 900;
@@ -1131,8 +1367,6 @@ void Reflection(vector<string> inputStrings, double partjetptmin, double partjet
   string jetText = TString::Format("#it{p}_{T, ch+V0 jet}^{part.} = %.0f-%.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
   string v0Text  = TString::Format("#it{p}_{T, %s}^{part.} = %.1f-%.1f GeV/#it{c}", formatHadronName(hadron).c_str(), lowv0, highv0).Data();
   if (doZ) { v0Text = TString::Format("#it{z}_{%s}^{part.} = %.2f-%.2f", formatHadronName(hadron).c_str(), lowv0, highv0).Data(); }
-  // latexText = TString::Format("#splitline{%s}{#splitline{%s}{%s}}",
-  //                             dataSet.c_str(), jetText.c_str(), v0Text.c_str()).Data();
   latexText = TString::Format("#splitline{%s}{%s}",
                               jetText.c_str(), v0Text.c_str()).Data();
   xLatex = 0.35, yLatex = 0.8;
@@ -1164,6 +1398,16 @@ void plotTrain(string train, string dataSet, string hadron, double partv0min, do
     case 1:
       Reflection(inputStrings, partv0min, partv0max, dM);
       break;
+    case 2: // 2D version of combMass
+      {
+        vector<string> v = {inName, dataSet, "K0S", "Lambda0"};
+        combMass(v, partv0min, partv0max);
+        v[3] = "AntiLambda0";
+        combMass(v, partv0min, partv0max);
+        v[2] = "Lambda0";
+        combMass(v, partv0min, partv0max);
+      }
+      break;
     default:
       cout << "Error: invalid setting" << endl;
       break;
@@ -1179,6 +1423,16 @@ void plotTrain(string train, string dataSet, string hadron, double partjetptmin,
       break;
     case 1:
       Reflection(inputStrings, partjetptmin, partjetptmax, partv0min, partv0max, dM, doZ);
+      break;
+    case 2: // 2D version of combMass
+      {
+        vector<string> v = {inName, dataSet, "K0S", "Lambda0"};
+        combMass(v, partjetptmin, partjetptmax, partv0min, partv0max, doZ);
+        v[3] = "AntiLambda0";
+        combMass(v, partjetptmin, partjetptmax, partv0min, partv0max, doZ);
+        v[2] = "Lambda0";
+        combMass(v, partjetptmin, partjetptmax, partv0min, partv0max, doZ);
+      }
       break;
     default:
       cout << "Error: invalid setting" << endl;
@@ -1204,6 +1458,7 @@ void plot271952(string hadron, double jetptmin, double jetptmax, double v0ptmin,
 // Plot all pt bins, inclusive V0s
 void plot271952(string hadron, double dM, int setting)
 {
+  gROOT->SetBatch(kTRUE);
   vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0};
   for (int i = 0; i < pt.size() - 1; i++) {
     plot271952(hadron, pt[i], pt[i+1], dM, setting);
@@ -1212,6 +1467,7 @@ void plot271952(string hadron, double dM, int setting)
 // Plot all bins, V0s in jets
 void plot271952(string hadron, double partjetptmin, double partjetptmax, double dM, bool doZ, int setting)
 {
+  gROOT->SetBatch(kTRUE);
   vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0};
   vector<double> z = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
   vector<double> bins = (doZ) ? z : pt;
@@ -1228,6 +1484,16 @@ void plotAll271952(int setting)
   vector<string> hadrons = {"K0S", "Lambda0", "AntiLambda0"};
   vector<double> jetpts  = {10.0, 20.0, 40.0};
   vector<double> dMs     = {0.0, 10.0};
+
+  cout << "!!! Making ALL plots for 271952, setting " << setting << " !!!" << endl;
+  cout << "Hadrons: ";
+  for (auto hadron : hadrons) { cout << hadron << ", "; }
+  cout << "Jet pts: ";
+  for (auto jetpt : jetpts) { cout << jetpt << ", "; }
+  cout << "dMs: ";
+  for (auto dM : dMs) { cout << dM << ", "; }
+  cout << "for a total of " << hadrons.size() * jetpts.size() * dMs.size() << " plots." << endl;
+
 
   for (auto hadron : hadrons) {
     for (auto dM : dMs) {

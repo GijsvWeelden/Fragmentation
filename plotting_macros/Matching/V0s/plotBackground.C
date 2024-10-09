@@ -49,11 +49,12 @@ bool isHistEmptyInRange(TH1* h, double low, double high, double threshold = 1e-1
 // Check if histogram is empty in a range: 2D
 bool isHistEmptyInRange(TH2* h, int xlow, int xhigh, int ylow, int yhigh, double threshold = 1e-10)
 {
-  double integral = h->Integral(xlow, ylow, ylow, yhigh);
-  if (integral != integral)
-    return true;
-  else
-    return (integral < threshold);
+  return isHistEmptyInRange(h->ProjectionX("px", ylow, yhigh), xlow, xhigh, threshold);
+  // double integral = h->Integral(xlow, ylow, ylow, yhigh);
+  // if (integral != integral)
+  //   return true;
+  // else
+  //   return (integral < threshold);
 }
 bool isHistEmptyInRange(TH2* h, double xlow, double xhigh, double ylow, double yhigh, double threshold = 1e-10)
 {
@@ -65,11 +66,12 @@ bool isHistEmptyInRange(TH2* h, double xlow, double xhigh, double ylow, double y
 // Check if histogram is empty in a range: 3D
 bool isHistEmptyInRange(TH3* h, int xlow, int xhigh, int ylow, int yhigh, int zlow, int zhigh, double threshold = 1e-10)
 {
-  double integral = h->Integral(xlow, ylow, ylow, yhigh, zlow, zhigh);
-  if (integral != integral)
-    return true;
-  else
-    return (integral < threshold);
+  return isHistEmptyInRange(h->ProjectionX("px", ylow, yhigh, zlow, zhigh), xlow, xhigh, threshold);
+  // double integral = h->Integral(xlow, ylow, ylow, yhigh, zlow, zhigh);
+  // if (integral != integral)
+  //   return true;
+  // else
+  //   return (integral < threshold);
 }
 bool isHistEmptyInRange(TH3* h, double xlow, double xhigh, double ylow, double yhigh, double zlow, double zhigh, double threshold = 1e-10)
 {

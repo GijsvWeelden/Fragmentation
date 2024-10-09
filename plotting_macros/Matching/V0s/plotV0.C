@@ -19,6 +19,9 @@
  * Plots for inclusive V0s (not necessarily in jets)
  */
 
+const double MassK0S = 0.497611;
+const double MassLambda0 = 1.115683;
+
 double getHistRMS(TH1* hInput)
 {
   TH1* h = (TH1*)hInput->Clone("h");
@@ -32,6 +35,33 @@ double getHistRMS(TH1* hInput)
   rms = TMath::Sqrt(rms);
   return rms;
 }
+bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
+{
+  double integral = h->Integral(low, high);
+  if (integral != integral) // NaN check
+    return true;
+  else
+    return (integral < threshold);
+}
+
+// Returns the scale for drawing histogram. Accounts for bin content and error
+double getHistScale(TH1* h, bool doError)
+{
+  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
+
+  double scale = -900.;
+  for (int i = 1; i <= h->GetNbinsX(); i++) {
+    double bc = h->GetBinContent(i);
+    double be = h->GetBinError(i);
+    double s = be + bc;
+    if (s > scale) { scale = s; }
+  }
+  return scale;
+}
+
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 
 void ptResolution(string inName, string dataSet, double partv0min, double partv0max)
 {
@@ -198,6 +228,75 @@ void matchedPt(string inName = "", bool detector = false)
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
 
+void mass(vector<string> inputStrings, double v0min, double v0max, bool normalise)
+{
+  gStyle->SetNdivisions(505, "xy");
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+
+  const int nDim         = 4;
+  const int partV0PtAxis = 0;
+  const int detV0PtAxis  = 1;
+  const int ctauAxis     = 2;
+  const int massAxis     = 3;
+
+  string histName = "jet-fragmentation/matching/V0/";
+  histName += hadron;
+  histName += "PtCtauMass";
+  TFile *inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+  thn->Sumw2();
+
+  // To work well with file name and formatting conventions
+  if (hadron == "Lambda") hadron = "Lambda0";
+  if (hadron == "antiLambda") hadron = "AntiLambda0";
+
+  array<int, 2> ptbins = getProjectionBins(thn->GetAxis(partV0PtAxis), v0min, v0max);
+  thn->GetAxis(partV0PtAxis)->SetRange(ptbins[0], ptbins[1]);
+  double lowpt = thn->GetAxis(partV0PtAxis)->GetBinLowEdge(ptbins[0]);
+  double highpt = thn->GetAxis(partV0PtAxis)->GetBinUpEdge(ptbins[1]);
+  if (lowpt < 0.) { lowpt = 0.; } // Avoids ugly pt>-0 in latextext
+
+  string saveName = hadron;
+  saveName += "Mass";
+  saveName += TString::Format("_pt%.1f-%.1f", lowpt, highpt);
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
+
+  TH1D* mass = (TH1D*)thn->Projection(massAxis);
+  if (normalise) { mass->Scale(1./mass->Integral(), "width"); }
+  // mass->Rebin(4);
+  setStyle(mass, 0);
+  mass->SetName(saveName.c_str());
+
+  if (isHistEmptyInRange(mass, 1, mass->GetNbinsX())) {
+    cout << "Mass: empty histogram" << endl;
+    return;
+  }
+
+  string xTitle = "M(" + formatHadronDaughters(hadron) + ") (GeV/#it{c}^{2})";
+  string yTitle = "counts";
+  if (normalise) yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
+  string ptText = TString::Format("#it{p}_{T, %s} = %.1f - %.1f GeV/#it{c}", formatHadronName(hadron).c_str(), lowpt, highpt).Data();
+  double xMinFrame = mass->GetXaxis()->GetXmin(), xMaxFrame = mass->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistScale(mass, true);
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle((dataSet + ", " + ptText).c_str());
+
+  double v0mass = ("K0S" == hadron) ? MassK0S : MassLambda0;
+  TLine* line = new TLine(v0mass, yMinFrame, v0mass, yMaxFrame);
+  line->SetLineStyle(9);
+  line->SetLineColor(GetColor(1));
+  line->SetLineWidth(3);
+
+  canvas->cd();
+  frame->Draw();
+  line->Draw("same");
+  mass->Draw("same");
+  canvas->SaveAs(canvas->GetName());
+}
+
 void plotTrain(string inName, string dataSet, double partv0min, double partv0max, int setting)
 {
   switch (setting) {
@@ -207,6 +306,16 @@ void plotTrain(string inName, string dataSet, double partv0min, double partv0max
     case 1:
       dauPtResolution(inName, dataSet, partv0min, partv0max, true);
       dauPtResolution(inName, dataSet, partv0min, partv0max, false);
+      break;
+    case 2:
+      {
+        vector<string> inputStrings = {inName, dataSet, "K0S"};
+        mass(inputStrings, partv0min, partv0max, false);
+        inputStrings[2] = "Lambda";
+        mass(inputStrings, partv0min, partv0max, false);
+        inputStrings[2] = "antiLambda";
+        mass(inputStrings, partv0min, partv0max, false);
+      }
       break;
     default:
       cout << "Error: invalid setting" << endl;

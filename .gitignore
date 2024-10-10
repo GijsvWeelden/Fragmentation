@@ -15,6 +15,7 @@ pythia/ChJetsV0Jets
 pythia/V0JetClustering
 pythia/JetClusteringCorrections
 pythia/WeightedJetFinder
+pythia/SubmitScripts/plots
 
 plotting_macros/V0Jets/SpectraChecks
 plotting_macros/Data/2*

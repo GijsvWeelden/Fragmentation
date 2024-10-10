@@ -5,8 +5,14 @@ BATCH=$1
 DIRECTORY="WeightedJetFinder"
 DIRECTORY="${FRAGMENTATION_DIR}/pythia/${DIRECTORY}"
 
-INFILE="${FRAGMENTATION_DIR}/pythia/WeightedJetFinder/Batch${BATCH}/${BATCH}_0.out"
+# INFILE="${FRAGMENTATION_DIR}/pythia/WeightedJetFinder/Batch${BATCH}/${BATCH}_0.out"
+INFILE="${FRAGMENTATION_DIR}/pythia/WeightedJetFinder/${BATCH}_0.out"
 outfile="${DIRECTORY}/Description.txt"
+if [[ ! -f $INFILE ]]; then
+    echo "File $INFILE does not exist. Maybe you already logged this batch?"
+    exit 1
+fi
+
 timestamp=$(ls -lrt --time-style="+:%Y.%m.%d:" ${INFILE} | grep :)
 timestamp=${timestamp#*:} # Remove everything before (and including) the first colon
 timestamp=${timestamp%:*} # Remove everything after (and including) the second colon

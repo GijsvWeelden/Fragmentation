@@ -709,14 +709,12 @@ void AntiLambda0Mass(string inName = "", string hadron = "", double partjetptmin
 // -------------------------------------------------------------------------------------------------
 
 // Inv mass of combinatorial V0s
-void combMass(vector<string> inputStrings, double v0min, double v0max, double dM /* in MeV */)
+void combMass(vector<string> inputStrings, double v0min, double v0max, double dM /* in MeV */, bool normalise)
 {
   gStyle->SetNdivisions(505, "xy");
   string inName  = inputStrings[0];
   string hadron  = inputStrings[1];
   string dataSet = inputStrings[2];
-
-  bool normalise = true;
 
   const int nDim            = 4;
   const int ptAxis          = 0;
@@ -785,6 +783,7 @@ void combMass(vector<string> inputStrings, double v0min, double v0max, double dM
   saveName += hadron;
   saveName += TString::Format("_v0pt%.1f-%.1f", lowpt, highpt);
   saveName += saveSuffix;
+  if (!normalise) saveName += "_counts";
   saveName += ".pdf";
   TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
 
@@ -809,7 +808,7 @@ void combMass(vector<string> inputStrings, double v0min, double v0max, double dM
   for (auto obj : objList) { obj->Draw("same"); }
   canvas->SaveAs(canvas->GetName());
 }
-void combMass(vector<string> inputStrings, double jetmin, double jetmax, double v0min, double v0max, double dM /* in MeV */, bool doZ = false)
+void combMass(vector<string> inputStrings, double jetmin, double jetmax, double v0min, double v0max, double dM /* in MeV */, bool doZ, bool normalise)
 {
   gStyle->SetNdivisions(505, "xy");
   string inName  = inputStrings[0];
@@ -817,7 +816,6 @@ void combMass(vector<string> inputStrings, double jetmin, double jetmax, double 
   string dataSet = inputStrings[2];
 
   double textSize = 0.04;
-  bool normalise = true;
 
   const int nDim            = 5;
   const int jetPtAxis       = 0;
@@ -882,6 +880,7 @@ void combMass(vector<string> inputStrings, double jetmin, double jetmax, double 
   if (doZ) { saveName += TString::Format("_v0z%.2f-%.2f", lowv0, highv0); }
   else { saveName += TString::Format("_v0pt%.1f-%.1f", lowv0, highv0); }
   saveName += saveSuffix;
+  if (!normalise) saveName += "_counts";
   saveName += ".pdf";
   TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
 
@@ -955,7 +954,6 @@ void combMass(vector<string> inputStrings, double v0min, double v0max)
   int projectionAxisY = (hadronY == "K0S")*K0SAxis + (hadronY == "Lambda0")*Lambda0Axis + (hadronY == "AntiLambda0")*AntiLambda0Axis;
   TH2D* combMass = (TH2D*)thn->Projection(projectionAxisY, projectionAxisX);
   combMass->Rebin2D(4, 4);
-  setStyle(combMass, 0);
   combMass->SetName(TString::Format("combMass%s%spt%.1f-%.1f", hadronX.c_str(), hadronY.c_str(), lowpt, highpt).Data());
   if (isHistEmptyInRange(combMass, 1, combMass->GetNbinsX(), 1, combMass->GetNbinsY())) {
     cout << "combMass: histogram empty in non-over/underflow for (" << hadronX << ", " << hadronY << ") in pt range " << lowpt << " - " << highpt << endl;
@@ -1395,7 +1393,8 @@ void plotTrain(string train, string dataSet, string hadron, double partv0min, do
 
   switch (setting) {
     case 0:
-      combMass(inputStrings, partv0min, partv0max, dM);
+      combMass(inputStrings, partv0min, partv0max, dM, true);
+      combMass(inputStrings, partv0min, partv0max, dM, false);
       break;
     case 1:
       Reflection(inputStrings, partv0min, partv0max, dM);
@@ -1421,7 +1420,8 @@ void plotTrain(string train, string dataSet, string hadron, double partjetptmin,
   vector<string> inputStrings = {inName, hadron, dataSet};
   switch (setting) {
     case 0:
-      combMass(inputStrings, partjetptmin, partjetptmax, partv0min, partv0max, dM, doZ);
+      combMass(inputStrings, partjetptmin, partjetptmax, partv0min, partv0max, dM, doZ, true);
+      combMass(inputStrings, partjetptmin, partjetptmax, partv0min, partv0max, dM, doZ, false);
       break;
     case 1:
       Reflection(inputStrings, partjetptmin, partjetptmax, partv0min, partv0max, dM, doZ);

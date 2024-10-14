@@ -3,30 +3,24 @@
 # eval "`alienv shell-helper`" wherever you call this from
 # equip with conda loader if needed
 
-# Change prompt to show environment name
+# Change prompt to show environment name etc.
 hostname=${HOST:0:7}
-environment=""
-promptend="%f%% "
-
 hostname="${hostname} "
 if [[ $SSH_CONNECTION == "" ]]; then
   hostname=""
 fi
 
-if [[ x${O2_ROOT} != x ]]; then
-  environment="O2"
+environment=""
+if [[ x${O2PHYSICS_ROOT} != x ]]; then
+  environment=${${O2PHYSICS_ROOT##*/}%-*}
+  environment="[${environment}] "
 fi
 
-if [[ x${$(echo ${LOADEDMODULES} | grep "ninja")} != x ]]; then
-  if [[ x${environment} != x ]]; then
-    environment="${environment} "
-  fi
-  environment="${environment}ninja"
-fi
+promptend="%f%% "
 if [[ x${environment} != x ]]; then
-  environment="[${environment}] "
   promptend="%F{208}%#> %f"
 fi
+
 export PS1='%T ${hostname}%F{208}${environment}%F{magenta}%~%F{105}${vcs_info_msg_0_} ${promptend}'
 
 export CLICOLOR=1

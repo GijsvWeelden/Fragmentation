@@ -15,12 +15,39 @@
 
 #include "../histUtils.C"
 
+const double MassK0S = 0.497611;
+const double MassLambda0 = 1.115683;
+
 double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 {
   string histName = "jet-fragmentation/data/jets/jetPtEtaPhi";
   TH3D* jets = (TH3D*)inFile->Get(histName.c_str());
   std::array<int, 2> jetptbins = getProjectionBins(jets->GetXaxis(), jetptmin, jetptmax);
   return jets->Integral(jetptbins[0], jetptbins[1], 1, jets->GetNbinsY(), 1, jets->GetNbinsZ());
+}
+
+// Check if histogram is empty in a range: 1D
+bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
+{
+  double integral = h->Integral(low, high);
+  if (integral != integral) // NaN check
+    return true;
+  else
+    return (integral < threshold);
+}
+// Returns the scale for drawing histogram. Accounts for bin content and error
+double getHistScale(TH1* h, bool doError)
+{
+  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
+
+  double scale = -900.;
+  for (int i = 1; i <= h->GetNbinsX(); i++) {
+    double bc = h->GetBinContent(i);
+    double be = h->GetBinError(i);
+    double s = be + bc;
+    if (s > scale) { scale = s; }
+  }
+  return scale;
 }
 
 // ----------------------------------------------------------
@@ -695,71 +722,118 @@ void plotctau(string inName = "", string dataSet = "dataSet", string hadron = ""
   saveName = TString::Format("%s.pdf", saveName.c_str());
   plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
 }
-void plotMass(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200., double v0ptmin = 0., double v0ptmax = 100.)
+void plotMass(vector<string> inputStrings, double jetptmin, double jetptmax, double v0min, double v0max, double dM /* in MeV */, bool doZ, bool normalise)
 {
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  if ( ("K0S" == hadron) + ("Lambda0" == hadron) + ("AntiLambda0" == hadron) != 1 ) {
-    cout << "Error: hadron must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if ("V0" == hadron) {
-    cout << "Error: hadron must not be V0. To plot V0 ctau, use plotV0ctau" << endl;
-    return;
-  }
   gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText;
-  double textSize = 0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool setLogY = true;
-  double xMinFrame = 0.4, xMaxFrame = 0.6, yMinFrame = 1e-4, yMaxFrame = .1;
-  if ("Lambda0" == hadron || "AntiLambda0" == hadron) {
-    xMinFrame = 1.05, xMaxFrame = 1.215;
-    yMinFrame = 1e-3, yMaxFrame = 0.1;
+  string inName = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron = inputStrings[2];
+
+  const int nDim           = 5;
+  const int jetPtAxis      = 0;
+  const int v0PtAxis       = 1;
+  const int K0SAxis        = 2;
+  const int LambdaAxis     = 3;
+  const int AntiLambdaAxis = 4;
+
+  string histName = "jet-fragmentation/data/jets/V0/";
+  histName += "jetPtV0";
+  histName += (doZ ? "TrackProj" : "Pt");
+  histName += "Mass";
+
+  TFile *inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+  thn->Sumw2();
+
+  array<int, 2> jetptbins = getProjectionBins(thn->GetAxis(jetPtAxis), jetptmin, jetptmax);
+  thn->GetAxis(jetPtAxis)->SetRange(jetptbins[0], jetptbins[1]);
+  double lowjetpt  = thn->GetAxis(jetPtAxis)->GetBinLowEdge(jetptbins[0]);
+  double highjetpt = thn->GetAxis(jetPtAxis)->GetBinUpEdge(jetptbins[1]);
+  array<int, 2> v0bins    = getProjectionBins(thn->GetAxis(v0PtAxis), v0min, v0max);
+  thn->GetAxis(v0PtAxis)->SetRange(v0bins[0], v0bins[1]);
+  double lowv0  = thn->GetAxis(v0PtAxis)->GetBinLowEdge(v0bins[0]);
+  double highv0 = thn->GetAxis(v0PtAxis)->GetBinUpEdge(v0bins[1]);
+
+  string saveSuffix, latexSuffix;
+  if (dM > 1e-3) {
+    saveSuffix = TString::Format("dM%.0fMeV", dM).Data();
+    latexSuffix = TString::Format(", #Delta#it{M} = %.0f MeV", dM).Data();
+    double massWindow = dM * 1e-3; // Convert to GeV
+    int* coord = new int[nDim];
+
+    array<int, 2> mKbins = getProjectionBins(thn->GetAxis(K0SAxis), MassK0S - massWindow, MassK0S + massWindow);
+    array<int, 2> mLBins = getProjectionBins(thn->GetAxis(LambdaAxis), MassLambda0 - massWindow, MassLambda0 + massWindow);
+    array<int, 2> mALbins = getProjectionBins(thn->GetAxis(AntiLambdaAxis), MassLambda0 - massWindow, MassLambda0 + massWindow);
+
+    for (int i = 0; i < thn->GetNbins(); i++) {
+      double w = thn->GetBinContent(coord);
+
+      if ("K0S" == hadron) {
+        int mb = coord[LambdaAxis];
+        if (mb >= mLBins[0] && mb <= mLBins[1]) {
+          thn->SetBinContent(i, 0.);
+        }
+        mb = coord[AntiLambdaAxis];
+        if (mb >= mALbins[0] && mb <= mALbins[1]) {
+          thn->SetBinContent(i, 0.);
+        }
+      } else {
+        int mb = coord[K0SAxis];
+        if (mb >= mKbins[0] && mb <= mKbins[1]) {
+          thn->SetBinContent(i, 0.);
+        }
+      }
+    } // bin loop
+  } // if dM > 1e-3
+
+  string saveName = "m";
+  saveName += hadron;
+  saveName += TString::Format("_jetpt%.0f-%.0f", lowjetpt, highjetpt).Data();
+  if (doZ) saveName += TString::Format("_v0z%.2f-%.2f", lowv0, highv0).Data();
+  else saveName += TString::Format("_v0pt%.1f-%.1f", lowv0, highv0).Data();
+  saveName += saveSuffix;
+  if (!normalise) saveName += "_counts";
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
+
+  int projectionAxis = ("K0S" == hadron)*K0SAxis + ("Lambda0" == hadron)*LambdaAxis + ("AntiLambda0" == hadron)*AntiLambdaAxis;
+  TH1D* mass = (TH1D*)thn->Projection(projectionAxis);
+  if (isHistEmptyInRange(mass, 1, mass->GetNbinsX())) {
+    cout << "V0 mass: empty histogram for ptjet " << lowjetpt << " - " << highjetpt << ", " << (doZ ? "zv0 " : "ptv0") << lowv0 << " - " << highv0 << endl;
+    return;
   }
-  double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
-  double xLatex = 0.2, yLatex = 0.93;
-  int xCanvas = 900, yCanvas = 900;
-  xTitle = TString::Format("#it{M} (%s)", formatHadronName(hadron).c_str()).Data();
-  yTitle = "normalised count";
-  // string dataSet = "LHC22o_pass6_minBias";
-
-  std::vector<TH1D*> histVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (setLogY) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  histName = TString::Format("jet-fragmentation/data/jets/V0/jetPt%sPtMass", hadron.c_str()).Data();
-  TFile *inFile = TFile::Open(TString::Format("./%s", inName.c_str()).Data());
-  TH3D* th3 = (TH3D*)inFile->Get(histName.c_str());
-  th3->Sumw2();
-
-  std::array<int, 2> jetptbins = getProjectionBins(th3->GetXaxis(), jetptmin, jetptmax);
-  std::array<int, 2> v0ptbins = getProjectionBins(th3->GetYaxis(), v0ptmin, v0ptmax);
-  th3->GetXaxis()->SetRange(jetptbins[0], jetptbins[1]);
-  th3->GetYaxis()->SetRange(v0ptbins[0], v0ptbins[1]);
-  double lowjetpt = th3->GetXaxis()->GetBinLowEdge(jetptbins[0]);
-  double highjetpt = th3->GetXaxis()->GetBinUpEdge(jetptbins[1]);
-  double lowv0pt = th3->GetYaxis()->GetBinLowEdge(v0ptbins[0]);
-  double highv0pt = th3->GetYaxis()->GetBinUpEdge(v0ptbins[1]);
-
-  TH1D* mass = (TH1D*)th3->ProjectionZ("v0mass", jetptbins[0], jetptbins[1], v0ptbins[0], v0ptbins[1]);
-  mass->Scale(1./mass->Integral());
+  // mass->Rebin(4);
+  if (normalise) mass->Scale(1./mass->Integral(), "width");
   setStyle(mass, 0);
-  histVector.push_back(mass);
+  mass->SetName(saveName.c_str());
 
-  latexText = TString::Format("#splitline{ %s }{ #splitline{ #it{p}_{T, ch. jet} = %.0f - %.0f GeV/c }{ #it{p}_{T, %s} = %.0f - %.0f GeV/c } }", dataSet.c_str(), jetptmin, jetptmax, formatHadronName(hadron).c_str(), v0ptmin, v0ptmax).Data();
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  if (normalise) yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
+  double xMinFrame = mass->GetXaxis()->GetXmin(), xMaxFrame = mass->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 2.0 * getHistScale(mass, true);
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle((dataSet + latexSuffix).c_str());
 
-  saveName = TString::Format("%smass", hadron.c_str()).Data();
-  saveName = TString::Format("%s_jetpt%.0f-%.0f", saveName.c_str(), jetptmin, jetptmax);
-  saveName = TString::Format("%s_v0pt%.0f-%.0f", saveName.c_str(), v0ptmin, v0ptmax);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  plotNHists(canvas, frame, histVector, legend, latex, saveName, "");
+  string jetText = TString::Format("#it{p}_{T, ch+V0 jet} = %.0f - %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
+  string v0Text = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/#it{c}", lowv0, highv0).Data();
+  if (doZ) v0Text = TString::Format("#it{z}_{V0} = %.2f - %.2f", lowv0, highv0).Data();
+  string latexText = TString::Format("#splitline{%s}{%s}", jetText.c_str(), v0Text.c_str()).Data();
+  double xLatex = 0.3, yLatex = 0.8;
+  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, 0.04);
+
+  double v0mass = ("K0S" == hadron) ? MassK0S : MassLambda0;
+  TLine* line = new TLine(v0mass, yMinFrame, v0mass, 0.75 * yMaxFrame);
+  line->SetLineColor(GetColor(2));
+  line->SetLineStyle(9);
+  line->SetLineWidth(3);
+
+  canvas->cd();
+  frame->Draw();
+  line->Draw("same");
+  mass->Draw("same");
+  latex->Draw("same");
+  canvas->SaveAs(saveName.c_str());
 }
 
 // ----------------------------------------------------------
@@ -1398,51 +1472,94 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
 // ----------------------------------------------------------
 // ----------------------------------------------------------
 
-void plot22o(double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, string hadron, int setting)
+string getDataSet(int train)
 {
-  string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
-  string dataSet = "LHC22o_pass6";
+  if (252064 == train) return "LHC22o_pass6";
+  return "Could not find dataset";
+}
+
+void plotTrain(string hadron, double jetmin, double jetmax, double v0min, double v0max, double dM, bool doZ, int setting, int train)
+{
+  string inName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
+  string dataSet = getDataSet(train);
 
   switch(setting) {
     case 0:
-      plotRadius(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      plotRadius(inName, dataSet, hadron, jetmin, jetmax, v0min, v0max);
       break;
     case 1:
-      plotCosPA(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      plotCosPA(inName, dataSet, hadron, jetmin, jetmax, v0min, v0max);
       break;
     case 2:
-      plotDCAdaughters(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      plotDCAdaughters(inName, dataSet, hadron, jetmin, jetmax, v0min, v0max);
       break;
     case 3:
-      plotDCApos(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      plotDCApos(inName, dataSet, hadron, jetmin, jetmax, v0min, v0max);
       break;
     case 4:
-      plotDCAneg(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      plotDCAneg(inName, dataSet, hadron, jetmin, jetmax, v0min, v0max);
       break;
     case 5:
-      plotctau(inName, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      plotctau(inName, dataSet, hadron, jetmin, jetmax, v0min, v0max);
+      break;
+    case 6:
+      {
+        vector<string> inputStrings = {inName, dataSet, hadron};
+        plotMass(inputStrings, jetmin, jetmax, v0min, v0max, dM, doZ, true);
+        plotMass(inputStrings, jetmin, jetmax, v0min, v0max, dM, doZ, false);
+      }
+      break;
+    case 7:
+      {
+        vector<string> inputStrings = {inName, dataSet, hadron};
+        plotNV0sInJet(inputStrings, jetmin, jetmax, false);
+        plotNV0sInJet(inputStrings, jetmin, jetmax, true);
+      }
       break;
     default:
       cout << "Invalid setting!" << endl;
       break;
   }
 }
-
-void plotAll22o(double jetptmin, double jetptmax, string hadron, int setting)
+void plotTrain(string hadron, double jetmin, double jetmax, double dM, bool doZ, int setting, int train)
 {
-  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
-  for (int i = 0; i < pt.size() - 1; i++) {
-    if (pt[i] > jetptmax) { break; }
-    plot22o(jetptmin, jetptmax, pt[i], pt[i+1], hadron, setting);
+  vector<double> pt   = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
+  vector<double> z    = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+  vector<double> bins = (doZ) ? z : pt;
+  for (int i = 0; i < bins.size() - 1; i++) {
+    if (bins[i] > jetmax) { break; }
+    plotTrain(hadron, jetmin, jetmax, bins[i], bins[i+1], dM, doZ, setting, train);
   }
 }
 
-void plot22oNV0s(string hadron, double jetptmin, double jetptmax)
+void plot252064(string hadron, double jetmin, double jetmax, double v0min, double v0max, double dM, bool doZ, int setting)
 {
-  string inName  = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
-  string dataSet = "LHC22o_pass6";
-  vector<string> inputStrings = {inName, hadron, dataSet};
+  plotTrain(hadron, jetmin, jetmax, v0min, v0max, dM, doZ, setting, 252064);
+}
+void plot252064(string hadron, double jetmin, double jetmax, double dM, bool doZ, int setting)
+{
+  plotTrain(hadron, jetmin, jetmax, dM, doZ, setting, 252064);
+}
 
-  plotNV0sInJet(inputStrings, jetptmin, jetptmax, false);
-  plotNV0sInJet(inputStrings, jetptmin, jetptmax, true);
+// ----------------------------------------------------------
+// ----------------------------------------------------------
+//              !!! CAREFUL WITH THIS ONE !!!
+// ----------------------------------------------------------
+// ----------------------------------------------------------
+void plotAll()
+{
+  gROOT->SetBatch(kTRUE);
+  int train = 252064;
+  int setting = 6;
+  vector<string> hadrons = { "K0S", "Lambda0", "AntiLambda0" };
+  vector<double> jetpt = { 10., 20., 40. };
+  vector<double> dMs = { 0. };
+  for (string h : hadrons) {
+    for (double dM : dMs) {
+      for (int i = 0; i < jetpt.size() - 1; i++) {
+        plotTrain(h, jetpt[i], jetpt[i+1], dM, true, setting, train);
+        plotTrain(h, jetpt[i], jetpt[i+1], dM, false, setting, train);
+      }
+    }
+  }
 }

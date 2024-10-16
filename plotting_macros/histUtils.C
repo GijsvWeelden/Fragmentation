@@ -341,7 +341,7 @@ TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, str
 
 // Get bins corresponding to a range on an axis
 // Default behaviour is to include overflow and underflow bins
-std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const double max, double epsilon = 1e-5)
+std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const double max, double epsilon = 1e-3)
 {
   int firstBin = 0, lastBin = axis->GetNbins() + 1;
   if (min > -900) { firstBin = axis->FindBin(min + epsilon); }

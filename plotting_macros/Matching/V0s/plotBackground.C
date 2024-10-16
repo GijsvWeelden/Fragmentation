@@ -776,7 +776,7 @@ void combMass(vector<string> inputStrings, double v0min, double v0max, double dM
     cout << "combMass: histogram empty in non-over/underflow for " << hadron << " in pt range " << lowpt << " - " << highpt << endl;
     return;
   }
-  vector<TObject*> objList = {combMass};
+  vector<TObject*> objList;
 
   string saveName;
   saveName += "combMass";
@@ -806,6 +806,7 @@ void combMass(vector<string> inputStrings, double v0min, double v0max, double dM
   canvas->cd();
   frame->Draw();
   for (auto obj : objList) { obj->Draw("same"); }
+  combMass->Draw("same");
   canvas->SaveAs(canvas->GetName());
 }
 void combMass(vector<string> inputStrings, double jetmin, double jetmax, double v0min, double v0max, double dM /* in MeV */, bool doZ, bool normalise)
@@ -894,7 +895,7 @@ void combMass(vector<string> inputStrings, double jetmin, double jetmax, double 
     cout << "combMass: histogram empty in non-over/underflow for ptjet " << lowjetpt << " - " << highjetpt << ", " << (doZ ? "z" : "pt") << "v0 " << lowv0 << " - " << highv0 << ". Skipping..." << endl;
     return;
   }
-  vector<TObject*> objList = {combMass};
+  vector<TObject*> objList;
 
   string xTitle = "M(" + formatHadronDaughters(hadron) + ") (GeV/#it{c}^{2})";
   string yTitle = "counts";
@@ -922,6 +923,7 @@ void combMass(vector<string> inputStrings, double jetmin, double jetmax, double 
   canvas->cd();
   frame->Draw();
   for (auto obj : objList) { obj->Draw("same"); }
+  combMass->Draw("same");
   canvas->SaveAs(canvas->GetName());
 }
 // 2D versions
@@ -1384,6 +1386,8 @@ void Reflection(vector<string> inputStrings, double partjetptmin, double partjet
   canvas->SaveAs(canvas->GetName());
 }
 
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------------------
 
 void plotTrain(string train, string dataSet, string hadron, double partv0min, double partv0max, double dM /* in MeV */, int setting)

@@ -261,6 +261,7 @@ void mass(vector<string> inputStrings, double v0min, double v0max, bool normalis
   string saveName = hadron;
   saveName += "Mass";
   saveName += TString::Format("_pt%.1f-%.1f", lowpt, highpt);
+  if (!normalise) saveName += "_counts";
   saveName += ".pdf";
   TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
 
@@ -271,7 +272,7 @@ void mass(vector<string> inputStrings, double v0min, double v0max, bool normalis
   mass->SetName(saveName.c_str());
 
   if (isHistEmptyInRange(mass, 1, mass->GetNbinsX())) {
-    cout << "Mass: empty histogram" << endl;
+    cout << "Mass: empty histogram. " << hadron << ", pt " << lowpt << " - " highpt << endl;
     return;
   }
 
@@ -297,6 +298,10 @@ void mass(vector<string> inputStrings, double v0min, double v0max, bool normalis
   canvas->SaveAs(canvas->GetName());
 }
 
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+
 void plotTrain(string inName, string dataSet, double partv0min, double partv0max, int setting)
 {
   switch (setting) {
@@ -311,10 +316,13 @@ void plotTrain(string inName, string dataSet, double partv0min, double partv0max
       {
         vector<string> inputStrings = {inName, dataSet, "K0S"};
         mass(inputStrings, partv0min, partv0max, false);
+        mass(inputStrings, partv0min, partv0max, true);
         inputStrings[2] = "Lambda";
         mass(inputStrings, partv0min, partv0max, false);
+        mass(inputStrings, partv0min, partv0max, true);
         inputStrings[2] = "antiLambda";
         mass(inputStrings, partv0min, partv0max, false);
+        mass(inputStrings, partv0min, partv0max, true);
       }
       break;
     default:

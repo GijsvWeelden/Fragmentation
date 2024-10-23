@@ -59,7 +59,19 @@ double getHistScale(TH1* h, bool doError)
     double bc = h->GetBinContent(i);
     double be = h->GetBinError(i);
     double s = be + bc;
-    if (s > scale) { scale = s; }
+    scale = max(scale, s);
+  }
+  return scale;
+}
+double getHistScale(vector<TH1*> v, bool doError, bool doSum)
+{
+  double scale = 0.;
+  for (auto h : v) {
+    double s = getHistScale(h, doError);
+    if (doSum)
+      scale += s;
+    else
+      scale = max(scale, s);
   }
   return scale;
 }
@@ -114,7 +126,7 @@ THnSparse* getFakeMass(vector<string> inputStrings)
   return thn;
 }
 
-void comparemass(vector<string> inputStrings, double v0min, double v0max, bool normalise)
+void comparemass(vector<string> inputStrings, double v0min, double v0max, bool normalise, bool doStack)
 {
   double textSize = 0.04;
   gStyle->SetNdivisions(505, "xy");
@@ -145,17 +157,12 @@ void comparemass(vector<string> inputStrings, double v0min, double v0max, bool n
   int projectionAxis = (hadron == "K0S")*K0SAxis + (hadron == "Lambda0")*Lambda0Axis + (hadron == "AntiLambda0")*AntiLambda0Axis;
   TH1D* matchedMass = (TH1D*)thn_matchedMass->Projection(massAxis);
   TH1D* fakeMass = (TH1D*)thn_fakeMass->Projection(projectionAxis);
+  vector<TH1*> hists = {fakeMass, matchedMass};
   if (isHistEmptyInRange(matchedMass, 1, matchedMass->GetNbinsX())
       || isHistEmptyInRange(fakeMass, 1, fakeMass->GetNbinsX())) {
     cout << "compareMass: Empty mass histogram for ptv0 " << lowv0 << " - " << highv0 << endl;
     return;
   }
-  setStyle(matchedMass, 0);
-  setStyle(fakeMass, 1);
-
-  TLegend* legend = CreateLegend(0.6, 0.9, 0.55, 0.75, "", textSize);
-  legend->AddEntry(matchedMass, "Signal");
-  legend->AddEntry(fakeMass, "Bkg");
 
   string saveName = hadron;
   saveName += "_massComparison";
@@ -167,7 +174,7 @@ void comparemass(vector<string> inputStrings, double v0min, double v0max, bool n
   matchedMass->Rebin(4);
   fakeMass->Rebin(4);
   if (normalise) {
-    double scale = TMath::Max(getHistScale(matchedMass, false), getHistScale(fakeMass, false));
+    double scale = getHistScale(hists, false, false);
     matchedMass->Scale(1./scale, "width");
     fakeMass->Scale(1./scale, "width");
   }
@@ -178,26 +185,38 @@ void comparemass(vector<string> inputStrings, double v0min, double v0max, bool n
   string yTitle = "Counts";
   if (normalise) yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
   double xMinFrame = matchedMass->GetXaxis()->GetXmin(), xMaxFrame = matchedMass->GetXaxis()->GetXmax();
-  double yMinFrame = 0., yMaxFrame = 1.5 * TMath::Max(getHistScale(matchedMass, true), getHistScale(fakeMass, true));
+  double yMinFrame = 0., yMaxFrame = 1.5 * getHistScale(hists, true, doStack);
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   string v0Text  = TString::Format("#it{p}_{T, V0} = %.1f-%.1f GeV/#it{c}", lowv0, highv0).Data();
   frame->SetTitle((dataSet + ", " + v0Text).c_str());
 
   double mass = ("K0S" == hadron) ? MassK0S : MassLambda0;
   TLine* line = new TLine(mass, yMinFrame, mass, 0.75 * yMaxFrame);
-  line->SetLineStyle(9);
-  line->SetLineColor(GetColor(2));
-  line->SetLineWidth(3);
+  setStyle(line, 0);
+
+  TLegend* legend = CreateLegend(0.6, 0.9, 0.55, 0.75, "", textSize);
+  double alpha = doStack ? 0.5 : -1.;
+  setStyle(matchedMass, 1, alpha);
+  setStyle(fakeMass, 2, alpha);
+  legend->AddEntry(matchedMass, "Signal");
+  legend->AddEntry(fakeMass, "Bkg");
 
   canvas->cd();
   frame->Draw();
-  line->Draw("same");
   legend->Draw("same");
-  matchedMass->Draw("same");
-  fakeMass->Draw("same");
+
+  if (doStack) {
+    THStack* stack = new THStack("stack", "");
+    for (auto h : hists) stack->Add(h);
+    stack->Draw("same");
+    line->Draw("same");
+  } else {
+    line->Draw("same");
+    for (auto h : hists) h->Draw("same");
+  }
   canvas->SaveAs(saveName.c_str());
 }
-void comparemass(vector<string> inputStrings, double partjetptmin, double partjetptmax, double v0min, double v0max, bool doZ, bool normalise)
+void comparemass(vector<string> inputStrings, double partjetptmin, double partjetptmax, double v0min, double v0max, bool doZ, bool normalise, bool doStack)
 {
   double textSize = 0.04;
   gStyle->SetNdivisions(505, "xy");
@@ -235,17 +254,12 @@ void comparemass(vector<string> inputStrings, double partjetptmin, double partje
   int projectionAxis = (hadron == "K0S")*K0SAxis + (hadron == "Lambda0")*Lambda0Axis + (hadron == "AntiLambda0")*AntiLambda0Axis;
   TH1D* matchedMass = (TH1D*)thn_matchedMass->Projection(massAxis);
   TH1D* fakeMass = (TH1D*)thn_fakeMass->Projection(projectionAxis);
+  vector<TH1*> hists = {fakeMass, matchedMass};
   if (isHistEmptyInRange(matchedMass, 1, matchedMass->GetNbinsX())
       || isHistEmptyInRange(fakeMass, 1, fakeMass->GetNbinsX())) {
     cout << "compareMass: Empty mass histogram for jetpt " << lowjetpt << " - " << highjetpt << ", " << (doZ ? "zv0 " : "ptv0 ") << lowv0 << " - " << highv0 << endl;
     return;
   }
-  setStyle(matchedMass, 0);
-  setStyle(fakeMass, 1);
-
-  TLegend* legend = CreateLegend(0.6, 0.9, 0.55, 0.75, "", textSize);
-  legend->AddEntry(matchedMass, "Signal");
-  legend->AddEntry(fakeMass, "Bkg");
 
   string saveName = hadron;
   saveName += "_massComparison";
@@ -259,7 +273,7 @@ void comparemass(vector<string> inputStrings, double partjetptmin, double partje
   matchedMass->Rebin(4);
   fakeMass->Rebin(4);
   if (normalise) {
-    double scale = TMath::Max(getHistScale(matchedMass, false), getHistScale(fakeMass, false));
+    double scale = getHistScale(hists, false, false);
     matchedMass->Scale(1./scale, "width");
     fakeMass->Scale(1./scale, "width");
   }
@@ -270,7 +284,7 @@ void comparemass(vector<string> inputStrings, double partjetptmin, double partje
   string yTitle = "Counts";
   if (normalise) yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
   double xMinFrame = matchedMass->GetXaxis()->GetXmin(), xMaxFrame = matchedMass->GetXaxis()->GetXmax();
-  double yMinFrame = 0., yMaxFrame = 1.5 * TMath::Max(getHistScale(matchedMass, true), getHistScale(fakeMass, true));
+  double yMinFrame = 0., yMaxFrame = 1.5 * getHistScale(hists, true, doStack);
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   frame->SetTitle(dataSet.c_str());
 
@@ -283,17 +297,29 @@ void comparemass(vector<string> inputStrings, double partjetptmin, double partje
 
   double mass = ("K0S" == hadron) ? MassK0S : MassLambda0;
   TLine* line = new TLine(mass, yMinFrame, mass, 0.75 * yMaxFrame);
-  line->SetLineStyle(9);
-  line->SetLineColor(GetColor(2));
-  line->SetLineWidth(3);
+  setStyle(line, 0);
+
+  TLegend* legend = CreateLegend(0.6, 0.9, 0.55, 0.75, "", textSize);
+  double alpha = doStack ? 0.5 : -1.;
+  setStyle(matchedMass, 1, alpha);
+  setStyle(fakeMass, 2, alpha);
+  legend->AddEntry(matchedMass, "Signal");
+  legend->AddEntry(fakeMass, "Bkg");
 
   canvas->cd();
   frame->Draw();
-  line->Draw("same");
-  latex->Draw("same");
   legend->Draw("same");
-  matchedMass->Draw("same");
-  fakeMass->Draw("same");
+  latex->Draw("same");
+
+  if (doStack) {
+    THStack* stack = new THStack("stack", "");
+    for (auto h : hists) stack->Add(h);
+    stack->Draw("same");
+    line->Draw("same");
+  } else {
+    line->Draw("same");
+    for (auto h : hists) h->Draw("same");
+  }
   canvas->SaveAs(saveName.c_str());
 }
 
@@ -301,38 +327,45 @@ void comparemass(vector<string> inputStrings, double partjetptmin, double partje
 // -------------------------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------------------
 
-void plotTrain(string train, string dataSet, string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, int setting)
+void plotTrain(string train, string dataSet, string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, bool doStack, int setting)
 {
   string inputName = "~/cernbox/TrainOutput/" + train + "/AnalysisResults.root";
   vector<string> inputStrings = {inputName, dataSet, hadron};
   switch (setting) {
     case 0:
-      comparemass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, false);
-      comparemass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, true);
+      if (doZ) {
+        cout << "Error: setting 0 requires doZ == false" << endl;
+        return;
+      }
+      if (jetptmin < 30.) {
+        cout << "Warning: setting 0 is inclusive V0s. Jetptmin < 30 may lead to unintended results." << endl;
+      }
+      comparemass(inputStrings, v0ptmin, v0ptmax, false, doStack);
+      comparemass(inputStrings, v0ptmin, v0ptmax, true, doStack);
       break;
     case 1:
-      comparemass(inputStrings, v0ptmin, v0ptmax, false);
-      comparemass(inputStrings, v0ptmin, v0ptmax, true);
+      comparemass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, false, doStack);
+      comparemass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, true, doStack);
       break;
     default:
       cout << "Error: invalid setting" << endl;
       return;
   }
 }
-void plot271952(string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, int setting)
+void plot271952(string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, bool doStack, int setting)
 {
   string train = "271952";
   string dataSet = "LHC24b1b";
-  plotTrain(train, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, setting);
+  plotTrain(train, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, doStack, setting);
 }
-void plot271952(string hadron, double jetptmin, double jetptmax, bool doZ, int setting)
+void plot271952(string hadron, double jetptmin, double jetptmax, bool doZ, bool doStack, int setting)
 {
   gROOT->SetBatch();
   vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0};
   vector<double> z  = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
   vector<double> bins = doZ ? z : pt;
   for (int i = 0; i < bins.size()-1; i++) {
-    if (bins[i] > jetptmin) break;
-    plot271952(hadron, jetptmin, jetptmax, bins[i], bins[i+1], doZ, setting);
+    if (bins[i] > jetptmax) break;
+    plot271952(hadron, jetptmin, jetptmax, bins[i], bins[i+1], doZ, doStack, setting);
   }
 }

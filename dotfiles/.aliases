@@ -13,6 +13,8 @@ alias o2="${FRAGMENTATION_DIR}/scripts/load-o2"
 alias atag="${FRAGMENTATION_DIR}/scripts/load-alien-tag -a -y"
 alias otag="${FRAGMENTATION_DIR}/scripts/load-alien-tag"
 
+alias gl="git log --name-only upstream/master~1.."
+
 # For moving around
 alias fragdir="cd ${FRAGMENTATION_DIR}"
 alias aoddir="cd ${FRAGMENTATION_DIR}/../AO2D"

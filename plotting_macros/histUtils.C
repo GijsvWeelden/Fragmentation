@@ -350,13 +350,21 @@ std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const 
 }
 
 // Set histogram colours and markers
-template <typename T>
-void setStyle(T hist, int styleNumber, int lineWidth = 3)
+void setStyle(TH1* hist, int styleNumber, double alpha = -1, int lineWidth = 3)
 {
   hist->SetLineWidth(lineWidth);
   hist->SetLineColor(GetColor(styleNumber));
   hist->SetMarkerStyle(GetMarker(styleNumber));
   hist->SetMarkerColor(GetColor(styleNumber));
+  if (alpha > 0.) {
+    hist->SetFillColorAlpha(GetColor(styleNumber), alpha);
+  }
+}
+void setStyle(TLine* line, int styleNumber, int lineStyle = 9, int lineWidth = 3)
+{
+  line->SetLineWidth(lineWidth);
+  line->SetLineColor(GetColor(styleNumber));
+  line->SetLineStyle(lineStyle);
 }
 
 // Formats the hadron name to look nice (Greek letters, sub- and superscripts)

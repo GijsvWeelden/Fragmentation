@@ -18,9 +18,10 @@ alias gl="git log --name-only upstream/master~1.."
 # For moving around
 alias fragdir="cd ${FRAGMENTATION_DIR}"
 alias aoddir="cd ${FRAGMENTATION_DIR}/../AO2D"
+alias notesdir="cd ${FRAGMENTATION_DIR}/../Notes"
 alias swdir="cd ${ALIBUILD_WORK_DIR}"
 alias o2dir="cd ${ALIBUILD_WORK_DIR}/../O2Physics"
-
-alias notesdir="cd ${FRAGMENTATION_DIR}/../Notes"
 alias andir="cd ${FRAGMENTATION_DIR}/../AN-Jet-Fragmentation"
+alias thesisdir="cd ${FRAGMENTATION_DIR}/../Thesis-Jet-Fragmentation"
+
 alias xcodeversion="pkgutil --pkg-info=com.apple.pkg.CLTools_Executables"

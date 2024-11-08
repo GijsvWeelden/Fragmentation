@@ -71,7 +71,8 @@ void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize =
 
 Int_t GetColor(Int_t i) {
   const Int_t nc = 11;
-  Int_t color[nc] = {1,kRed+1,4,kGreen+2,kAzure-2,kOrange+7,kGray+2,myDarkRed,kAzure+10,kGreen+4,kYellow+2};
+  // Int_t color[nc] = {1,kRed+1,4,kGreen+2,kAzure-2,kOrange+7,kGray+2,myDarkRed,kAzure+10,kGreen+4,kYellow+2};
+  Int_t color[nc] = {1,kRed+1,4,kGreen+2,kCyan+3,kOrange+7,kGray+2,myDarkRed,kAzure+10,kGreen+4,kYellow+2};
   if(i<nc) return color[i];
   else     return i;
 }

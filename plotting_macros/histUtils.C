@@ -10,9 +10,9 @@
 
 #include "TFile.h"
 #include "TTree.h"
-#include "TH1F.h"
-#include "TH2F.h"
-#include "TH3F.h"
+#include "TH1.h"
+#include "TH2.h"
+#include "TH3.h"
 #include "THn.h"
 #include "TString.h"
 
@@ -347,6 +347,48 @@ std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const 
   if (min > -900) { firstBin = axis->FindBin(min + epsilon); }
   if (max > -900) { lastBin = axis->FindBin(max - epsilon); }
   return std::array{firstBin, lastBin};
+}
+
+// Check if a histogram is empty in a given range
+bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
+{
+  double integral = h->Integral(low, high);
+  if (integral != integral) // NaN check
+    return true;
+  else
+    return (integral < threshold);
+}
+bool isHistEmptyInRange(TH2* h, int xlow, int xhigh, int ylow, int yhigh, double threshold = 1e-10)
+{
+  return isHistEmptyInRange(h->ProjectionX("px", ylow, yhigh), xlow, xhigh, threshold);
+}
+
+// Returns the scale for drawing histogram. Accounts for bin content and error
+double getHistScale(TH1* h, bool doError)
+{
+  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
+
+  double scale = -900.;
+  for (int i = 1; i <= h->GetNbinsX(); i++) {
+    double bc = h->GetBinContent(i);
+    double be = h->GetBinError(i);
+    double s = be + bc;
+    scale = max(scale, s);
+  }
+  return scale;
+}
+double getHistScale(vector<TH1*> v, bool doError, bool doSum)
+{
+  double scale = 0.;
+  for (auto h : v) {
+    double s = getHistScale(h, doError);
+    // This only works if the maximums are in similar spots, summing the hists would only work if the hists have the same ranges
+    if (doSum)
+      scale += s;
+    else
+      scale = max(scale, s);
+  }
+  return scale;
 }
 
 // Set histogram colours and markers

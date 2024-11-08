@@ -17,24 +17,36 @@ parse_git_branch() {
   git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
 }
 
-environment=""
-promptend="% "
-if [[ x${O2_ROOT} != x ]]; then
-  environment="O2"
-fi
-if [[ x$(echo ${LOADEDMODULES} | grep "ninja") != x ]]; then
-  if [[ x${environment} != x ]]; then
-    environment="${environment} "
-  fi
-  environment="${environment}ninja"
+environment="(bash)"
+promptend="\[\e[0m\]% "
+if [[ x${O2PHYSICS_ROOT} != x ]]; then
+  environment=${O2PHYSICS_ROOT##*/}
+  environment=${environment%-*}
+  environment="\[\e[38;5;208m\][${environment}]"
+
+  promptend="\[\e[38;5;208m\]> \[\e[0m\]"
 fi
 
-export PS1='\A (bash) \[\e[1;35m\]\w\[\e[38;5;99m\]$(__git_ps1)\[\e[0m\] ${promptend}'
-if [[ x${environment} != x ]]; then
-  environment="[${environment}]"
-  promptend="> "
-  export PS1='\A (bash)\[\e[38;5;208m\]${environment} \[\e[1;35m\]\w\[\e[38;5;99m\]$(__git_ps1)\[\e[38;5;208m\] ${promptend}\[\e[0m\]'
-fi
+gitstring="\[\e[38;5;99m\]$(__git_ps1)"
+workdir="\[\e[1;35m\]\w"
+# if [[ x${O2_ROOT} != x ]]; then
+#   environment="O2"
+# fi
+# if [[ x$(echo ${LOADEDMODULES} | grep "ninja") != x ]]; then
+#   if [[ x${environment} != x ]]; then
+#     environment="${environment} "
+#   fi
+#   environment="${environment}ninja"
+# fi
+
+export PS1="\A ${environment} ${workdir}${gitstring} ${promptend}"
+
+# export PS1='\A (bash) \[\e[1;35m\]\w\[\e[38;5;99m\]$(__git_ps1)\[\e[0m\] ${promptend}'
+# if [[ x${environment} != x ]]; then
+#   environment="[${environment}]"
+#   promptend="> "
+#   export PS1='\A (bash)\[\e[38;5;208m\]${environment} \[\e[1;35m\]\w\[\e[38;5;99m\]$(__git_ps1)\[\e[38;5;208m\] ${promptend}\[\e[0m\]'
+# fi
 
 source ${FRAGMENTATION_DIR}/dotfiles/.aliases
 source ${FRAGMENTATION_DIR}/dotfiles/.bash_aliases

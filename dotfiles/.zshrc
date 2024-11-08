@@ -11,17 +11,19 @@ if [[ $SSH_CONNECTION == "" ]]; then
 fi
 
 environment=""
+promptend="%f%% "
 if [[ x${O2PHYSICS_ROOT} != x ]]; then
   environment=${${O2PHYSICS_ROOT##*/}%-*}
-  environment="[${environment}] "
-fi
+  environment="%F{208}[${environment}]"
 
-promptend="%f%% "
-if [[ x${environment} != x ]]; then
   promptend="%F{208}%#> %f"
 fi
 
-export PS1='%T ${hostname}%F{208}${environment}%F{magenta}%~%F{105}${vcs_info_msg_0_} ${promptend}'
+gitstring="%F{105}${vcs_info_msg_0_}"
+workdir="%F{magenta}%~"
+
+export PS1='%T ${hostname}${environment}${workdir} ${gitstring} ${promptend}'
+# export PS1='%T ${hostname}%F{208}${environment}%F{magenta}%~%F{105}${vcs_info_msg_0_} ${promptend}'
 
 export CLICOLOR=1
 export LSCOLORS=gxgxBxDxCxEgEdxbxgxcxd

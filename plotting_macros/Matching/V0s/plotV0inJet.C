@@ -498,7 +498,7 @@ void mass(vector<string> inputStrings, double partjetptmin, double partjetptmax,
     cout << "Error: Empty mass histogram for jetpt " << lowjetpt << " - " << highjetpt << ", " << (doZ ? "zv0 " : "ptv0 ") << lowv0 << " - " << highv0 << endl;
     return;
   }
-  // mass->Rebin(4);
+  mass->Rebin(4);
   if (normalise) mass->Scale(1./mass->Integral(), "width");
   setStyle(mass, 0);
   mass->SetName(saveName.c_str());
@@ -671,16 +671,27 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
 // -------------------------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------------------
 
-void plotTrain(string train, string dataSet, string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, int setting)
+string getDataSet(int train)
 {
-  string inputName = "~/cernbox/TrainOutput/" + train + "/AnalysisResults.root";
+  if (210373 == train) return "LHC24b1b";
+  if (271952 == train) return "LHC24b1b";
+  if (280432 == train) return "LHC24g4";
+
+  return "Could not find dataset";
+}
+
+void plotTrain(int train, string hadron, double jetptmin, double jetptmax, double v0min, double v0max, bool doZ, int setting)
+{
+  string inputName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
+  string dataSet   = getDataSet(train);
+
   switch (setting) {
     case 0:
-      ptResolution(inputName, dataSet, jetptmin, jetptmax, v0ptmin, v0ptmax);
+      ptResolution(inputName, dataSet, jetptmin, jetptmax, v0min, v0max);
       break;
     case 1:
       {
-        dauPtResolution(inputName, dataSet, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ);
+        dauPtResolution(inputName, dataSet, jetptmin, jetptmax, v0min, v0max, doZ);
       }
       break;
     case 2:
@@ -692,23 +703,26 @@ void plotTrain(string train, string dataSet, string hadron, double jetptmin, dou
       break;
     case 3:
       {
-        vector<string> inputStrings = {inputName, dataSet, hadron, "K0S"};
-        mass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, false /* normalise */);
-        mass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, true);
+        string hypothesis = "K0S";
+        vector<string> inputStrings = {inputName, dataSet, hadron, hypothesis};
+        mass(inputStrings, jetptmin, jetptmax, v0min, v0max, doZ, false /* normalise */);
+        mass(inputStrings, jetptmin, jetptmax, v0min, v0max, doZ, true);
       }
       break;
     case 4:
       {
-        vector<string> inputStrings = {inputName, dataSet, hadron, "Lambda0"};
-        mass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, false /* normalise */);
-        mass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, true);
+        string hypothesis = "Lambda0";
+        vector<string> inputStrings = {inputName, dataSet, hadron, hypothesis};
+        mass(inputStrings, jetptmin, jetptmax, v0min, v0max, doZ, false /* normalise */);
+        mass(inputStrings, jetptmin, jetptmax, v0min, v0max, doZ, true);
       }
       break;
     case 5:
       {
-        vector<string> inputStrings = {inputName, dataSet, hadron, "AntiLambda0"};
-        mass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, false /* normalise */);
-        mass(inputStrings, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, true);
+        string hypothesis = "AntiLambda0";
+        vector<string> inputStrings = {inputName, dataSet, hadron, hypothesis};
+        mass(inputStrings, jetptmin, jetptmax, v0min, v0max, doZ, false /* normalise */);
+        mass(inputStrings, jetptmin, jetptmax, v0min, v0max, doZ, true);
       }
       break;
     default:
@@ -716,27 +730,38 @@ void plotTrain(string train, string dataSet, string hadron, double jetptmin, dou
       return;
   }
 }
+void plotTrain(int train, string hadron, double jetptmin, double jetptmax, bool doZ, int setting)
+{
+  gROOT->SetBatch();
+  vector<double> pt   = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
+  vector<double> z    = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+  vector<double> bins = (doZ) ? z : pt;
+  for (int i = 0; i < bins.size() - 1; i++) {
+    if (bins[i] > jetptmax) break;
+    plotTrain(train, hadron, jetptmin, jetptmax, bins[i], bins[i+1], doZ, setting);
+  }
+}
+
+void plot280432(string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, int setting)
+{
+  plotTrain(280432, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, setting);
+}
+void plot280432(string hadron, double jetptmin, double jetptmax, bool doZ, int setting)
+{
+  plotTrain(280432, hadron, jetptmin, jetptmax, doZ, setting);
+}
+
+
 void plot271952(string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, int setting)
 {
-  string train = "271952";
-  string dataSet = "LHC24b1b";
-  plotTrain(train, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, setting);
+  plotTrain(271952, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, setting);
 }
 void plot271952(string hadron, double jetptmin, double jetptmax, bool doZ, int setting)
 {
-  gROOT->SetBatch();
-  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0};
-  vector<double> z  = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-  vector<double> bins = doZ ? z : pt;
-  for (int i = 0; i < bins.size()-1; i++) {
-    if (bins[i] > jetptmin) break;
-    plot271952(hadron, jetptmin, jetptmax, bins[i], bins[i+1], doZ, setting);
-  }
+  plotTrain(271952, hadron, jetptmin, jetptmax, doZ, setting);
 }
 
 void plot210373(string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, int setting)
 {
-  string train = "210373";
-  string dataSet = "LHC24b1b";
-  plotTrain(train, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, setting);
+  plotTrain(210373, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, setting);
 }

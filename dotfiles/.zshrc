@@ -14,7 +14,7 @@ environment=""
 promptend="%f%% "
 if [[ x${O2PHYSICS_ROOT} != x ]]; then
   environment=${${O2PHYSICS_ROOT##*/}%-*}
-  environment="%F{208}[${environment}]"
+  environment="%F{208}[${environment}] "
 
   promptend="%F{208}%#> %f"
 fi

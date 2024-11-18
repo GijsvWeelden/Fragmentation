@@ -18,6 +18,14 @@
 
 const double MassK0S     = 0.497611;
 const double MassLambda0 = 1.115683;
+gStyle->SetNdivisions(505, "xy");
+
+string getDataSet(int train)
+{
+  if (252064 == train) return "LHC22o_pass6";
+  if (282430 == train) return "LHC22o_pass7_small";
+  return "Could not find dataset";
+}
 
 // Crystal ball function, from: https://en.wikipedia.org/wiki/Crystal_Ball_function
 double CrystalBall(double *x, double *p)
@@ -150,7 +158,7 @@ void splitTFs(TF1* total, vector<TF1*> functions)
 
 // -------------------------------------------------------------------------------------------------
 //
-// Functions to use with setup
+// Fit functions
 //
 // -------------------------------------------------------------------------------------------------
 
@@ -194,7 +202,7 @@ TF1* gaussian(TH1* h, string uniqueName, array<double, 3> vals = {1e3, MassLambd
   f->SetParameter(2, sigma);
   f->SetParLimits(0, 0.5 * amp, 2. * amp);
   f->SetParLimits(1, mean - 0.1, mean + 0.1);
-  f->SetParLimits(2, 0.5 * sigma, 2. * sigma);
+  f->SetParLimits(2, 0.1 * sigma, 3. * sigma);
 
   for (int i = 0; i < f->GetNpar(); i++) {
     string parName = uniqueName + "_" + to_string(i);
@@ -206,12 +214,17 @@ TF1* gaussian(TH1* h, string uniqueName, array<double, 3> vals = {1e3, MassLambd
 // Linear background, give it two x values to which it will initialize the fit
 TF1* linear(TH1* h, string uniqueName, array<double, 2> vals, array<double, 2> fitRange = {1.08, 1.2})
 {
-  array<int, 2> region = getProjectionBins(h->GetXaxis(), vals[0], vals[1]);
-  double dx = h->GetBinCenter(region[1]) - h->GetBinCenter(region[0]);
-  double dy = h->GetBinContent(region[1]) - h->GetBinContent(region[0]);
+  TH1* k = (TH1*)h->Clone("k");
+  array<int, 2> region = getProjectionBins(k->GetXaxis(), vals[0], vals[1]);
+  double dx = k->GetBinCenter(region[1]) - k->GetBinCenter(region[0]);
+  double dy = k->GetBinContent(region[1]) - k->GetBinContent(region[0]);
 
   double b = dy / dx;
-  double a = h->GetBinContent(region[0]) - b * h->GetBinCenter(region[0]);
+  double a = k->GetBinContent(region[0]) - b * k->GetBinCenter(region[0]);
+
+  cout << "fit range: " << fitRange[0] << " - " << fitRange[1] << endl;
+  cout << "values: " << vals[0] << " - " << vals[1] << endl;
+  // cout << "dx: " << dx << "(" << k->GetBinCenter() << ")" << endl;
 
   TF1* f = new TF1(uniqueName.c_str(), "pol1(0)", fitRange[0], fitRange[1]);
   f->SetParameter(0, a);
@@ -270,8 +283,6 @@ TF1* dilog(TH1* h, string uniqueName, array<double, 3> vals = {2e3, 35., 1.09}, 
   return f;
 }
 
-// TF1* landau(TH1* h, string uniqueName, )
-
 // -------------------------------------------------------------------------------------------------
 //
 // Functions to use with setup
@@ -279,9 +290,11 @@ TF1* dilog(TH1* h, string uniqueName, array<double, 3> vals = {2e3, 35., 1.09}, 
 // -------------------------------------------------------------------------------------------------
 
 // My "favourite" histogram
-TH1* getHist(double ptmin, double ptmax, string hadron)
+// TH1* getHist(double ptmin, double ptmax, string hadron)
+TH1* getHist(double ptmin, double ptmax, string hadron, int train)
 {
-  string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+  // string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+  string inName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
   string histName = "jet-fragmentation/data/V0/V0CutVariation";
 
   int ptAxis = 0;
@@ -338,165 +351,6 @@ void myDraw(TCanvas* canvas, TH1* hist, vector<TF1*> fits, TLegend* legend, vect
   canvas->SaveAs(saveName.c_str());
 }
 
-// Input to add: hadron, rebin
-// Plots multiple fits for signal+bkg
-void plotBkgs(double ptmin, double ptmax, string hadron)
-{
-  gStyle->SetNdivisions(505, "xy");
-  // string hadron = "Lambda0";
-  string dataSet = "LHC22o_pass6";
-
-
-  double textSize = 0.04;
-  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
-  string yTitle = "counts";
-
-  TH1D* h = (TH1D*)getHist(ptmin, ptmax, hadron);
-  h->SetStats(0);
-  setStyle(h, 0);
-  h->SetXTitle(xTitle.c_str());
-  h->SetYTitle(yTitle.c_str());
-  h->SetName("data");
-
-  array<int, 2> ptBins = getProjectionBins(h->GetXaxis(), ptmin, ptmax);
-  double lowpt  = h->GetXaxis()->GetBinLowEdge(ptBins[0]);
-  double highpt = h->GetXaxis()->GetBinUpEdge(ptBins[1]);
-
-  string canvasName = hadron;
-  canvasName += TString::Format("_pt%.1f-%.1f", ptmin, ptmax).Data();
-  canvasName += ".pdf";
-  TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1800, 900);
-
-  double xMinLegend = 0., xMaxLegend = 0.7, yMinLegend = 0.25, yMaxLegend = 0.45;
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend);
-
-  // array<double, 2> fitRange = {h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax()};
-  array<double, 2> fitRange = {1.08, 1.2};
-  double mass = MassLambda0;
-  double dM = 1e-2;
-  double signalWidth = 1e-3;
-  if ("K0S" == hadron) {
-    fitRange = {0.4, 0.6};
-    mass = MassK0S;
-    dM = 5e-2;
-    signalWidth = 1e-2;
-  }
-
-  // Functions to combine
-  array<int, 2> peakRegion = getProjectionBins(h->GetXaxis(), mass - dM, mass + dM);
-  TH1* k = makeHistSubset(h, peakRegion[0], peakRegion[1]);
-  double peakVal = k->GetBinContent(k->GetMaximumBin());
-  array<double, 3> sigGausVals = {peakVal / 1.5, mass, signalWidth};
-  array<double, 2> linVals     = {sigGausVals[0] - 3*sigGausVals[2], sigGausVals[0] + 3*sigGausVals[2]};
-  array<double, 3> sigmoidVals = {h->GetBinContent(h->GetNbinsX()), h->GetBinContent(h->GetNbinsX())/20., sigGausVals[0]};
-  array<double, 3> dilogVals   = {h->GetBinContent(h->GetNbinsX()), 35., linVals[0]};
-  array<double, 3> gausVals    = {sigGausVals[0] / 10., mass, signalWidth * (10. - ("K0S" == hadron) * 5.)};
-
-  // TF1* fSigGaus = sigGaus(h, "fSigGaus", sigGausVals, fitRange);
-  TF1* fSigGaus = gaussian(h, "fSigGaus", sigGausVals, fitRange);
-  TF1* fLin = linear(h, "fLin", linVals, fitRange);
-  TF1* fSigmoid = sigmoid(h, "fSigmoid", sigmoidVals, fitRange);
-  TF1* fDilog = dilog(h, "fDilog", dilogVals, fitRange);
-  TF1* fGaus = gaussian(h, "fGaus", gausVals, fitRange);
-
-  vector<TF1*> fits;
-  TF1* fGL = combineTFs({fSigGaus, fLin});
-  fGL->SetName("+pol1");
-  fGL->SetLineColor(GetColor(1));
-  fGL->SetLineWidth(3);
-  fits.push_back(fGL);
-
-  TF1* fLan = new TF1("fLan", "[0]*TMath::Landau(x, [1], [2])", fitRange[0], fitRange[1]);
-  fLan->SetParNames("Amp", "Mean", "Sigma");
-  fLan->SetParameters(peakVal, mass, signalWidth);
-  fLan->SetParLimits(0, 0.1 * peakVal, 2. * peakVal);
-  fLan->SetParLimits(1, mass - dM, mass + dM);
-  fLan->SetParLimits(2, 1e-6, 3. * signalWidth);
-  fLan->SetName("Landau");
-  fLan->SetLineWidth(3);
-  fLan->SetLineColor(GetColor(2));
-  fits.push_back(fLan);
-
-  // TF1* fGS = combineTFs({fSigGaus, fSigmoid});
-  // fGS->SetName("+#sigma(x)");
-  // fGS->SetLineColor(GetColor(1));
-  // fits.push_back(fGS);
-
-  TF1* fGGS = combineTFs({fSigGaus, fGaus, fSigmoid});
-  fGGS->SetName("+G+#sigma(x)");
-  fGGS->SetLineColor(GetColor(2));
-  // fits.push_back(fGGS);
-
-  TF1* fGD = combineTFs({fSigGaus, fDilog});
-  fGD->SetName("+Dilog");
-  fGD->SetLineColor(GetColor(3));
-  fits.push_back(fGD);
-
-  TF1* fGGD = combineTFs({fSigGaus, fGaus, fDilog});
-  fGGD->SetName("+G+Dilog");
-  fGGD->SetLineColor(GetColor(4));
-  // fits.push_back(fGGD);
-
-  // TF1* fCb1 = new TF1("fCb1", CrystalBall, fitRange[0],fitRange[1], 5);
-  // fCb1->SetParNames("Amp", "Alpha", "Mean", "Sigma", "N");
-  // fCb1->SetParameters(peakVal, -1., MassLambda0, 0.01, 1.);
-  // fCb1->SetLineColor(GetColor(1));
-  // for (int i = 0; i < fCb1->GetNpar(); i++) {
-  //   double p = abs(fCb1->GetParameter(i));
-  //   fCb1->SetParLimits(i, -20 * p, 20 * p);
-  // }
-  // fits.push_back(fCb1);
-
-  // TF1* fCb2 = new TF1("fCb2", CrystalBall, fitRange[0],fitRange[1], 5);
-  // fCb2->SetParNames("Amp", "Alpha", "Mean", "Sigma", "N");
-  // fCb2->SetParameters(peakVal, -2., MassLambda0, 0.01, 1.);
-  // fCb2->SetLineColor(GetColor(2));
-  // for (int i = 0; i < fCb2->GetNpar(); i++) {
-  //   double p = abs(fCb2->GetParameter(i));
-  //   fCb2->SetParLimits(i, -20 * p, 20 * p);
-  // }
-  // fits.push_back(fCb2);
-
-  // TF1* fCb3 = new TF1("fCb3", CrystalBall, fitRange[0],fitRange[1], 5);
-  // fCb3->SetParNames("Amp", "Alpha", "Mean", "Sigma", "N");
-  // fCb3->SetParameters(peakVal, -0.5, MassLambda0, 0.01, 1.);
-  // fCb3->SetLineColor(GetColor(3));
-  // for (int i = 0; i < fCb3->GetNpar(); i++) {
-  //   double p = abs(fCb3->GetParameter(i));
-  //   fCb3->SetParLimits(i, -20 * p, 20 * p);
-  // }
-  // fits.push_back(fCb3);
-
-  // TF1* fCb4 = new TF1("fCb4", CrystalBall, fitRange[0],fitRange[1], 5);
-  // fCb4->SetParNames("Amp", "Alpha", "Mean", "Sigma", "N");
-  // fCb4->SetParameters(peakVal, -1.5, MassLambda0, 0.01, 1.);
-  // fCb4->SetLineColor(GetColor(4));
-  // for (int i = 0; i < fCb4->GetNpar(); i++) {
-  //   double p = abs(fCb4->GetParameter(i));
-  //   fCb4->SetParLimits(i, -20 * p, 20 * p);
-  // }
-  // fits.push_back(fCb4);
-
-
-  for (auto f : fits) {
-    f->SetLineWidth(3);
-    h->Fit(f, "RSBQ0");
-    string newName = TString::Format("%s (#chi^{2}/NDF = %.1f)", f->GetName(), f->GetChisquare() / f->GetNDF()).Data();
-    f->SetName(newName.c_str());
-
-    printParLimits(f);
-    cout << endl;
-  }
-
-  vector<TLatex*> latex;
-  latex.push_back(
-    CreateLatex(0.1, 0.9, dataSet.c_str(), textSize));
-  latex.push_back(
-    CreateLatex(0.1, 0.85, TString::Format("%.1f < #it{p}_{T} < %.1f GeV/#it{c}", ptmin, ptmax).Data(), textSize));
-
-  myDraw(canvas, h, fits, legend, latex);
-}
-
 void plotFitParts(TCanvas* canvas, TH1F* frame, TH1* h, TF1* fit, vector<TF1*> fitParts, TLegend* legend, vector<TLatex*> latex)
 {
   frame->Draw();
@@ -520,16 +374,176 @@ void plotFitParts(TCanvas* canvas, TH1* h, TF1* fit, vector<TF1*> fitParts, TLeg
   plotFitParts(canvas, frame, h, fit, fitParts, legend, latex);
 }
 
-void plotBkgParts(double ptmin, double ptmax, string hadron = "Lambda0")
+// Input to add: hadron, rebin
+// Plots multiple fits for signal+bkg
+void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
 {
-  gStyle->SetNdivisions(505, "xy");
-  string dataSet = "LHC22o_pass6";
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+
+  const int ptAxis = 0;
+  const int K0SAxis = 1;
+  const int Lambda0Axis = 2;
+  const int AntiLambda0Axis = 3;
+  int projectionAxis = ("K0S" == hadron)*K0SAxis + ("Lambda0" == hadron)*Lambda0Axis + ("AntiLambda0" == hadron)*AntiLambda0Axis;
+
+  TFile* inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*)inFile->Get("jet-fragmentation/data/V0/V0CutVariation");
+  array<int, 2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
+  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
+  double lowpt  = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
+  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
+  TH1D* hist = (TH1D*)thn->Projection(projectionAxis);
+  setStyle(hist, 0);
+  hist->SetName("data");
+  // hist->Scale(1./hist->Integral(), "width");
+
+  string saveName = hadron;
+  saveName += TString::Format("_pt%.1f-%.1f", ptmin, ptmax).Data();
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 1800, 900);
+
+  // array<double, 2> fitRange = {h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax()};
+  array<double, 2> fitRange = {1.08, 1.2};
+  double mass = MassLambda0;
+  double dM = 1e-2;
+  double signalWidth = 1e-3;
+  if ("K0S" == hadron) {
+    fitRange = {0.45, 0.55};
+    mass = MassK0S;
+    dM = 5e-2;
+    signalWidth = 1e-2;
+  }
+
+  // Functions to combine
+  array<int, 2> peakRegion = getProjectionBins(hist->GetXaxis(), mass - dM, mass + dM);
+  TH1* k = makeHistSubset(hist, peakRegion[0], peakRegion[1]);
+  double peakVal = k->GetBinContent(k->GetMaximumBin());
+  array<double, 3> sigGausVals = {peakVal / 1.5, mass, signalWidth};
+  array<double, 2> linVals     = {sigGausVals[0] - 3*sigGausVals[2], sigGausVals[0] + 3*sigGausVals[2]};
+  array<double, 3> sigmoidVals = {hist->GetBinContent(hist->GetNbinsX()), hist->GetBinContent(hist->GetNbinsX())/20., sigGausVals[0]};
+  array<double, 3> dilogVals   = {hist->GetBinContent(hist->GetNbinsX()), 35., linVals[0]};
+  array<double, 3> gausVals    = {sigGausVals[0] / 10., mass, signalWidth * (10. - ("K0S" == hadron) * 5.)};
+
+  // TF1* fSigGaus = sigGaus(h, "fSigGaus", sigGausVals, fitRange);
+  TF1* fSigGaus = gaussian(hist, "fSigGaus", sigGausVals, fitRange);
+  // TF1* fLin = linear(hist, "fLin", linVals, fitRange);
+  TF1* fSigmoid = sigmoid(hist, "fSigmoid", sigmoidVals, fitRange);
+  TF1* fDilog = dilog(hist, "fDilog", dilogVals, fitRange);
+  TF1* fGaus = gaussian(hist, "fGaus", gausVals, fitRange);
+
+  vector<TF1*> fits;
+
+  TF1* fG = fSigGaus;
+  fG->SetName("G");
+  fits.push_back(fG);
+
+  TF1* fL = new TF1("fL", "[0] + [1]*x", fitRange[0], fitRange[1]);
+  array<int, 2> vals = getProjectionBins(hist->GetXaxis(), fitRange[0], fitRange[1]);
+  double dx = hist->GetBinCenter(vals[1]) - hist->GetBinCenter(vals[0]);
+  double dy = hist->GetBinContent(vals[1]) - hist->GetBinContent(vals[0]);
+  cout << "fit range: " << fitRange[0] << " " << fitRange[1] << endl;
+  cout << "peak bins: " << peakRegion[0] << " " << peakRegion[1] << endl;
+  cout << "bins: " << vals[0] << " " << vals[1] << endl;
+  cout << "x: " << hist->GetBinCenter(vals[0]) << " " << hist->GetBinCenter(vals[1]) << endl;
+  cout << "y: " << hist->GetBinContent(vals[0]) << " " << hist->GetBinContent(vals[1]) << endl;
+  cout << "dx: " << dx << ", dy: " << dy << endl;
+  double b = 1.;
+  double a = 100.;
+  // double b = dy / dx;
+  // double a = hist->GetBinContent(vals[0]) - b * hist->GetBinCenter(vals[0]);
+  fL->SetParameter(0, a);
+  fL->SetParameter(1, b);
+  fL->SetParLimits(0, -2. * (abs(a) + 1), 2. * (abs(a) + 1));
+  fL->SetParLimits(1, -2. * (abs(b) + 1), 2. * (abs(b) + 1));
+
+  for (int i = 0; i < fL->GetNpar(); i++) {
+    string parName = "fL_" + to_string(i);
+    fL->SetParName(i, parName.c_str());
+  }
+  fL->SetName("L");
+  fits.push_back(fL);
+
+  // TF1* fGL = combineTFs({fSigGaus, fLin});
+  // fGL->SetName("+pol1");
+  // fits.push_back(fGL);
+
+  TF1* fLan = new TF1("fLan", "[0]*TMath::Landau(x, [1], [2])", fitRange[0], fitRange[1]);
+  fLan->SetParNames("Amp", "Mean", "Sigma");
+  fLan->SetParameters(peakVal, mass, signalWidth);
+  fLan->SetParLimits(0, 0.1 * peakVal, 2. * peakVal);
+  fLan->SetParLimits(1, mass - dM, mass + dM);
+  fLan->SetParLimits(2, 1e-6, 3. * signalWidth);
+  fLan->SetName("Landau");
+  // fLan->SetLineWidth(3);
+  // fLan->SetLineColor(GetColor(2));
+  // fits.push_back(fLan);
+
+  // TF1* fGS = combineTFs({fSigGaus, fSigmoid});
+  // fGS->SetName("+#sigma(x)");
+  // fGS->SetLineColor(GetColor(1));
+  // fits.push_back(fGS);
+
+  TF1* fGGS = combineTFs({fSigGaus, fGaus, fSigmoid});
+  fGGS->SetName("+G+#sigma(x)");
+  // fGGS->SetLineColor(GetColor(2));
+  // fits.push_back(fGGS);
+
+  TF1* fGD = combineTFs({fSigGaus, fDilog});
+  fGD->SetName("+Dilog");
+  // fGD->SetLineColor(GetColor(3));
+  // fits.push_back(fGD);
+
+  TF1* fGGD = combineTFs({fSigGaus, fGaus, fDilog});
+  fGGD->SetName("+G+Dilog");
+  // fGGD->SetLineColor(GetColor(4));
+  // fits.push_back(fGGD);
+
+  TLegend* legend = CreateLegend(0.25, 0.8, 0.7, 0.9);
+  for (int i = 0; i < fits.size(); i++) {
+    fits[i]->SetLineWidth(3);
+    fits[i]->SetLineColor(GetColor(i+1));
+    // printParLimits(fits[i]);
+    hist->Fit(fits[i], "RSBQ0");
+    fits[i]->SetRange(hist->GetXaxis()->GetXmin(), hist->GetXaxis()->GetXmax());
+    string newName = TString::Format("%s (#chi^{2}/NDF = %.1f)", fits[i]->GetName(), fits[i]->GetChisquare() / fits[i]->GetNDF()).Data();
+    fits[i]->SetName(newName.c_str());
+    legend->AddEntry(fits[i], newName.c_str(), "l");
+
+    printParLimits(fits[i]);
+    cout << endl;
+  }
+
+  string ptText = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  string xTitle = "#it{M}(" + formatHadronDaughters(hadron) + ") (GeV/#it{c}^{2})";
+  string yTitle = "counts";
+  double xMinFrame = hist->GetXaxis()->GetXmin(), xMaxFrame = hist->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.5 * getHistScale(hist, false);
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle((dataSet + ", " + ptText).c_str());
+
+  canvas->cd();
+  frame->Draw();
+  legend->Draw("same");
+  hist->Draw("same");
+  for (auto f : fits) {
+    f->Draw("same");
+  }
+  canvas->SaveAs(saveName.c_str());
+}
+
+void plotBkgParts(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron = inputStrings[2];
 
   double textSize = 0.04;
   string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
   string yTitle = "counts";
 
-  TH1D* h = (TH1D*)getHist(ptmin, ptmax, hadron);
+  TH1D* h = (TH1D*)getHist(ptmin, ptmax, hadron, 252064);
   h->SetStats(0);
   setStyle(h, 0);
   h->SetXTitle(xTitle.c_str());
@@ -541,8 +555,8 @@ void plotBkgParts(double ptmin, double ptmax, string hadron = "Lambda0")
   double lowpt  = h->GetXaxis()->GetBinLowEdge(ptBins[0]);
   double highpt = h->GetXaxis()->GetBinUpEdge(ptBins[1]);
 
-  string canvasName = hadron;
-  canvasName += TString::Format("_pt%.1f-%.1f", ptmin, ptmax).Data();
+  string saveName = hadron;
+  saveName += TString::Format("_pt%.1f-%.1f", ptmin, ptmax).Data();
 
   double xMinLegend = 0.5, xMaxLegend = 0.8, yMinLegend = 0.7, yMaxLegend = 0.85;
   TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, "" , textSize);
@@ -582,7 +596,7 @@ void plotBkgParts(double ptmin, double ptmax, string hadron = "Lambda0")
 
   functions = sortAlphabetically(functions);
   TF1* f = combineTFs(functions);
-  canvasName += TString::Format("_fit=%s", f->GetName()).Data();
+  saveName += TString::Format("_fit=%s", f->GetName()).Data();
 
   f->SetLineWidth(3);
   h->Fit(f, "RSBQ0");
@@ -606,7 +620,32 @@ void plotBkgParts(double ptmin, double ptmax, string hadron = "Lambda0")
   latex.push_back(
     CreateLatex(0.5, 0.95, TString::Format("%.1f < #it{p}_{T} < %.1f GeV/#it{c}", ptmin, ptmax).Data(), textSize));
 
-  canvasName += ".pdf";
-  TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), 900, 900);
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
   plotFitParts(canvas, h, f, functions, legend, latex);
 }
+
+// -------------------------------------------------------------------------------------------------
+//
+// Interface
+//
+// -------------------------------------------------------------------------------------------------
+
+void plotTrain(int train, string hadron, double v0min, double v0max, int setting)
+{
+  string inName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
+  string dataSet = getDataSet(train);
+  vector<string> inputStrings = {inName, dataSet, hadron};
+
+  switch(setting) {
+    case 0:
+      plotBkgs(inputStrings, v0min, v0max);
+      break;
+    case 1:
+      plotBkgParts(inputStrings, v0min, v0max);
+      break;
+  }
+}
+
+void plot252064(string hadron, double v0min, double v0max, int setting) { plotTrain(252064, hadron, v0min, v0max, setting); }
+void plot282430(string hadron, double v0min, double v0max, int setting) { plotTrain(282430, hadron, v0min, v0max, setting); }

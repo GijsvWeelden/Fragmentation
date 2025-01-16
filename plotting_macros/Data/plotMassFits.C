@@ -53,7 +53,7 @@ void printParLimits(TF1* f)
   for (int i = 0; i < f->GetNpar(); i++) {
     double min, max;
     f->GetParLimits(i, min, max);
-    cout << f->GetName() << "(" << i << " = " << f->GetParName(i) << ") " << f->GetParameter(i) << " (" << min << ", " << max << ")" << endl;
+    cout << f->GetName() << " (" << i << " = " << f->GetParName(i) << ") " << f->GetParameter(i) << " (" << min << ", " << max << ")" << endl;
   }
 }
 // Sorts a vector of functions alphabetically by name
@@ -78,7 +78,7 @@ vector<TF1*> sortAlphabetically(vector<TF1*> v)
   return sorted;
 }
 // Creates a new function that is the sum of all input functions
-TF1* combineTFs(vector<TF1*> w)
+TF1* combineTFs(vector<TF1*> w, bool verbose = false)
 {
   string fname = "";
   double xmin = w[0]->GetXmin();
@@ -115,18 +115,19 @@ TF1* combineTFs(vector<TF1*> w)
     F->SetParameter(i, pars[i]);
     F->SetParLimits(i, vars[i][0], vars[i][1]);
   }
-  return F;
-}
-// Returns a subset of a histogram from minBin to maxBin
-template <typename T>
-T* makeHistSubset(T* data, int minBin, int maxBin)
-{
-  T* region = (T*)data->Clone("region");
-  region->Reset();
-  for (int i = minBin; i <= maxBin; i++) {
-    region->SetBinContent(i, data->GetBinContent(i));
+
+  if (verbose) {
+    cout << "unsorted: " << endl;
+    for (auto i : w) { printParLimits(i); }
+    cout << endl
+        << "sorted: " << endl;
+    for (auto i : v) { printParLimits(i); }
+    cout << endl
+        << "combined: " << endl;
+    printParLimits(F);
+    cout << endl;
   }
-  return region;
+  return F;
 }
 // Update parameters of a function constructed with combineTFs
 // !!! Assumes that the functions are sorted alphabetically !!!
@@ -154,6 +155,25 @@ void splitTFs(TF1* total, vector<TF1*> functions)
       }
     }
   }
+}
+
+// Returns a subset of a histogram from minBin to maxBin
+template <typename T>
+T* makeHistSubset(T* data, int minBin, int maxBin)
+{
+  T* region = (T*)data->Clone("region");
+  region->Reset();
+  for (int i = minBin; i <= maxBin; i++) {
+    region->SetBinContent(i, data->GetBinContent(i));
+  }
+  return region;
+}
+// Make residual histogram of data and fit
+TH1* makeResidual(TH1* data, TF1* fit)
+{
+  TH1* h = (TH1*)data->Clone("residual");
+  h->Add(fit, -1.);
+  return h;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -320,35 +340,37 @@ TH1* getHist(double ptmin, double ptmax, string hadron, int train)
   thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
   return (thn->Projection(mAxis));
 }
-
-void myDraw(TCanvas* canvas, TH1* hist, vector<TF1*> fits, TLegend* legend, vector<TLatex*> latex)
+TH1* getHist(double ptmin, double ptmax, string hadron, string inName)
 {
-  canvas->Divide(2,1);
-  canvas->cd(1);
-  gPad->SetRightMargin(0.05);
+  string histName = "jet-fragmentation/data/V0/V0CutVariation";
 
-  TH1F* frame = DrawFrame(hist->GetXaxis()->GetXmin(), hist->GetXaxis()->GetXmax(),
-                          0, 1.1 * hist->GetBinContent(hist->GetMaximumBin()),
-                          hist->GetXaxis()->GetTitle(), hist->GetYaxis()->GetTitle());
-  frame->Draw();
-
-  hist->Draw("same");
-  legend->AddEntry(hist, hist->GetName(), "l");
-
-  for (int i = 0 ; i < fits.size(); i++) {
-    legend->AddEntry(fits[i], fits[i]->GetName(), "l");
-    fits[i]->Draw("same");
+  int ptAxis = 0;
+  int mAxis;
+  if ("K0S" == hadron) {
+    mAxis = 1;
+  }
+  else if ("Lambda0" == hadron) {
+    mAxis = 2;
+  }
+  else if ("AntiLambda0" == hadron) {
+    mAxis = 3;
+  }
+  else {
+    cout << "Hadron " << hadron << " not recognized" << endl;
+    return nullptr;
   }
 
-  canvas->cd(2);
-  gPad->SetLeftMargin(0.);
-  legend->Draw("same");
-  for (auto l : latex) {
-    l->Draw("same");
-  }
+  TFile* inFile = TFile::Open(inName.c_str());
+  THnSparseD* thn = (THnSparseD*) inFile->Get(histName.c_str());
 
-  string saveName = canvas->GetName();
-  canvas->SaveAs(saveName.c_str());
+  array<int, 2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
+  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
+  TH1* hist = thn->Projection(mAxis);
+  hist->Sumw2();
+
+  string name = TString::Format("pt%.1f-%.1f", ptmin, ptmax).Data();
+  hist->SetName(name.c_str());
+  return (hist);
 }
 
 void plotFitParts(TCanvas* canvas, TH1F* frame, TH1* h, TF1* fit, vector<TF1*> fitParts, TLegend* legend, vector<TLatex*> latex)
@@ -382,29 +404,18 @@ void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
   string dataSet = inputStrings[1];
   string hadron  = inputStrings[2];
 
-  const int ptAxis = 0;
-  const int K0SAxis = 1;
-  const int Lambda0Axis = 2;
-  const int AntiLambda0Axis = 3;
-  int projectionAxis = ("K0S" == hadron)*K0SAxis + ("Lambda0" == hadron)*Lambda0Axis + ("AntiLambda0" == hadron)*AntiLambda0Axis;
-
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get("jet-fragmentation/data/V0/V0CutVariation");
-  array<int, 2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt  = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-  TH1D* hist = (TH1D*)thn->Projection(projectionAxis);
+  TH1D* hist = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  hist->Sumw2();
   setStyle(hist, 0);
-  hist->SetName("data");
   // hist->Scale(1./hist->Integral(), "width");
 
   string saveName = hadron;
-  saveName += TString::Format("_pt%.1f-%.1f", ptmin, ptmax).Data();
+  saveName += "_";
+  saveName += hist->GetName(); // hist name contains pt range
   saveName += ".pdf";
   TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 1800, 900);
+  // hist->SetName("data");
 
-  // array<double, 2> fitRange = {h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax()};
   array<double, 2> fitRange = {1.08, 1.2};
   double mass = MassLambda0;
   double dM = 1e-2;
@@ -435,9 +446,14 @@ void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
 
   vector<TF1*> fits;
 
-  TF1* fG = fSigGaus;
+  TF1* fS = fSigGaus;
+  fS->SetName("SigGaus");
+  // fits.push_back(fS);
+
+  // TF1* fG = fSigGaus;
+  TF1* fG = fGaus;
   fG->SetName("G");
-  fits.push_back(fG);
+  // fits.push_back(fG);
 
   TF1* fL = new TF1("fL", "[0] + [1]*x", fitRange[0], fitRange[1]);
   array<int, 2> vals = getProjectionBins(hist->GetXaxis(), fitRange[0], fitRange[1]);
@@ -463,19 +479,27 @@ void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
     fL->SetParName(i, parName.c_str());
   }
   fL->SetName("L");
-  fits.push_back(fL);
+  // fits.push_back(fL);
 
-  // TF1* fGL = combineTFs({fSigGaus, fLin});
-  // fGL->SetName("+pol1");
-  // fits.push_back(fGL);
+  // TF1* fGL = combineTFs({fG, fL});
+  TF1* fGL = combineTFs({fL, fG});
+  fGL->SetName("G+L");
+  fits.push_back(fGL);
+  // printParLimits(fGL);
+  // return;
 
-  TF1* fLan = new TF1("fLan", "[0]*TMath::Landau(x, [1], [2])", fitRange[0], fitRange[1]);
-  fLan->SetParNames("Amp", "Mean", "Sigma");
-  fLan->SetParameters(peakVal, mass, signalWidth);
-  fLan->SetParLimits(0, 0.1 * peakVal, 2. * peakVal);
-  fLan->SetParLimits(1, mass - dM, mass + dM);
-  fLan->SetParLimits(2, 1e-6, 3. * signalWidth);
-  fLan->SetName("Landau");
+  // TF1* fSL = combineTFs({fS, fL});
+  // fSL->SetName("+pol1");
+  // fits.push_back(fSL);
+  // printParLimits(fSL);
+
+  // TF1* fLan = new TF1("fLan", "[0]*TMath::Landau(x, [1], [2])", fitRange[0], fitRange[1]);
+  // fLan->SetParNames("Amp", "Mean", "Sigma");
+  // fLan->SetParameters(peakVal, mass, signalWidth);
+  // fLan->SetParLimits(0, 0.1 * peakVal, 2. * peakVal);
+  // fLan->SetParLimits(1, mass - dM, mass + dM);
+  // fLan->SetParLimits(2, 1e-6, 3. * signalWidth);
+  // fLan->SetName("Landau");
   // fLan->SetLineWidth(3);
   // fLan->SetLineColor(GetColor(2));
   // fits.push_back(fLan);
@@ -485,18 +509,18 @@ void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
   // fGS->SetLineColor(GetColor(1));
   // fits.push_back(fGS);
 
-  TF1* fGGS = combineTFs({fSigGaus, fGaus, fSigmoid});
-  fGGS->SetName("+G+#sigma(x)");
+  // TF1* fGGS = combineTFs({fSigGaus, fGaus, fSigmoid});
+  // fGGS->SetName("+G+#sigma(x)");
   // fGGS->SetLineColor(GetColor(2));
   // fits.push_back(fGGS);
 
-  TF1* fGD = combineTFs({fSigGaus, fDilog});
-  fGD->SetName("+Dilog");
+  // TF1* fGD = combineTFs({fSigGaus, fDilog});
+  // fGD->SetName("+Dilog");
   // fGD->SetLineColor(GetColor(3));
   // fits.push_back(fGD);
 
-  TF1* fGGD = combineTFs({fSigGaus, fGaus, fDilog});
-  fGGD->SetName("+G+Dilog");
+  // TF1* fGGD = combineTFs({fSigGaus, fGaus, fDilog});
+  // fGGD->SetName("+G+Dilog");
   // fGGD->SetLineColor(GetColor(4));
   // fits.push_back(fGGD);
 
@@ -511,9 +535,15 @@ void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
     fits[i]->SetName(newName.c_str());
     legend->AddEntry(fits[i], newName.c_str(), "l");
 
-    printParLimits(fits[i]);
+    // printParLimits(fits[i]);
     cout << endl;
   }
+
+  // TF1* fGL = combineTFs({fits[0], fits[1]});
+  // fGL->SetName("+pol1");
+  // fits.push_back(fGL);
+  // printParLimits(fits[0]);
+  // printParLimits(fits[1]);
 
   string ptText = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/#it{c}", ptmin, ptmax).Data();
   string xTitle = "#it{M}(" + formatHadronDaughters(hadron) + ") (GeV/#it{c}^{2})";
@@ -531,6 +561,17 @@ void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
     f->Draw("same");
   }
   canvas->SaveAs(saveName.c_str());
+
+  TCanvas* canvas2 = new TCanvas("residuals", "residuals", 1800, 900);
+  canvas2->cd();
+  TH1* residual = makeResidual(hist, fits[0]);
+  residual->Fit(fS, "RSBQ0");
+  residual->SetStats(0);
+  residual->SetXTitle(xTitle.c_str());
+  residual->SetTitle("Residual of fit");
+  residual->Draw();
+  fS->Draw("same");
+  canvas2->SaveAs("residuals.pdf");
 }
 
 void plotBkgParts(vector<string> inputStrings, double ptmin, double ptmax)
@@ -649,3 +690,8 @@ void plotTrain(int train, string hadron, double v0min, double v0max, int setting
 
 void plot252064(string hadron, double v0min, double v0max, int setting) { plotTrain(252064, hadron, v0min, v0max, setting); }
 void plot282430(string hadron, double v0min, double v0max, int setting) { plotTrain(282430, hadron, v0min, v0max, setting); }
+
+void test() {
+  gROOT->SetBatch(kTRUE);
+  plot252064("K0S", 5., 10., 0);
+}

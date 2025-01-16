@@ -33,3 +33,5 @@ plotting_macros/Data/NV0sInJets
 *.o
 *.pcm
 *.so
+
+**/diff

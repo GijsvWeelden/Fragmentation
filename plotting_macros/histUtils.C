@@ -408,6 +408,12 @@ void setStyle(TLine* line, int styleNumber, int lineStyle = 9, int lineWidth = 3
   line->SetLineColor(GetColor(styleNumber));
   line->SetLineStyle(lineStyle);
 }
+void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3)
+{
+  f->SetLineWidth(lineWidth);
+  f->SetLineColor(GetColor(styleNumber));
+  f->SetLineStyle(lineStyle);
+}
 
 // Formats the hadron name to look nice (Greek letters, sub- and superscripts)
 string formatHadronName(string hadron)

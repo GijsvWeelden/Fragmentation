@@ -26,32 +26,6 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
   return jets->Integral(jetptbins[0], jetptbins[1], 1, jets->GetNbinsY(), 1, jets->GetNbinsZ());
 }
 
-// Check if histogram is empty in a range: 1D
-bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
-{
-  double integral = h->Integral(low, high);
-  if (integral != integral) // NaN check
-    return true;
-  else
-    return (integral < threshold);
-}
-// Returns the scale for drawing histogram. Accounts for bin content and error
-double getHistScale(TH1* h, bool doError)
-{
-  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
-
-  double scale = -900.;
-  for (int i = 1; i <= h->GetNbinsX(); i++) {
-    double bc = h->GetBinContent(i);
-    double be = h->GetBinError(i);
-    double s = be + bc;
-    if (s > scale) { scale = s; }
-  }
-  return scale;
-}
-
-// ----------------------------------------------------------
-
 void plotPt(string inName = "", string dataSet = "dataSet", string hadron = "", double jetptmin = 10., double jetptmax = 200.)
 {
   if ("" == inName) {
@@ -1347,8 +1321,8 @@ void plotmassWithCuts(string inName = "AnalysisResults.root", int setting = 3, d
 void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax, bool doRatio)
 {
   string inName  = inputStrings[0];
-  string hadron  = inputStrings[1];
-  string dataSet = inputStrings[2];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
   const int nDim           = 5;
   const int jetptAxis      = 0;
   const int v0Axis         = 1;
@@ -1435,7 +1409,7 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
       hist->Scale(1./firstBinContent);
     }
     yTitle = "#it{N} / #it{N}_{0}";
-    yMinFrame = 1e-3, yMaxFrame = 10.;
+    yMinFrame = 1e-4, yMaxFrame = 10.;
   }
 
   int xCanvas = 900, yCanvas = 900;
@@ -1449,7 +1423,7 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
   canvas->SetLogy();
 
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  string jetptText = TString::Format("%.0f #leq #it{p}_{T, ch+V0 jet} < %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
+  string jetptText = TString::Format("%.0f < #it{p}_{T, ch+V0 jet} < %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
   string latexText = dataSet + ", " + jetptText;
   frame->SetTitle(latexText.c_str());
 

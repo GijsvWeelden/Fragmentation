@@ -11,7 +11,7 @@ alias mergetrainoutput="${FRAGMENTATION_DIR}/scripts/mergeTrainOutput"
 
 if [[ $SSH_CONNECTION == "" ]]; then
   alias o2="zsh ${FRAGMENTATION_DIR}/scripts/load-o2"
-elif [[ $0 == "-zsh" ]]; then
+elif [[ -n $ZSH_VERSION ]]; then
   alias o2="echo 'You need to be in bash to load O2.'"
 else
   alias o2="bash ${FRAGMENTATION_DIR}/scripts/load-o2"

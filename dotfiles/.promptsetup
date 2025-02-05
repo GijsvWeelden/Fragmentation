@@ -4,16 +4,19 @@
 # equip with conda loader if needed
 
 # Change prompt to show environment name etc.
-if [[ $0 == "-zsh" ]]
-then
-  hostname=${HOST:0:7}
-  hostname="${hostname} "
-  if [[ $SSH_CONNECTION == "" ]]; then
-    hostname=""
-  fi
+hostname=""
+environment=""
+gitstring=""
+workdir=""
+promptend=""
 
-  environment=""
+if [[ -n $ZSH_VERSION ]]
+then
   promptend="%f%% "
+  if [[ $SSH_CONNECTION != "" ]]; then
+    hostname=${HOST:0:7}
+    hostname="${hostname} "
+  fi
   if [[ x${O2PHYSICS_ROOT} != x ]]; then
     environment=${${O2PHYSICS_ROOT##*/}%-*}
     environment="%F{208}[${environment}] "
@@ -28,11 +31,10 @@ then
   precmd() { vcs_info }
   zstyle ':vcs_info:git*' formats ' (%b)'
   setopt PROMPT_SUBST
-
   export CLICOLOR=1
   export LSCOLORS=gxgxBxDxCxEgEdxbxgxcxd
   export PS1='%T ${hostname}${environment}${workdir}%F{105}${vcs_info_msg_0_} ${promptend}'
-elif [[ $0 == "bash" ]]
+elif [[-n $BASH_VERSION ]]
 then
   source /usr/share/bash-completion/completions/git
   source /usr/share/git-core/contrib/completion/git-prompt.sh
@@ -40,16 +42,14 @@ then
     git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
   }
   environment="(bash)"
+  workdir="\[\e[1;35m\]\w"
+  gitstring="\[\e[38;5;99m\]$(__git_ps1)"
   promptend="\[\e[0m\]% "
   if [[ x${O2PHYSICS_ROOT} != x ]]; then
     environment=${O2PHYSICS_ROOT##*/}
     environment=${environment%-*}
     environment="\[\e[38;5;208m\][${environment}]"
-
     promptend="\[\e[38;5;208m\]> \[\e[0m\]"
   fi
-  gitstring="\[\e[38;5;99m\]$(__git_ps1)"
-  workdir="\[\e[1;35m\]\w"
-
   export PS1="\A ${environment} ${workdir}${gitstring} ${promptend}"
 fi

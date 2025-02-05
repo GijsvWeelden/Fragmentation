@@ -36,5 +36,5 @@ then setuplocal
 else setupremote
 fi
 
-source $FRAGMENTATION_DIR/dotfiles/.setup
+source $FRAGMENTATION_DIR/dotfiles/.promptsetup
 source $FRAGMENTATION_DIR/dotfiles/.aliases

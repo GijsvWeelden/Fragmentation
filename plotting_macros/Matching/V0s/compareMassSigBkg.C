@@ -40,41 +40,41 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
   return jets->Integral(jetptbins[0], jetptbins[1], 0, jets->GetNbinsY() + 1, 0, jets->GetNbinsZ() + 1);
 }
 
-bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
-{
-  double integral = h->Integral(low, high);
-  if (integral != integral) // NaN check
-    return true;
-  else
-    return (integral < threshold);
-}
+// bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
+// {
+//   double integral = h->Integral(low, high);
+//   if (integral != integral) // NaN check
+//     return true;
+//   else
+//     return (integral < threshold);
+// }
 
-// Returns the scale for drawing histogram. Accounts for bin content and error
-double getHistScale(TH1* h, bool doError)
-{
-  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
+// // Returns the scale for drawing histogram. Accounts for bin content and error
+// double getHistScale(TH1* h, bool doError)
+// {
+//   if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
 
-  double scale = -900.;
-  for (int i = 1; i <= h->GetNbinsX(); i++) {
-    double bc = h->GetBinContent(i);
-    double be = h->GetBinError(i);
-    double s = be + bc;
-    scale = max(scale, s);
-  }
-  return scale;
-}
-double getHistScale(vector<TH1*> v, bool doError, bool doSum)
-{
-  double scale = 0.;
-  for (auto h : v) {
-    double s = getHistScale(h, doError);
-    if (doSum)
-      scale += s;
-    else
-      scale = max(scale, s);
-  }
-  return scale;
-}
+//   double scale = -900.;
+//   for (int i = 1; i <= h->GetNbinsX(); i++) {
+//     double bc = h->GetBinContent(i);
+//     double be = h->GetBinError(i);
+//     double s = be + bc;
+//     scale = max(scale, s);
+//   }
+//   return scale;
+// }
+// double getHistScale(vector<TH1*> v, bool doError, bool doSum)
+// {
+//   double scale = 0.;
+//   for (auto h : v) {
+//     double s = getHistScale(h, doError);
+//     if (doSum)
+//       scale += s;
+//     else
+//       scale = max(scale, s);
+//   }
+//   return scale;
+// }
 
 // -------------------------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------------------
@@ -351,6 +351,12 @@ void plotTrain(string train, string dataSet, string hadron, double jetptmin, dou
       cout << "Error: invalid setting" << endl;
       return;
   }
+}
+void plot280432(string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, bool doStack, int setting)
+{
+  string train = "280432";
+  string dataSet = "LHC24g4";
+  plotTrain(train, dataSet, hadron, jetptmin, jetptmax, v0ptmin, v0ptmax, doZ, doStack, setting);
 }
 void plot271952(string hadron, double jetptmin, double jetptmax, double v0ptmin, double v0ptmax, bool doZ, bool doStack, int setting)
 {

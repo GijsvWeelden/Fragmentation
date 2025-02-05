@@ -17,6 +17,7 @@
 
 const double MassK0S = 0.497611;
 const double MassLambda0 = 1.115683;
+gStyle->SetNdivisions(505, "xy");
 
 double getHistRMS(TH1* hInput)
 {
@@ -40,30 +41,6 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
   return jets->Integral(jetptbins[0], jetptbins[1], 0, jets->GetNbinsY() + 1, 0, jets->GetNbinsZ() + 1);
 }
 
-bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
-{
-  double integral = h->Integral(low, high);
-  if (integral != integral) // NaN check
-    return true;
-  else
-    return (integral < threshold);
-}
-
-// Returns the scale for drawing histogram. Accounts for bin content and error
-double getHistScale(TH1* h, bool doError)
-{
-  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
-
-  double scale = -900.;
-  for (int i = 1; i <= h->GetNbinsX(); i++) {
-    double bc = h->GetBinContent(i);
-    double be = h->GetBinError(i);
-    double s = be + bc;
-    if (s > scale) { scale = s; }
-  }
-  return scale;
-}
-
 // -------------------------------------------------------------------------------------------------
 
 void ptResolution(string inName, string dataSet, double partjetptmin, double partjetptmax, double partv0min, double partv0max)
@@ -80,7 +57,6 @@ void ptResolution(string inName, string dataSet, double partjetptmin, double par
   const int ptRelDiffAxis = 4;
 
   string hadron = "V0";
-  gStyle->SetNdivisions(505, "xy");
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
@@ -148,7 +124,6 @@ void dauPtResolution(string inName, string dataSet, double partjetptmin, double 
   const int ptRatioAxis   = 4;
   const int ptRelDiffAxis = 5;
 
-  gStyle->SetNdivisions(505, "xy");
   double textSize = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
@@ -218,7 +193,6 @@ void matchedPtZ(string inName = "", double partjetptmin = 10., double partjetptm
   const int detJetPtAxis  = 2;
   const int detV0PtAxis   = 3;
 
-  gStyle->SetNdivisions(505, "xy");
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
@@ -291,8 +265,6 @@ void matchedCtau(string inName = "", string hadron = "", string hypothesis = "",
   const int detJetPtAxis  = 2;
   const int detV0PtAxis   = 3;
   const int detV0CtauAxis = 4;
-
-  gStyle->SetNdivisions(505, "xy");
 
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
@@ -381,8 +353,6 @@ void matchedMass(string inName = "", string hadron = "", string hypothesis = "",
   const int detV0PtAxis   = 3;
   const int detV0MassAxis = 4;
 
-  gStyle->SetNdivisions(505, "xy");
-
   string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
   double textSize = 0.04;
   double labelSize = 0.04;
@@ -453,7 +423,6 @@ void matchedMass(string inName = "", string hadron = "", string hypothesis = "",
 
 void mass(vector<string> inputStrings, double partjetptmin, double partjetptmax, double v0min, double v0max, bool doZ, bool normalise)
 {
-  gStyle->SetNdivisions(505, "xy");
   string inName     = inputStrings[0];
   string dataSet    = inputStrings[1];
   string hadron     = inputStrings[2];
@@ -548,8 +517,6 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
   const int K0SAxis        = 2;
   const int LambdaAxis     = 3;
   const int AntiLambdaAxis = 4;
-  gStyle->SetNdivisions(500, "x");
-  gStyle->SetNdivisions(505, "y");
   double textSize  = 0.04;
   double labelSize = 0.04;
   double titleSize = 0.04;
@@ -621,9 +588,9 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
     histVector.push_back(h);
   }
 
-  string xTitle = TString::Format("#it{N}(%s)#in jet", formatHadronName(hadron).c_str()).Data();
+  string xTitle = TString::Format("#it{N} (%s) #in jet", formatHadronName(hadron).c_str()).Data();
   string yTitle = "#it{N}_{jets}";
-  double xMinFrame = -0.5, xMaxFrame = 9.5, yMinFrame = 1e-1, yMaxFrame = 1e7;
+  double xMinFrame = -0.5, xMaxFrame = 9.5, yMinFrame = 1e-1, yMaxFrame = 1e5;
 
   // Scale hists with content of first bin, to get some measure of relative probability (?)
   if (doRatio) {
@@ -633,7 +600,7 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
       hist->Scale(1./firstBin);
     }
     yTitle = "#it{N}/#it{N}_{0}";
-    yMinFrame = 1e-3, yMaxFrame = 10.;
+    yMinFrame = 1e-5, yMaxFrame = 10.;
   }
 
   int xCanvas = 900, yCanvas = 900;
@@ -647,7 +614,7 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
   canvas->SetLogy();
 
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  string ptJetText = TString::Format("%.0f#leq#it{p}_{T, ch+V0 jet} < %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
+  string ptJetText = TString::Format("%.0f < #it{p}_{T, ch+V0 jet} < %.0f GeV/#it{c}", lowjetpt, highjetpt).Data();
   string latexText = dataSet + ", " + ptJetText;
   frame->SetTitle(latexText.c_str());
   frame->Draw();

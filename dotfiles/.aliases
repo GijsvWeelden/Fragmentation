@@ -5,15 +5,17 @@ alias stoom="ssh -A stbc-i1"
 alias stoomboot="ssh -A stbc-i2"
 alias stoomboter="ssh -A stbc-i3"
 alias dep="$O2PHYSICS_ROOT/share/scripts/find_dependencies.py -t" # Finds table producer
-alias applyformatting="clang-format -style=file -i" # Usage: format <file> # Applies O2Physics formatting
-alias copytrainresults="${FRAGMENTATION_DIR}/scripts/copyTrainResults" # Requires to be in O2 environment
-alias mergetrainoutput="${FRAGMENTATION_DIR}/scripts/mergeTrainOutput" # Requires to be in O2 environment
+alias applyformatting="clang-format -style=file -i" # Usage: format <file>
+alias copytrainresults="${FRAGMENTATION_DIR}/scripts/copyTrainResults"
+alias mergetrainoutput="${FRAGMENTATION_DIR}/scripts/mergeTrainOutput"
 
-alias o2="${FRAGMENTATION_DIR}/scripts/load-o2"
+if [[ $SSH_CONNECTION == "" ]]; then
+  alias o2="zsh ${FRAGMENTATION_DIR}/scripts/load-o2"
+else
+  alias o2="echo 'You need to be in bash to load O2.'"
+fi
 alias atag="${FRAGMENTATION_DIR}/scripts/load-alien-tag -a -y"
 alias otag="${FRAGMENTATION_DIR}/scripts/load-alien-tag"
-
-alias gl="git log --name-only upstream/master~1.."
 
 # For moving around
 alias fragdir="cd ${FRAGMENTATION_DIR}"
@@ -25,3 +27,28 @@ alias andir="cd ${FRAGMENTATION_DIR}/../AN-Jet-Fragmentation"
 alias thesisdir="cd ${FRAGMENTATION_DIR}/../Thesis-Jet-Fragmentation"
 
 alias xcodeversion="pkgutil --pkg-info=com.apple.pkg.CLTools_Executables"
+
+# For git
+alias gl="GITLOG"
+function GITLOG() {
+  if [[ $PWD == ~/alice/O2Physics* ]]; then
+    git log --name-only upstream/master~1..
+  else
+    git log --name-only origin/main~1..
+  fi
+}
+
+alias ls="ls --color -GF"
+alias ll="ls --color -GF -lht"
+alias la="ls --color -GF -a"
+
+alias lg=LG
+# ls show if dir is git repo
+LG() {
+  if [ x$1 != x ]; then
+  paste <(CLICOLOR_FORCE=true ls -ldthGF $1) <(for i in $1; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi; done)
+  else
+  paste <(CLICOLOR_FORCE=true ls -ldthGF *) <(for i in *; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi;
+  done)
+  fi
+}

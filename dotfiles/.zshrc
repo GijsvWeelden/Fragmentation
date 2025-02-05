@@ -1,38 +1,40 @@
 
-# export ALIBUILD_WORK_DIR, FRAGMENTATION_DIR wherever you call this from
-# eval "`alienv shell-helper`" wherever you call this from
-# equip with conda loader if needed
+function setuplocal {
+  export FRAGMENTATION_DIR="$HOME/cernbox/Fragmentation"
+  export ALIBUILD_WORK_DIR="$HOME/alice/sw"
+  eval "`alienv shell-helper`"
+  # >>> conda initialize >>>
+  # !! Contents within this block are managed by 'conda init' !!
+  __conda_setup="$('/Users/gijsvanweelden/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+  if [ $? -eq 0 ]; then
+      eval "$__conda_setup"
+  else
+      if [ -f "/Users/gijsvanweelden/anaconda3/etc/profile.d/conda.sh" ]; then
+          . "/Users/gijsvanweelden/anaconda3/etc/profile.d/conda.sh"
+      else
+          export PATH="/Users/gijsvanweelden/anaconda3/bin:$PATH"
+      fi
+  fi
+  unset __conda_setup
+  # <<< conda initialize <<<
+}
 
-# Change prompt to show environment name etc.
-hostname=${HOST:0:7}
-hostname="${hostname} "
-if [[ $SSH_CONNECTION == "" ]]; then
-  hostname=""
+function setupremote {
+  export FRAGMENTATION_DIR="/data/alice/gweelden/Fragmentation"
+  export ALIBUILD_WORK_DIR="/data/alice/gweelden/alice/sw"
+  export LS_COLORS='di=36:ln=1;34:so=1;31:pi=1;33:ex=1;32:bd=1;34;46:cd=1;34;43:su=0;41:sg=0;46:tw=0;42:ow=0;43'
+  source /cvmfs/alice.cern.ch/etc/login.sh
+  # Load Git completion
+  zstyle ':completion:*:*:git:*' script ~/.zsh/git-completion.bash
+  fpath=(~/.zsh $fpath)
+  autoload -Uz compinit && compinit
+
+}
+
+if [[ $SSH_CONNECTION == "" ]]
+then setuplocal
+else setupremote
 fi
 
-environment=""
-promptend="%f%% "
-if [[ x${O2PHYSICS_ROOT} != x ]]; then
-  environment=${${O2PHYSICS_ROOT##*/}%-*}
-  environment="%F{208}[${environment}] "
-
-  promptend="%F{208}%#> %f"
-fi
-
-gitstring="%F{105}${vcs_info_msg_0_}"
-workdir="%F{magenta}%~"
-
-export CLICOLOR=1
-export LSCOLORS=gxgxBxDxCxEgEdxbxgxcxd
-
-# Version control settings
-autoload -Uz compinit && compinit
-autoload -Uz vcs_info
-precmd() { vcs_info }
-zstyle ':vcs_info:git*' formats ' (%b)'
-setopt PROMPT_SUBST
-
-export PS1='%T ${hostname}${environment}${workdir}%F{105}${vcs_info_msg_0_} ${promptend}'
-
-source ${FRAGMENTATION_DIR}/dotfiles/.aliases
-source ${FRAGMENTATION_DIR}/dotfiles/.zsh_aliases
+source $FRAGMENTATION_DIR/dotfiles/.setup
+source $FRAGMENTATION_DIR/dotfiles/.aliases

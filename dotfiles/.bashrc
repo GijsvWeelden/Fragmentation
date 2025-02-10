@@ -11,5 +11,10 @@ function setupremote {
   eval "`alienv shell-helper`"
 }
 
+if [[ $SSH_CONNECTION == "" ]]
+then setuplocal
+else setupremote
+fi
+
 source ${FRAGMENTATION_DIR}/dotfiles/.promptsetup
 source ${FRAGMENTATION_DIR}/dotfiles/.aliases

@@ -34,7 +34,7 @@ then
   export CLICOLOR=1
   export LSCOLORS=gxgxBxDxCxEgEdxbxgxcxd
   export PS1='%T ${hostname}${environment}${workdir}%F{105}${vcs_info_msg_0_} ${promptend}'
-elif [[-n $BASH_VERSION ]]
+elif [[ -n $BASH_VERSION ]]
 then
   source /usr/share/bash-completion/completions/git
   source /usr/share/git-core/contrib/completion/git-prompt.sh

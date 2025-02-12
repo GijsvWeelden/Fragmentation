@@ -792,6 +792,62 @@ void setFitParametersPol1GausExp(TF1* f, string hadron, double ptmin, double ptm
     }
   }
 }
+void setFitParametersPol2GausExp(TF1* f, string hadron, double ptmin, double ptmax)
+{
+  string fName = f->GetName();
+  for (int i = 0; i < f->GetNpar(); i++) {
+    f->SetParName(i, (fName + "_" + to_string(i)).c_str());
+  }
+
+  if ("K0S" == hadron) {
+    double mass = MassK0S;
+    double signalWidth = 1e-2;
+    double peakVal;
+
+    double pOffset, pSlope, pQuad;
+    double eAmplitude, eZero, eZeroToMax;
+
+    if (ptmin > 3.9 && ptmax < 5.1) {
+      pOffset = 186e3; pSlope = 183e3;
+      peakVal = 4.9e6;
+      eAmplitude = 1.9e8; eZero = 0.5; eZeroToMax = 6e-3;
+      f->SetParameter(0, pOffset);      f->SetParLimits(0, 0., 2. * pOffset);
+      f->SetParameter(1, pSlope);       f->SetParLimits(1, 0., 1e3 * pSlope);
+      f->SetParameter(2, peakVal);      f->SetParLimits(2, 0.8 * peakVal, 2 * peakVal);
+      f->SetParameter(3, mass);         f->SetParLimits(3, 0.48, 0.51);
+      f->SetParameter(4, signalWidth);  f->SetParLimits(4, 1e-3, 2e-2);
+      f->SetParameter(5, eAmplitude);   f->SetParLimits(5, 0., 10. * eAmplitude);
+      f->SetParameter(6, eZero);        f->SetParLimits(6, 0.5, 0.55);
+      f->SetParameter(7, eZeroToMax);   f->SetParLimits(7, 1e-3, 0.5);
+    } else if (ptmin > 4.9 && ptmax < 10.1) {
+      pOffset = 20e3; pSlope = -1e3;
+      peakVal = 2.80851e+06;
+      eAmplitude = 100e6; eZero = 0.5; eZeroToMax = 6e-3;
+      f->SetParameter(0, pOffset);      f->SetParLimits(0, 0., 15. * pOffset);
+      f->SetParameter(1, pSlope);       f->SetParLimits(1, 1e3 * pSlope, 0.);
+      f->SetParameter(2, peakVal);      f->SetParLimits(2, 0.8 * peakVal, 2 * peakVal);
+      f->SetParameter(3, mass);         f->SetParLimits(3, 0.48, 0.51);
+      f->SetParameter(4, signalWidth);  f->SetParLimits(4, 1e-3, 2e-2);
+      f->SetParameter(5, eAmplitude);   f->SetParLimits(5, eAmplitude / 10., 2. * eAmplitude);
+      f->SetParameter(6, eZero);        f->SetParLimits(6, 0.5, 0.55);
+      f->SetParameter(7, eZeroToMax);   f->SetParLimits(7, 5e-3, 0.5);
+    } else if (ptmin > 9.9 && ptmax < 15.1) {
+      pOffset = -7e3; pSlope = 22e3;
+      peakVal = 70e3;
+      eAmplitude = 2e6; eZero = 0.5; eZeroToMax = 6e-3;
+      f->SetParameter(0, pOffset);      f->SetParLimits(0, -10e3, 0.);
+      f->SetParameter(1, pSlope);       f->SetParLimits(1, 0., 30e3);
+      f->SetParameter(2, peakVal);      f->SetParLimits(2, 0.8 * peakVal, 2 * peakVal);
+      f->SetParameter(3, mass);         f->SetParLimits(3, 0.48, 0.51);
+      f->SetParameter(4, signalWidth);  f->SetParLimits(4, 1e-3, 2e-2);
+      f->SetParameter(5, eAmplitude);   f->SetParLimits(5, eAmplitude / 2., 2.5 * eAmplitude);
+      f->SetParameter(6, eZero);        f->SetParLimits(6, 0.5, 0.55);
+      f->SetParameter(7, eZeroToMax);   f->SetParLimits(7, 1e-3, 0.1);
+    } else {
+      cout << "Cannot determine fit parameters for " << hadron << " in pt range " << ptmin << " - " << ptmax << endl;
+    }
+  }
+}
 // Input to add: rebin
 // Plots multiple fits for signal+bkg
 void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
@@ -1693,6 +1749,87 @@ void plotPol1GausExp(vector<string> inputStrings, double ptmin, double ptmax)
   f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
   partcanvas->SaveAs(partcanvas->GetName());
 }
+void plotPol2GausExp(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+  bool logplot = false;
+
+  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  setStyle(data, 0);
+
+  // Enforce same mean for both Gaussians
+  double fitmin = 0.45, fitmax = 0.55;
+  TF1* f = new TF1("f", "[0]+[1]*x+[2]*x*x + [3]*TMath::Gaus(x,[4],[5]) * (x < ([4]+[5]*[6])) + [3]*TMath::Exp(-1.*(x - ([4]+[5]*[6]/2))/([5]/[6])) * (x > [4]+[5]*[6])", fitmin, fitmax);
+  f->SetParameters(20e3, -1e3, -1e3, 3e6, MassK0S, 1e-2, 2.); // a, b, c, A, mu, sigma, lambda
+  // printParLimits(f);
+  data->Fit(f, "RSBQ0");
+  // printParLimits(f);
+  setStyle(f, 1);
+
+  string saveName = hadron;
+  saveName += "_";
+  saveName += data->GetName(); // hist name contains pt range
+  saveName += "_fit=pol1+G+exp";
+  string fitName = saveName + ".pdf";
+  TCanvas* fitcanvas = new TCanvas(fitName.c_str(), fitName.c_str(), 1800, 900);
+  fitcanvas->cd();
+  if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
+
+  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
+  double yMinFrame = getHistLowerBound(data, false), yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame /= 2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  TH1F* fitframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  fitframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  fitframe->Draw();
+  data->Draw("same");
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  fitcanvas->SaveAs(fitcanvas->GetName());
+
+  // Plot parts
+  double a = f->GetParameter(0), b = f->GetParameter(1), c = f->GetParameter(2),
+         A = f->GetParameter(3), mu = f->GetParameter(4), sigma = f->GetParameter(5), lambda = f->GetParameter(6);
+  TF1* bkg  = new TF1("bkg", "[0]+[1]*x+[2]*x*x", fitmin, fitmax);
+  TF1* sig  = new TF1("sig", "[0]*TMath::Gaus(x, [1], [2])", fitmin, mu + sigma * lambda);
+  TF1* exp  = new TF1("exp", "[0]*TMath::Exp(-1.*(x-([1]+[2]*[3]/2))/([2]/[3]))", mu + sigma * lambda, fitmax);
+
+  vector<TF1*> functions = {bkg, sig, exp};
+  setStyle(bkg, 2);
+  setStyle(sig, 3);
+  setStyle(exp, 4);
+
+  bkg->SetParameter(0, a);
+  bkg->SetParameter(1, b);
+  bkg->SetParameter(2, c);
+  sig->SetParameter(0, A);
+  sig->SetParameter(1, mu);
+  sig->SetParameter(2, sigma);
+  exp->SetParameter(0, A);
+  exp->SetParameter(1, mu);
+  exp->SetParameter(2, sigma);
+  exp->SetParameter(3, lambda);
+  // printParLimits(bkg); printParLimits(sig); printParLimits(exp);
+
+  string partName = saveName + "_parts.pdf";
+  TCanvas* partcanvas = new TCanvas(partName.c_str(), partName.c_str(), 1800, 900);
+  partcanvas->cd();
+  if (logplot) partcanvas->SetLogy();
+  TH1F* partframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  partframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  partframe->Draw();
+  data->Draw("same");
+  for (auto g : functions) {
+    g->Draw("same"); //g->SetRange(xMinFrame, xMaxFrame);
+  }
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  partcanvas->SaveAs(partcanvas->GetName());
+}
 void plotBkgPartials(vector<string> inputStrings, double ptmin, double ptmax)
 {
   string inName  = inputStrings[0];
@@ -1913,6 +2050,9 @@ void plotTrain(int train, string hadron, double v0min, double v0max, int setting
       break;
     case 3:
       plotPol1GausExp(inputStrings, v0min, v0max);
+      break;
+    case 4:
+      plotPol2GausExp(inputStrings, v0min, v0max);
       break;
   }
 }

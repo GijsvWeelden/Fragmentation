@@ -20,7 +20,7 @@ const double MassK0S     = 0.497611;
 const double MassLambda0 = 1.115683;
 gStyle->SetNdivisions(505, "xy");
 
-string getDataSet(int train)
+string localGetDataSet(int train)
 {
   if (252064 == train) return "LHC22o_pass6";
   if (282430 == train) return "LHC22o_pass7_small";
@@ -279,168 +279,10 @@ void printChi2(TH1* data, TF1* f)
 
 // -------------------------------------------------------------------------------------------------
 //
-// Fit functions
-//
-// -------------------------------------------------------------------------------------------------
-
-// Signal Gaussian, give a range for the peak to initialise the fit
-TF1* sigGaus(TH1* h, string uniqueName, array<double, 3> vals = {MassLambda0, 3e-3, 0.01}, array<double, 2> fitRange = {1.08, 1.2})
-{
-  double massPole   = vals[0];
-  double massRegion = vals[1];
-  double massRange  = vals[2];
-  array<int, 2> peakRegion = getProjectionBins(h->GetXaxis(), massPole - massRegion, massPole + massRegion);
-  TH1* k = makeHistSubset(h, peakRegion[0], peakRegion[1]);
-  double peakBin = k->GetMaximumBin();
-  double peakVal = k->GetBinContent(peakBin);
-
-  TF1* f = new TF1(uniqueName.c_str(), "gaus(0)", fitRange[0], fitRange[1]);
-  f->SetParameter(0, peakVal);
-  f->SetParameter(1, massPole);
-  f->SetParameter(2, 0.5 * massRange);
-
-  f->SetParLimits(0, 0., 1.5 * peakVal);
-  f->SetParLimits(1, massPole - massRegion, massPole + massRegion);
-  f->SetParLimits(2, 1e-6, massRange);
-
-  for (int i = 0; i < f->GetNpar(); i++) {
-    string parName = uniqueName + "_" + to_string(i);
-    f->SetParName(i, parName.c_str());
-  }
-  return f;
-}
-
-// Gaussian background
-TF1* gaussian(TH1* h, string uniqueName, array<double, 3> vals = {1e3, MassLambda0, 0.01}, array<double, 2> fitRange = {1.08, 1.2})
-{
-  double amp   = vals[0];
-  double mean  = vals[1];
-  double sigma = vals[2];
-
-  TF1* f = new TF1(uniqueName.c_str(), "gaus(0)", fitRange[0], fitRange[1]);
-  f->SetParameter(0, amp);
-  f->SetParameter(1, mean);
-  f->SetParameter(2, sigma);
-  f->SetParLimits(0, 0.5 * amp, 2. * amp);
-  f->SetParLimits(1, mean - 0.1, mean + 0.1);
-  f->SetParLimits(2, 0.1 * sigma, 3. * sigma);
-
-  for (int i = 0; i < f->GetNpar(); i++) {
-    string parName = uniqueName + "_" + to_string(i);
-    f->SetParName(i, parName.c_str());
-  }
-  return f;
-}
-
-// Linear background, give it two x values to which it will initialize the fit
-TF1* linear(TH1* h, string uniqueName, array<double, 2> vals, array<double, 2> fitRange = {1.08, 1.2})
-{
-  TH1* k = (TH1*)h->Clone("k");
-  array<int, 2> region = getProjectionBins(k->GetXaxis(), vals[0], vals[1]);
-  double dx = k->GetBinCenter(region[1]) - k->GetBinCenter(region[0]);
-  double dy = k->GetBinContent(region[1]) - k->GetBinContent(region[0]);
-
-  double b = dy / dx;
-  double a = k->GetBinContent(region[0]) - b * k->GetBinCenter(region[0]);
-
-  // cout << "fit range: " << fitRange[0] << " - " << fitRange[1] << endl;
-  // cout << "values: " << vals[0] << " - " << vals[1] << endl;
-  // cout << "dx: " << dx << "(" << k->GetBinCenter() << ")" << endl;
-
-  TF1* f = new TF1(uniqueName.c_str(), "pol1(0)", fitRange[0], fitRange[1]);
-  f->SetParameter(0, a);
-  f->SetParameter(1, b);
-  f->SetParLimits(0, -2. * (abs(a) + 1), 2. * (abs(a) + 1));
-  f->SetParLimits(1, -2. * (abs(b) + 1), 2. * (abs(b) + 1));
-
-  for (int i = 0; i < f->GetNpar(); i++) {
-    string parName = uniqueName + "_" + to_string(i);
-    f->SetParName(i, parName.c_str());
-  }
-  return f;
-}
-
-// Sigmoid background
-TF1* sigmoid(TH1* h, string uniqueName, array<double, 3> vals = {1., 200., 1.1}, array<double, 2> fitRange = {1.08, 1.2})
-{
-  double amp     = vals[0]; // Amplitude
-  double slope   = vals[1]; // 4 * max slope; 4 * slope at x = halfway
-  double halfway = vals[2]; // x value at which the function is halfway between 0 and amp
-
-  TF1* f = new TF1(uniqueName.c_str(), "[0] / (1 + exp(-[1] * (x - [2])))", fitRange[0], fitRange[1]);
-  f->SetParameter(0, amp);
-  f->SetParameter(1, slope);
-  f->SetParameter(2, halfway);
-  f->SetParLimits(0, 0.1 * amp, 2. * amp);
-  f->SetParLimits(1, 1e-2 * slope, 20. * slope);
-  f->SetParLimits(2, fitRange[0], fitRange[1]);
-
-  for (int i = 0; i < f->GetNpar(); i++) {
-    string parName = uniqueName + "_" + to_string(i);
-    f->SetParName(i, parName.c_str());
-  }
-  return f;
-}
-
-// Dilog background
-TF1* dilog(TH1* h, string uniqueName, array<double, 3> vals = {2e3, 35., 1.09}, array<double, 2> fitRange = {1.08, 1.2})
-{
-  double amp   = vals[0]; // Amplitude
-  double range = vals[1]; // Upper range of integral in dilog
-  double zero  = vals[2]; // x value at which the function is zero
-
-  TF1* f = new TF1(uniqueName.c_str(), "[0]*TMath::DiLog([1] * (x - [2]))", fitRange[0], fitRange[1]);
-  f->SetParameter(0, amp);
-  f->SetParameter(1, range);
-  f->SetParameter(2, zero);
-  f->SetParLimits(0, 0.1 * amp, 2. * amp);
-  f->SetParLimits(1, 0., 2. * range);
-  f->SetParLimits(2, zero - 0.05, zero + 0.05);
-
-  for (int i = 0; i < f->GetNpar(); i++) {
-    string parName = uniqueName + "_" + to_string(i);
-    f->SetParName(i, parName.c_str());
-  }
-  return f;
-}
-
-// -------------------------------------------------------------------------------------------------
-//
 // Functions to use with setup
 //
 // -------------------------------------------------------------------------------------------------
 
-// My "favourite" histogram
-// TH1* getHist(double ptmin, double ptmax, string hadron)
-TH1* getHist(double ptmin, double ptmax, string hadron, int train)
-{
-  // string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
-  string inName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
-  string histName = "jet-fragmentation/data/V0/V0CutVariation";
-
-  int ptAxis = 0;
-  int mAxis;
-  if ("K0S" == hadron) {
-    mAxis = 1;
-  }
-  else if ("Lambda0" == hadron) {
-    mAxis = 2;
-  }
-  else if ("AntiLambda0" == hadron) {
-    mAxis = 3;
-  }
-  else {
-    cout << "Hadron " << hadron << " not recognized" << endl;
-    return nullptr;
-  }
-
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*) inFile->Get(histName.c_str());
-
-  array<int, 2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  return (thn->Projection(mAxis));
-}
 TH1* getHist(double ptmin, double ptmax, string hadron, string inName)
 {
   string histName = "jet-fragmentation/data/V0/V0CutVariation";
@@ -472,29 +314,6 @@ TH1* getHist(double ptmin, double ptmax, string hadron, string inName)
   string name = TString::Format("pt%.1f-%.1f", ptmin, ptmax).Data();
   hist->SetName(name.c_str());
   return (hist);
-}
-
-void plotFitParts(TCanvas* canvas, TH1F* frame, TH1* h, TF1* fit, vector<TF1*> fitParts, TLegend* legend, vector<TLatex*> latex)
-{
-  frame->Draw();
-  h->Draw("same");
-  for (auto f : fitParts) {
-    f->Draw("same");
-  }
-  legend->Draw("same");
-  for (auto l : latex) {
-    l->Draw("same");
-  }
-  fit->Draw("same");
-  canvas->SaveAs(canvas->GetName());
-}
-void plotFitParts(TCanvas* canvas, TH1* h, TF1* fit, vector<TF1*> fitParts, TLegend* legend, vector<TLatex*> latex)
-{
-  TH1F* frame = DrawFrame(h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax(),
-                          0, 1.1 * h->GetBinContent(h->GetMaximumBin()),
-                          h->GetXaxis()->GetTitle(), h->GetYaxis()->GetTitle());
-  frame->SetTitle(h->GetTitle());
-  plotFitParts(canvas, frame, h, fit, fitParts, legend, latex);
 }
 
 TF1* getFitShape(string hadron, double min, double max, int pol = 1)
@@ -847,84 +666,6 @@ void setFitParametersPol2GausExp(TF1* f, string hadron, double ptmin, double ptm
       cout << "Cannot determine fit parameters for " << hadron << " in pt range " << ptmin << " - " << ptmax << endl;
     }
   }
-}
-// Input to add: rebin
-// Plots multiple fits for signal+bkg
-void plotBkgs(vector<string> inputStrings, double ptmin, double ptmax)
-{
-  string inName  = inputStrings[0];
-  string dataSet = inputStrings[1];
-  string hadron  = inputStrings[2];
-
-  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
-  data->Sumw2();
-  setStyle(data, 0);
-
-  string saveName = hadron;
-  saveName += "_";
-  saveName += data->GetName(); // hist name contains pt range
-  TCanvas* fitcanvas = new TCanvas((saveName + ".pdf").c_str(), (saveName + ".pdf").c_str(), 1800, 900);
-  TCanvas* rescanvas = new TCanvas((saveName + "_residuals.pdf").c_str(), (saveName + "_residuals.pdf").c_str(), 1800, 900);
-  vector<TF1*> fits;
-  vector<TH1*> residuals;
-
-  double fitmin = 0.45, fitmax = 0.55;
-  TF1* fSLP = getFitShape(hadron, fitmin, fitmax);
-  setFitParameters(fSLP, hadron, ptmin, ptmax);
-  fits.push_back(fSLP);
-  printParLimits(fSLP);
-  // cout << fSLP->GetName() << " = " << fSLP->GetExpFormula() << endl;
-
-  TLegend* legend = CreateLegend(0.25, 0.8, 0.7, 0.9);
-  for (int i = 0; i < fits.size(); i++) {
-    fits[i]->SetLineWidth(3);
-    fits[i]->SetLineColor(GetColor(i+1));
-    data->Fit(fits[i], "RSBQ0");
-    string newName = TString::Format("%s (#chi^{2}/NDF = %.1f)", fits[i]->GetName(), fits[i]->GetChisquare() / fits[i]->GetNDF()).Data();
-    fits[i]->SetName(newName.c_str());
-    legend->AddEntry(fits[i], newName.c_str(), "l");
-    printParLimits(fits[i]);
-    // printChi2(data, fits[i]);
-  }
-
-  string ptText = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/#it{c}", ptmin, ptmax).Data();
-  string xTitle = "#it{M}(" + formatHadronDaughters(hadron) + ") (GeV/#it{c}^{2})";
-  string yTitle = "counts";
-  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
-
-  fitcanvas->cd();
-  double yMinFrame = 0., yMaxFrame = 1.5 * getHistScale(data, false);
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  frame->SetTitle((dataSet + ", " + ptText).c_str());
-  frame->Draw();
-  legend->Draw("same");
-  data->Draw("same");
-  for (auto f : fits) {
-    f->SetRange(xMinFrame, xMaxFrame);
-    f->Draw("same");
-    // printChi2(data, f);
-  }
-  fitcanvas->SaveAs(fitcanvas->GetName());
-
-  rescanvas->cd();
-  for (auto f : fits) {
-    TH1* residual = makeResidual(data, f);
-    residual->SetLineWidth(3);
-    residual->SetLineColor(f->GetLineColor());
-    residual->SetMarkerColor(f->GetLineColor());
-    residuals.push_back(residual);
-    // printChi2(data, f);
-  }
-
-  yMinFrame = 1.1 * getHistLowerBound(residuals, false, false);
-  yMaxFrame = 1.1 * getHistScale(residuals, false, false);
-  TH1F* resframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "residuals");
-  resframe->SetTitle((dataSet + ", " + ptText).c_str());
-  resframe->Draw();
-  for (auto r : residuals) {
-    r->Draw("same");
-  }
-  rescanvas->SaveAs(rescanvas->GetName());
 }
 
 // Test whether to fit in one go or in parts
@@ -1444,6 +1185,201 @@ void testFittingOrder()
   residualH3->Draw("same");
   canvas2->SaveAs(canvas2->GetName());
 }
+void plotBkgPartials(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+
+  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  setStyle(data, 0);
+
+  bool plotPol1 = false;
+  bool plotPol2 = !plotPol1;
+
+  string saveName = hadron;
+  saveName += "_";
+  saveName += data->GetName(); // hist name contains pt range
+  if (plotPol1)      saveName += "_fit=pol1+G_residuals";
+  else if (plotPol2) saveName += "_fit=pol2+G_residuals";
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 1800, 2000);
+  canvas->Divide(1, 2, 0.01, 0.01);
+
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistScale(data, false);
+
+  if ("K0S" == hadron) {
+    double signalWidth = 1e-2, peakVal = 3e6;
+    double x0 = 0.45, x1 = 0.55, x2 = 0.57;
+    double fitmin = 0.485, fitmax = 0.505;
+    double y0 = data->GetBinContent(data->FindBin(x0 + 1e-3));
+    double y1 = data->GetBinContent(data->FindBin(x1 + 1e-3));
+    double y2 = data->GetBinContent(data->FindBin(x2 - 1e-3));
+
+    TF1* f;
+    if (plotPol1) {
+      double b = (y1 - y0) / (x1 - x0);
+      double a = y0 - b * x0;
+      // TF1* f = new TF1("f", "[0]+[1]*x + [2]*TMath::Gaus(x,[3],[4])", fitmin, fitmax);
+      f = new TF1("f", "[0]+[1]*x + [2]*TMath::Gaus(x,[3],[4])", fitmin, fitmax);
+      f->FixParameter(0, a);
+      f->FixParameter(1, b);
+      f->SetParameter(2, peakVal);     f->SetParLimits(2, 2e6, 6e6);
+      f->SetParameter(3, MassK0S);     f->SetParLimits(3, 0.48, 0.51);
+      f->SetParameter(4, signalWidth); f->SetParLimits(4, 1e-3, 2e-2);
+    }
+    else if (plotPol2) {
+      double c = ( (y2 - y0)/(x2 - x0) - (y1 - y0)/(x1 - x0) ) / (x2 - x1);
+      double b = (y1 - y0) / (x1 - x0) - c * (x1 + x0);
+      double a = y1 - b * x1 -c * x1 * x1;
+
+      f = new TF1("f", "[0]+[1]*x+[2]*x*x + [3]*TMath::Gaus(x,[4],[5])", fitmin, fitmax);
+      f->FixParameter(0, a);
+      f->FixParameter(1, b);
+      f->FixParameter(2, c);
+      f->SetParameter(3, peakVal);     f->SetParLimits(3, 2e6, 6e6);
+      f->SetParameter(4, MassK0S);     f->SetParLimits(4, 0.48, 0.51);
+      f->SetParameter(5, signalWidth); f->SetParLimits(5, 1e-3, 2e-2);
+    }
+
+    printParLimits(f);
+    data->Fit(f, "RSBQ0");
+    printParLimits(f);
+    setStyle(f, 1);
+
+    canvas->cd(1);
+    // gPad->SetLogy(); yMinFrame = 1e4; yMaxFrame *= 10.;
+    TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "counts");
+    frame->SetTitle((dataSet + ", " + ptText).c_str());
+    gPad->SetRightMargin(0.05);
+    gPad->SetBottomMargin(0.05);
+    gPad->SetLeftMargin(0.15);
+    gPad->SetTopMargin(0.1);
+    frame->GetYaxis()->SetTitleOffset(1.0);
+    frame->Draw();
+    data->Draw("same");
+    f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+
+    TF1* p;
+    if (plotPol1) {
+      p = new TF1("p", "pol1", f->GetXmin(), f->GetXmax());
+      p->FixParameter(0, f->GetParameter(0));
+      p->FixParameter(1, f->GetParameter(1));
+      setStyle(p, 1, 7);
+      p->Draw("same");
+    } else if (plotPol2) {
+      p = new TF1("p", "pol2", f->GetXmin(), f->GetXmax());
+      p->FixParameter(0, f->GetParameter(0));
+      p->FixParameter(1, f->GetParameter(1));
+      p->FixParameter(2, f->GetParameter(2));
+      setStyle(p, 1, 7);
+      p->Draw("same");
+    }
+
+    canvas->cd(2);
+    TH1* residual = makeResidual(data, f);
+    residual->SetName("residual");
+    setStyle(residual, 1);
+
+    yMinFrame = 1.1 * getHistLowerBound(residual, false);
+    yMaxFrame = 1.1 * getHistScale(residual, false);
+    TH1F* resframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "residual");
+    gPad->SetRightMargin(0.05);
+    gPad->SetBottomMargin(0.15);
+    gPad->SetLeftMargin(0.15);
+    gPad->SetTopMargin(0.05);
+    resframe->GetYaxis()->SetTitleOffset(1.0);
+    resframe->Draw();
+    residual->Draw("same");
+
+    // 0 at x = [1], max at x = [1]+[2], f([1]+[2]]) = [0]*[1]/e
+    double gx0 = 0.505, gx1 = 0.55;
+    if ("K0S" != hadron) {
+      gx0 = 1.13; gx1 = 1.2;
+    }
+    TF1* g = new TF1("g", "max(0., [0]*(x-[1]) * exp(-1. * (x-[1]) / [2]))", gx0, gx1);
+    double zeropoint = 0.505, maxpoint = 0.51, maxheight = 600e3;
+    double amplitude = maxheight * exp(1) / (maxpoint - zeropoint);
+    g->SetParameter(0, amplitude);  g->SetParLimits(0, 0., 10.*amplitude);
+    g->SetParameter(1, zeropoint); g->SetParLimits(1, 0.5, 0.52);
+    g->SetParameter(2, maxpoint - zeropoint); g->SetParLimits(2, 1e-3, 2e-2);
+    printParLimits(g);
+    residual->Fit(g, "RSBQ0");
+    printParLimits(g);
+    setStyle(g, 2);
+    g->Draw("same"); g->SetRange(g->GetParameter(1), 0.55);
+
+    TLegend* gLegend = CreateLegend(0.2, 0.4, 0.7, 0.85, "#chi^{2}/NDF");
+    double gchi2 = g->GetChisquare();
+    int gnfp     = g->GetNumberFreeParameters();
+    int gnbins   = 1 + data->FindBin(gx1 - 1e-3) - data->FindBin(gx0 + 1e-3);
+    gLegend->AddEntry(g, TString::Format("%.2g = %.2g / %d", gchi2 / (gnbins - gnfp), gchi2, gnbins - gnfp).Data());
+    gLegend->Draw("same");
+  } else { // (Anti)Lambda0
+    xMinFrame = 1.08; xMaxFrame = 1.15;
+    double x0 = 1.1, x1 = 1.13, x2 = 1.14;
+    double fitmin = 1.1, fitmax = 1.13;
+
+    double y0 = data->GetBinContent(data->FindBin(x0 + 1e-3));
+    double y1 = data->GetBinContent(data->FindBin(x1 - 1e-3));
+    double y2 = data->GetBinContent(data->FindBin(x2 - 1e-3));
+    double c = ( (y2 - y0)/(x2 - x0) - (y1 - y0)/(x1 - x0) ) / (x2 - x1);
+    double b = (y1 - y0) / (x1 - x0) - c * (x1 + x0);
+    double a = y1 - b * x1 - c * x1 * x1;
+
+    TF1* f = new TF1("f", "[0]+[1]*x+[2]*x*x + [3]*TMath::Gaus(x,[4],[5])", fitmin, fitmax);
+    // f->SetParameter(0, a);     f->SetParLimits(0, 10.*a, -10.*a);
+    // f->SetParameter(1, b);     f->SetParLimits(1, -10.*b, 10.*b);
+    // f->SetParameter(2, c);     f->SetParLimits(2, -10.*c, 10.*c);
+    f->FixParameter(0, a);
+    f->FixParameter(1, b);
+    f->FixParameter(2, c);
+    // f->SetParameter(3, 15000e3);  f->SetParLimits(3, 900e3, 1500e3);
+    // f->SetParameter(4, 1.116);   f->SetParLimits(4, 1.11, 1.12);
+    // f->SetParameter(5, 5e-3);  f->SetParLimits(5, 1e-4, 1e-2);
+    f->FixParameter(3, 10000e3);
+    f->FixParameter(4, MassLambda0);
+    f->FixParameter(5, 5e-4);
+
+    printParLimits(f);
+    data->Fit(f, "RSBQ0");
+    printParLimits(f);
+    setStyle(f, 1);
+
+    canvas->cd(1);
+    TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "counts");
+    frame->SetTitle((dataSet + ", " + ptText).c_str());
+    gPad->SetRightMargin(0.05);
+    gPad->SetBottomMargin(0.05);
+    gPad->SetLeftMargin(0.15);
+    gPad->SetTopMargin(0.1);
+    frame->GetYaxis()->SetTitleOffset(1.0);
+    frame->Draw();
+    data->Draw("same");
+    f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+
+    canvas->cd(2);
+    TH1* residual = makeResidual(data, f);
+    residual->SetName("residual");
+    setStyle(residual, 1);
+
+    yMinFrame = 1.1 * getHistLowerBound(residual, false);
+    yMaxFrame = 1.1 * getHistScale(residual, false);
+    TH1F* resframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "residual");
+    gPad->SetRightMargin(0.05);
+    gPad->SetBottomMargin(0.15);
+    gPad->SetLeftMargin(0.15);
+    gPad->SetTopMargin(0.05);
+    resframe->GetYaxis()->SetTitleOffset(1.0);
+    resframe->Draw();
+    residual->Draw("same");
+  }
+
+  canvas->SaveAs(canvas->GetName());
+}
 
 // Fit mass with pol1 + G(x) + xe-x
 void plotPol1GausXex(vector<string> inputStrings, double ptmin, double ptmax)
@@ -1670,12 +1606,88 @@ void plotPol1GausGaus(vector<string> inputStrings, double ptmin, double ptmax)
   f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
   partcanvas->SaveAs(partcanvas->GetName());
 }
+// Fit mass with pol2 + G(x) + G(x)
+void plotPol2GausGaus(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+
+  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  setStyle(data, 0);
+
+  // Enforce same mean for both Gaussians
+  double fitmin = 0.45, fitmax = 0.55;
+  TF1* f = new TF1("f", "[0] + [1]*x + [2]*x*x
+                        +[3] * TMath::Gaus(x, [4], [5])
+                        +[6] * TMath::Gaus(x, [4], [7])",
+                   fitmin, fitmax);
+  double a = 20e3, b = -1e3, c = -1e3, A = 3e6, mu = MassK0S, sigma = 1e-2, B = 3e5, rho = 2e-2;
+  f->SetParameters(a, b, c, A, mu, sigma, B, rho);
+  data->Fit(f, "RSBQ0");
+  setStyle(f, 1);
+
+  string saveName = hadron;
+  saveName += "_";
+  saveName += data->GetName(); // hist name contains pt range
+  saveName += "_fit=pol2+G+G";
+  string fitName = saveName + ".pdf";
+  TCanvas* fitcanvas = new TCanvas(fitName.c_str(), fitName.c_str(), 1800, 900);
+  fitcanvas->cd();
+
+  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  TH1F* fitframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  fitframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  fitframe->Draw();
+  data->Draw("same");
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  fitcanvas->SaveAs(fitcanvas->GetName());
+
+  // Plot parts
+  TF1* bkg  = new TF1("bkg", "[0] + [1]*x + [2]*x*x", fitmin, fitmax);
+  TF1* sig  = new TF1("sig", "[0] * TMath::Gaus(x, [1], [2])", fitmin, fitmax);
+  TF1* gaus = new TF1("gaus", "[0] * TMath::Gaus(x, [1], [2])", fitmin, fitmax);
+  vector<TF1*> functions = {bkg, sig, gaus};
+  setStyle(bkg, 2);
+  setStyle(sig, 3);
+  setStyle(gaus, 4);
+
+  bkg->SetParameter(0,  f->GetParameter(0));
+  bkg->SetParameter(1,  f->GetParameter(1));
+  bkg->SetParameter(2,  f->GetParameter(2));
+  sig->SetParameter(0,  f->GetParameter(3));
+  sig->SetParameter(1,  f->GetParameter(4));
+  sig->SetParameter(2,  f->GetParameter(5));
+  gaus->SetParameter(0, f->GetParameter(6));
+  gaus->SetParameter(1, f->GetParameter(4));
+  gaus->SetParameter(2, f->GetParameter(7));
+
+  string partName = saveName + "_parts.pdf";
+  TCanvas* partcanvas = new TCanvas(partName.c_str(), partName.c_str(), 1800, 900);
+  partcanvas->cd();
+  TH1F* partframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  partframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  partframe->Draw();
+  data->Draw("same");
+  for (auto g : functions) {
+    g->Draw("same");
+  }
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  partcanvas->SaveAs(partcanvas->GetName());
+}
+// Fit mass with pol1 + [G(x) (x<a), e-x (x>a)]
 void plotPol1GausExp(vector<string> inputStrings, double ptmin, double ptmax)
 {
   string inName  = inputStrings[0];
   string dataSet = inputStrings[1];
   string hadron  = inputStrings[2];
-  bool logplot = false;
+  bool logplot = true;
 
   TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
   setStyle(data, 0);
@@ -1749,6 +1761,7 @@ void plotPol1GausExp(vector<string> inputStrings, double ptmin, double ptmax)
   f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
   partcanvas->SaveAs(partcanvas->GetName());
 }
+// Fit mass with pol2 + [G(x) (x<a), e-x (x>a)]
 void plotPol2GausExp(vector<string> inputStrings, double ptmin, double ptmax)
 {
   string inName  = inputStrings[0];
@@ -1830,200 +1843,97 @@ void plotPol2GausExp(vector<string> inputStrings, double ptmin, double ptmax)
   f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
   partcanvas->SaveAs(partcanvas->GetName());
 }
-void plotBkgPartials(vector<string> inputStrings, double ptmin, double ptmax)
+// Fit mass with pol1 + G(x) + [G(x) (x<a), e-x (x>a)]
+void plotPol1GausGausExp(vector<string> inputStrings, double ptmin, double ptmax)
 {
   string inName  = inputStrings[0];
   string dataSet = inputStrings[1];
   string hadron  = inputStrings[2];
+  bool logplot = true;
 
   TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
   setStyle(data, 0);
 
-  bool plotPol1 = false;
-  bool plotPol2 = !plotPol1;
+  // Enforce same mean for both Gaussians
+  double fitmin = 0.45, fitmax = 0.55;
+  TF1* f = new TF1("f", "[0]+[1]*x
+                        +[2]*TMath::Gaus(x,[3],[4]) * (x < ([3]+[4]*[5]))
+                        +[2]*TMath::Exp(-1.*(x - ([3]+[4]*[5]/2))/([4]/[5])) * (x > [3]+[4]*[5])
+                        +[6]*TMath::Gaus(x,[3],[7])",
+                   fitmin, fitmax);
+
+  double a = 20e3, b = -1e3, A = 3e6, mu = MassK0S, sigma = 1e-2, lambda = 2., B = 3e5, rho = 2e-2;
+  f->SetParameters(a, b, A, mu, sigma, lambda, B, rho);
+  // printParLimits(f);
+  data->Fit(f, "RSBQ0");
+  // printParLimits(f);
+  setStyle(f, 1);
 
   string saveName = hadron;
   saveName += "_";
   saveName += data->GetName(); // hist name contains pt range
-  if (plotPol1)      saveName += "_fit=pol1+G_residuals";
-  else if (plotPol2) saveName += "_fit=pol2+G_residuals";
-  saveName += ".pdf";
-  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 1800, 2000);
-  canvas->Divide(1, 2, 0.01, 0.01);
+  saveName += "_fit=pol1+G+G+exp";
+  string fitName = saveName + ".pdf";
+  TCanvas* fitcanvas = new TCanvas(fitName.c_str(), fitName.c_str(), 1800, 900);
+  fitcanvas->cd();
+  if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
 
-  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
-  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
   double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
-  double yMinFrame = 0., yMaxFrame = 1.1 * getHistScale(data, false);
+  double yMinFrame = getHistLowerBound(data, false), yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame /= 2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  TH1F* fitframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  fitframe->SetTitle((dataSet + ", " + ptText).c_str());
 
-  if ("K0S" == hadron) {
-    double signalWidth = 1e-2, peakVal = 3e6;
-    double x0 = 0.45, x1 = 0.55, x2 = 0.57;
-    double fitmin = 0.485, fitmax = 0.505;
-    double y0 = data->GetBinContent(data->FindBin(x0 + 1e-3));
-    double y1 = data->GetBinContent(data->FindBin(x1 + 1e-3));
-    double y2 = data->GetBinContent(data->FindBin(x2 - 1e-3));
+  fitframe->Draw();
+  data->Draw("same");
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  fitcanvas->SaveAs(fitcanvas->GetName());
 
-    TF1* f;
-    if (plotPol1) {
-      double b = (y1 - y0) / (x1 - x0);
-      double a = y0 - b * x0;
-      // TF1* f = new TF1("f", "[0]+[1]*x + [2]*TMath::Gaus(x,[3],[4])", fitmin, fitmax);
-      f = new TF1("f", "[0]+[1]*x + [2]*TMath::Gaus(x,[3],[4])", fitmin, fitmax);
-      f->FixParameter(0, a);
-      f->FixParameter(1, b);
-      f->SetParameter(2, peakVal);     f->SetParLimits(2, 2e6, 6e6);
-      f->SetParameter(3, MassK0S);     f->SetParLimits(3, 0.48, 0.51);
-      f->SetParameter(4, signalWidth); f->SetParLimits(4, 1e-3, 2e-2);
-    }
-    else if (plotPol2) {
-      double c = ( (y2 - y0)/(x2 - x0) - (y1 - y0)/(x1 - x0) ) / (x2 - x1);
-      double b = (y1 - y0) / (x1 - x0) - c * (x1 + x0);
-      double a = y1 - b * x1 -c * x1 * x1;
+  // Plot parts
+  a = f->GetParameter(0), b = f->GetParameter(1);
+  A = f->GetParameter(2), mu = f->GetParameter(3), sigma = f->GetParameter(4), lambda = f->GetParameter(5);
+  B = f->GetParameter(6), rho = f->GetParameter(7);
+  TF1* bkg  = new TF1("bkg", "[0]+[1]*x", fitmin, fitmax);
+  TF1* sig  = new TF1("sig", "[0]*TMath::Gaus(x, [1], [2])", fitmin, mu + sigma * lambda);
+  TF1* exp  = new TF1("exp", "[0]*TMath::Exp(-1.*(x-([1]+[2]*[3]/2))/([2]/[3]))", mu + sigma * lambda, fitmax);
+  TF1* gaus = new TF1("gaus", "[0]*TMath::Gaus(x, [1], [2])", fitmin, fitmax);
 
-      f = new TF1("f", "[0]+[1]*x+[2]*x*x + [3]*TMath::Gaus(x,[4],[5])", fitmin, fitmax);
-      f->FixParameter(0, a);
-      f->FixParameter(1, b);
-      f->FixParameter(2, c);
-      f->SetParameter(3, peakVal);     f->SetParLimits(3, 2e6, 6e6);
-      f->SetParameter(4, MassK0S);     f->SetParLimits(4, 0.48, 0.51);
-      f->SetParameter(5, signalWidth); f->SetParLimits(5, 1e-3, 2e-2);
-    }
+  vector<TF1*> functions = {bkg, sig, exp};
+  setStyle(bkg, 2);
+  setStyle(sig, 3);
+  setStyle(exp, 3);
+  setStyle(gaus, 4);
 
-    printParLimits(f);
-    data->Fit(f, "RSBQ0");
-    printParLimits(f);
-    setStyle(f, 1);
+  bkg->SetParameter(0, a);
+  bkg->SetParameter(1, b);
+  sig->SetParameter(0, A);
+  sig->SetParameter(1, mu);
+  sig->SetParameter(2, sigma);
+  exp->SetParameter(0, A);
+  exp->SetParameter(1, mu);
+  exp->SetParameter(2, sigma);
+  exp->SetParameter(3, lambda);
+  gaus->SetParameter(0, B);
+  gaus->SetParameter(1, mu);
+  // printParLimits(bkg); printParLimits(sig); printParLimits(exp); printParLimits(gaus);
 
-    canvas->cd(1);
-    // gPad->SetLogy(); yMinFrame = 1e4; yMaxFrame *= 10.;
-    TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "counts");
-    frame->SetTitle((dataSet + ", " + ptText).c_str());
-    gPad->SetRightMargin(0.05);
-    gPad->SetBottomMargin(0.05);
-    gPad->SetLeftMargin(0.15);
-    gPad->SetTopMargin(0.1);
-    frame->GetYaxis()->SetTitleOffset(1.0);
-    frame->Draw();
-    data->Draw("same");
-    f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  string partName = saveName + "_parts.pdf";
+  TCanvas* partcanvas = new TCanvas(partName.c_str(), partName.c_str(), 1800, 900);
+  partcanvas->cd();
+  if (logplot) partcanvas->SetLogy();
+  TH1F* partframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  partframe->SetTitle((dataSet + ", " + ptText).c_str());
 
-    TF1* p;
-    if (plotPol1) {
-      p = new TF1("p", "pol1", f->GetXmin(), f->GetXmax());
-      p->FixParameter(0, f->GetParameter(0));
-      p->FixParameter(1, f->GetParameter(1));
-      setStyle(p, 1, 7);
-      p->Draw("same");
-    } else if (plotPol2) {
-      p = new TF1("p", "pol2", f->GetXmin(), f->GetXmax());
-      p->FixParameter(0, f->GetParameter(0));
-      p->FixParameter(1, f->GetParameter(1));
-      p->FixParameter(2, f->GetParameter(2));
-      setStyle(p, 1, 7);
-      p->Draw("same");
-    }
-
-    canvas->cd(2);
-    TH1* residual = makeResidual(data, f);
-    residual->SetName("residual");
-    setStyle(residual, 1);
-
-    yMinFrame = 1.1 * getHistLowerBound(residual, false);
-    yMaxFrame = 1.1 * getHistScale(residual, false);
-    TH1F* resframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "residual");
-    gPad->SetRightMargin(0.05);
-    gPad->SetBottomMargin(0.15);
-    gPad->SetLeftMargin(0.15);
-    gPad->SetTopMargin(0.05);
-    resframe->GetYaxis()->SetTitleOffset(1.0);
-    resframe->Draw();
-    residual->Draw("same");
-
-    // 0 at x = [1], max at x = [1]+[2], f([1]+[2]]) = [0]*[1]/e
-    double gx0 = 0.505, gx1 = 0.55;
-    if ("K0S" != hadron) {
-      gx0 = 1.13; gx1 = 1.2;
-    }
-    TF1* g = new TF1("g", "max(0., [0]*(x-[1]) * exp(-1. * (x-[1]) / [2]))", gx0, gx1);
-    double zeropoint = 0.505, maxpoint = 0.51, maxheight = 600e3;
-    double amplitude = maxheight * exp(1) / (maxpoint - zeropoint);
-    g->SetParameter(0, amplitude);  g->SetParLimits(0, 0., 10.*amplitude);
-    g->SetParameter(1, zeropoint); g->SetParLimits(1, 0.5, 0.52);
-    g->SetParameter(2, maxpoint - zeropoint); g->SetParLimits(2, 1e-3, 2e-2);
-    printParLimits(g);
-    residual->Fit(g, "RSBQ0");
-    printParLimits(g);
-    setStyle(g, 2);
-    g->Draw("same"); g->SetRange(g->GetParameter(1), 0.55);
-
-    TLegend* gLegend = CreateLegend(0.2, 0.4, 0.7, 0.85, "#chi^{2}/NDF");
-    double gchi2 = g->GetChisquare();
-    int gnfp     = g->GetNumberFreeParameters();
-    int gnbins   = 1 + data->FindBin(gx1 - 1e-3) - data->FindBin(gx0 + 1e-3);
-    gLegend->AddEntry(g, TString::Format("%.2g = %.2g / %d", gchi2 / (gnbins - gnfp), gchi2, gnbins - gnfp).Data());
-    gLegend->Draw("same");
-  } else { // (Anti)Lambda0
-    xMinFrame = 1.08; xMaxFrame = 1.15;
-    double x0 = 1.1, x1 = 1.13, x2 = 1.14;
-    double fitmin = 1.1, fitmax = 1.13;
-
-    double y0 = data->GetBinContent(data->FindBin(x0 + 1e-3));
-    double y1 = data->GetBinContent(data->FindBin(x1 - 1e-3));
-    double y2 = data->GetBinContent(data->FindBin(x2 - 1e-3));
-    double c = ( (y2 - y0)/(x2 - x0) - (y1 - y0)/(x1 - x0) ) / (x2 - x1);
-    double b = (y1 - y0) / (x1 - x0) - c * (x1 + x0);
-    double a = y1 - b * x1 - c * x1 * x1;
-
-    TF1* f = new TF1("f", "[0]+[1]*x+[2]*x*x + [3]*TMath::Gaus(x,[4],[5])", fitmin, fitmax);
-    // f->SetParameter(0, a);     f->SetParLimits(0, 10.*a, -10.*a);
-    // f->SetParameter(1, b);     f->SetParLimits(1, -10.*b, 10.*b);
-    // f->SetParameter(2, c);     f->SetParLimits(2, -10.*c, 10.*c);
-    f->FixParameter(0, a);
-    f->FixParameter(1, b);
-    f->FixParameter(2, c);
-    // f->SetParameter(3, 15000e3);  f->SetParLimits(3, 900e3, 1500e3);
-    // f->SetParameter(4, 1.116);   f->SetParLimits(4, 1.11, 1.12);
-    // f->SetParameter(5, 5e-3);  f->SetParLimits(5, 1e-4, 1e-2);
-    f->FixParameter(3, 10000e3);
-    f->FixParameter(4, MassLambda0);
-    f->FixParameter(5, 5e-4);
-
-    printParLimits(f);
-    data->Fit(f, "RSBQ0");
-    printParLimits(f);
-    setStyle(f, 1);
-
-    canvas->cd(1);
-    TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "counts");
-    frame->SetTitle((dataSet + ", " + ptText).c_str());
-    gPad->SetRightMargin(0.05);
-    gPad->SetBottomMargin(0.05);
-    gPad->SetLeftMargin(0.15);
-    gPad->SetTopMargin(0.1);
-    frame->GetYaxis()->SetTitleOffset(1.0);
-    frame->Draw();
-    data->Draw("same");
-    f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
-
-    canvas->cd(2);
-    TH1* residual = makeResidual(data, f);
-    residual->SetName("residual");
-    setStyle(residual, 1);
-
-    yMinFrame = 1.1 * getHistLowerBound(residual, false);
-    yMaxFrame = 1.1 * getHistScale(residual, false);
-    TH1F* resframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, "residual");
-    gPad->SetRightMargin(0.05);
-    gPad->SetBottomMargin(0.15);
-    gPad->SetLeftMargin(0.15);
-    gPad->SetTopMargin(0.05);
-    resframe->GetYaxis()->SetTitleOffset(1.0);
-    resframe->Draw();
-    residual->Draw("same");
+  partframe->Draw();
+  data->Draw("same");
+  for (auto g : functions) {
+    g->Draw("same"); //g->SetRange(xMinFrame, xMaxFrame);
   }
-
-  canvas->SaveAs(canvas->GetName());
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  partcanvas->SaveAs(partcanvas->GetName());
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -2053,6 +1963,9 @@ void plotTrain(int train, string hadron, double v0min, double v0max, int setting
       break;
     case 4:
       plotPol2GausExp(inputStrings, v0min, v0max);
+      break;
+    case 5:
+      plotPol1GausGausExp(inputStrings, v0min, v0max);
       break;
   }
 }

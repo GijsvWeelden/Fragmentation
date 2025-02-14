@@ -1446,7 +1446,7 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
 // ----------------------------------------------------------
 // ----------------------------------------------------------
 
-string getDataSet(int train)
+string localGetDataSet(int train)
 {
   if (252064 == train) return "LHC22o_pass6";
   return "Could not find dataset";

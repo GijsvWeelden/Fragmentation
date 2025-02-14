@@ -638,7 +638,7 @@ void plotNV0sInJet(vector<string> inputStrings, double jetptmin, double jetptmax
 // -------------------------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------------------
 
-string getDataSet(int train)
+string localGetDataSet(int train)
 {
   if (210373 == train) return "LHC24b1b";
   if (271952 == train) return "LHC24b1b";

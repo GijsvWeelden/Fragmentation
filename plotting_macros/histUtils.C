@@ -25,6 +25,17 @@
 
 #ifndef HISTUTILS_H
 #define HISTUTILS_H
+
+string getDataSet(int train)
+{
+  if (210373 == train) return "LHC24b1b";
+  if (252064 == train) return "LHC22o_pass6";
+  if (271952 == train) return "LHC24b1b";
+  if (280432 == train) return "LHC24g4";
+  if (282430 == train) return "LHC22o_pass7_small";
+  return "Could not find dataset";
+}
+
 template <typename T>
 T loadHist(TFile* inFile, string histName)
 {

@@ -45,7 +45,7 @@ then
   }
   environment="(bash)"
   workdir="\[\e[1;35m\]\w"
-  gitstring="\[\e[38;5;99m\]$(__git_ps1)"
+  gitstring="\[\e[38;5;99m\]\$(__git_ps1)"
   promptend="\[\e[0m\]% "
   if [[ x${O2PHYSICS_ROOT} != x ]]; then
     environment=${O2PHYSICS_ROOT##*/}

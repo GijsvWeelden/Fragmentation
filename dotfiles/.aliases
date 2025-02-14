@@ -33,7 +33,7 @@ alias xcodeversion="pkgutil --pkg-info=com.apple.pkg.CLTools_Executables"
 # For git
 alias gl="GITLOG"
 function GITLOG() {
-  if [[ $PWD == ~/alice/O2Physics* ]]; then
+  if [[ $PWD == */alice/O2Physics* ]]; then
     git log --name-only upstream/master~1..
   else
     git log --name-only origin/main~1..

@@ -30,14 +30,21 @@ alias thesisdir="cd ${FRAGMENTATION_DIR}/../Thesis-Jet-Fragmentation"
 
 alias xcodeversion="pkgutil --pkg-info=com.apple.pkg.CLTools_Executables"
 
-# For git
+# Show git commits since last pull from master/main
+# In O2Physics, compare to upstream, not origin
 alias gl="GITLOG"
 function GITLOG() {
+  local remote="origin"
+  local branch="master"
+
   if [[ $PWD == */alice/O2Physics* ]]; then
-    git log --name-only upstream/master~1..
-  else
-    git log --name-only origin/main~1..
+    remote="upstream"
   fi
+  eval "git rev-parse ${remote}/${branch} > /dev/null 2>&1"
+  if [[ $? -ne 0 ]]; then
+    branch="main"
+  fi
+  eval "git log --name-only ${remote}/${branch}~1.."
 }
 
 alias ls="ls --color -GF"

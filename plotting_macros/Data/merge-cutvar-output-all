@@ -1,0 +1,76 @@
+
+./merge -h K0S -a R -m 2
+./merge -h K0S -a R -m 3
+./merge -h K0S -a R -m 4
+
+./merge -h K0S -a ctau -m 2
+./merge -h K0S -a ctau -m 3
+./merge -h K0S -a ctau -m 4
+
+./merge -h K0S -a cosPA -m 2
+./merge -h K0S -a cosPA -m 3
+./merge -h K0S -a cosPA -m 4
+
+./merge -h K0S -a DCAp -m 2
+./merge -h K0S -a DCAp -m 3
+./merge -h K0S -a DCAp -m 4
+
+./merge -h K0S -a DCAn -m 2
+./merge -h K0S -a DCAn -m 3
+./merge -h K0S -a DCAn -m 4
+
+./merge -h K0S -a DCAd -m 2
+./merge -h K0S -a DCAd -m 3
+./merge -h K0S -a DCAd -m 4
+
+
+
+./merge -h Lambda0 -a R -m 2
+./merge -h Lambda0 -a R -m 3
+./merge -h Lambda0 -a R -m 4
+
+./merge -h Lambda0 -a ctau -m 2
+./merge -h Lambda0 -a ctau -m 3
+./merge -h Lambda0 -a ctau -m 4
+
+./merge -h Lambda0 -a cosPA -m 2
+./merge -h Lambda0 -a cosPA -m 3
+./merge -h Lambda0 -a cosPA -m 4
+
+./merge -h Lambda0 -a DCAp -m 2
+./merge -h Lambda0 -a DCAp -m 3
+./merge -h Lambda0 -a DCAp -m 4
+
+./merge -h Lambda0 -a DCAn -m 2
+./merge -h Lambda0 -a DCAn -m 3
+./merge -h Lambda0 -a DCAn -m 4
+
+./merge -h Lambda0 -a DCAd -m 2
+./merge -h Lambda0 -a DCAd -m 3
+./merge -h Lambda0 -a DCAd -m 4
+
+
+
+./merge -h AntiLambda0 -a R -m 2
+./merge -h AntiLambda0 -a R -m 3
+./merge -h AntiLambda0 -a R -m 4
+
+./merge -h AntiLambda0 -a ctau -m 2
+./merge -h AntiLambda0 -a ctau -m 3
+./merge -h AntiLambda0 -a ctau -m 4
+
+./merge -h AntiLambda0 -a cosPA -m 2
+./merge -h AntiLambda0 -a cosPA -m 3
+./merge -h AntiLambda0 -a cosPA -m 4
+
+./merge -h AntiLambda0 -a DCAp -m 2
+./merge -h AntiLambda0 -a DCAp -m 3
+./merge -h AntiLambda0 -a DCAp -m 4
+
+./merge -h AntiLambda0 -a DCAn -m 2
+./merge -h AntiLambda0 -a DCAn -m 3
+./merge -h AntiLambda0 -a DCAn -m 4
+
+./merge -h AntiLambda0 -a DCAd -m 2
+./merge -h AntiLambda0 -a DCAd -m 3
+./merge -h AntiLambda0 -a DCAd -m 4

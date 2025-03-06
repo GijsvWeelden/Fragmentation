@@ -22,7 +22,8 @@ DIGITS=${TRAINRUN:0:2}
 TESTID=00$DIGITS/00$TRAINRUN
 
 # make sure we are in the right directory...
-OUTPUTDIR=/Users/gijsvanweelden/Documents/TrainOutput
+# OUTPUTDIR=/Users/gijsvanweelden/Documents/TrainOutput
+OUTPUTDIR=$TRAIN_OUT_DIR
 [ ! -d "${OUTPUTDIR}" ] && echo "The directory for train output does not exist! Check that you know where you are writing to! Requested directory: ${OUTPUTDIR}" && exit 1
 # cd ${OUTPUTDIR}
 

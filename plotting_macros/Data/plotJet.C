@@ -25,6 +25,49 @@ double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 
 // -----------------------------------------------------------------------------
 
+// Plot jet pt of all jets (without V0s, with V0s (no corrections))
+double plotJetPt(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string fileName = inputStrings[0];
+  string dataSet  = inputStrings[1];
+  double njets = 0;
+
+  TFile* inFile = TFile::Open(fileName.c_str());
+  THnSparse* hNchjets = (THnSparse*)inFile->Get("jet-finder-data-charged/hJet");
+  hNchjets->Sumw2();
+  THnSparse* hNv0jets = (THnSparse*)inFile->Get("jet-finder-v0-data-charged/hJet");
+  hNv0jets->Sumw2();
+
+  TH1* chjets = (TH1*)hNchjets->Projection(1);
+  TH1* v0jets = (TH1*)hNv0jets->Projection(1);
+  array<int, 2> chbins = getProjectionBins(chjets->GetXaxis(), ptmin, ptmax);
+  array<int, 2> v0bins = getProjectionBins(v0jets->GetXaxis(), ptmin, ptmax);
+  njets = chjets->Integral(chbins[0], chbins[1]);
+
+  string saveName = "chJetPtV0JetPt.pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
+
+  string xTitle = "#it{p}_{T, jet} (GeV/#it{c})";
+  string yTitle = "counts";
+  // double xMinFrame = chjets->GetXaxis()->GetXmin(), xMaxFrame = chjets->GetXaxis()->GetXmax();
+  double xMinFrame = chjets->GetXaxis()->GetXmin(), xMaxFrame = 100.;
+  double yMinFrame = 0., yMaxFrame = 1.5 * getHistUpperBound(chjets, true);
+  yMinFrame = -1. * yMaxFrame;
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle(dataSet.c_str());
+
+  TLegend* legend = CreateLegend(0.45, 0.85, 0.62, 0.9, "", 0.04);
+  setStyle(chjets, 0); legend->AddEntry(chjets, "Ch jets (incl)");
+  setStyle(v0jets, 1); legend->AddEntry(v0jets, "Ch+V0 jets (incl)");
+
+  canvas->cd();
+  frame->Draw();
+  legend->Draw("same");
+  chjets->Draw("same hist");
+  v0jets->Draw("same hist");
+  canvas->SaveAs(saveName.c_str());
+  return njets;
+}
 void plotJetPtWithV0s(string inName = "AnalysisResults.root", bool doRatio = false)
 {
   const int nDim = 5;
@@ -380,3 +423,25 @@ void plotJetEtaPhi(string inName = "AnalysisResults.root", double jetptmin = 10.
   if (latexText != "") { DrawLatex(0.2, 0.93, latexText.c_str(), textSize); }
   myCanvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
+
+void plotTrain(int train, int setting, double jetmin, double jetmax)
+{
+  string inName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
+  string dataSet = getDataSet(train);
+  vector<string> inputStrings = {inName, dataSet};
+
+  switch(setting) {
+    case 0:
+      {
+        if (train < 350e3) cout << "Warning: unexpected results from nJets < 0!" << endl;
+        double njets = plotJetPt(inputStrings, jetmin, jetmax);
+        cout << "Njets = " << njets << endl;
+      }
+      break;
+    default:
+      cout << "Invalid setting!" << endl;
+  }
+}
+
+void plot349871(int setting, double jetmin = -1., double jetmax = 1e6)
+{ plotTrain(349871, setting, jetmin, jetmax); }

@@ -15,8 +15,8 @@
 
 #include "../histUtils.C"
 
-const double MassK0S = 0.497611;
-const double MassLambda0 = 1.115683;
+// const double MassK0S = 0.497611;
+// const double MassLambda0 = 1.115683;
 
 void plotV0Pt(string inName = "AnalysisResults.root", string dataSet = "dataSet")
 {
@@ -768,12 +768,71 @@ void plotV0massLL(string inName = "AnalysisResults.root", string dataSet = "data
   myCanvas->SaveAs(myCanvas->GetName());
 }
 
-void plot22o(double ptmin, double ptmax, int setting)
-{
-  string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
-  string dataSet = "LHC22o_pass6";
+// ----------------------------------------------------------
 
-  switch(setting) {
+// Compare mass of V0s with R cut to mass of uncut V0s
+// Can't do this yet, because I don't have a R vs M hist
+void plotV0Rcheck(int train, string hadron, double ptmin, double ptmax)
+{
+  string inName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
+  string dataSet = getDataSet(train);
+
+  saveName = hadron;
+  saveName += "_Rs";
+  saveName += "_v0pt%.0f-%.0f", v0ptmin, v0ptmax;
+  saveName = TString::Format("%s.pdf", saveName.c_str());
+  TCanvas* myCanvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
+  if (setLogY) { myCanvas->SetLogy(); }
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
+
+  histName = "jet-fragmentation";
+  if (train == 349871) histName += "_id24580";
+  histName += "/data/V0/"
+  histName += hadron;
+  histName += "PtRadiusCosPA";
+  TFile *inFile = TFile::Open(inName.c_str());
+  TH3D* th3 = (TH3D*)inFile->Get(histName.c_str());
+
+  array<int, 2> ptBins = getProjectionBins(th3->GetXaxis(), ptmin, ptmax);
+  double lowpt = th3->GetXaxis()->GetBinLowEdge(ptBins[0]);
+  double highpt = th3->GetXaxis()->GetBinUpEdge(ptBins[1]);
+  double rMin = 0., rMax = 40.;
+  array<int, 2> rBins = getProjectionBins(th3->GetYaxis(), rMin, rMax);
+
+  TH1* mass = (TH1*)th3->ProjectionZ("mass", ptBins[0], ptBins[1], 1, th3->GetNbinsY());
+  TH1* cut  = (TH1*)th3->ProjectionZ("cut", ptBins[0], ptBins[1], rBins[0], rBins[1]);
+  setStyle(mass, 0);
+  setStyle(cut, 1);
+  mass->Rebin(4); cut->Rebin(4);
+
+  double xMinFrame = mass->GetXaxis()->GetXmin(), xMaxFrame = mass->GetXaxis()->GetXmax();
+  double yMinFrame = 0, yMaxFrame = 1.1 * getHistUpperBound(mass);
+  // double xMinLegend = 0.5, xMaxLegend = 0.9, yMinLegend = 0.6, yMaxLegend = 0.8;
+  xTitle = formatHadronDaughters(hadron).c_str();
+  yTitle = "counts";
+  string ptText = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/c", hadron.c_str(), lowpt, highpt).Data();
+
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle((dataset + ", " + ptText).c_str());
+  frame->Draw();
+  mass->Draw("same");
+  cut->Draw("same");
+  canvas->SaveAs(saveName);
+}
+
+// =================================================================================================
+// =================================================================================================
+// =================================================================================================
+// =================================================================================================
+
+void plotTrain(int train, int setting, double ptmin, double ptmin)
+{
+  string inName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
+  string dataSet = getDataSet(train);
+  vector<string> inputStrings = {inName, dataSet};
+
+    switch(setting) {
     case 0:
       plotV0Radius(inName, dataSet, ptmin, ptmax);
       break;
@@ -805,11 +864,69 @@ void plot22o(double ptmin, double ptmax, int setting)
       return;
   }
 }
-
-void plot22o(int setting)
+void plotTrain(int train, int setting, string hadron, double ptmin, double ptmax)
 {
-  vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
-  for (int i = 0; i < pt.size() - 1; i++) {
-    plot22o(pt[i], pt[i + 1], setting);
+  string inName = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
+  string dataSet = getDataSet(train);
+  vector<string> inputStrings = {inName, dataSet, hadron};
+
+  switch(setting) {
+    case 0:
+      plotV0Rcheck(inputStrings, ptmin, ptmax);
+      return;
+    default:
+      cout << "Invalid setting!" << endl;
+      return;
   }
 }
+
+void plot252064(int setting, double ptmin, double ptmax)
+{ plotTrain(252064, setting, ptmin, ptmax); }
+void plot252064(int setting, string hadron, double ptmin, double ptmax)
+{ plotTrain(252064, setting, hadron, ptmin, ptmax); }
+
+// void plot22o(double ptmin, double ptmax, int setting)
+// {
+//   string inName = "~/cernbox/TrainOutput/252064/AnalysisResults.root";
+//   string dataSet = "LHC22o_pass6";
+
+//   switch(setting) {
+//     case 0:
+//       plotV0Radius(inName, dataSet, ptmin, ptmax);
+//       break;
+//     case 1:
+//       plotV0CosPA(inName, dataSet, ptmin, ptmax);
+//       break;
+//     case 2:
+//       plotV0DCAdaughters(inName, dataSet, ptmin, ptmax);
+//       break;
+//     case 3:
+//       plotV0DCApos(inName, dataSet, ptmin, ptmax);
+//       break;
+//     case 4:
+//       plotV0DCAneg(inName, dataSet, ptmin, ptmax);
+//       return;
+//     case 5:
+//       plotV0ctau(inName, dataSet, 1, ptmin, ptmax);
+//       plotV0ctau(inName, dataSet, 2, ptmin, ptmax);
+//       plotV0ctau(inName, dataSet, 3, ptmin, ptmax);
+//       return;
+//     case 6:
+//       plotV0massKL(inName, dataSet, ptmin, ptmax);
+//       return;
+//     case 7:
+//       plotV0massLL(inName, dataSet, ptmin, ptmax);
+//       return;
+//     default:
+//       cout << "Invalid setting!" << endl;
+//       return;
+//   }
+// }
+
+// void plot22o(int setting)
+// {
+//   vector<double> pt = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 40.0};
+//   for (int i = 0; i < pt.size() - 1; i++) {
+//     plot22o(pt[i], pt[i + 1], setting);
+//   }
+// }

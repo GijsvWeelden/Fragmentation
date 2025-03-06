@@ -15,8 +15,6 @@
 
 #include "../histUtils.C"
 
-const double MassK0S = 0.497611;
-const double MassLambda0 = 1.115683;
 gStyle->SetNdivisions(505, "xy");
 
 int getLastFilledRowOrCol(TH2* h, bool doRow, double threshold = 1e-5)
@@ -528,6 +526,78 @@ void itslayer(vector<string> inputStrings, double v0min, double v0max, bool norm
     line->Draw("same");
     for (auto h : hists) h->Draw("same");
   }
+  canvas->SaveAs(saveName.c_str());
+}
+
+// Compare ITS 7 vs all V0s
+void itsVsAll(vector<string> inputStrings, double v0min, double v0max, bool normalise, int layer)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+
+  TLegend* legend = CreateLegend(0.25, 0.85, 0.62, 0.9, "", 0.04);
+  bool fullHists[2] = {false, false};
+
+  TH1D* posmass = itslayer(inputStrings, v0min, v0max, true, layer);
+  if (posmass) {
+    fullHists[0] = !isHistEmptyInRange(posmass, 1, posmass->GetNbinsX(), 1.);
+    posmass->SetName(("posITS" + to_string(layer) + hadron + posmass->GetName()).c_str());
+  }
+  TH1D* negmass = itslayer(inputStrings, v0min, v0max, false, layer);
+  if (negmass) {
+    fullHists[1] = !isHistEmptyInRange(negmass, 1, negmass->GetNbinsX(), 1.);
+    negmass->SetName(("negITS" + to_string(layer) + hadron + negmass->GetName()).c_str());
+  }
+
+  TFile* inFile = TFile::Open(inName.c_str());
+  THnSparseD* ptmass  = (THnSparseD*)inFile->Get("jet-v0qa/tracks/PtMass");
+  int projectionAxis = (hadron == "K0S")*3 + (hadron == "Lambda0")*4 + (hadron == "AntiLambda0")*5;
+  array<int, 2> v0bins = getProjectionBins(ptmass->GetAxis(0), v0min, v0max);
+  ptmass->GetAxis(0)->SetRange(v0bins[0], v0bins[1]);
+  TH1D* mass = (TH1D*)ptmass->Projection(projectionAxis);
+
+  setStyle(mass, 0); mass->Rebin(4);
+  legend->AddEntry(mass, "All V0s");
+  if (fullHists[0]) {
+    setStyle(posmass, 1, 0.1); posmass->Rebin(4);
+    string posLegendEntry = "Pos daughter in ITS" + to_string(layer);
+    legend->AddEntry(posmass, posLegendEntry.c_str());
+  }
+  if (fullHists[1]) {
+    setStyle(negmass, 2, 0.1); negmass->Rebin(4);
+    string negLegendEntry = "Neg daughter in ITS" + to_string(layer);
+    legend->AddEntry(negmass, negLegendEntry.c_str());
+  }
+
+  string saveName = "ITS";
+  saveName += to_string(layer);
+  saveName += "VsAll_m";
+  saveName += hadron;
+  saveName += TString::Format("_v0pt%.1f-%.1f", v0min, v0max).Data();
+  if (!normalise) saveName += "_counts";
+  saveName += ".pdf";
+  TCanvas* canvas = new TCanvas(saveName.c_str(), saveName.c_str(), 900, 900);
+
+  string ptText = TString::Format("#it{p}_{T, V0} = %.1f - %.1f GeV/#it{c}", v0min, v0max).Data();
+  string xTitle = "M(" + formatHadronDaughters(hadron) + ")";
+  string yTitle = "Counts";
+  if (normalise) yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
+  double xMinFrame = mass->GetXaxis()->GetXmin(), xMaxFrame = mass->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.5 * getHistScale(mass, normalise);
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle((dataSet + ", " + ptText).c_str());
+
+  // double mass = (hadron == "K0S") ? MassK0S : MassLambda0;
+  // TLine* line = new TLine(mass, yMinFrame, mass, 0.6*yMaxFrame);
+  // setStyle(line, 0);
+
+  canvas->cd();
+  frame->Draw();
+  legend->Draw("same");
+  mass->Draw("same");
+  if (fullHists[0]) posmass->Draw("same");
+  if (fullHists[1]) negmass->Draw("same");
   canvas->SaveAs(saveName.c_str());
 }
 
@@ -1129,12 +1199,12 @@ void radius(vector<string> inputStrings, double v0min, double v0max, bool normal
 // -------------------------------------------------------------------------------------------------
 
 
-string getDataSet(int train)
-{
-  if (252064 == train) return "LHC22o_pass6";
-  if (282430 == train) return "LHC22o_pass7_small";
-  return "Could not find dataset";
-}
+// string getDataSet(int train)
+// {
+//   if (252064 == train) return "LHC22o_pass6";
+//   if (282430 == train) return "LHC22o_pass7_small";
+//   return "Could not find dataset";
+// }
 
 void plotTrain(int train, string hadron, double v0min, double v0max, int setting)
 {
@@ -1162,9 +1232,8 @@ void plotTrain(int train, string hadron, double v0min, double v0max, int setting
       {
         vector<int> layers = { 1, 2, 3, 4, 5, 6, 7, 56, 57, 67, 567};
         for (auto layer : layers) {
-          itslayer(inputStrings, v0min, v0max, false, false, layer);
+          itslayer(inputStrings, v0min, v0max, false, true, layer);
         }
-        // itslayer(inputStrings, v0min, v0max, false, true, 567);
       }
       break;
     case 6:
@@ -1198,9 +1267,16 @@ void plotTrain(int train, string hadron, double v0min, double v0max, int setting
     case 15:
       radius(inputStrings, v0min, v0max, false, true);
       break;
+    case 16:
+      {
+        vector<int> layers = { 1, 2, 3, 4, 5, 6, 7, 56, 57, 67, 567};
+        for (auto layer : layers) {
+          itsVsAll(inputStrings, v0min, v0max, false, layer);
+        }
+      }
+      break;
     default:
       cout << "Invalid setting!" << endl;
-      break;
   }
 }
 void plotTrain(int train, string hadron, int setting)
@@ -1220,4 +1296,8 @@ void plot282430(string hadron, double v0min, double v0max, int setting)
 void plot282430(string hadron, int setting)
 {
   plotTrain(282430, hadron, setting);
+}
+void plot349872(string hadron, double v0min, double v0max, int setting)
+{
+  plotTrain(349872, hadron, v0min, v0max, setting);
 }

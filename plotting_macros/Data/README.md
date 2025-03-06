@@ -8,13 +8,16 @@ Runs `plotCutVariation.C`
 Specify input, data set, hadron, variable to investigate, pt, fit settings and rebinning.
 
 # v0cutvar
-Same as `v0cutvarsingle`, but runs all variables
+Same as `v0cutvarsingle`, but runs all variables.
 
 # plotJet.C
 # plotPurity.C
 # plotV0.C
 # plotV0MassinJet.C
 # plotV0inJet.C
+
+# plotTrackQA.C
+QA plots for V0 tracks.
 
 # merge
 Merges plots outputted by `plotCutVariation.C`

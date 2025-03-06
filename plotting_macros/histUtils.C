@@ -26,14 +26,25 @@
 #ifndef HISTUTILS_H
 #define HISTUTILS_H
 
+// GLOBAL SETTINGS !!!
+const double MassK0S = 0.497611;
+const double MassLambda0 = 1.115683;
+gStyle->SetNdivisions(505, "xy");
+
+// Helpful functions
 string getDataSet(int train)
 {
-  if (210373 == train) return "LHC24b1b";
-  if (252064 == train) return "LHC22o_pass6";
-  if (271952 == train) return "LHC24b1b";
-  if (280432 == train) return "LHC24g4";
-  if (282430 == train) return "LHC22o_pass7_small";
-  return "Could not find dataset";
+  switch (train) {
+    case 210373: return "LHC24b1b";
+    case 252064: return "LHC22o_pass6";
+    case 271952: return "LHC24b1b";
+    case 280432: return "LHC24g4";
+    case 282430: return "LHC22o_pass7_small";
+    case 350079: return "LHC22o_pass7_small";
+    case 349872: return "LHC22o_pass7_small";
+    case 349871: return "LHC24g4";
+    default:     return "Could not find dataset";
+  }
 }
 
 template <typename T>
@@ -374,32 +385,60 @@ bool isHistEmptyInRange(TH2* h, int xlow, int xhigh, int ylow, int yhigh, double
   return isHistEmptyInRange(h->ProjectionX("px", ylow, yhigh), xlow, xhigh, threshold);
 }
 
-// Returns the scale for drawing histogram. Accounts for bin content and error
-double getHistScale(TH1* h, bool doError)
+// Returns the upper or lower bound for drawing histogram. Optionally accounts for error
+double getHistScale(TH1* h, bool doError, bool doMin = false)
 {
-  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
-
-  double scale = -900.;
+  int bin;
+  if (!doError) {
+    bin = doMin ? h->GetMinimumBin() : h->GetMaximumBin();
+    return h->GetBinContent(bin);
+  }
+  // Initialise with max/min bin content to ensure scale is overwritten when checking min/max
+  bin = doMin ? h->GetMaximumBin() : h->GetMinimumBin();
+  double scale = h->GetBinContent(bin);
   for (int i = 1; i <= h->GetNbinsX(); i++) {
     double bc = h->GetBinContent(i);
     double be = h->GetBinError(i);
-    double s = be + bc;
-    scale = max(scale, s);
+    if (doMin) scale = min(scale, bc - be);
+    else scale = max(scale, bc + be);
   }
   return scale;
 }
-double getHistScale(vector<TH1*> v, bool doError, bool doSum)
+double getHistScale(vector<TH1*> v, bool doError, bool doSum, bool doMin = false)
 {
-  double scale = 0.;
-  for (auto h : v) {
-    double s = getHistScale(h, doError);
-    // This only works if the maximums are in similar spots, summing the hists would only work if the hists have the same ranges
-    if (doSum)
-      scale += s;
-    else
-      scale = max(scale, s);
+  double scale = 0;
+  if (doSum) {
+    TH1* sum = (TH1*)v[0]->Clone("sum");
+    sum->Reset();
+    for (auto h : v) sum->Add(h);
+    scale = getHistScale(sum, doError, doMin);
+  }
+  else {
+    for (auto h : v) {
+      double s = getHistScale(h, doError, doMin);
+      if (doMin) scale = min(scale, s);
+      else scale = max(scale, s);
+    }
   }
   return scale;
+}
+// Returns the lower bound for drawing histogram. Optionally accounts for error
+double getHistLowerBound(TH1* h, bool doError)
+{
+  return getHistScale(h, doError, true);
+}
+double getHistLowerBound(vector<TH1*> v, bool doError, bool doSum)
+{
+  return getHistScale(v, doError, doSum, true);
+}
+// Returns the upper bound for drawing histogram. Optionally accounts for error
+double getHistUpperBound(TH1* h, bool doError)
+{
+  return getHistScale(h, doError, false);
+}
+double getHistUpperBound(vector<TH1*> v, bool doError, bool doSum)
+{
+  return getHistScale(v, doError, doSum, false);
 }
 
 // Set histogram colours and markers

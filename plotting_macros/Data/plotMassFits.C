@@ -27,52 +27,72 @@ string localGetDataSet(int train)
   return "Could not find dataset";
 }
 
-double getHistLowerBound(TH1* h, bool doError)
+vector<double> polparams(vector<double> x, vector<double> y)
 {
-  if (!doError) { return h->GetBinContent(h->GetMinimumBin()); }
+  if (x.size() != y.size()) {
+    cout << "Error: polparams vectors must have the same size!" << endl;
+    return {};
+  }
+  if (x.size() == 2) { // pol1
+    double a = (y[1] - y[0]) / (x[1] - x[0]);
+    double b = y[0] - a * x[0];
+    return {b, a};
+  }
+  if (x.size() == 3) { // pol2
+    double c = ( (y[2]-y[1])/(x[2]-x[1]) - (y[1]-y[0])/(x[1]-x[0]) ) / (x[2]-x[0]);
+    double b = (y[1]-y[0])/(x[1]-x[0]) - c*(x[1]+x[0]);
+    double a = y[0] - b*x[0] - c*x[0]*x[0];
+    return {a, b, c};
+  }
+  return {};
+}
 
-  double scale = 900.;
-  for (int i = 1; i <= h->GetNbinsX(); i++) {
-    double bc = h->GetBinContent(i);
-    double be = h->GetBinError(i);
-    scale = min(scale, bc - be);
-  }
-  return scale;
-}
-double getHistLowerBound(vector<TH1*> h, bool doError, bool doSum)
-{
-  double scale = 900.;
-  for (auto i : h) {
-    if (doSum)
-      scale += getHistLowerBound(i, doError);
-    else
-      scale = min(scale, getHistLowerBound(i, doError));
-  }
-  return scale;
-}
-double getHistUpperBound(TH1* h, bool doError)
-{
-  if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
+// double getHistLowerBound(TH1* h, bool doError)
+// {
+//   if (!doError) { return h->GetBinContent(h->GetMinimumBin()); }
 
-  double scale = 0.;
-  for (int i = 1; i <= h->GetNbinsX(); i++) {
-    double bc = h->GetBinContent(i);
-    double be = h->GetBinError(i);
-    scale = max(scale, bc + be);
-  }
-  return scale;
-}
-double getHistUpperBound(vector<TH1*> h, bool doError, bool doSum)
-{
-  double scale = -900.;
-  for (auto i : h) {
-    if (doSum)
-      scale += getHistUpperBound(i, doError);
-    else
-      scale = max(scale, getHistUpperBound(i, doError));
-  }
-  return scale;
-}
+//   double scale = 900.;
+//   for (int i = 1; i <= h->GetNbinsX(); i++) {
+//     double bc = h->GetBinContent(i);
+//     double be = h->GetBinError(i);
+//     scale = min(scale, bc - be);
+//   }
+//   return scale;
+// }
+// double getHistLowerBound(vector<TH1*> h, bool doError, bool doSum)
+// {
+//   double scale = 900.;
+//   for (auto i : h) {
+//     if (doSum)
+//       scale += getHistLowerBound(i, doError);
+//     else
+//       scale = min(scale, getHistLowerBound(i, doError));
+//   }
+//   return scale;
+// }
+// double getHistUpperBound(TH1* h, bool doError)
+// {
+//   if (!doError) { return h->GetBinContent(h->GetMaximumBin()); }
+
+//   double scale = 0.;
+//   for (int i = 1; i <= h->GetNbinsX(); i++) {
+//     double bc = h->GetBinContent(i);
+//     double be = h->GetBinError(i);
+//     scale = max(scale, bc + be);
+//   }
+//   return scale;
+// }
+// double getHistUpperBound(vector<TH1*> h, bool doError, bool doSum)
+// {
+//   double scale = -900.;
+//   for (auto i : h) {
+//     if (doSum)
+//       scale += getHistUpperBound(i, doError);
+//     else
+//       scale = max(scale, getHistUpperBound(i, doError));
+//   }
+//   return scale;
+// }
 
 array<double, 2> getRange(TH1* h, string hadron, double ptmin, double ptmax, string range)
 {
@@ -527,18 +547,18 @@ void setFitParametersPol1GausGaus(TF1* f, string hadron, double ptmin, double pt
       f->SetParameter(3, mass);         f->SetParLimits(3, 0.48, 0.51);
       f->SetParameter(4, signalWidth);  f->SetParLimits(4, 1e-3, 2e-2);
       f->SetParameter(5, gAmp);         f->SetParLimits(5, 0., 10. * gAmp);
-      f->SetParameter(6, gWidth);        f->SetParLimits(6, 1e-2, 0.1);
+      f->SetParameter(6, gWidth);       f->SetParLimits(6, 1e-2, 0.1);
     } else if (ptmin > 4.9 && ptmax < 10.1) {
       pOffset = 20e3; pSlope = -1e3;
       peakVal = 2.80851e+06;
-      gAmp = 100e6; gWidth = 2e-2;
+      gAmp = 1e6; gWidth = 2e-2;
       f->SetParameter(0, pOffset);      f->SetParLimits(0, 0., 15. * pOffset);
       f->SetParameter(1, pSlope);       f->SetParLimits(1, 1e3 * pSlope, 0.);
       f->SetParameter(2, peakVal);      f->SetParLimits(2, 0.8 * peakVal, 2 * peakVal);
       f->SetParameter(3, mass);         f->SetParLimits(3, 0.48, 0.51);
       f->SetParameter(4, signalWidth);  f->SetParLimits(4, 1e-3, 2e-2);
       f->SetParameter(5, gAmp);         f->SetParLimits(5, gAmp / 10., 2. * gAmp);
-      f->SetParameter(6, gWidth);        f->SetParLimits(6, 1e-2, 0.1);
+      f->SetParameter(6, gWidth);       f->SetParLimits(6, 1e-2, 0.1);
     } else if (ptmin > 9.9 && ptmax < 15.1) {
       pOffset = -7e3; pSlope = 22e3;
       peakVal = 70e3;
@@ -549,7 +569,7 @@ void setFitParametersPol1GausGaus(TF1* f, string hadron, double ptmin, double pt
       f->SetParameter(3, mass);         f->SetParLimits(3, 0.48, 0.51);
       f->SetParameter(4, signalWidth);  f->SetParLimits(4, 1e-3, 2e-2);
       f->SetParameter(5, gAmp);         f->SetParLimits(5, gAmp / 2., 2.5 * gAmp);
-      f->SetParameter(6, gWidth);        f->SetParLimits(6, 1e-2, 0.1);
+      f->SetParameter(6, gWidth);       f->SetParLimits(6, 1e-2, 0.1);
     } else {
       cout << "Cannot determine fit parameters for " << hadron << " in pt range " << ptmin << " - " << ptmax << endl;
     }
@@ -1547,6 +1567,13 @@ void plotPol1GausGaus(vector<string> inputStrings, double ptmin, double ptmax)
   // Enforce same mean for both Gaussians
   double fitmin = 0.45, fitmax = 0.55;
   TF1* f = new TF1("f", "[0] + [1]*x + [2] * TMath::Gaus(x, [3], [4]) + [5] * TMath::Gaus(x, [3], [6])", fitmin, fitmax);
+  double a = 20e3, b = -1e3, A = 3e6, mu = MassK0S, sigma = 1e-2, B = 3e5, rho = 2e-2;
+  double x0 = 0.45, y0 = data->GetBinContent(data->FindBin(x0 + 1e-3));
+  double x1 = 0.55, y1 = data->GetBinContent(data->FindBin(x1 - 1e-3));
+  b = (y1 - y0) / (x1 - x0);
+  a = y0 - b * x0;
+
+  // f->SetParameters(a, b, A, mu, sigma, B, rho);
   setFitParametersPol1GausGaus(f, hadron, ptmin, ptmax);
   printParLimits(f);
   data->Fit(f, "RSBQ0");
@@ -1618,9 +1645,7 @@ void plotPol2GausGaus(vector<string> inputStrings, double ptmin, double ptmax)
 
   // Enforce same mean for both Gaussians
   double fitmin = 0.45, fitmax = 0.55;
-  TF1* f = new TF1("f", "[0] + [1]*x + [2]*x*x
-                        +[3] * TMath::Gaus(x, [4], [5])
-                        +[6] * TMath::Gaus(x, [4], [7])",
+  TF1* f = new TF1("f", "[0] + [1]*x + [2]*x*x +[3] * TMath::Gaus(x, [4], [5]) +[6] * TMath::Gaus(x, [4], [7])",
                    fitmin, fitmax);
   double a = 20e3, b = -1e3, c = -1e3, A = 3e6, mu = MassK0S, sigma = 1e-2, B = 3e5, rho = 2e-2;
   f->SetParameters(a, b, c, A, mu, sigma, B, rho);
@@ -1711,8 +1736,8 @@ void plotPol1GausExp(vector<string> inputStrings, double ptmin, double ptmax)
   if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
 
   double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
-  double yMinFrame = getHistLowerBound(data, false), yMaxFrame = 1.1 * getHistUpperBound(data, false);
-  if (logplot) yMinFrame /= 2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame = getHistLowerBound(data, false)/2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
   string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
   string yTitle = "counts";
   string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
@@ -1791,8 +1816,8 @@ void plotPol2GausExp(vector<string> inputStrings, double ptmin, double ptmax)
   if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
 
   double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
-  double yMinFrame = getHistLowerBound(data, false), yMaxFrame = 1.1 * getHistUpperBound(data, false);
-  if (logplot) yMinFrame /= 2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame = getHistLowerBound(data, false)/2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
   string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
   string yTitle = "counts";
   string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
@@ -1856,10 +1881,7 @@ void plotPol1GausGausExp(vector<string> inputStrings, double ptmin, double ptmax
 
   // Enforce same mean for both Gaussians
   double fitmin = 0.45, fitmax = 0.55;
-  TF1* f = new TF1("f", "[0]+[1]*x
-                        +[2]*TMath::Gaus(x,[3],[4]) * (x < ([3]+[4]*[5]))
-                        +[2]*TMath::Exp(-1.*(x - ([3]+[4]*[5]/2))/([4]/[5])) * (x > [3]+[4]*[5])
-                        +[6]*TMath::Gaus(x,[3],[7])",
+  TF1* f = new TF1("f", "[0]+[1]*x +[2]*TMath::Gaus(x,[3],[4]) * (x < ([3]+[4]*[5])) +[2]*TMath::Exp(-1.*(x - ([3]+[4]*[5]/2))/([4]/[5])) * (x > [3]+[4]*[5]) +[6]*TMath::Gaus(x,[3],[7])",
                    fitmin, fitmax);
 
   double a = 20e3, b = -1e3, A = 3e6, mu = MassK0S, sigma = 1e-2, lambda = 2., B = 3e5, rho = 2e-2;
@@ -1879,8 +1901,8 @@ void plotPol1GausGausExp(vector<string> inputStrings, double ptmin, double ptmax
   if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
 
   double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
-  double yMinFrame = getHistLowerBound(data, false), yMaxFrame = 1.1 * getHistUpperBound(data, false);
-  if (logplot) yMinFrame /= 2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame = getHistLowerBound(data, false)/2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
   string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
   string yTitle = "counts";
   string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
@@ -1901,7 +1923,7 @@ void plotPol1GausGausExp(vector<string> inputStrings, double ptmin, double ptmax
   TF1* exp  = new TF1("exp", "[0]*TMath::Exp(-1.*(x-([1]+[2]*[3]/2))/([2]/[3]))", mu + sigma * lambda, fitmax);
   TF1* gaus = new TF1("gaus", "[0]*TMath::Gaus(x, [1], [2])", fitmin, fitmax);
 
-  vector<TF1*> functions = {bkg, sig, exp};
+  vector<TF1*> functions = {bkg, sig, exp, gaus};
   setStyle(bkg, 2);
   setStyle(sig, 3);
   setStyle(exp, 3);
@@ -1930,6 +1952,422 @@ void plotPol1GausGausExp(vector<string> inputStrings, double ptmin, double ptmax
   partframe->Draw();
   data->Draw("same");
   for (auto g : functions) {
+    g->Draw("same"); //g->SetRange(xMinFrame, xMaxFrame);
+  }
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  partcanvas->SaveAs(partcanvas->GetName());
+}
+// Fit mass with pol2 + G(x) + [G(x) (x<a), e-x (x>a)]
+void plotPol2GausGausExp(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+  bool logplot = true;
+
+  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  setStyle(data, 0);
+
+  // Enforce same mean for both Gaussians
+  double fitmin = 0.45, fitmax = 0.55;
+  TF1* f = new TF1("f", "[0]+[1]*x+[2]*x*x +[3]*TMath::Gaus(x,[4],[5]) * (x < ([4]+[5]*[6])) +[3]*TMath::Exp(-1.*(x - ([4]+[5]*[6]/2))/([5]/[6])) * (x > [4]+[5]*[6]) +[7]*TMath::Gaus(x,[4],[8])",
+                   fitmin, fitmax);
+
+  double a = 20e3, b = -1e3, c = -1e3, A = 3e6, mu = MassK0S, sigma = 1e-2, lambda = 2., B = 3e5, rho = 2e-2;
+  f->SetParameters(a, b, c, A, mu, sigma, lambda, B, rho);
+  // printParLimits(f);
+  data->Fit(f, "RSBQ0");
+  // printParLimits(f);
+  setStyle(f, 1);
+
+  string saveName = hadron;
+  saveName += "_";
+  saveName += data->GetName(); // hist name contains pt range
+  saveName += "_fit=pol2+G+G+exp";
+  string fitName = saveName + ".pdf";
+  TCanvas* fitcanvas = new TCanvas(fitName.c_str(), fitName.c_str(), 1800, 900);
+  fitcanvas->cd();
+  if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
+
+  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame = getHistLowerBound(data, false)/2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  TH1F* fitframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  fitframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  fitframe->Draw();
+  data->Draw("same");
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  fitcanvas->SaveAs(fitcanvas->GetName());
+
+  // Plot parts
+  a = f->GetParameter(0), b = f->GetParameter(1), c = f->GetParameter(2);
+  A = f->GetParameter(3), mu = f->GetParameter(4), sigma = f->GetParameter(5), lambda = f->GetParameter(6);
+  B = f->GetParameter(7), rho = f->GetParameter(8);
+  TF1* bkg  = new TF1("bkg", "[0]+[1]*x+[2]*x*x", fitmin, fitmax);
+  TF1* sig  = new TF1("sig", "[0]*TMath::Gaus(x, [1], [2])", fitmin, mu + sigma * lambda);
+  TF1* exp  = new TF1("exp", "[0]*TMath::Exp(-1.*(x-([1]+[2]*[3]/2))/([2]/[3]))", mu + sigma * lambda, fitmax);
+  TF1* gaus = new TF1("gaus", "[0]*TMath::Gaus(x, [1], [2])", fitmin, fitmax);
+
+  vector<TF1*> functions = {bkg, sig, exp, gaus};
+  setStyle(bkg, 2);
+  setStyle(sig, 3);
+  setStyle(exp, 3);
+  setStyle(gaus, 4);
+
+  bkg->SetParameter(0, a);
+  bkg->SetParameter(1, b);
+  bkg->SetParameter(2, c);
+  sig->SetParameter(0, A);
+  sig->SetParameter(1, mu);
+  sig->SetParameter(2, sigma);
+  exp->SetParameter(0, A);
+  exp->SetParameter(1, mu);
+  exp->SetParameter(2, sigma);
+  exp->SetParameter(3, lambda);
+  gaus->SetParameter(0, B);
+  gaus->SetParameter(1, mu);
+  // printParLimits(bkg); printParLimits(sig); printParLimits(exp); printParLimits(gaus);
+
+  string partName = saveName + "_parts.pdf";
+  TCanvas* partcanvas = new TCanvas(partName.c_str(), partName.c_str(), 1800, 900);
+  partcanvas->cd();
+  if (logplot) partcanvas->SetLogy();
+  TH1F* partframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  partframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  partframe->Draw();
+  data->Draw("same");
+  for (auto g : functions) {
+    g->Draw("same"); //g->SetRange(xMinFrame, xMaxFrame);
+  }
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  partcanvas->SaveAs(partcanvas->GetName());
+}
+// Fit mass with pol1 + Breit-Wigner peak
+void plotPol1BreitWigner(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+  bool logplot = false;
+
+  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  setStyle(data, 0);
+
+  // Enforce same mean for both Gaussians
+  double fitmin = 0.45, fitmax = 0.55;
+  TF1* f = new TF1("f", "[0]+[1]*x + breitwigner(x,[2],[3],[4])",
+                   fitmin, fitmax);
+
+  double a = 20e3, b = -1e3, A = 3e6, mu = MassK0S, Gamma = 1e-2;
+  f->SetParameters(a, b, A, mu, Gamma);
+  printParLimits(f);
+  data->Fit(f, "RSBQ0");
+  printParLimits(f);
+  setStyle(f, 1);
+
+  string saveName = hadron;
+  saveName += "_";
+  saveName += data->GetName(); // hist name contains pt range
+  saveName += "_fit=pol1+BW";
+  string fitName = saveName + ".pdf";
+  TCanvas* fitcanvas = new TCanvas(fitName.c_str(), fitName.c_str(), 1800, 900);
+  fitcanvas->cd();
+  if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
+
+  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame = getHistLowerBound(data, false)/2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  TH1F* fitframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  fitframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  fitframe->Draw();
+  data->Draw("same");
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  fitcanvas->SaveAs(fitcanvas->GetName());
+
+  // Plot parts
+  a = f->GetParameter(0), b = f->GetParameter(1);
+  A = f->GetParameter(2), mu = f->GetParameter(3), Gamma = f->GetParameter(4);
+  TF1* bkg  = new TF1("bkg", "[0]+[1]*x", fitmin, fitmax);
+  TF1* sig  = new TF1("sig", "breitwigner(x,[0],[1],[2])", fitmin, fitmax);
+
+  vector<TF1*> functions = {bkg, sig};
+  setStyle(bkg, 2);
+  setStyle(sig, 3);
+
+  bkg->SetParameter(0, a);
+  bkg->SetParameter(1, b);
+  sig->SetParameter(0, A);
+  sig->SetParameter(1, mu);
+  sig->SetParameter(2, Gamma);
+  // printParLimits(bkg); printParLimits(sig); printParLimits(exp); printParLimits(gaus);
+
+  string partName = saveName + "_parts.pdf";
+  TCanvas* partcanvas = new TCanvas(partName.c_str(), partName.c_str(), 1800, 900);
+  partcanvas->cd();
+  if (logplot) partcanvas->SetLogy();
+  TH1F* partframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  partframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  partframe->Draw();
+  data->Draw("same");
+  for (auto g : functions) {
+    g->Draw("same"); //g->SetRange(xMinFrame, xMaxFrame);
+  }
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  partcanvas->SaveAs(partcanvas->GetName());
+}
+// Fit mass with pol2 + Breit-Wigner peak
+void plotPol2BreitWigner(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+  bool logplot = false;
+
+  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  setStyle(data, 0);
+
+  // Enforce same mean for both Gaussians
+  double fitmin = 0.45, fitmax = 0.55;
+  TF1* f = new TF1("f", "[0]+[1]*x+[2]*x*x + breitwigner(x,[3],[4],[5])",
+                   fitmin, fitmax);
+
+  double a = 20e3, b = -1e3, c = -1e3, A = 3e6, mu = MassK0S, Gamma = 1e-2;
+  f->SetParameters(a, b, c, A, mu, Gamma);
+  printParLimits(f);
+  data->Fit(f, "RSBQ0");
+  printParLimits(f);
+  setStyle(f, 1);
+
+  string saveName = hadron;
+  saveName += "_";
+  saveName += data->GetName(); // hist name contains pt range
+  saveName += "_fit=pol2+BW";
+  string fitName = saveName + ".pdf";
+  TCanvas* fitcanvas = new TCanvas(fitName.c_str(), fitName.c_str(), 1800, 900);
+  fitcanvas->cd();
+  if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
+
+  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame = getHistLowerBound(data, false)/2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  TH1F* fitframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  fitframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  fitframe->Draw();
+  data->Draw("same");
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  fitcanvas->SaveAs(fitcanvas->GetName());
+
+  // Plot parts
+  a = f->GetParameter(0), b = f->GetParameter(1), c = f->GetParameter(2);
+  A = f->GetParameter(3), mu = f->GetParameter(4), Gamma = f->GetParameter(5);
+  TF1* bkg  = new TF1("bkg", "[0]+[1]*x+[2]*x*x", fitmin, fitmax);
+  TF1* sig  = new TF1("sig", "breitwigner(x,[0],[1],[2])", fitmin, fitmax);
+
+  vector<TF1*> functions = {bkg, sig};
+  setStyle(bkg, 2);
+  setStyle(sig, 3);
+
+  bkg->SetParameter(0, a);
+  bkg->SetParameter(1, b);
+  bkg->SetParameter(2, c);
+  sig->SetParameter(0, A);
+  sig->SetParameter(1, mu);
+  sig->SetParameter(2, Gamma);
+  // printParLimits(bkg); printParLimits(sig); printParLimits(exp); printParLimits(gaus);
+
+  string partName = saveName + "_parts.pdf";
+  TCanvas* partcanvas = new TCanvas(partName.c_str(), partName.c_str(), 1800, 900);
+  partcanvas->cd();
+  if (logplot) partcanvas->SetLogy();
+  TH1F* partframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  partframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  partframe->Draw();
+  data->Draw("same");
+  for (auto g : functions) {
+    g->Draw("same"); //g->SetRange(xMinFrame, xMaxFrame);
+  }
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  partcanvas->SaveAs(partcanvas->GetName());
+}
+// Fit mass with pol1 + Voigt peak
+void plotPol1Voigt(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+  bool logplot = false;
+
+  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  setStyle(data, 0);
+
+  // Enforce same mean for both Gaussians
+  double fitmin = 0.45, fitmax = 0.55;
+  TF1* f = new TF1("f", "[0]+[1]*x + [2]*TMath::Voigt(x-[3],[4],[5])",
+                   fitmin, fitmax);
+
+  double a = 20e3, b = -1e3, A = 3e6, mu = MassK0S, sigma = 1e-2, gamma = 1e-2;
+  f->SetParameters(a, b, A, mu, sigma, gamma);
+  printParLimits(f);
+  data->Fit(f, "RSBQ0");
+  printParLimits(f);
+  setStyle(f, 1);
+
+  string saveName = hadron;
+  saveName += "_";
+  saveName += data->GetName(); // hist name contains pt range
+  saveName += "_fit=pol1+V";
+  string fitName = saveName + ".pdf";
+  TCanvas* fitcanvas = new TCanvas(fitName.c_str(), fitName.c_str(), 1800, 900);
+  fitcanvas->cd();
+  if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
+
+  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame = getHistLowerBound(data, false)/2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  TH1F* fitframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  fitframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  fitframe->Draw();
+  data->Draw("same");
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  fitcanvas->SaveAs(fitcanvas->GetName());
+
+  // Plot parts
+  a = f->GetParameter(0), b = f->GetParameter(1);
+  A = f->GetParameter(2), mu = f->GetParameter(3), sigma = f->GetParameter(4), gamma = f->GetParameter(5);
+  TF1* bkg  = new TF1("bkg", "[0]+[1]*x", fitmin, fitmax);
+  TF1* sig  = new TF1("sig", "[0]*TMath::Voigt(x-[1],[2],[3])", fitmin, fitmax);
+
+  vector<TF1*> functions = {bkg, sig};
+  setStyle(bkg, 2);
+  setStyle(sig, 3);
+
+  bkg->SetParameter(0, a);
+  bkg->SetParameter(1, b);
+  sig->SetParameter(0, A);
+  sig->SetParameter(1, mu);
+  sig->SetParameter(2, sigma);
+  sig->SetParameter(3, gamma);
+  // printParLimits(bkg); printParLimits(sig); printParLimits(exp); printParLimits(gaus);
+
+  string partName = saveName + "_parts.pdf";
+  TCanvas* partcanvas = new TCanvas(partName.c_str(), partName.c_str(), 1800, 900);
+  partcanvas->cd();
+  if (logplot) partcanvas->SetLogy();
+  TH1F* partframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  partframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  partframe->Draw();
+  data->Draw("same");
+  for (auto g : functions) {
+    printParLimits(g);
+    g->Draw("same"); //g->SetRange(xMinFrame, xMaxFrame);
+  }
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  partcanvas->SaveAs(partcanvas->GetName());
+}
+// Fit mass with pol1 + Voigt peak
+void plotPol2Voigt(vector<string> inputStrings, double ptmin, double ptmax)
+{
+  string inName  = inputStrings[0];
+  string dataSet = inputStrings[1];
+  string hadron  = inputStrings[2];
+  bool logplot = false;
+
+  TH1D* data = (TH1D*)getHist(ptmin, ptmax, hadron, inName);
+  setStyle(data, 0);
+
+  // Enforce same mean for both Gaussians
+  double fitmin = 0.45, fitmax = 0.55;
+  TF1* f = new TF1("f", "[0]+[1]*x+[2]*x*x + [3]*TMath::Voigt(x-[4],[5],[6])",
+                   fitmin, fitmax);
+
+  double a = 20e3, b = 1e3, c = -1e3, A = 3e6, mu = MassK0S, sigma = 1e-2, gamma = 1e-2;
+
+  double x0 = 0.4, y0 = data->GetBinContent(data->FindBin(x0));
+  double x1 = 0.45, y1 = data->GetBinContent(data->FindBin(x1));
+  double x2 = 0.55,  y2 = data->GetBinContent(data->FindBin(x2));
+  c = ( (y2-y1)/(x2-x1) - (y1-y0)/(x1-x0) ) / (x2-x0);
+  b = (y1-y0)/(x1-x0) - c*(x1+x0);
+  a = y0 - b*x0 - c*x0*x0;
+
+  f->SetParameters(a, b, c, A, mu, sigma, gamma);
+  printParLimits(f);
+  data->Fit(f, "RSBQ0");
+  printParLimits(f);
+  setStyle(f, 1);
+
+  string saveName = hadron;
+  saveName += "_";
+  saveName += data->GetName(); // hist name contains pt range
+  saveName += "_fit=pol2+V";
+  string fitName = saveName + ".pdf";
+  TCanvas* fitcanvas = new TCanvas(fitName.c_str(), fitName.c_str(), 1800, 900);
+  fitcanvas->cd();
+  if (logplot) fitcanvas->SetLogy(); // Easier to see exponentials
+
+  double xMinFrame = data->GetXaxis()->GetXmin(), xMaxFrame = data->GetXaxis()->GetXmax();
+  double yMinFrame = 0., yMaxFrame = 1.1 * getHistUpperBound(data, false);
+  if (logplot) yMinFrame = getHistLowerBound(data, false)/2., yMaxFrame = pow(10., ceil(log10(yMaxFrame))); // round up yMaxFrame to next power of 10
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(hadron).c_str()).Data();
+  string yTitle = "counts";
+  string ptText = TString::Format("%.1f < #it{p}_{T, V0} < %.1f GeV/#it{c}", ptmin, ptmax).Data();
+  TH1F* fitframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  fitframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  fitframe->Draw();
+  data->Draw("same");
+  f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
+  fitcanvas->SaveAs(fitcanvas->GetName());
+
+  // Plot parts
+  a = f->GetParameter(0), b = f->GetParameter(1), c = f->GetParameter(2);
+  A = f->GetParameter(3), mu = f->GetParameter(4), sigma = f->GetParameter(5), gamma = f->GetParameter(6);
+  TF1* bkg  = new TF1("bkg", "[0]+[1]*x+[2]*x*x", fitmin, fitmax);
+  TF1* sig  = new TF1("sig", "[0]*TMath::Voigt(x-[1],[2],[3])", fitmin, fitmax);
+
+  vector<TF1*> functions = {bkg, sig};
+  setStyle(bkg, 2);
+  setStyle(sig, 3);
+
+  bkg->SetParameter(0, a);
+  bkg->SetParameter(1, b);
+  bkg->SetParameter(2, c);
+  sig->SetParameter(0, A);
+  sig->SetParameter(1, mu);
+  sig->SetParameter(2, sigma);
+  sig->SetParameter(3, gamma);
+  // printParLimits(bkg); printParLimits(sig); printParLimits(exp); printParLimits(gaus);
+
+  string partName = saveName + "_parts.pdf";
+  TCanvas* partcanvas = new TCanvas(partName.c_str(), partName.c_str(), 1800, 900);
+  partcanvas->cd();
+  if (logplot) partcanvas->SetLogy();
+  TH1F* partframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  partframe->SetTitle((dataSet + ", " + ptText).c_str());
+
+  partframe->Draw();
+  data->Draw("same");
+  for (auto g : functions) {
+    printParLimits(g);
     g->Draw("same"); //g->SetRange(xMinFrame, xMaxFrame);
   }
   f->Draw("same"); f->SetRange(xMinFrame, xMaxFrame);
@@ -1967,6 +2405,24 @@ void plotTrain(int train, string hadron, double v0min, double v0max, int setting
     case 5:
       plotPol1GausGausExp(inputStrings, v0min, v0max);
       break;
+    case 6:
+      plotPol2GausGausExp(inputStrings, v0min, v0max);
+      break;
+    case 7:
+      plotPol1BreitWigner(inputStrings, v0min, v0max);
+      break;
+    case 8:
+      plotPol2BreitWigner(inputStrings, v0min, v0max);
+      break;
+    case 9:
+      plotPol1Voigt(inputStrings, v0min, v0max);
+      break;
+    case 10:
+      plotPol2Voigt(inputStrings, v0min, v0max);
+      break;
+    default:
+      cout << "Invalid setting" << endl;
+      return;
   }
 }
 

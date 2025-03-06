@@ -2,6 +2,7 @@
 function setuplocal {
   export FRAGMENTATION_DIR="$HOME/cernbox/Fragmentation"
   export ALIBUILD_WORK_DIR="$HOME/alice/sw"
+  export TRAIN_OUT_DIR="$HOME/cernbox/TrainOutput"
   eval "`alienv shell-helper`"
   # >>> conda initialize >>>
   # !! Contents within this block are managed by 'conda init' !!

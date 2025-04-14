@@ -375,7 +375,7 @@ std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const 
 bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
 {
   double integral = h->Integral(low, high);
-  if (integral != integral) // NaN check
+  if (std::isnan(integral))
     return true;
   else
     return (integral < threshold);

@@ -2397,27 +2397,30 @@ void plotTrain(int train, string hadron, double v0min, double v0max, int setting
       plotPol1GausGaus(inputStrings, v0min, v0max);
       break;
     case 3:
-      plotPol1GausExp(inputStrings, v0min, v0max);
+      plotPol2GausGaus(inputStrings, v0min, v0max);
       break;
     case 4:
-      plotPol2GausExp(inputStrings, v0min, v0max);
+      plotPol1GausExp(inputStrings, v0min, v0max);
       break;
     case 5:
-      plotPol1GausGausExp(inputStrings, v0min, v0max);
+      plotPol2GausExp(inputStrings, v0min, v0max);
       break;
     case 6:
-      plotPol2GausGausExp(inputStrings, v0min, v0max);
+      plotPol1GausGausExp(inputStrings, v0min, v0max);
       break;
     case 7:
-      plotPol1BreitWigner(inputStrings, v0min, v0max);
+      plotPol2GausGausExp(inputStrings, v0min, v0max);
       break;
     case 8:
-      plotPol2BreitWigner(inputStrings, v0min, v0max);
+      plotPol1BreitWigner(inputStrings, v0min, v0max);
       break;
     case 9:
-      plotPol1Voigt(inputStrings, v0min, v0max);
+      plotPol2BreitWigner(inputStrings, v0min, v0max);
       break;
     case 10:
+      plotPol1Voigt(inputStrings, v0min, v0max);
+      break;
+    case 11:
       plotPol2Voigt(inputStrings, v0min, v0max);
       break;
     default:

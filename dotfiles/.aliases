@@ -35,7 +35,7 @@ alias ll="ls --color -GF -lht"
 alias la="ls --color -GF -a"
 alias lg=LG
 alias gl="GITLOG -n"
-alias gls="gl -p short"
+alias gls="gl -s"
 
 # Show all my git commits, plus the last commit not done by me
 function GITLOG() {
@@ -44,7 +44,12 @@ function GITLOG() {
   local commitnotbyme=$(git log --perl-regexp --author='^((?!GijsvWeelden).*)$' 2>&1 | sed 1q)
   local lastcommit=${commitnotbyme#* }
 
-  while getopts 'np:' OPTION; do
+  # Bash does not reset $OPTIND after exiting a function. Making it local fixes this
+  declare opt
+  declare OPTIND
+  declare OPTARG
+  while getopts 'np:s' OPTION; do
+    echo "$OPTION"
     case "$OPTION" in
       n)
         nameonly="--name-only"
@@ -52,22 +57,26 @@ function GITLOG() {
       p)
         pretty="${OPTARG}"
         ;;
+      s)
+        pretty="short"
+        ;;
       ?)
         echo "Unknown option: -$OPTARG"
-        exit 1
+        return 1
         ;;
     esac
   done
 
   eval "git log ${nameonly} --pretty=${pretty} ${lastcommit}~1.."
+  return 0
 }
 
 # ls show if dir is git repo
 function LG() {
   if [ x$1 != x ]; then
-  paste <(CLICOLOR_FORCE=true ls -ldthGF $1) <(for i in $1; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi; done)
+    paste <(CLICOLOR_FORCE=true ls -ldthGF $1) <(for i in $1; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi; done)
   else
-  paste <(CLICOLOR_FORCE=true ls -ldthGF *) <(for i in *; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi;
-  done)
+    paste <(CLICOLOR_FORCE=true ls -ldthGF *) <(for i in *; do if [ -d "$i"/.git ] ; then echo "($(git --git-dir="$i"/.git symbolic-ref --short HEAD))"; else echo; fi; done)
   fi
+  return 0
 }

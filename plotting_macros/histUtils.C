@@ -28,7 +28,8 @@
 
 // GLOBAL SETTINGS !!!
 const double MassK0S = 0.497611;
-const double MassLambda0 = 1.115683;
+const double MassLambda = 1.115683;
+const double MassLambda0 = MassLambda;
 gStyle->SetNdivisions(505, "xy");
 
 // Helpful functions

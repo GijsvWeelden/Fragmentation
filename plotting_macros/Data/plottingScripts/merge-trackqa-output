@@ -1,0 +1,95 @@
+
+#! /bin/bash
+
+MODE=0
+HADRON=""
+SUFFIX=""
+LAYER=""
+while getopts 'h:l:m:s:' OPTION; do
+  case "$OPTION" in
+    h)
+      HADRON="${OPTARG}"
+      ;;
+    l)
+      LAYER="${OPTARG}"
+      ;;
+    m)
+      MODE="${OPTARG}"
+      ;;
+    s)
+      SUFFIX="${OPTARG}"
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-h hadron -m mode -s suffix]"
+      exit 1
+      ;;
+  esac
+done
+
+declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
+if [[ ! " ${hadrons[@]} " =~ " ${HADRON} " ]];
+then
+  echo "Please specify a hadron with -h (K0S, Lambda0, AntiLambda0)"
+  exit 1
+fi
+
+if [[ ${MODE} -lt 1 || ${MODE} -gt 13 ]]
+then
+  echo "Please specify a mode between 1 and 13"
+  exit 1
+fi
+
+declare -a ptbins=("0.0-1.0" "1.0-2.0" "2.0-3.0" "3.0-4.0" "4.0-5.0" "5.0-10.0" "10.0-15.0" "15.0-20.0" "20.0-25.0" "25.0-30.0" "30.0-40.0")
+
+OBS=""
+case ${MODE} in
+  1)
+    OBS="daughterPtDiff"
+    ;;
+  2)
+    OBS="daughterPtDiffm${HADRON}"
+    ;;
+  3)
+    OBS="daughterPtDiffm${HADRON}2D"
+    ;;
+  4)
+    OBS="daughterTRD_m${HADRON}"
+    ;;
+  5)
+    OBS="ITS${LAYER}_m${HADRON}"
+    declare -a layers=("1" "2" "3" "4" "5" "6" "7" "56" "57" "67" "567")
+    if [[ ! " ${layers[@]} " =~ " ${LAYER} " ]];
+    then
+      echo "For ITS, please specify a layer with -l (1, 2, 3, 4, 5, 6, 7, 56, 57, 67, 567)"
+      exit 1
+    fi
+
+    ;;
+  6)
+    OBS="daughterDCAxy_m${HADRON}"
+    ;;
+  7)
+    OBS="posDCAxy_m${HADRON}"
+    ;;
+  8)
+    OBS="negDCAxy_m${HADRON}"
+    ;;
+esac
+
+FLIST=""
+for PTBIN in ${ptbins[@]}
+do
+  if [[ -f ${OBS}_v0pt${PTBIN}${SUFFIX}.pdf ]]
+  then
+    FLIST="${FLIST} ${OBS}_v0pt${PTBIN}${SUFFIX}.pdf"
+  fi
+done
+
+if [[ ${FLIST} == "" ]]
+then
+  echo "No files found for ${OBS}_v0pt*${SUFFIX}.pdf"
+  exit 1
+fi
+
+echo "Merging plots into _${OBS}.pdf"
+gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=_${OBS}.pdf ${FLIST}

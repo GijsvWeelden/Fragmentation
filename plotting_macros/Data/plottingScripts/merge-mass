@@ -1,0 +1,72 @@
+
+#! /bin/bash
+
+HADRON=""
+SUFFIX=""
+JETPT=""
+DOZ=0
+while getopts 'h:j:s:z' OPTION; do
+  case "$OPTION" in
+    h)
+      HADRON="${OPTARG}"
+      ;;
+    j)
+      JETPT="${OPTARG}"
+      ;;
+    s)
+      SUFFIX="${OPTARG}"
+      ;;
+    z)
+      DOZ=1
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-h hadron -s suffix -z (for z bins)]"
+      exit 1
+      ;;
+  esac
+done
+
+declare -a hadrons=("K0S" "Lambda0" "AntiLambda0")
+if [[ ! " ${hadrons[@]} " =~ " ${HADRON} " ]];
+then
+  echo "Please specify a hadron with -h (K0S, Lambda0, AntiLambda0)"
+  exit 1
+fi
+
+declare -a ptbins=("0.0-1.0" "1.0-2.0" "2.0-3.0" "3.0-4.0" "4.0-5.0" "5.0-10.0" "10.0-15.0" "15.0-20.0" "20.0-25.0" "25.0-30.0" "30.0-40.0")
+declare -a zbins=("0.00-0.10" "0.10-0.20" "0.20-0.30" "0.30-0.40" "0.40-0.50" "0.50-0.60" "0.60-0.70" "0.70-0.80" "0.80-0.90" "0.90-1.00")
+
+FLIST=""
+if [[ ${DOZ} -eq 1 ]]
+then
+  for ZBIN in ${zbins[@]}
+  do
+    if [[ -f m${HADRON}_jetpt${JETPT}_v0z${ZBIN}${SUFFIX}.pdf ]]
+    then
+      FLIST="${FLIST} m${HADRON}_jetpt${JETPT}_v0z${ZBIN}${SUFFIX}.pdf"
+    fi
+  done
+else
+  for PTBIN in ${ptbins[@]}
+  do
+    if [[ -f m${HADRON}_jetpt${JETPT}_v0pt${PTBIN}${SUFFIX}.pdf ]]
+    then
+      FLIST="${FLIST} m${HADRON}_jetpt${JETPT}_v0pt${PTBIN}${SUFFIX}.pdf"
+    fi
+  done
+fi
+
+if [[ ${FLIST} == "" ]]
+then
+  echo "No files found for m${HADRON}_jetpt${JETPT}_v0pt/z*${SUFFIX}.pdf"
+  exit 1
+fi
+
+OUT="_m${HADRON}_jetpt${JETPT}_v0pt.pdf"
+if [[ ${DOZ} -eq 1 ]]
+then
+  OUT="_m${HADRON}_jetpt${JETPT}_v0z.pdf"
+fi
+
+echo "Merging plots into ${OUT}"
+gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${OUT} ${FLIST}

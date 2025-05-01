@@ -102,7 +102,7 @@ void printParLimits(TF1* f) {
 
 // -------------------------------------------------------------------------------------------------
 //
-// Plotting struct
+// Struct for input settings
 //
 // -------------------------------------------------------------------------------------------------
 
@@ -110,6 +110,7 @@ struct InputSettings{
   private:
   public:
     int train = 0;
+    int rebinNumber = -1;
     int fitType = -1;
     string hadron = "";
     string fitName = "";
@@ -120,11 +121,13 @@ struct InputSettings{
     double fitmin = -1e3, fitmax = -1e3; // Fit range
     bool logplot = false;
     bool normaliseData = false;
+    bool fixMu = false;
     vector<vector<double>> ptBinEdges = {};
 
     double massWindowMin = -1., massWindowMax = -1.;
     double polInitx0 = -1., polInitx1 = -1., polInitx2 = -1.;
     double sigalRegionMin = -1., sigalRegionMax = -1.;
+    double nSigma = -1.;
 
     enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
 
@@ -132,19 +135,74 @@ struct InputSettings{
     string getFitExpression();
     string getSaveNameFromPt(string prefix, string suffix);
     int inputIssue(string home, string obj);
+    string setFitName();
+    string setFitName(int fit);
     int setFitType();
     int setFitType(string fit);
     void setFitX(double a, double b);
+    void setFitXFromHadron();
     string setInputFileNameFromTrain();
     string setInputFileNameFromFit();
     void setMassWindow(double a, double b);
     void setMassWindowDiff(double a, double b);
+    void setMassWindowDiffFromHadron();
     void setPt(double a, double b);
-    void setPtBinEdgesSorted(vector<vector<double>> x);
+    vector<vector<double>> setPtBinEdgesFromHadron();
+    vector<vector<double>> setPtBinEdgesSorted(vector<vector<double>> x);
     void setPolInitX(double x0, double x1, double x2);
+    void setPolInitXFromHadron();
     void setSignalRegion(double a, double b);
     template <typename T> int writeOutputToFile(T* obj);
 };
+
+string InputSettings::setFitName() {
+  switch (this->fitType) {
+    case kPol1BreitWigner:
+      this->fitName = "pol1BreitWigner";
+      break;
+    case kPol2BreitWigner:
+      this->fitName = "pol2BreitWigner";
+      break;
+    case kPol1GausExp:
+      this->fitName = "pol1GausExp";
+      break;
+    case kPol2GausExp:
+      this->fitName = "pol2GausExp";
+      break;
+    case kPol1GausGaus:
+      this->fitName = "pol1GausGaus";
+      break;
+    case kPol2GausGaus:
+      this->fitName = "pol2GausGaus";
+      break;
+    case kPol1GausGausExp:
+      this->fitName = "pol1GausGausExp";
+      break;
+    case kPol2GausGausExp:
+      this->fitName = "pol2GausGausExp";
+      break;
+    case kPol1GausXex:
+      this->fitName = "pol1GausXex";
+      break;
+    case kPol2GausXex:
+      this->fitName = "pol2GausXex";
+      break;
+    case kPol1Voigt:
+      this->fitName = "pol1Voigt";
+      break;
+    case kPol2Voigt:
+      this->fitName = "pol2Voigt";
+      break;
+    default:
+      cout << "InputSettings::setFitName() Error: requested unknown function" << endl;
+  }
+  return this->fitName;
+}
+
+string InputSettings::setFitName(int fit) {
+  this->fitType = fit;
+  return setFitName();
+}
 
 int InputSettings::setFitType() {
   if (this->fitName == "pol1BreitWigner") {
@@ -208,7 +266,11 @@ string InputSettings::getFitExpression() {
       s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - ([1]+[2]/[3])/2.)/([2]/[3])) * (x > [1]+[2]*[3]) + [4]+[5]*x+[6]*x*x";
       break;
     case kPol1GausGaus:
-      s = "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4]) + [5]+[6]*x";
+      if (this->lowpt > 20. - 1e-5 && this->lowpt < 25. - 1e-5 && this->highpt > 20. - 1e-5 && this->highpt < 25. + 1e-5) {
+        s = "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4]) + max(0., [5]+[6]*x)";
+      } else {
+        s = "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4]) + [5]+[6]*x";
+      }
       break;
     case kPol2GausGaus:
       s = "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4]) + [5]+[6]*x+[7]*x*x";
@@ -277,6 +339,13 @@ void InputSettings::setFitX(double a, double b) {
   this->fitmax = b;
 }
 
+void InputSettings::setFitXFromHadron() {
+  if (this->hadron == "K0S") {
+    this->setFitX(0.45, 0.55);
+  } else
+    this->setFitX(-1., -1.);
+}
+
 void InputSettings::setMassWindow(double a, double b) {
   if (a > b) {
     cout << "InputSettings::setMassWindow() Error: massWindowMin > massWindowMax" << endl;
@@ -295,6 +364,14 @@ void InputSettings::setMassWindowDiff(double a, double b) {
   this->setMassWindow(mass - a, mass + b);
 }
 
+void InputSettings::setMassWindowDiffFromHadron() {
+  if (this->hadron == "K0S") {
+    this->setMassWindowDiff(2e-2, 2e-2);
+  } else {
+    this->setMassWindowDiff(-1., -1.);
+  }
+}
+
 void InputSettings::setPolInitX(double x0, double x1 = -1, double x2 = -2) {
   if (x0 > x1 || x0 > x2 || x1 > x2) {
     cout << "InputSettings::setPolInitX() Error: should have polInitx0 < polInitx1 < polInitx2" << endl;
@@ -303,6 +380,14 @@ void InputSettings::setPolInitX(double x0, double x1 = -1, double x2 = -2) {
   this->polInitx0 = x0;
   this->polInitx1 = x1;
   this->polInitx2 = x2;
+}
+
+void InputSettings::setPolInitXFromHadron() {
+  if (this->hadron == "K0S") {
+    this->setPolInitX(0.45, 0.55, 0.57);
+  } else {
+    this->setPolInitX(-1., -1., -1.);
+  }
 }
 
 void InputSettings::setPt(double a, double b) {
@@ -316,9 +401,35 @@ void InputSettings::setPt(double a, double b) {
   this->highpt = b;
 }
 
-void InputSettings::setPtBinEdgesSorted(vector<vector<double>> x) {
+vector<vector<double>> InputSettings::setPtBinEdgesFromHadron() {
+  vector<vector<double>> x;
+  if (inputIssue("setPtBinEdgesFromHadron", "hadron"))
+    return x;
+
+  x.push_back({0., 1.});
+  x.push_back({1., 2.});
+  x.push_back({2., 3.});
+  x.push_back({3., 4.});
+  x.push_back({4., 5.});
+  x.push_back({5., 10.});
+  x.push_back({10., 15.});
+  x.push_back({15., 20.});
+  if (this->hadron == "K0S") {
+    x.push_back({20., 25.});
+    x.push_back({25., 30.});
+    x.push_back({30., 40.});
+  } else {
+    x.push_back({20., 30.});
+    x.push_back({30., 40.});
+  }
+  x = this->setPtBinEdgesSorted(x);
+  return x;
+}
+
+vector<vector<double>> InputSettings::setPtBinEdgesSorted(vector<vector<double>> x) {
   sort(x.begin(), x.end());
   this->ptBinEdges = x;
+  return x;
 }
 
 void InputSettings::setSignalRegion(double a, double b) {
@@ -341,6 +452,12 @@ int InputSettings::writeOutputToFile(T* obj) {
   return 0;
 }
 
+// -------------------------------------------------------------------------------------------------
+//
+// Struct for fitting mass spectra
+//
+// -------------------------------------------------------------------------------------------------
+
 struct MassFitter {
   private:
   public:
@@ -361,6 +478,8 @@ struct MassFitter {
     MassFitter(InputSettings& x) { this->inputs = x; }
 
     void calcSigBkg();
+    void doFitting(); // Full execution of workflow
+    void fixFitInPost();
     TF1* loadFitFunction();
     TH1* loadMassHist();
     void setFitInitialValues();
@@ -370,7 +489,8 @@ struct MassFitter {
     TH1* loadResidualHist();
     TH1* loadPullHist();
     string setHistNameFromTrain();
-    void setSignalRegionFromSigma(double nSigma);
+    int setRebinNumberFromHadronAndPt();
+    void setSignalRegionFromSigma();
     void writeOutputsToFile();
 };
 
@@ -397,8 +517,8 @@ void MassFitter::calcSigBkg() {
   }
 
   if (this->inputs.sigalRegionMin < 0 || this->inputs.sigalRegionMax < 0) {
-    cout << "MassFitter::calcSigBkg() Automatically setting signal region to mu +/- 3 sigma" << endl;
-    this->setSignalRegionFromSigma(3.);
+    cout << "MassFitter::calcSigBkg() Automatically setting signal region to mu +/- n sigma" << endl;
+    this->setSignalRegionFromSigma();
   }
 
   array<int, 2> sigBins = getProjectionBins(this->data->GetXaxis(), this->inputs.sigalRegionMin, this->inputs.sigalRegionMax);
@@ -410,6 +530,55 @@ void MassFitter::calcSigBkg() {
   this->background = bkgFit->Integral(xmin, xmax);
   this->signalPlusBackground = this->data->Integral(sigBins[0], sigBins[1], "width");
   this->signal = this->signalPlusBackground - this->background;
+}
+
+void MassFitter::doFitting() {
+  this->loadMassHist();
+  this->loadFitFunction();
+  this->setFitInitialValues();
+  this->data->Fit(this->fit, "R");
+  this->fixFitInPost(); // Applies any post-fit fixes, like swapping gaussians
+  this->loadFitParts();
+  this->loadFitParams();
+  this->loadFitResults();
+  this->loadResidualHist();
+  this->loadPullHist();
+  this->writeOutputsToFile();
+}
+
+void MassFitter::fixFitInPost() {
+  if (this->inputs.hadron == "K0S" && this->inputs.fitType == InputSettings::kPol1GausGaus) {
+    bool gausflip = false;
+    if (this->inputs.highpt < 4 + 1e-3)
+      gausflip = true;
+
+    if (gausflip) {
+      double A = this->fit->GetParameter(3);
+      double sigma = this->fit->GetParameter(4);
+      double B = this->fit->GetParameter(0);
+      double rho = this->fit->GetParameter(2);
+      this->fit->SetParameter(0, A);
+      this->fit->SetParameter(2, sigma);
+      this->fit->SetParameter(3, B);
+      this->fit->SetParameter(4, rho);
+    }
+  }
+  if (this->inputs.hadron == "K0S" && this->inputs.fitType == InputSettings::kPol2GausGaus) {
+    bool gausflip = false;
+    if (this->inputs.highpt > 1. + 1e-3 && this->inputs.highpt < 30. + 1e-3)
+      gausflip = true;
+
+    if (gausflip) {
+      double A = this->fit->GetParameter(3);
+      double sigma = this->fit->GetParameter(4);
+      double B = this->fit->GetParameter(0);
+      double rho = this->fit->GetParameter(2);
+      this->fit->SetParameter(0, A);
+      this->fit->SetParameter(2, sigma);
+      this->fit->SetParameter(3, B);
+      this->fit->SetParameter(4, rho);
+    }
+  }
 }
 
 TF1* MassFitter::loadFitFunction() {
@@ -451,6 +620,12 @@ TH1* MassFitter::loadMassHist() {
   hist->GetAxis(0)->SetRange(minBin, maxBin);
   TH1* h = hist->Projection(projectionAxis);
 
+  if (this->inputs.rebinNumber < 0)
+    this->setRebinNumberFromHadronAndPt();
+
+  if (this->inputs.rebinNumber > 1)
+    h->Rebin(this->inputs.rebinNumber);
+
   if (this->inputs.normaliseData) {
     bins = getProjectionBins(h->GetXaxis(), this->inputs.massWindowMin, this->inputs.massWindowMax);
     minBin = bins[0], maxBin = bins[1];
@@ -484,7 +659,7 @@ void MassFitter::setFitInitialValues() {
   double C, nu, tau; // Xex
   double a, b, c; // Polynomial background
 
-  A = this->data->GetBinCenter(extremeBin);
+  A = this->data->GetBinContent(extremeBin);
   mu = this->data->GetXaxis()->GetBinCenter(extremeBin);
   B = 1e-2 * A;
   C = 1e-2 * A;
@@ -517,58 +692,168 @@ void MassFitter::setFitInitialValues() {
   switch (this->inputs.fitType) {
     case InputSettings::kPol1BreitWigner:
       this->fit->SetParameters(A, mu, Gamma, a, b);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
       this->fit->SetParLimits(3, 0, 1);
       this->fit->SetParLimits(4, -1, 1);
       break;
     case InputSettings::kPol2BreitWigner:
       this->fit->SetParameters(A, mu, Gamma, a, b, c);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
       this->fit->SetParLimits(3, 0, 1);
       this->fit->SetParLimits(4, -1, 1);
       // this->fit->SetParLimits(5, -1, 1);
       break;
     case InputSettings::kPol1GausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, a, b);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      this->fit->SetParLimits(3, 0., 10.);
+      this->fit->SetParLimits(4, 0, 1);
+      this->fit->SetParLimits(5, -1, 1);
       break;
     case InputSettings::kPol2GausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, a, b, c);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      this->fit->SetParLimits(3, 0., 10.);
+      this->fit->SetParLimits(4, 0, 1);
+      this->fit->SetParLimits(5, -1, 1);
       break;
     case InputSettings::kPol1GausGaus:
       this->fit->SetParameters(A, mu, sigma, B, rho, a, b);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      this->fit->SetParLimits(3, 0., 1.);
+      this->fit->SetParLimits(4, 0., 1.);
+      this->fit->SetParLimits(5, 0., 1.);
+      this->fit->SetParLimits(6, -1, 1);
       break;
       case InputSettings::kPol2GausGaus:
       this->fit->SetParameters(A, mu, sigma, B, rho, a, b, c);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      this->fit->SetParLimits(3, 0., 1.);
+      this->fit->SetParLimits(4, 0., 1.);
+      this->fit->SetParLimits(5, 0., 1.);
+      this->fit->SetParLimits(6, -1., 1.);
       break;
     case InputSettings::kPol1GausGausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, B, rho, a, b);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      this->fit->SetParLimits(3, 0., 10.);
+      this->fit->SetParLimits(4, 0., 1.);
+      this->fit->SetParLimits(5, 0., 1.);
+      this->fit->SetParLimits(6, 0., 1.);
+      this->fit->SetParLimits(7, -1., 1.);
       break;
     case InputSettings::kPol2GausGausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, B, rho, a, b, c);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      this->fit->SetParLimits(3, 0., 10.);
+      this->fit->SetParLimits(4, 0., 1.);
+      this->fit->SetParLimits(5, 0., 1.);
+      this->fit->SetParLimits(6, 0., 1.);
+      this->fit->SetParLimits(7, -1., 1.);
       break;
     case InputSettings::kPol1GausXex:
       this->fit->SetParameters(A, mu, sigma, C, nu, tau, a, b);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      // this->fit->SetParLimits(3, 0., 1.);
+      this->fit->SetParLimits(4, 0.5, 0.6);
+      // this->fit->SetParLimits(5, 0., 10.);
+      this->fit->SetParLimits(6, 0., 1.);
+      this->fit->SetParLimits(7, -1., 1.);
       break;
     case InputSettings::kPol2GausXex:
       this->fit->SetParameters(A, mu, sigma, C, nu, tau, a, b, c);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      // this->fit->SetParLimits(3, 0., 1.);
+      this->fit->SetParLimits(4, 0.5, 0.6);
+      // this->fit->SetParLimits(5, 0., 10.);
+      this->fit->SetParLimits(6, 0., 1.);
+      this->fit->SetParLimits(7, -1., 1.);
       break;
     case InputSettings::kPol1Voigt:
       this->fit->SetParameters(A, mu, sigma, Gamma, a, b);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
-      // this->fit->SetParLimits(3, 0, 1);
-      // this->fit->SetParLimits(4, -1, 1);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.);
+      this->fit->SetParLimits(3, 0., 1.);
+      this->fit->SetParLimits(4, 0., 1.);
+      this->fit->SetParLimits(5, -1., 1.);
       break;
     case InputSettings::kPol2Voigt:
       this->fit->SetParameters(A, mu, sigma, Gamma, a, b, c);
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      this->fit->SetParLimits(0, 0., 1.);
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 0.005);
+      this->fit->SetParLimits(3, 0., 0.005);
+      this->fit->SetParLimits(4, 0., 1.);
+      this->fit->SetParLimits(5, -1., 1.);
       break;
     default:
       cout << "MassFitter::setFitInitialValues() Error: do not have initial values for function " << this->inputs.fitName << endl;
@@ -619,6 +904,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     b = this->fit->GetParameter(5);
     if (this->inputs.fitName == "pol2GausExp") c = this->fit->GetParameter(6);
 
+    // TODO: Change this to 2 functions: G->e and pol1/2
     string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
     TF1* f1 = new TF1(s.c_str(), "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3]))", this->inputs.fitmin, mu+sigma*lambda);
     f1->SetParameters(A, mu, sigma, lambda);
@@ -887,7 +1173,17 @@ string MassFitter::setHistNameFromTrain() {
   return s;
 }
 
-void MassFitter::setSignalRegionFromSigma(double nSigma) {
+int MassFitter::setRebinNumberFromHadronAndPt() {
+  int r = -1;
+
+  if (this->inputs.hadron == "K0S" && this->inputs.lowpt > 25 - 1e3)
+    r = 2;
+
+  this->inputs.rebinNumber = r;
+  return r;
+}
+
+void MassFitter::setSignalRegionFromSigma() {
   if (this->fitParts.size() == 0) {
     cout << "MassFitter::setSignalRegionFromSigma() Error: fit parts not set" << endl;
     return;
@@ -896,6 +1192,7 @@ void MassFitter::setSignalRegionFromSigma(double nSigma) {
   TF1* f = this->fitParts[0];
   double mu = f->GetParameter(1);
   double sigma = f->GetParameter(2);
+  double nSigma = this->inputs.nSigma;
   this->inputs.setSignalRegion(mu - nSigma * sigma, mu + nSigma * sigma);
 }
 
@@ -910,6 +1207,12 @@ void MassFitter::writeOutputsToFile() {
   this->inputs.writeOutputToFile(this->pull);
   this->inputs.writeOutputToFile(this->residual);
 }
+
+// -------------------------------------------------------------------------------------------------
+//
+// Struct for summarising fit information into TH2
+//
+// -------------------------------------------------------------------------------------------------
 
 struct FitSummariser {
   private:
@@ -976,6 +1279,12 @@ void FitSummariser::summariseFitInfo(string inputHistName) {
   file->Close();
   this->inputs.writeOutputToFile(fitInfo);
 }
+
+// -------------------------------------------------------------------------------------------------
+//
+// Struct for plotting
+//
+// -------------------------------------------------------------------------------------------------
 
 struct FitPlotter {
   private:
@@ -1098,7 +1407,8 @@ int FitPlotter::plotFitInfo(int infoToPlot)
     if (this->inputs.histName == "fitResults")
       histTitle += fitInfo->GetYaxis()->GetBinLabel(infoToPlot + 1);
 
-    yMinFrame = 0.;
+    yMinFrame = getHistLowerBound(hist, false);
+    yMinFrame *= (yMinFrame < 0) ? 1.1 : 0.9;
     yMaxFrame = 1.1 * getHistUpperBound(hist, false);
   }
 
@@ -1113,6 +1423,7 @@ int FitPlotter::plotFitInfo(int infoToPlot)
     cout << "FitPlotter::plotFitInfo() Warning: outputFileName not set, using: " << outputFileName << endl;
   }
   hist->Draw();
+  hist->Draw("same text45");
   canvas->SaveAs(outputFileName.c_str());
   return 0;
 }
@@ -1152,6 +1463,7 @@ void FitPlotter::plotFitParts() {
   for (int i = 0; i < this->massFitter.fitParts.size(); i++) {
     TF1* f = this->massFitter.fitParts[i];
     setStyle(f, i + 2);
+    f->SetRange(this->massFitter.data->GetXaxis()->GetXmin(), this->massFitter.data->GetXaxis()->GetXmax());
     f->Draw("same");
   }
   // Only do this if auto setup is requested
@@ -1170,8 +1482,40 @@ void FitPlotter::plotFitParts() {
 //
 // -------------------------------------------------------------------------------------------------
 
-void printHadrons() {
-  cout << "K0S \nLambda \nAntiLambda" << endl;
+void printhelp() {
+  cout << "Usage of plotMassFits\n"
+       << "A) Fit invariant mass spectrum with MassFitter\n"
+       << "B) Compile fit information with FitSummariser\n"
+       << "C) Plot fit parts with FitPlotter\n"
+       << "D) Plot fit information with FitPlotter\n"
+       << endl;
+
+  cout << "A) Fit mass:\n"
+       << "1) Create InputSettings with hadron, fit type, input/output file name, pt range, signal region, fit region, and initial values for peak position and polynomial bkg\n"
+       << "2) Do fitting with MassFitter\n" << endl;
+
+  cout << "B) Summarise fit:\n"
+       << "1) Create InputSettings with hadron, fit type, input/output file name\n"
+       << "2) FitSummariser will summarise the TH1s outputted by MassFitter into a single TH2\n" << endl;
+
+  cout << "C) Plot fit parts:\n"
+       << "1) FitPlotter plots fit parts directly from MassFitter\n"
+       << "1) Create InputSettings with hadron, fit type, input/output file name\n"
+       << "2) FitPlotter will plot the fit parts from the histograms in the input file\n" << endl;
+
+  cout << "D) Plot fit information:\n"
+       << "1) Create InputSettings with hadron, fit type, input/output file name\n"
+       << "2) FitPlotter plots fit information from the TH2s in the file\n"
+       << endl;
+
+  cout << "Hadrons implemented: K0S, Lambda, AntiLambda\n"
+       << "Fit types implemented: \n"
+       << "pol1BreitWigner, pol2BreitWigner\n"
+       << "pol1GausExp, pol2GausExp\n"
+       << "pol1GausGaus, pol2GausGaus\n"
+       << "pol1GausGausExp, pol2GausGausExp\n"
+       << "pol1GausXex, pol2GausXex\n"
+       << "pol1Voigt, pol2Voigt\n" << endl;
 }
 
 void printFitExpression(string f) {
@@ -1180,53 +1524,47 @@ void printFitExpression(string f) {
   cout << f << ": " << x.getFitExpression() << endl;
 }
 
-void printFits() {
-  cout << "pol1BreitWigner, pol2BreitWigner\n";
-  cout << "pol1GausExp, pol2GausExp\n";
-  cout << "pol1GausGaus, pol2GausGaus\n";
-  cout << "pol1GausGausExp, pol2GausGausExp\n";
-  cout << "pol1GausXex, pol2GausXex\n";
-  cout << "pol1Voigt, pol2Voigt\n";
+// Plot the fit parts by reading the file
+void plotFitParts(InputSettings& x) {
+  FitPlotter p(x);
+  p.loadMassHist();
+  p.loadFit();
+  p.loadFitParts();
+  p.plotFitParts();
+}
+
+// Plot the fit parts by using the fitter
+void plotFitParts(MassFitter& m) {
+  FitPlotter p(m);
+  p.inputs.outputFileName = p.inputs.getSaveNameFromPt(p.inputs.hadron + "_" + p.inputs.fitName, ".pdf");
+  p.plotFitParts();
+}
+
+// Plot the fit information by reading the file
+void plotFitInfo(InputSettings& x) {
+  FitPlotter p(x);
+  p.inputs.histName = "fitParams";
+  p.plotFitInfo();
+  p.inputs.histName = "fitResults";
+  p.plotFitInfo();
+}
+
+// Summarise the fit information by reading the file
+void summariseFitInfo(InputSettings& x) {
+  FitSummariser f(x);
+  f.summariseFitInfo("fitParams");
+  f.summariseFitInfo("fitResults");
 }
 
 // This runs the entire workflow in order
-void quickRun() {
-  double nSigma = 3.;
-  InputSettings x;
-  x.train = 252064;
-  x.hadron = "K0S";
-  x.fitName = "pol1BreitWigner";
-  x.setFitType();
-  x.normaliseData = true;
-
-  x.setFitX(0.45, 0.55);
-  x.setPolInitX(0.45, 0.55, 0.57);
-  x.setMassWindowDiff(2e-2, 2e-2);
-  x.setInputFileNameFromTrain();
-  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
-
-  vector<vector<double>> ptBinEdges;
-  ptBinEdges.push_back({1., 2.});
-  ptBinEdges.push_back({2., 3.});
-  ptBinEdges.push_back({3., 4.});
-  ptBinEdges.push_back({4., 5.});
-  ptBinEdges.push_back({5., 10.});
+void quickRun(InputSettings& x) {
+  vector<vector<double>> ptBinEdges = x.ptBinEdges;
 
   // For each pt bin, do fit, and plot fit parts
   for (int iPt = 0; iPt < ptBinEdges.size(); iPt++) {
     x.setPt(ptBinEdges[iPt][0], ptBinEdges[iPt][1]);
     MassFitter m(x);
-    m.loadMassHist();
-    m.loadFitFunction();
-    m.setFitInitialValues();
-    m.data->Fit(m.fit, "R");
-    m.loadFitParts();
-    m.loadFitParams();
-    m.setSignalRegionFromSigma(nSigma);
-    m.loadFitResults();
-    m.loadResidualHist();
-    m.loadPullHist();
-    m.writeOutputsToFile();
+    m.doFitting();
 
     FitPlotter p(m);
     p.inputs.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
@@ -1236,7 +1574,6 @@ void quickRun() {
   // Compile the information into summary histograms
   x.setInputFileNameFromFit();
   x.outputFileName = x.inputFileName;
-  x.setPtBinEdgesSorted(ptBinEdges);
   FitSummariser f(x);
   f.summariseFitInfo("fitParams");
   f.summariseFitInfo("fitResults");
@@ -1250,92 +1587,62 @@ void quickRun() {
   p.plotFitInfo();
 }
 
-InputSettings quickSetup(double ptmin, double ptmax) {
+void quickRun() {
   InputSettings x;
   x.train = 252064;
   x.hadron = "K0S";
-  x.fitName = "pol1BreitWigner";
+  x.fitName = "pol1GausXex";
   x.setFitType();
   x.normaliseData = true;
-  x.setPt(ptmin, ptmax);
-  x.setFitX(0.45, 0.55);
-  x.setPolInitX(0.45, 0.55, 0.57);
-  x.setMassWindowDiff(2e-2, 2e-2);
+  x.nSigma = 3.;
+  x.fixMu = false;
 
+  x.setFitXFromHadron();
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
   x.setInputFileNameFromTrain();
   x.outputFileName = x.hadron + "_" + x.fitName + ".root";
 
-  return x;
+  x.setPtBinEdgesFromHadron();
+  quickRun(x);
 }
 
-InputSettings quickSetup() {
-  vector<vector<double>> ptBinEdges;
-  ptBinEdges.push_back({1., 2.});
-  ptBinEdges.push_back({5., 10.});
-  ptBinEdges.push_back({3., 4.});
-  ptBinEdges.push_back({2., 3.});
-  ptBinEdges.push_back({4., 5.});
-
+void singleRun() {
   InputSettings x;
   x.train = 252064;
   x.hadron = "K0S";
-  x.fitName = "pol1BreitWigner";
+  x.fitName = "pol1Voigt";
   x.setFitType();
-  x.setInputFileNameFromFit();
-  x.setPtBinEdgesSorted(ptBinEdges);
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = false;
 
-  cout << "Input file: " << x.inputFileName << endl;
+  x.setFitXFromHadron();
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
 
-  return x;
-}
-
-MassFitter doFitting(InputSettings& x, double nSigma = 3.) {
+  x.setPt(3., 4.);
   MassFitter m(x);
+  // m.doFitting();
   m.loadMassHist();
   m.loadFitFunction();
   m.setFitInitialValues();
+  printParLimits(m.fit);
   m.data->Fit(m.fit, "R");
+  printParLimits(m.fit);
+  // m.fixFitInPost(); // Applies any post-fit fixes, like swapping gaussians
   m.loadFitParts();
   m.loadFitParams();
-  m.setSignalRegionFromSigma(nSigma);
   m.loadFitResults();
   m.loadResidualHist();
   m.loadPullHist();
   m.writeOutputsToFile();
-  return m;
-}
 
-void plotFitParts(InputSettings& x) {
-  FitPlotter p(x);
-  p.loadMassHist();
-  p.loadFit();
-  p.loadFitParts();
-  p.plotFitParts();
-}
-
-void plotFitParts(MassFitter& m) {
   FitPlotter p(m);
-  p.inputs.outputFileName = p.inputs.getSaveNameFromPt(p.inputs.hadron + "_" + p.inputs.fitName, ".pdf");
+  p.inputs.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
   p.plotFitParts();
-}
-
-void summariseFitInfo() {
-  InputSettings x = quickSetup();
-  x.outputFileName = x.inputFileName;
-  cout << "Input file: " << x.inputFileName << "\nOutput file: " << x.outputFileName << endl;
-  FitSummariser f(x);
-  f.summariseFitInfo("fitParams");
-  f.summariseFitInfo("fitResults");
-}
-
-void plotFitInfo() {
-  InputSettings x = quickSetup();
-  x.outputFileName = "";
-  FitPlotter p(x);
-  p.inputs.histName = "fitParams";
-  p.plotFitInfo();
-  p.inputs.histName = "fitResults";
-  p.plotFitInfo();
 }
 
 #endif

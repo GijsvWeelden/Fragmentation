@@ -129,7 +129,7 @@ struct InputSettings{
     double sigalRegionMin = -1., sigalRegionMax = -1.;
     double nSigma = -1.;
 
-    enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
+    enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausGausXex, kPol2GausGausXex, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
 
     double getMass();
     string getFitExpression();
@@ -181,6 +181,12 @@ string InputSettings::setFitName() {
     case kPol2GausGausExp:
       this->fitName = "pol2GausGausExp";
       break;
+    case kPol1GausGausXex:
+      this->fitName = "pol1GausGausXex";
+      break;
+    case kPol2GausGausXex:
+      this->fitName = "pol2GausGausXex";
+      break;
     case kPol1GausXex:
       this->fitName = "pol1GausXex";
       break;
@@ -221,6 +227,10 @@ int InputSettings::setFitType() {
     this->fitType = kPol1GausGausExp;
   } else if (this->fitName == "pol2GausGausExp") {
     this->fitType = kPol2GausGausExp;
+  } else if (this->fitName == "pol1GausGausXex") {
+    this->fitType = kPol1GausGausXex;
+  } else if (this->fitName == "pol2GausGausXex") {
+    this->fitType = kPol2GausGausXex;
   } else if (this->fitName == "pol1GausXex") {
     this->fitType = kPol1GausXex;
   } else if (this->fitName == "pol2GausXex") {
@@ -280,6 +290,12 @@ string InputSettings::getFitExpression() {
       break;
     case kPol2GausGausExp:
       s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - ([1]+[2]/[3])/2.)/([2]/[3])) * (x > [1]+[2]*[3]) + [4]*TMath::Gaus(x,[1],[5]) + [6]+[7]*x+[8]*x*x";
+      break;
+    case kPol1GausGausXex:
+      s = "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4]) + max(0., [5] * (x-[6]) * TMath::Exp(-(x-[6])/[7])) + [8]+[9]*x";
+      break;
+    case kPol2GausGausXex:
+      s = "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4]) + max(0., [5] * (x-[6]) * TMath::Exp(-(x-[6])/[7])) + [8]+[9]*x+[10]*x*x";
       break;
     case kPol1GausXex:
       s = "[0]*TMath::Gaus(x,[1],[2]) + max(0., [3] * (x-[4]) * TMath::Exp(-(x-[4])/[5])) + [6]+[7]*x";
@@ -499,17 +515,19 @@ void MassFitter::calcSigBkg() {
     return;
 
   int iBkg = 0;
-  if (this->inputs.fitName == "pol1BreitWigner" || this->inputs.fitName == "pol2BreitWigner") {
+  if (this->inputs.fitType == InputSettings::kPol1BreitWigner || this->inputs.fitType == InputSettings::kPol2BreitWigner) {
     iBkg = 2;
-  } else if (this->inputs.fitName == "pol1GausExp" || this->inputs.fitName == "pol2GausExp"){
+  } else if (this->inputs.fitType == InputSettings::kPol1GausExp || this->inputs.fitType == InputSettings::kPol2GausExp){
     iBkg = 3;
-  } else if (this->inputs.fitName == "pol1GausGaus" || this->inputs.fitName == "pol2GausGaus"){
+  } else if (this->inputs.fitType == InputSettings::kPol1GausGaus || this->inputs.fitType == InputSettings::kPol2GausGaus){
     iBkg = 3;
-  } else if (this->inputs.fitName == "pol1GausGausExp" || this->inputs.fitName == "pol2GausGausExp"){
+  } else if (this->inputs.fitType == InputSettings::kPol1GausGausExp || this->inputs.fitType == InputSettings::kPol2GausGausExp){
     iBkg = 4;
-  } else if (this->inputs.fitName == "pol1GausXex" || this->inputs.fitName == "pol2GausXex"){
+  } else if (this->inputs.fitType == InputSettings::kPol1GausGausXex || this->inputs.fitType == InputSettings::kPol2GausGausXex){
+    iBkg = 4;
+  } else if (this->inputs.fitType == InputSettings::kPol1GausXex || this->inputs.fitType == InputSettings::kPol2GausXex){
     iBkg = 3;
-  } else if (this->inputs.fitName == "pol1Voigt" || this->inputs.fitName == "pol2Voigt"){
+  } else if (this->inputs.fitType == InputSettings::kPol1Voigt || this->inputs.fitType == InputSettings::kPol2Voigt){
     iBkg = 2;
   } else {
     cout << "MassFitter::calcSigBkg() Error: do not know how to set parameters for this function" << endl;
@@ -799,6 +817,40 @@ void MassFitter::setFitInitialValues() {
       this->fit->SetParLimits(6, 0., 1.);
       this->fit->SetParLimits(7, -1., 1.);
       break;
+    case InputSettings::kPol1GausGausXex:
+      this->fit->SetParameters(A, mu, sigma, B, rho, C, nu, tau, a, b);
+      this->fit->SetParLimits(0, 0., 1.); // A
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 1.); // B
+      this->fit->SetParLimits(4, 2e-2, 1.); // rho
+      this->fit->SetParLimits(5, 0., 1.); // C
+      this->fit->SetParLimits(6, 0.5, 0.6); // nu
+      // this->fit->SetParLimits(7, -1., 1.); // tau
+      this->fit->SetParLimits(8, 0., 1.); // a
+      this->fit->SetParLimits(9, -1., 1.); // b
+      break;
+    case InputSettings::kPol2GausGausXex:
+      this->fit->SetParameters(A, mu, sigma, B, rho, C, nu, tau, a, b);
+      this->fit->SetParLimits(0, 0., 1.); // A
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 1.); // B
+      this->fit->SetParLimits(4, 0., 1.); // rho
+      // this->fit->SetParLimits(5, 0., 1.); // C
+      this->fit->SetParLimits(6, 0.5, 0.6); // nu
+      // this->fit->SetParLimits(7, -1., 1.); // tau
+      this->fit->SetParLimits(8, 0., 1.); // a
+      this->fit->SetParLimits(9, -1., 1.); // b
+      break;
     case InputSettings::kPol1GausXex:
       this->fit->SetParameters(A, mu, sigma, C, nu, tau, a, b);
       this->fit->SetParLimits(0, 0., 1.);
@@ -807,12 +859,12 @@ void MassFitter::setFitInitialValues() {
       } else {
         this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
       }
-      this->fit->SetParLimits(2, 0., 1.);
-      // this->fit->SetParLimits(3, 0., 1.);
-      this->fit->SetParLimits(4, 0.5, 0.6);
-      // this->fit->SetParLimits(5, 0., 10.);
-      this->fit->SetParLimits(6, 0., 1.);
-      this->fit->SetParLimits(7, -1., 1.);
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      // this->fit->SetParLimits(3, 0., 1.); // C
+      this->fit->SetParLimits(4, 0.5, 0.6); // nu
+      // this->fit->SetParLimits(5, 0., 10.); // tau
+      this->fit->SetParLimits(6, 0., 1.); // a
+      this->fit->SetParLimits(7, -1., 1.); // b
       break;
     case InputSettings::kPol2GausXex:
       this->fit->SetParameters(A, mu, sigma, C, nu, tau, a, b, c);
@@ -868,7 +920,7 @@ vector<TF1*> MassFitter::loadFitParts() {
   string fName = this->fit->GetName();
   vector<TF1*> parts;
 
-  if (this->inputs.fitName == "pol1BreitWigner" || this->inputs.fitName == "pol2BreitWigner") {
+  if (this->inputs.fitType == InputSettings::kPol1BreitWigner || this->inputs.fitType == InputSettings::kPol2BreitWigner) {
     double A, mu, Gamma;
     double a, b, c;
     A = this->fit->GetParameter(0);
@@ -876,7 +928,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     Gamma = this->fit->GetParameter(2);
     a = this->fit->GetParameter(3);
     b = this->fit->GetParameter(4);
-    if (this->inputs.fitName == "pol2BreitWigner") c = this->fit->GetParameter(5);
+    if (this->inputs.fitType == InputSettings::kPol2BreitWigner) c = this->fit->GetParameter(5);
 
     string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
     TF1* f1 = new TF1(s.c_str(), "breitwigner(x,[0],[1],[2])", this->inputs.fitmin, this->inputs.fitmax);
@@ -884,7 +936,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     parts.push_back(f1);
 
     s = TString::Format("%s_%s", fName.c_str(), "f2").Data();
-    if (this->inputs.fitName == "pol1BreitWigner") {
+    if (this->inputs.fitType == InputSettings::kPol1BreitWigner) {
       TF1* f2 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
       f2->SetParameters(a, b);
       parts.push_back(f2);
@@ -893,7 +945,7 @@ vector<TF1*> MassFitter::loadFitParts() {
       f2->SetParameters(a, b, c);
       parts.push_back(f2);
     }
-  } else if (this->inputs.fitName == "pol1GausExp" || this->inputs.fitName == "pol2GausExp") {
+  } else if (this->inputs.fitType == InputSettings::kPol1GausExp || this->inputs.fitType == InputSettings::kPol2GausExp) {
     double A, mu, sigma, lambda;
     double a, b, c;
     A = this->fit->GetParameter(0);
@@ -902,7 +954,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     lambda = this->fit->GetParameter(3);
     a = this->fit->GetParameter(4);
     b = this->fit->GetParameter(5);
-    if (this->inputs.fitName == "pol2GausExp") c = this->fit->GetParameter(6);
+    if (this->inputs.fitType == InputSettings::kPol2GausExp) c = this->fit->GetParameter(6);
 
     // TODO: Change this to 2 functions: G->e and pol1/2
     string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
@@ -916,7 +968,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     parts.push_back(f2);
 
     s = TString::Format("%s_%s", fName.c_str(), "f3").Data();
-    if (this->inputs.fitName == "pol1GausExp") {
+    if (this->inputs.fitType == InputSettings::kPol1GausExp) {
       TF1* f3 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
       f3->SetParameters(a, b);
       parts.push_back(f3);
@@ -925,7 +977,7 @@ vector<TF1*> MassFitter::loadFitParts() {
       f3->SetParameters(a, b, c);
       parts.push_back(f3);
     }
-  } else if (this->inputs.fitName == "pol1GausGaus" || this->inputs.fitName == "pol2GausGaus") {
+  } else if (this->inputs.fitType == InputSettings::kPol1GausGaus || this->inputs.fitType == InputSettings::kPol2GausGaus) {
     double A, mu, sigma;
     double B, lambda;
     double a, b, c;
@@ -936,7 +988,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     lambda = this->fit->GetParameter(4);
     a = this->fit->GetParameter(5);
     b = this->fit->GetParameter(6);
-    if (this->inputs.fitName == "pol2GausGaus") c = this->fit->GetParameter(7);
+    if (this->inputs.fitType == InputSettings::kPol2GausGaus) c = this->fit->GetParameter(7);
 
     string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
     TF1* f1 = new TF1(s.c_str(), "[0]*TMath::Gaus(x,[1],[2])", this->inputs.fitmin, this->inputs.fitmax);
@@ -949,7 +1001,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     parts.push_back(f2);
 
     s = TString::Format("%s_%s", fName.c_str(), "f3").Data();
-    if (this->inputs.fitName == "pol1GausGaus") {
+    if (this->inputs.fitType == InputSettings::kPol1GausGaus) {
       TF1* f3 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
       f3->SetParameters(a, b);
       parts.push_back(f3);
@@ -958,7 +1010,7 @@ vector<TF1*> MassFitter::loadFitParts() {
       f3->SetParameters(a, b, c);
       parts.push_back(f3);
     }
-  } else if (this->inputs.fitName == "pol1GausGausExp" || this->inputs.fitName == "pol2GausGausExp") {
+  } else if (this->inputs.fitType == InputSettings::kPol1GausGausExp || this->inputs.fitType == InputSettings::kPol2GausGausExp) {
     double A, mu, sigma, lambda;
     double B, rho;
     double a, b, c;
@@ -970,7 +1022,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     rho = this->fit->GetParameter(5);
     a = this->fit->GetParameter(6);
     b = this->fit->GetParameter(7);
-    if (this->inputs.fitName == "pol2GausExp") c = this->fit->GetParameter(8);
+    if (this->inputs.fitType == InputSettings::kPol2GausExp) c = this->fit->GetParameter(8);
 
     string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
     TF1* f1 = new TF1(s.c_str(), "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3]))", this->inputs.fitmin, mu+sigma*lambda);
@@ -988,7 +1040,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     parts.push_back(f3);
 
     s = TString::Format("%s_%s", fName.c_str(), "f4").Data();
-    if (this->inputs.fitName == "pol1GausGausExp") {
+    if (this->inputs.fitType == InputSettings::kPol1GausGausExp) {
       TF1* f4 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
       f4->SetParameters(a, b);
       parts.push_back(f4);
@@ -997,7 +1049,49 @@ vector<TF1*> MassFitter::loadFitParts() {
       f4->SetParameters(a, b, c);
       parts.push_back(f4);
     }
-  } else if (this->inputs.fitName == "pol1GausXex" || this->inputs.fitName == "pol2GausXex") {
+  } else if (this->inputs.fitType == InputSettings::kPol1GausGausXex || this->inputs.fitType == InputSettings::kPol2GausGausXex) {
+    double A, mu, sigma;
+    double B, rho;
+    double C, nu, tau;
+    double a, b, c;
+    A = this->fit->GetParameter(0);
+    mu = this->fit->GetParameter(1);
+    sigma = this->fit->GetParameter(2);
+    B = this->fit->GetParameter(3);
+    rho = this->fit->GetParameter(4);
+    C = this->fit->GetParameter(5);
+    nu = this->fit->GetParameter(6);
+    tau = this->fit->GetParameter(7);
+    a = this->fit->GetParameter(8);
+    b = this->fit->GetParameter(9);
+    if (this->inputs.fitType == InputSettings::kPol2GausGausXex) c = this->fit->GetParameter(10);
+
+    string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
+    TF1* f1 = new TF1(s.c_str(), "[0]*TMath::Gaus(x,[1],[2])", this->inputs.fitmin, this->inputs.fitmax);
+    f1->SetParameters(A, mu, sigma);
+    parts.push_back(f1);
+
+    s = TString::Format("%s_%s", fName.c_str(), "f2").Data();
+    TF1* f2 = new TF1(s.c_str(), "[0]*TMath::Gaus(x,[1],[2])", this->inputs.fitmin, this->inputs.fitmax);
+    f2->SetParameters(B, mu, rho);
+    parts.push_back(f2);
+
+    s = TString::Format("%s_%s", fName.c_str(), "f3").Data();
+    TF1* f3 = new TF1(s.c_str(), "max(0., [0]*(x-[1])*TMath::Exp(-(x-[1])/[2]))", this->inputs.fitmin, this->inputs.fitmax);
+    f3->SetParameters(C, nu, tau);
+    parts.push_back(f3);
+
+    s = TString::Format("%s_%s", fName.c_str(), "f4").Data();
+    if (this->inputs.fitType == InputSettings::kPol1GausGausXex) {
+      TF1* f4 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
+      f4->SetParameters(a, b);
+      parts.push_back(f4);
+    } else {
+      TF1* f4 = new TF1(s.c_str(), "[0]+[1]*x+[2]*x*x", this->inputs.fitmin, this->inputs.fitmax);
+      f4->SetParameters(a, b, c);
+      parts.push_back(f4);
+    }
+  } else if (this->inputs.fitType == InputSettings::kPol1GausXex || this->inputs.fitType == InputSettings::kPol2GausXex) {
     double A, mu, sigma;
     double B, nu, tau;
     double a, b, c;
@@ -1009,7 +1103,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     tau = this->fit->GetParameter(5);
     a = this->fit->GetParameter(6);
     b = this->fit->GetParameter(7);
-    if (this->inputs.fitName == "pol2GausXex") c = this->fit->GetParameter(8);
+    if (this->inputs.fitType == InputSettings::kPol2GausXex) c = this->fit->GetParameter(8);
 
     string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
     TF1* f1 = new TF1(s.c_str(), "[0]*TMath::Gaus(x,[1],[2])", this->inputs.fitmin, this->inputs.fitmax);
@@ -1022,7 +1116,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     parts.push_back(f2);
 
     s = TString::Format("%s_%s", fName.c_str(), "f3").Data();
-    if (this->inputs.fitName == "pol1GausXex") {
+    if (this->inputs.fitType == InputSettings::kPol1GausXex) {
       TF1* f3 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
       f3->SetParameters(a, b);
       parts.push_back(f3);
@@ -1031,7 +1125,7 @@ vector<TF1*> MassFitter::loadFitParts() {
       f3->SetParameters(a, b, c);
       parts.push_back(f3);
     }
-  } else if (this->inputs.fitName == "pol1Voigt" || this->inputs.fitName == "pol2Voigt") {
+  } else if (this->inputs.fitType == InputSettings::kPol1Voigt || this->inputs.fitType == InputSettings::kPol2Voigt) {
     double A, mu, sigma, Gamma;
     double a, b, c;
     A = this->fit->GetParameter(0);
@@ -1040,7 +1134,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     Gamma = this->fit->GetParameter(3);
     a = this->fit->GetParameter(4);
     b = this->fit->GetParameter(5);
-    if (this->inputs.fitName == "pol2Voigt") c = this->fit->GetParameter(6);
+    if (this->inputs.fitType == InputSettings::kPol2Voigt) c = this->fit->GetParameter(6);
 
     string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
     TF1* f1 = new TF1(s.c_str(), "[0]*TMath::Voigt(x-[1],[2],[3])", this->inputs.fitmin, this->inputs.fitmax);
@@ -1048,7 +1142,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     parts.push_back(f1);
 
     s = TString::Format("%s_%s", fName.c_str(), "f2").Data();
-    if (this->inputs.fitName == "pol1Voigt") {
+    if (this->inputs.fitType == InputSettings::kPol1Voigt) {
       TF1* f2 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
       f2->SetParameters(a, b);
       parts.push_back(f2);
@@ -1591,11 +1685,10 @@ void quickRun() {
   InputSettings x;
   x.train = 252064;
   x.hadron = "K0S";
-  x.fitName = "pol1GausXex";
-  x.setFitType();
+  x.setFitType("pol1GausGausXex");
   x.normaliseData = true;
   x.nSigma = 3.;
-  x.fixMu = false;
+  x.fixMu = true;
 
   x.setFitXFromHadron();
   x.setPolInitXFromHadron();
@@ -1609,13 +1702,13 @@ void quickRun() {
 
 void singleRun() {
   InputSettings x;
+  x.setPt(3., 4.);
   x.train = 252064;
   x.hadron = "K0S";
-  x.fitName = "pol1Voigt";
-  x.setFitType();
+  x.setFitType("pol1GausGausXex");
   x.normaliseData = true;
   x.nSigma = 3.;
-  x.fixMu = false;
+  x.fixMu = true;
 
   x.setFitXFromHadron();
   x.setPolInitXFromHadron();
@@ -1623,7 +1716,6 @@ void singleRun() {
   x.setInputFileNameFromTrain();
   x.outputFileName = x.hadron + "_" + x.fitName + ".root";
 
-  x.setPt(3., 4.);
   MassFitter m(x);
   // m.doFitting();
   m.loadMassHist();
@@ -1632,7 +1724,7 @@ void singleRun() {
   printParLimits(m.fit);
   m.data->Fit(m.fit, "R");
   printParLimits(m.fit);
-  // m.fixFitInPost(); // Applies any post-fit fixes, like swapping gaussians
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
   m.loadFitParts();
   m.loadFitParams();
   m.loadFitResults();

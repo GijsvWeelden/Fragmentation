@@ -270,10 +270,10 @@ string InputSettings::getFitExpression() {
       s = "breitwigner(x,[0],[1],[2]) + [3]+[4]*x+[5]*x*x";
       break;
     case kPol1GausExp:
-      s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - ([1]+[2]/[3])/2.)/([2]/[3])) * (x > [1]+[2]*[3]) + [4]+[5]*x";
+      s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3]) + [4]+[5]*x";
       break;
-    case kPol2GausExp:
-      s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - ([1]+[2]/[3])/2.)/([2]/[3])) * (x > [1]+[2]*[3]) + [4]+[5]*x+[6]*x*x";
+      case kPol2GausExp:
+      s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3]) + [4]+[5]*x+[6]*x*x";
       break;
     case kPol1GausGaus:
       if (this->lowpt > 20. - 1e-5 && this->lowpt < 25. - 1e-5 && this->highpt > 20. - 1e-5 && this->highpt < 25. + 1e-5) {
@@ -286,10 +286,10 @@ string InputSettings::getFitExpression() {
       s = "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4]) + [5]+[6]*x+[7]*x*x";
       break;
     case kPol1GausGausExp:
-      s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - ([1]+[2]/[3])/2.)/([2]/[3])) * (x > [1]+[2]*[3]) + [4]*TMath::Gaus(x,[1],[5]) + [6]+[7]*x";
+      s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3]) + [4]*TMath::Gaus(x,[1],[5]) + [6]+[7]*x";
       break;
-    case kPol2GausGausExp:
-      s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - ([1]+[2]/[3])/2.)/([2]/[3])) * (x > [1]+[2]*[3]) + [4]*TMath::Gaus(x,[1],[5]) + [6]+[7]*x+[8]*x*x";
+      case kPol2GausGausExp:
+      s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3]) + [4]*TMath::Gaus(x,[1],[5]) + [6]+[7]*x+[8]*x*x";
       break;
     case kPol1GausGausXex:
       s = "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4]) + max(0., [5] * (x-[6]) * TMath::Exp(-(x-[6])/[7])) + [8]+[9]*x";

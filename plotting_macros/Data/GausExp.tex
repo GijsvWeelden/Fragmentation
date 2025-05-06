@@ -1,0 +1,71 @@
+\documentclass[14pt]{extarticle}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{xspace}
+\usepackage[margin=1in]{geometry}
+
+\usepackage{graphicx} % \scalebox
+\usepackage{environ}
+\NewEnviron{myequation}{%
+\begin{equation}
+\scalebox{1.5}{$\BODY$}
+\end{equation}
+}
+\NewEnviron{myalign}{%
+\begin{align}
+\scalebox{1.5}{$\BODY$}
+\end{align}
+}
+
+\renewcommand{\d}{\ensuremath{\mathrm{d}}\xspace}
+\newcommand{\ddx}[1]{\ensuremath{\frac{\d #1}{\d x}}\xspace}
+
+\begin{document}
+
+Let \(f(x)\) be the following piece-wise function composed of a Gaussian and an exponential function
+
+\begin{equation}
+  f(x) =
+  \begin{cases}
+    A e^{-\frac{(x - \mu)^2}{2\sigma^2}}, & x < \mu + \lambda \sigma \\
+    A e^{-\frac{x - \nu}{\tau}}, & x \geq \mu + \lambda \sigma
+  \end{cases}
+\end{equation}
+
+where \(A\) is the amplitude, \(\mu\) is the mean, \(\sigma\) is the standard deviation, and \(\lambda\) is the number of standard deviations from the mean where the transition occurs.
+Demanding that \(f(x)\) is (singly) differentiable at every point, find expressions for \(\nu\) and \(\tau\).
+
+From differentiability
+
+\begin{align}
+  \lim_{x \uparrow \mu + \lambda \sigma} f(x) &= \lim_{x \downarrow \mu + \lambda \sigma} f(x), \\
+  \lim_{x \uparrow \mu + \lambda \sigma} \ddx{f}(x) &= \lim_{x \downarrow \mu + \lambda \sigma} \ddx{f}(x),
+\end{align}
+
+and so
+
+\begin{align}
+  A e^{-\lambda^2/2}
+    &= A e^{- \frac{\mu + \lambda \sigma - \nu}{\tau}}, \\
+  - \frac{\lambda}{\sigma} A e^{-\lambda^2/2}
+    &= - \frac{1}{\tau} A e^{-\frac{\mu + \lambda \sigma - \nu}{\tau}}. \\
+\end{align}
+
+Then
+
+\begin{equation}
+  - \frac{\lambda}{\sigma} A e^{-\frac{\mu + \lambda \sigma - \nu}{\tau}} = - \frac{1}{\tau} A e^{-\frac{\mu + \lambda \sigma - \nu}{\tau}}
+  \Rightarrow \tau = \frac{\sigma}{\lambda}.
+\end{equation}
+
+And
+
+\begin{equation}
+  e^{\nu/\tau} = \exp\left[\frac{\mu + \lambda \sigma}{\tau} - \frac{\lambda^2}{2}\right]
+  \Rightarrow \nu = \mu + \lambda \sigma / 2.
+\end{equation}
+
+If, instead \(f(x \geq \mu + \lambda \sigma) = \exp(-(x-\nu)/\tau)\), then \(\nu = \ln(A) \sigma/\lambda + \mu + \lambda \sigma / 2\) and \(\tau = \sigma/\lambda\).
+
+\end{document}

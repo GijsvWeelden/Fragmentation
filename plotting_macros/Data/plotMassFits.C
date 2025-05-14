@@ -129,7 +129,7 @@ struct InputSettings{
     double sigalRegionMin = -1., sigalRegionMax = -1.;
     double nSigma = -1.;
 
-    enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausGausXex, kPol2GausGausXex, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
+    enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1BreitWignerXex, kPol2BreitWignerXex, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausGausXex, kPol2GausGausXex, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
 
     double getMass();
     string getFitExpression();
@@ -162,6 +162,12 @@ string InputSettings::setFitName() {
       break;
     case kPol2BreitWigner:
       this->fitName = "pol2BreitWigner";
+      break;
+    case kPol1BreitWignerXex:
+      this->fitName = "pol1BreitWignerXex";
+      break;
+    case kPol2BreitWignerXex:
+      this->fitName = "pol2BreitWignerXex";
       break;
     case kPol1GausExp:
       this->fitName = "pol1GausExp";
@@ -215,6 +221,10 @@ int InputSettings::setFitType() {
     this->fitType = kPol1BreitWigner;
   } else if (this->fitName == "pol2BreitWigner") {
     this->fitType = kPol2BreitWigner;
+  } else if (this->fitName == "pol1BreitWignerXex") {
+    this->fitType = kPol1BreitWignerXex;
+  } else if (this->fitName == "pol2BreitWignerXex") {
+    this->fitType = kPol2BreitWignerXex;
   } else if (this->fitName == "pol1GausExp") {
     this->fitType = kPol1GausExp;
   } else if (this->fitName == "pol2GausExp") {
@@ -268,6 +278,12 @@ string InputSettings::getFitExpression() {
       break;
     case kPol2BreitWigner:
       s = "breitwigner(x,[0],[1],[2]) + [3]+[4]*x+[5]*x*x";
+      break;
+    case kPol1BreitWignerXex:
+      s = "breitwigner(x,[0],[1],[2]) + max(0., [3] * (x-[4]) * TMath::Exp(-(x-[4])/[5])) + [6]+[7]*x";
+      break;
+    case kPol2BreitWignerXex:
+      s = "breitwigner(x,[0],[1],[2]) + max(0., [3] * (x-[4]) * TMath::Exp(-(x-[4])/[5])) + [6]+[7]*x+[8]*x*x";
       break;
     case kPol1GausExp:
       s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3]) + [4]+[5]*x";
@@ -486,9 +502,9 @@ struct MassFitter {
     TH1* pull = nullptr;
     TH1* residual = nullptr;
 
-    double signal = -1.;
-    double background = -1.;
-    double signalPlusBackground = -1.;
+    vector<double> signal = {};
+    vector<double> background = {};
+    vector<double> signalPlusBackground = {};
 
     MassFitter() { InputSettings(); }
     MassFitter(InputSettings& x) { this->inputs = x; }
@@ -514,21 +530,32 @@ void MassFitter::calcSigBkg() {
   if (!this->data || !this->fit || this->fitParts.size() == 0)
     return;
 
-  int iBkg = 0;
+  if (this->signal.size() > 0 || this->background.size() > 0 || this->signalPlusBackground.size() > 0) {
+    cout << "MassFitter::calcSigBkg() Warning: signal, background and/or signalPlusBackground already set, clearing the vectors" << endl;
+    this->signal = {};
+    this->background = {};
+    this->signalPlusBackground = {};
+  }
+
+  // The number of the function is 1 + its index in fitParts
+  // I.e. fitPart _f1 is at index 0
+  vector<int> bkgFitNumbers = {};
   if (this->inputs.fitType == InputSettings::kPol1BreitWigner || this->inputs.fitType == InputSettings::kPol2BreitWigner) {
-    iBkg = 2;
+    bkgFitNumbers.push_back(2);
+  } else if (this->inputs.fitType == InputSettings::kPol1BreitWignerXex || this->inputs.fitType == InputSettings::kPol2BreitWignerXex) {
+    bkgFitNumbers.push_back(3);
   } else if (this->inputs.fitType == InputSettings::kPol1GausExp || this->inputs.fitType == InputSettings::kPol2GausExp){
-    iBkg = 3;
+    bkgFitNumbers.push_back(3);
   } else if (this->inputs.fitType == InputSettings::kPol1GausGaus || this->inputs.fitType == InputSettings::kPol2GausGaus){
-    iBkg = 3;
+    bkgFitNumbers.push_back(3);
   } else if (this->inputs.fitType == InputSettings::kPol1GausGausExp || this->inputs.fitType == InputSettings::kPol2GausGausExp){
-    iBkg = 4;
+    bkgFitNumbers.push_back(4);
   } else if (this->inputs.fitType == InputSettings::kPol1GausGausXex || this->inputs.fitType == InputSettings::kPol2GausGausXex){
-    iBkg = 4;
+    bkgFitNumbers.push_back(4);
   } else if (this->inputs.fitType == InputSettings::kPol1GausXex || this->inputs.fitType == InputSettings::kPol2GausXex){
-    iBkg = 3;
+    bkgFitNumbers.push_back(3);
   } else if (this->inputs.fitType == InputSettings::kPol1Voigt || this->inputs.fitType == InputSettings::kPol2Voigt){
-    iBkg = 2;
+    bkgFitNumbers.push_back(2);
   } else {
     cout << "MassFitter::calcSigBkg() Error: do not know how to set parameters for this function" << endl;
     return;
@@ -539,15 +566,41 @@ void MassFitter::calcSigBkg() {
     this->setSignalRegionFromSigma();
   }
 
+  // Load the signal and background fit functions
+  vector<TF1*> bkgFits = {}; vector<TF1*> sigFits = {};
+  for (int iBkg = 0; iBkg < this->fitParts.size(); iBkg++) {
+    if(std::find(bkgFitNumbers.begin(), bkgFitNumbers.end(), iBkg+1) != bkgFitNumbers.end()) // iBkg in bkgFitNumbers
+      bkgFits.push_back(this->fitParts[iBkg]);
+    else // iBkg not in bkgFitNumbers
+      sigFits.push_back(this->fitParts[iBkg]);
+  }
+
+  // Calculate signal and background with data hist and bkg fit function
   array<int, 2> sigBins = getProjectionBins(this->data->GetXaxis(), this->inputs.sigalRegionMin, this->inputs.sigalRegionMax);
   double xmin = this->data->GetXaxis()->GetBinLowEdge(sigBins[0]);
   double xmax = this->data->GetXaxis()->GetBinUpEdge(sigBins[1]);
 
-  TF1* bkgFit = this->fitParts[iBkg - 1];
-  bkgFit->SetRange(xmin, xmax);
-  this->background = bkgFit->Integral(xmin, xmax);
-  this->signalPlusBackground = this->data->Integral(sigBins[0], sigBins[1], "width");
-  this->signal = this->signalPlusBackground - this->background;
+  double signalPlusBackground = this->data->Integral(sigBins[0], sigBins[1], "width");
+  double background = 0;
+  for (auto bkgFit : bkgFits) {
+    bkgFit->SetRange(xmin, xmax);
+    background += bkgFit->Integral(xmin, xmax);
+  }
+  double signal = signalPlusBackground - background;
+  this->signalPlusBackground.push_back(signalPlusBackground);
+  this->background.push_back(background);
+  this->signal.push_back(signal);
+
+  // Calculate signal with fit function
+  signalPlusBackground = 0, signal = 0;
+  for (auto sigFit : sigFits) {
+    sigFit->SetRange(xmin, xmax);
+    signalPlusBackground += sigFit->Integral(xmin, xmax);
+  }
+  signal = signalPlusBackground - background;
+  this->signalPlusBackground.push_back(signalPlusBackground);
+  this->background.push_back(background);
+  this->signal.push_back(signal);
 }
 
 void MassFitter::doFitting() {
@@ -732,6 +785,36 @@ void MassFitter::setFitInitialValues() {
       this->fit->SetParLimits(3, 0, 1);
       this->fit->SetParLimits(4, -1, 1);
       // this->fit->SetParLimits(5, -1, 1);
+      break;
+    case InputSettings::kPol1BreitWignerXex:
+      this->fit->SetParameters(A, mu, Gamma, C, nu, tau, a, b);
+      this->fit->SetParLimits(0, 0., 1.); // A
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 1.); // C
+      this->fit->SetParLimits(4, 0.5, 0.6); // nu
+      // this->fit->SetParLimits(5, 0., 1.); // tau
+      this->fit->SetParLimits(6, 0., 1.); // a
+      this->fit->SetParLimits(7, -1, 1); // b
+      break;
+    case InputSettings::kPol2BreitWignerXex:
+    this->fit->SetParameters(A, mu, Gamma, C, nu, tau, a, b);
+    this->fit->SetParLimits(0, 0., 1.); // A
+    if (this->inputs.fixMu) {
+      this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+    } else {
+      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+    }
+    this->fit->SetParLimits(2, 0., 1.); // sigma
+    this->fit->SetParLimits(3, 0., 1.); // C
+    this->fit->SetParLimits(4, 0.5, 0.6); // nu
+    // this->fit->SetParLimits(5, 0., 1.); // tau
+    this->fit->SetParLimits(6, 0., 1.); // a
+    this->fit->SetParLimits(7, -1, 1); // b
       break;
     case InputSettings::kPol1GausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, a, b);
@@ -944,6 +1027,40 @@ vector<TF1*> MassFitter::loadFitParts() {
       TF1* f2 = new TF1(s.c_str(), "[0]+[1]*x+[2]*x*x", this->inputs.fitmin, this->inputs.fitmax);
       f2->SetParameters(a, b, c);
       parts.push_back(f2);
+    }
+  } else if (this->inputs.fitType == InputSettings::kPol1BreitWignerXex || this->inputs.fitType == InputSettings::kPol2BreitWignerXex) {
+    double A, mu, Gamma;
+    double C, nu, tau;
+    double a, b, c;
+    A = this->fit->GetParameter(0);
+    mu = this->fit->GetParameter(1);
+    Gamma = this->fit->GetParameter(2);
+    C = this->fit->GetParameter(3);
+    nu = this->fit->GetParameter(4);
+    tau = this->fit->GetParameter(5);
+    a = this->fit->GetParameter(6);
+    b = this->fit->GetParameter(7);
+    if (this->inputs.fitType == InputSettings::kPol2BreitWignerXex) c = this->fit->GetParameter(8);
+
+    string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
+    TF1* f1 = new TF1(s.c_str(), "breitwigner(x,[0],[1],[2])", this->inputs.fitmin, this->inputs.fitmax);
+    f1->SetParameters(A, mu, Gamma);
+    parts.push_back(f1);
+
+    s = TString::Format("%s_%s", fName.c_str(), "f2").Data();
+    TF1* f2 = new TF1(s.c_str(), "[0]*TMath::Exp(-[1]*(x-[2])*(x-[2]))", this->inputs.fitmin, this->inputs.fitmax);
+    f2->SetParameters(C, nu, tau);
+    parts.push_back(f2);
+
+    s = TString::Format("%s_%s", fName.c_str(), "f3").Data();
+    if (this->inputs.fitType == InputSettings::kPol1BreitWignerXex) {
+      TF1* f3 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
+      f3->SetParameters(a, b);
+      parts.push_back(f3);
+    } else {
+      TF1* f3 = new TF1(s.c_str(), "[0]+[1]*x+[2]*x*x", this->inputs.fitmin, this->inputs.fitmax);
+      f3->SetParameters(a, b, c);
+      parts.push_back(f3);
     }
   } else if (this->inputs.fitType == InputSettings::kPol1GausExp || this->inputs.fitType == InputSettings::kPol2GausExp) {
     double A, mu, sigma, lambda;
@@ -1183,7 +1300,7 @@ TH1* MassFitter::loadFitResults() {
 
   string saveName = this->inputs.getSaveNameFromPt("fitResults");
 
-  int nBins = 12;
+  int nBins = 15;
   TH1* h = new TH1D(saveName.c_str(), "fitResults", nBins, -0.5, 1.*nBins - 0.5);
   h->SetTitle("Fit results");
   h->GetXaxis()->SetTitle("");
@@ -1193,12 +1310,15 @@ TH1* MassFitter::loadFitResults() {
   h->GetXaxis()->SetBinLabel(4, "#chi^{2} (all)");
   h->GetXaxis()->SetBinLabel(5, "NDF (all)");
   h->GetXaxis()->SetBinLabel(6, "#chi^{2}/NDF (all)");
-  h->GetXaxis()->SetBinLabel(7, "Sig+Bkg");
-  h->GetXaxis()->SetBinLabel(8, "Sig");
-  h->GetXaxis()->SetBinLabel(9, "Bkg");
-  h->GetXaxis()->SetBinLabel(10, "Sig/(Sig+Bkg)");
-  h->GetXaxis()->SetBinLabel(11, "Sig/Bkg");
-  h->GetXaxis()->SetBinLabel(12, "Sig/sqrt(Sig+Bkg)");
+  h->GetXaxis()->SetBinLabel(7, "Sig+Bkg [hist]");
+  h->GetXaxis()->SetBinLabel(8, "Sig [hist]");
+  h->GetXaxis()->SetBinLabel(9, "Bkg [hist]");
+  h->GetXaxis()->SetBinLabel(10, "Sig/(Sig+Bkg) [hist]");
+  h->GetXaxis()->SetBinLabel(11, "Sig/Bkg [hist]");
+  h->GetXaxis()->SetBinLabel(12, "Sig/sqrt(Sig+Bkg) [hist]");
+  h->GetXaxis()->SetBinLabel(13, "Sig+Bkg [fit]");
+  h->GetXaxis()->SetBinLabel(14, "Sig [fit]");
+  h->GetXaxis()->SetBinLabel(15, "Bkg [fit]");
 
   double chisqFit = chisqInRange(this->data, this->fit, this->inputs.fitmin, this->inputs.fitmax);
   double ndfFit = ndfInRange(this->data, this->fit, this->inputs.fitmin, this->inputs.fitmax);
@@ -1212,12 +1332,15 @@ TH1* MassFitter::loadFitResults() {
   h->SetBinContent(4, chisqAll);
   h->SetBinContent(5, ndfAll);
   h->SetBinContent(6, chisqAll / ndfAll);
-  h->SetBinContent(7, this->signalPlusBackground);
-  h->SetBinContent(8, this->signal);
-  h->SetBinContent(9, this->background);
-  h->SetBinContent(10, this->signal / this->signalPlusBackground);
-  h->SetBinContent(11, this->signal / this->background);
-  h->SetBinContent(12, this->signal / sqrt(this->signalPlusBackground));
+  h->SetBinContent(7, this->signalPlusBackground[0]);
+  h->SetBinContent(8, this->signal[0]);
+  h->SetBinContent(9, this->background[0]);
+  h->SetBinContent(10, this->signal[0] / this->signalPlusBackground[0]);
+  h->SetBinContent(11, this->signal[0] / this->background[0]);
+  h->SetBinContent(12, this->signal[0] / sqrt(this->signalPlusBackground[0]));
+  h->SetBinContent(13, this->signalPlusBackground[1]);
+  h->SetBinContent(14, this->signal[1]);
+  h->SetBinContent(15, this->background[1]);
 
   this->fitResults = (TH1*)h->Clone(saveName.c_str());
   return h;
@@ -1690,7 +1813,8 @@ void quickRun() {
   x.nSigma = 3.;
   x.fixMu = true;
 
-  x.setFitXFromHadron();
+  // x.setFitXFromHadron();
+  x.setFitX(0.45, 0.55); // x.setFitX(0.4, 0.55);
   x.setPolInitXFromHadron();
   x.setMassWindowDiffFromHadron();
   x.setInputFileNameFromTrain();

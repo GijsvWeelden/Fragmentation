@@ -64,6 +64,10 @@ double chisqInRange(TH1* hist, TF1* fit, int minBin, int maxBin) {
     double bc = hist->GetBinContent(i);
     double be = hist->GetBinError(i);
     double fx = fit->Eval(hist->GetBinCenter(i));
+
+    if (bc < 1e-50) // Protect against zero division
+      continue;
+
     chisq += (fx - bc) * (fx - bc) / (be * be);
   }
   return chisq;
@@ -90,6 +94,17 @@ double roundToPrevPowerOfTen(double x) {
   return std::pow(10., std::floor(std::log10(x)));
 }
 
+// Return a hist that is a subset of the input hist
+TH1* makeHistSubset(TH1* data, int minBin, int maxBin, string name = "region") {
+  TH1* region = (TH1*)data->Clone(name.c_str());
+  region->Reset();
+  for (int i = minBin; i <= maxBin; i++) {
+    region->SetBinContent(i, data->GetBinContent(i));
+    region->SetBinError(i, data->GetBinError(i));
+  }
+  return region;
+}
+
 // Prints the parameter limits of a function
 void printParLimits(TF1* f) {
   for (int i = 0; i < f->GetNpar(); i++) {
@@ -98,6 +113,150 @@ void printParLimits(TF1* f) {
     cout << f->GetName() << " (" << i << " = " << f->GetParName(i) << ") " << f->GetParameter(i) << " (" << min << ", " << max << ")" << endl;
   }
   cout << endl;
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Signal Fractions
+//
+// -------------------------------------------------------------------------------------------------
+
+array<double, 2> GaussGaussSigRegionFromSteps(double n, TF1* f) {
+  double ampNarrow = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigmaNarrow = f->GetParameter(2);
+  double ampWide = f->GetParameter(3);
+  double sigmaWide = f->GetParameter(4);
+
+  double Sigma = (ampNarrow * sigmaNarrow + ampWide * sigmaWide) / (ampNarrow + ampWide);
+  return {mu - n * Sigma, mu + n * Sigma};
+}
+
+array<double, 2> GaussGaussSigRegionFromFrac(double s, TF1* f) {
+  double ampNarrow = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigmaNarrow = f->GetParameter(2);
+  double ampWide = f->GetParameter(3);
+  double sigmaWide = f->GetParameter(4);
+
+  double Sigma = (ampNarrow * sigmaNarrow + ampWide * sigmaWide) / (ampNarrow + ampWide);
+  double n = s * (ampNarrow * sigmaNarrow + ampWide * sigmaWide) / (ampNarrow + ampWide);
+
+  return {mu - n * Sigma, mu + n * Sigma};
+}
+
+double GaussGaussSigFrac(double n, TF1* f) {
+  double ampNarrow = f->GetParameter(0);
+  double sigmaNarrow = f->GetParameter(2);
+  double ampWide = f->GetParameter(3);
+  double sigmaWide = f->GetParameter(4);
+
+  double Sigma = (ampNarrow * sigmaNarrow + ampWide * sigmaWide) / (ampNarrow + ampWide);
+
+  double x = n * Sigma / (sqrt(2) * sigmaNarrow);
+  double y = n * Sigma / (sqrt(2) * sigmaWide);
+
+  x = TMath::Erf(x);
+  x *= ampNarrow * sigmaNarrow;
+
+  y = TMath::Erf(y);
+  y *= ampWide * sigmaWide;
+
+  double s = (x + y) / (ampNarrow * sigmaNarrow + ampWide * sigmaWide);
+  return s;
+}
+
+array<double, 2> GaussGaussExpSigRegion(double n, TF1* f) {
+  double ampNarrow = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigmaNarrow = f->GetParameter(2);
+  double lambda = f->GetParameter(3); // Crossover point
+  double ampWide = f->GetParameter(4);
+  double sigmaWide = f->GetParameter(5);
+
+  double tau = sigmaNarrow / lambda;
+
+  // Make double Gaussian from f
+  TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", f->GetXmin(), f->GetXmax());
+  g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
+  array<double, 2> gaussRegion = GaussGaussSigRegionFromSteps(n, g);
+
+  double leftSide = gaussRegion[0];
+  double rightSide = gaussRegion[1];
+  if (n < lambda) rightSide = mu + n * sigmaNarrow;
+  if (n > lambda) rightSide = mu + lambda * sigmaNarrow + (n - lambda) * tau;
+
+  // TODO: Think about how to define the weird signal region here
+  return {leftSide, rightSide};
+}
+
+double GaussGaussExpSigFrac(double n, TF1* f, bool leftSide) {
+  double ampNarrow = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigmaNarrow = f->GetParameter(2);
+  double lambda = f->GetParameter(3); // Crossover point
+  double ampWide = f->GetParameter(4);
+  double sigmaWide = f->GetParameter(5);
+
+  if (leftSide) {
+    // Make double Gaussian from f
+    TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", f->GetXmin(), f->GetXmax());
+    g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
+    return GaussGaussSigFrac(n, f);
+  }
+
+  double x = (lambda + n / lambda - 1) * sigmaNarrow / (sqrt(2) * sigmaWide);
+  x = TMath::Erf(x);
+  x *= ampWide * sigmaWide;
+
+  double y = lambda / sqrt(2);
+  y = TMath::Erf(y);
+  y *= ampNarrow * sigmaNarrow;
+  y *= sqrt(TMath::PiOver2());
+
+  double z = exp(- lambda*lambda / 2);
+  z *= ampNarrow * sigmaNarrow / lambda;
+
+  double s = (x + y + z * (1 - exp(lambda - n))) / (ampNarrow * sigmaNarrow + y + z);
+  return s;
+}
+
+array<double, 2> ExpGaussExpSigRegion(double n, TF1* f) {
+  double amp = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigma = f->GetParameter(2);
+  double lambdaL = f->GetParameter(3); // Crossover point left
+  double lambdaR = f->GetParameter(4); // Crossover point right
+
+  double tauL = sigma / lambdaL;
+  double tauR = sigma / lambdaR;
+
+  double leftSide = mu - n * sigma;
+  if (n > lambdaL) leftSide = mu - lambdaL * sigma - (n - lambdaL) * tauL;
+
+  double rightSide = mu + n * sigma;
+  if (n > lambdaR) rightSide = mu + lambdaR * sigma + (n - lambdaR) * tauR;
+
+  return {leftSide, rightSide};
+}
+
+double ExpGaussExpSigFrac(double n, TF1* f, bool leftSide) {
+  double amp = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigma = f->GetParameter(2);
+  double lambdaL = f->GetParameter(3); // Crossover point left
+  double lambdaR = f->GetParameter(4); // Crossover point right
+
+  double lambda = (leftSide) ? lambdaL : lambdaR;
+
+  double x = lambda / sqrt(2);
+  x = TMath::Erf(x);
+  x *= lambda * sqrt(TMath::PiOver2());
+
+  double y = exp(- lambda*lambda / 2);
+
+  double s = (x + y * (1 - exp(lambda - n))) / (x + y);
+  return s;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -112,6 +271,7 @@ struct InputSettings{
     int train = 0;
     int rebinNumber = -1;
     int fitType = -1;
+    int verbosity = 1; // kWarnings
     string hadron = "";
     string fitName = "";
     string histName = "";
@@ -126,15 +286,18 @@ struct InputSettings{
 
     double massWindowMin = -1., massWindowMax = -1.;
     double polInitx0 = -1., polInitx1 = -1., polInitx2 = -1.;
-    double sigalRegionMin = -1., sigalRegionMax = -1.;
+    double signalRegionMin = -1., signalRegionMax = -1.;
     double nSigma = -1.;
 
-    enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1BreitWignerXex, kPol2BreitWignerXex, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausGausXex, kPol2GausGausXex, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
+    enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1BreitWignerXex, kPol2BreitWignerXex, kPol1ExpGausExp, kPol2ExpGausExp, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausGausXex, kPol2GausGausXex, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
+
+    enum Verbosity {kErrors, kWarnings, kInfo, kDebug};
 
     double getMass();
     string getFitExpression();
     string getSaveNameFromPt(string prefix, string suffix);
     int inputIssue(string home, string obj);
+    string printLog(string message, int verbThreshold);
     string setFitName();
     string setFitName(int fit);
     int setFitType();
@@ -154,112 +317,6 @@ struct InputSettings{
     void setSignalRegion(double a, double b);
     template <typename T> int writeOutputToFile(T* obj);
 };
-
-string InputSettings::setFitName() {
-  switch (this->fitType) {
-    case kPol1BreitWigner:
-      this->fitName = "pol1BreitWigner";
-      break;
-    case kPol2BreitWigner:
-      this->fitName = "pol2BreitWigner";
-      break;
-    case kPol1BreitWignerXex:
-      this->fitName = "pol1BreitWignerXex";
-      break;
-    case kPol2BreitWignerXex:
-      this->fitName = "pol2BreitWignerXex";
-      break;
-    case kPol1GausExp:
-      this->fitName = "pol1GausExp";
-      break;
-    case kPol2GausExp:
-      this->fitName = "pol2GausExp";
-      break;
-    case kPol1GausGaus:
-      this->fitName = "pol1GausGaus";
-      break;
-    case kPol2GausGaus:
-      this->fitName = "pol2GausGaus";
-      break;
-    case kPol1GausGausExp:
-      this->fitName = "pol1GausGausExp";
-      break;
-    case kPol2GausGausExp:
-      this->fitName = "pol2GausGausExp";
-      break;
-    case kPol1GausGausXex:
-      this->fitName = "pol1GausGausXex";
-      break;
-    case kPol2GausGausXex:
-      this->fitName = "pol2GausGausXex";
-      break;
-    case kPol1GausXex:
-      this->fitName = "pol1GausXex";
-      break;
-    case kPol2GausXex:
-      this->fitName = "pol2GausXex";
-      break;
-    case kPol1Voigt:
-      this->fitName = "pol1Voigt";
-      break;
-    case kPol2Voigt:
-      this->fitName = "pol2Voigt";
-      break;
-    default:
-      cout << "InputSettings::setFitName() Error: requested unknown function" << endl;
-  }
-  return this->fitName;
-}
-
-string InputSettings::setFitName(int fit) {
-  this->fitType = fit;
-  return setFitName();
-}
-
-int InputSettings::setFitType() {
-  if (this->fitName == "pol1BreitWigner") {
-    this->fitType = kPol1BreitWigner;
-  } else if (this->fitName == "pol2BreitWigner") {
-    this->fitType = kPol2BreitWigner;
-  } else if (this->fitName == "pol1BreitWignerXex") {
-    this->fitType = kPol1BreitWignerXex;
-  } else if (this->fitName == "pol2BreitWignerXex") {
-    this->fitType = kPol2BreitWignerXex;
-  } else if (this->fitName == "pol1GausExp") {
-    this->fitType = kPol1GausExp;
-  } else if (this->fitName == "pol2GausExp") {
-    this->fitType = kPol2GausExp;
-  } else if (this->fitName == "pol1GausGaus") {
-    this->fitType = kPol1GausGaus;
-  } else if (this->fitName == "pol2GausGaus") {
-    this->fitType = kPol2GausGaus;
-  } else if (this->fitName == "pol1GausGausExp") {
-    this->fitType = kPol1GausGausExp;
-  } else if (this->fitName == "pol2GausGausExp") {
-    this->fitType = kPol2GausGausExp;
-  } else if (this->fitName == "pol1GausGausXex") {
-    this->fitType = kPol1GausGausXex;
-  } else if (this->fitName == "pol2GausGausXex") {
-    this->fitType = kPol2GausGausXex;
-  } else if (this->fitName == "pol1GausXex") {
-    this->fitType = kPol1GausXex;
-  } else if (this->fitName == "pol2GausXex") {
-    this->fitType = kPol2GausXex;
-  } else if (this->fitName == "pol1Voigt") {
-    this->fitType = kPol1Voigt;
-  } else if (this->fitName == "pol2Voigt") {
-    this->fitType = kPol2Voigt;
-  } else {
-    cout << "InputSettings::getFitType() Error: requested unknown function " << this->fitName << endl;
-  }
-
-  return this->fitType;
-}
-
-int InputSettings::setFitType(string fit) {
-  this->fitName = fit;
-  return setFitType();
-}
 
 double InputSettings::getMass() {
   if (this->hadron == "K0S")
@@ -284,6 +341,12 @@ string InputSettings::getFitExpression() {
       break;
     case kPol2BreitWignerXex:
       s = "breitwigner(x,[0],[1],[2]) + max(0., [3] * (x-[4]) * TMath::Exp(-(x-[4])/[5])) + [6]+[7]*x+[8]*x*x";
+      break;
+    case kPol1ExpGausExp:
+      s = "[0]*TMath::Gaus(x,[1],[2]) * (x > ([1]-[2]*[3])) * (x < ([1]+[2]*[4])) + [0]*TMath::Exp((x - [1] + [2]*[3]/2.)/([2]/[3])) * (x <= [1]-[2]*[3]) + [0]*TMath::Exp(-(x - [1] - [2]*[4]/2.)/([2]/[4])) * (x >= [1]+[2]*[4]) + [5]+[6]*x";
+      break;
+    case kPol2ExpGausExp:
+      s = "[0]*TMath::Gaus(x,[1],[2]) * (x > ([1]-[2]*[3])) * (x < ([1]+[2]*[4])) + [0]*TMath::Exp((x - [1] + [2]*[3]/2.)/(-[2]/[3])) * (x <= [1]-[2]*[3]) + [0]*TMath::Exp(-(x - [1] - [2]*[4]/2.)/([2]/[4])) * (x >= [1]+[2]*[4]) + [5]+[6]*x+[7]*x*x";
       break;
     case kPol1GausExp:
       s = "[0]*TMath::Gaus(x,[1],[2]) * (x < ([1]+[2]*[3])) + [0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3]) + [4]+[5]*x";
@@ -326,7 +389,8 @@ string InputSettings::getFitExpression() {
       s = "[0]*TMath::Voigt(x-[1],[2],[3]) + [4]+[5]*x+[6]*x*x";
       break;
     default:
-      cout << "InputSettings::getFitExpression() Error: requested unknown function " << this->fitName << endl;
+      string s = "InputSettings::getFitExpression() Error: requested unknown function " + this->fitName;
+      printLog(s, kErrors);
       break;
   }
 
@@ -342,12 +406,140 @@ int InputSettings::inputIssue(string home, string obj) {
   if (obj == "hadron") {
     if (this->hadron == "K0S" || this->hadron == "Lambda" || this->hadron == "AntiLambda") return 0;
   } else {
-    cout << "InputSettings::inputIssue() Error: requested unknown object " << obj << endl;
+    string s = "InputSettings::inputIssue() Error: requested unknown object " + obj;
+    printLog(s, kErrors);
     return 1;
   }
 
-  cout << "InputSettings::" << home << "() Error: " << obj << " not initialised" << endl;
+  string s = "InputSettings::" + home + "() Error: " + obj + " not initialised";
+  printLog(s, kErrors);
   return 2;
+}
+
+string InputSettings::printLog(string message, int verbThreshold) {
+  if (this->verbosity < verbThreshold)
+    return "";
+
+  cout << message << endl;
+  return message;
+}
+
+string InputSettings::setFitName() {
+  switch (this->fitType) {
+    case kPol1BreitWigner:
+      this->fitName = "pol1BreitWigner";
+      break;
+    case kPol2BreitWigner:
+      this->fitName = "pol2BreitWigner";
+      break;
+    case kPol1BreitWignerXex:
+      this->fitName = "pol1BreitWignerXex";
+      break;
+    case kPol2BreitWignerXex:
+      this->fitName = "pol2BreitWignerXex";
+      break;
+    case kPol1ExpGausExp:
+      this->fitName = "pol1ExpGausExp";
+      break;
+    case kPol2ExpGausExp:
+      this->fitName = "pol2ExpGausExp";
+      break;
+    case kPol1GausExp:
+      this->fitName = "pol1GausExp";
+      break;
+    case kPol2GausExp:
+      this->fitName = "pol2GausExp";
+      break;
+    case kPol1GausGaus:
+      this->fitName = "pol1GausGaus";
+      break;
+    case kPol2GausGaus:
+      this->fitName = "pol2GausGaus";
+      break;
+    case kPol1GausGausExp:
+      this->fitName = "pol1GausGausExp";
+      break;
+    case kPol2GausGausExp:
+      this->fitName = "pol2GausGausExp";
+      break;
+    case kPol1GausGausXex:
+      this->fitName = "pol1GausGausXex";
+      break;
+    case kPol2GausGausXex:
+      this->fitName = "pol2GausGausXex";
+      break;
+    case kPol1GausXex:
+      this->fitName = "pol1GausXex";
+      break;
+    case kPol2GausXex:
+      this->fitName = "pol2GausXex";
+      break;
+    case kPol1Voigt:
+      this->fitName = "pol1Voigt";
+      break;
+    case kPol2Voigt:
+      this->fitName = "pol2Voigt";
+      break;
+    default:
+      string s = "InputSettings::setFitName() Error: requested unknown function";
+      printLog(s, kErrors);
+  }
+  return this->fitName;
+}
+
+string InputSettings::setFitName(int fit) {
+  this->fitType = fit;
+  return setFitName();
+}
+
+int InputSettings::setFitType() {
+  if (this->fitName == "pol1BreitWigner") {
+    this->fitType = kPol1BreitWigner;
+  } else if (this->fitName == "pol2BreitWigner") {
+    this->fitType = kPol2BreitWigner;
+  } else if (this->fitName == "pol1BreitWignerXex") {
+    this->fitType = kPol1BreitWignerXex;
+  } else if (this->fitName == "pol2BreitWignerXex") {
+    this->fitType = kPol2BreitWignerXex;
+  } else if (this->fitName == "pol1ExpGausExp") {
+    this->fitType = kPol1ExpGausExp;
+  } else if (this->fitName == "pol2ExpGausExp") {
+    this->fitType = kPol2ExpGausExp;
+  } else if (this->fitName == "pol1GausExp") {
+    this->fitType = kPol1GausExp;
+  } else if (this->fitName == "pol2GausExp") {
+    this->fitType = kPol2GausExp;
+  } else if (this->fitName == "pol1GausGaus") {
+    this->fitType = kPol1GausGaus;
+  } else if (this->fitName == "pol2GausGaus") {
+    this->fitType = kPol2GausGaus;
+  } else if (this->fitName == "pol1GausGausExp") {
+    this->fitType = kPol1GausGausExp;
+  } else if (this->fitName == "pol2GausGausExp") {
+    this->fitType = kPol2GausGausExp;
+  } else if (this->fitName == "pol1GausGausXex") {
+    this->fitType = kPol1GausGausXex;
+  } else if (this->fitName == "pol2GausGausXex") {
+    this->fitType = kPol2GausGausXex;
+  } else if (this->fitName == "pol1GausXex") {
+    this->fitType = kPol1GausXex;
+  } else if (this->fitName == "pol2GausXex") {
+    this->fitType = kPol2GausXex;
+  } else if (this->fitName == "pol1Voigt") {
+    this->fitType = kPol1Voigt;
+  } else if (this->fitName == "pol2Voigt") {
+    this->fitType = kPol2Voigt;
+  } else {
+    string s = "InputSettings::getFitType() Error: requested unknown function " + this->fitName;
+    printLog(s, kErrors);
+  }
+
+  return this->fitType;
+}
+
+int InputSettings::setFitType(string fit) {
+  this->fitName = fit;
+  return setFitType();
 }
 
 string InputSettings::setInputFileNameFromTrain() {
@@ -364,7 +556,8 @@ string InputSettings::setInputFileNameFromFit() {
 
 void InputSettings::setFitX(double a, double b) {
   if (a > b) {
-    cout << "InputSettings::setFitX() Error: fitmin > fitmax" << endl;
+    string s = "InputSettings::setFitX() Error: fitmin > fitmax";
+    printLog(s, kErrors);
     return;
   }
   this->fitmin = a;
@@ -380,7 +573,8 @@ void InputSettings::setFitXFromHadron() {
 
 void InputSettings::setMassWindow(double a, double b) {
   if (a > b) {
-    cout << "InputSettings::setMassWindow() Error: massWindowMin > massWindowMax" << endl;
+    string s = "InputSettings::setMassWindow() Error: massWindowMin > massWindowMax";
+    printLog(s, kErrors);
     return;
   }
   this->massWindowMin = a;
@@ -388,10 +582,6 @@ void InputSettings::setMassWindow(double a, double b) {
 }
 
 void InputSettings::setMassWindowDiff(double a, double b) {
-  if (a > b) {
-    cout << "InputSettings::setMassWindowDiff() Error: massWindowMin > massWindowMax" << endl;
-    return;
-  }
   double mass = this->getMass();
   this->setMassWindow(mass - a, mass + b);
 }
@@ -405,10 +595,14 @@ void InputSettings::setMassWindowDiffFromHadron() {
 }
 
 void InputSettings::setPolInitX(double x0, double x1 = -1, double x2 = -2) {
-  if (x0 > x1 || x0 > x2 || x1 > x2) {
-    cout << "InputSettings::setPolInitX() Error: should have polInitx0 < polInitx1 < polInitx2" << endl;
-    return;
-  }
+  // vector<double> x = {x0, x1, x2};
+  // std::sort(x.begin(), x.end());
+  // x.erase( remove_if( x.begin(), x.end(), []( int i ){ return i < 0; } ), x.end() ); // Remove negative values
+
+  // if (x.size() > 0) this->polInitx0 = x[0];
+  // if (x.size() > 1) this->polInitx1 = x[1];
+  // if (x.size() > 2) this->polInitx2 = x[2];
+
   this->polInitx0 = x0;
   this->polInitx1 = x1;
   this->polInitx2 = x2;
@@ -424,7 +618,8 @@ void InputSettings::setPolInitXFromHadron() {
 
 void InputSettings::setPt(double a, double b) {
   if (a > b) {
-    cout << "InputSettings::setPt() Error: ptmin > ptmax" << endl;
+    string s = "InputSettings::setPt() Error: ptmin > ptmax";
+    printLog(s, kErrors);
     return;
   }
   this->ptmin = a;
@@ -466,11 +661,12 @@ vector<vector<double>> InputSettings::setPtBinEdgesSorted(vector<vector<double>>
 
 void InputSettings::setSignalRegion(double a, double b) {
   if (a > b) {
-    cout << "InputSettings::setSignalRegion() Error: sigalRegionMin > sigalRegionMax" << endl;
+    string s = "InputSettings::setSignalRegion() Error: signalRegionMin > signalRegionMax";
+    printLog(s, kErrors);
     return;
   }
-  this->sigalRegionMin = a;
-  this->sigalRegionMax = b;
+  this->signalRegionMin = a;
+  this->signalRegionMax = b;
 }
 
 template <typename T>
@@ -509,6 +705,7 @@ struct MassFitter {
     MassFitter() { InputSettings(); }
     MassFitter(InputSettings& x) { this->inputs = x; }
 
+    // double calcSignalRegionSize();
     void calcSigBkg();
     void doFitting(); // Full execution of workflow
     void fixFitInPost();
@@ -526,12 +723,33 @@ struct MassFitter {
     void writeOutputsToFile();
 };
 
+// double MassFitter::calcSignalRegionSize() {
+//   switch(this->inputs.fitType) {
+//     case InputSettings::kPol1GausGaus: // Put nothing here to move on to pol2 case
+//     case InputSettings::kPol2GausGaus:
+//       {
+//         double ampN = this->fit->GetParameter(0);
+//         double mu = this->fit->GetParameter(1);
+//         double sigmaN = this->fit->GetParameter(2);
+//         double ampW = this->fit->GetParameter(3);
+//         double sigmaW = this->fit->GetParameter(4);
+
+//         double Sigma = (ampN * sigmaN + ampW * sigmaW) / (ampN + ampW);
+//       }
+//       break;
+//     default:
+//     string s = "MassFitter::calcSignalRegionSize() Error: don't know how to calcuate signal region for fit type " + this->inputs.fitType;
+//     this->inputs.printLog(s, InputSettings::kErrors);
+//   }
+// }
+
 void MassFitter::calcSigBkg() {
   if (!this->data || !this->fit || this->fitParts.size() == 0)
     return;
 
   if (this->signal.size() > 0 || this->background.size() > 0 || this->signalPlusBackground.size() > 0) {
-    cout << "MassFitter::calcSigBkg() Warning: signal, background and/or signalPlusBackground already set, clearing the vectors" << endl;
+    string s = "MassFitter::calcSigBkg() Warning: signal, background and/or signalPlusBackground already set, clearing the vectors";
+    this->inputs.printLog(s, InputSettings::kWarnings);
     this->signal = {};
     this->background = {};
     this->signalPlusBackground = {};
@@ -544,6 +762,8 @@ void MassFitter::calcSigBkg() {
     bkgFitNumbers.push_back(2);
   } else if (this->inputs.fitType == InputSettings::kPol1BreitWignerXex || this->inputs.fitType == InputSettings::kPol2BreitWignerXex) {
     bkgFitNumbers.push_back(3);
+  } else if (this->inputs.fitType == InputSettings::kPol1ExpGausExp || this->inputs.fitType == InputSettings::kPol2ExpGausExp) {
+    bkgFitNumbers.push_back(4);
   } else if (this->inputs.fitType == InputSettings::kPol1GausExp || this->inputs.fitType == InputSettings::kPol2GausExp){
     bkgFitNumbers.push_back(3);
   } else if (this->inputs.fitType == InputSettings::kPol1GausGaus || this->inputs.fitType == InputSettings::kPol2GausGaus){
@@ -557,12 +777,14 @@ void MassFitter::calcSigBkg() {
   } else if (this->inputs.fitType == InputSettings::kPol1Voigt || this->inputs.fitType == InputSettings::kPol2Voigt){
     bkgFitNumbers.push_back(2);
   } else {
-    cout << "MassFitter::calcSigBkg() Error: do not know how to set parameters for this function" << endl;
+    string s = "MassFitter::calcSigBkg() Error: do not know how to set parameters for this function";
+    this->inputs.printLog(s, InputSettings::kErrors);
     return;
   }
 
-  if (this->inputs.sigalRegionMin < 0 || this->inputs.sigalRegionMax < 0) {
-    cout << "MassFitter::calcSigBkg() Automatically setting signal region to mu +/- n sigma" << endl;
+  if (this->inputs.signalRegionMin < 0 || this->inputs.signalRegionMax < 0) {
+    string s = "MassFitter::calcSigBkg() Automatically setting signal region to mu +/- n sigma";
+    this->inputs.printLog(s, InputSettings::kInfo);
     this->setSignalRegionFromSigma();
   }
 
@@ -576,7 +798,7 @@ void MassFitter::calcSigBkg() {
   }
 
   // Calculate signal and background with data hist and bkg fit function
-  array<int, 2> sigBins = getProjectionBins(this->data->GetXaxis(), this->inputs.sigalRegionMin, this->inputs.sigalRegionMax);
+  array<int, 2> sigBins = getProjectionBins(this->data->GetXaxis(), this->inputs.signalRegionMin, this->inputs.signalRegionMax);
   double xmin = this->data->GetXaxis()->GetBinLowEdge(sigBins[0]);
   double xmax = this->data->GetXaxis()->GetBinUpEdge(sigBins[1]);
 
@@ -663,17 +885,20 @@ TF1* MassFitter::loadFitFunction() {
 TH1* MassFitter::loadMassHist() {
   TFile* f = TFile::Open(this->inputs.inputFileName.c_str(), "READ");
   if (!f) {
-    cout << "Could not open file " << this->inputs.inputFileName << endl;
+    string s = "Could not open file " + this->inputs.inputFileName;
+    this->inputs.printLog(s, InputSettings::kErrors);
     return nullptr;
   }
 
   if (this->inputs.histName == "") {
     this->setHistNameFromTrain();
-    cout << "MassFitter::loadMassHist(): histName not set, setting to: " << this->inputs.histName << endl;
+    string s = "MassFitter::loadMassHist(): histName not set, setting to: " + this->inputs.histName;
+    this->inputs.printLog(s, InputSettings::kInfo);
   }
   THnSparse* hist = (THnSparse*)f->Get(this->inputs.histName.c_str());
   if (!hist) {
-    cout << "Could not find histogram " << this->inputs.histName << " in file " << this->inputs.inputFileName << endl;
+    string s = "Could not find histogram " + this->inputs.histName + " in file " + this->inputs.inputFileName;
+    this->inputs.printLog(s, InputSettings::kErrors);
     return nullptr;
   }
 
@@ -751,10 +976,10 @@ void MassFitter::setFitInitialValues() {
     tau = 6e-3;
   }
 
-  if (this->inputs.fitType % 2 == 0) {
+  if (this->inputs.fitType % 2 == 0) { // pol1
     b = (y1-y0)/(x1-x0);
     a = y0 - b*x0;
-  } else {
+  } else { // pol2
     c = ( (y2-y1)/(x2-x1) - (y1-y0)/(x1-x0) ) / (x2-x0);
     b = (y1-y0)/(x1-x0) - c*(x1+x0);
     a = y0 - b*x0 - c*x0*x0;
@@ -802,19 +1027,48 @@ void MassFitter::setFitInitialValues() {
       this->fit->SetParLimits(7, -1, 1); // b
       break;
     case InputSettings::kPol2BreitWignerXex:
-    this->fit->SetParameters(A, mu, Gamma, C, nu, tau, a, b);
-    this->fit->SetParLimits(0, 0., 1.); // A
-    if (this->inputs.fixMu) {
-      this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
-    } else {
-      this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
-    }
-    this->fit->SetParLimits(2, 0., 1.); // sigma
-    this->fit->SetParLimits(3, 0., 1.); // C
-    this->fit->SetParLimits(4, 0.5, 0.6); // nu
-    // this->fit->SetParLimits(5, 0., 1.); // tau
-    this->fit->SetParLimits(6, 0., 1.); // a
-    this->fit->SetParLimits(7, -1, 1); // b
+      this->fit->SetParameters(A, mu, Gamma, C, nu, tau, a, b);
+      this->fit->SetParLimits(0, 0., 1.); // A
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 1.); // C
+      this->fit->SetParLimits(4, 0.5, 0.6); // nu
+      // this->fit->SetParLimits(5, 0., 1.); // tau
+      this->fit->SetParLimits(6, 0., 1.); // a
+      this->fit->SetParLimits(7, -1, 1); // b
+      break;
+    case InputSettings::kPol1ExpGausExp:
+      this->fit->SetParameters(A, mu, sigma, lambda, lambda, a, b);
+      this->fit->SetParLimits(0, 0., 1.); // A
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 10.); // lambda_L
+      this->fit->SetParLimits(4, 0., 10.); // lambda_R
+      this->fit->SetParLimits(5, 0., 1.); // a
+      this->fit->SetParLimits(6, -1., 1.); // b
+      break;
+    case InputSettings::kPol2ExpGausExp:
+      this->fit->SetParameters(A, mu, sigma, lambda, lambda, a, b, c);
+      this->fit->SetParLimits(0, 0., 1.); // A
+      if (this->inputs.fixMu) {
+        this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
+      } else {
+        this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
+      }
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 10.); // lambda_L
+      this->fit->SetParLimits(4, 0., 10.); // lambda_R
+      this->fit->SetParLimits(5, 0., 1.); // a
+      this->fit->SetParLimits(6, -1., 1.); // b
+      // this->fit->SetParLimits(7, -1., 0); // c
       break;
     case InputSettings::kPol1GausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, a, b);
@@ -831,16 +1085,17 @@ void MassFitter::setFitInitialValues() {
       break;
     case InputSettings::kPol2GausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, a, b, c);
-      this->fit->SetParLimits(0, 0., 1.);
+      this->fit->SetParLimits(0, 0., 1.); // A
       if (this->inputs.fixMu) {
         this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
       } else {
         this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
       }
-      this->fit->SetParLimits(2, 0., 1.);
-      this->fit->SetParLimits(3, 0., 10.);
-      this->fit->SetParLimits(4, 0, 1);
-      this->fit->SetParLimits(5, -1, 1);
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 10.); // lambda
+      this->fit->SetParLimits(4, 0, 1); // a
+      this->fit->SetParLimits(5, -1, 1); // b
+      this->fit->SetParLimits(6, -1, 0); //c
       break;
     case InputSettings::kPol1GausGaus:
       this->fit->SetParameters(A, mu, sigma, B, rho, a, b);
@@ -872,33 +1127,34 @@ void MassFitter::setFitInitialValues() {
       break;
     case InputSettings::kPol1GausGausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, B, rho, a, b);
-      this->fit->SetParLimits(0, 0., 1.);
+      this->fit->SetParLimits(0, 0., 1.); // A
       if (this->inputs.fixMu) {
         this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
       } else {
         this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
       }
-      this->fit->SetParLimits(2, 0., 1.);
-      this->fit->SetParLimits(3, 0., 10.);
-      this->fit->SetParLimits(4, 0., 1.);
-      this->fit->SetParLimits(5, 0., 1.);
-      this->fit->SetParLimits(6, 0., 1.);
-      this->fit->SetParLimits(7, -1., 1.);
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 10.); // lambda
+      this->fit->SetParLimits(4, 0., 1.); // B
+      this->fit->SetParLimits(5, 0., 1.); // rho
+      this->fit->SetParLimits(6, 0., 1.); // a
+      this->fit->SetParLimits(7, -1., 1.); // b
       break;
     case InputSettings::kPol2GausGausExp:
       this->fit->SetParameters(A, mu, sigma, lambda, B, rho, a, b, c);
-      this->fit->SetParLimits(0, 0., 1.);
+      this->fit->SetParLimits(0, 0., 1.); // A
       if (this->inputs.fixMu) {
         this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
       } else {
         this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
       }
-      this->fit->SetParLimits(2, 0., 1.);
-      this->fit->SetParLimits(3, 0., 10.);
-      this->fit->SetParLimits(4, 0., 1.);
-      this->fit->SetParLimits(5, 0., 1.);
-      this->fit->SetParLimits(6, 0., 1.);
-      this->fit->SetParLimits(7, -1., 1.);
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 10.); // lambda
+      this->fit->SetParLimits(4, 0., 1.); // B
+      this->fit->SetParLimits(5, 0., 1.); // rho
+      this->fit->SetParLimits(6, 0., 1.); // a
+      this->fit->SetParLimits(7, -1., 1.); // b
+      // this->fit->SetParLimits(8, -1., 0.); // c
       break;
     case InputSettings::kPol1GausGausXex:
       this->fit->SetParameters(A, mu, sigma, B, rho, C, nu, tau, a, b);
@@ -911,9 +1167,9 @@ void MassFitter::setFitInitialValues() {
       this->fit->SetParLimits(2, 0., 1.); // sigma
       this->fit->SetParLimits(3, 0., 1.); // B
       this->fit->SetParLimits(4, 2e-2, 1.); // rho
-      this->fit->SetParLimits(5, 0., 1.); // C
+      this->fit->SetParLimits(5, 0., 100.); // C
       this->fit->SetParLimits(6, 0.5, 0.6); // nu
-      // this->fit->SetParLimits(7, -1., 1.); // tau
+      this->fit->SetParLimits(7, 0., 1e-2); // tau
       this->fit->SetParLimits(8, 0., 1.); // a
       this->fit->SetParLimits(9, -1., 1.); // b
       break;
@@ -928,9 +1184,9 @@ void MassFitter::setFitInitialValues() {
       this->fit->SetParLimits(2, 0., 1.); // sigma
       this->fit->SetParLimits(3, 0., 1.); // B
       this->fit->SetParLimits(4, 0., 1.); // rho
-      // this->fit->SetParLimits(5, 0., 1.); // C
+      this->fit->SetParLimits(5, 0., 100.); // C
       this->fit->SetParLimits(6, 0.5, 0.6); // nu
-      // this->fit->SetParLimits(7, -1., 1.); // tau
+      this->fit->SetParLimits(7, 0., 1e-2); // tau
       this->fit->SetParLimits(8, 0., 1.); // a
       this->fit->SetParLimits(9, -1., 1.); // b
       break;
@@ -943,26 +1199,26 @@ void MassFitter::setFitInitialValues() {
         this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
       }
       this->fit->SetParLimits(2, 0., 1.); // sigma
-      // this->fit->SetParLimits(3, 0., 1.); // C
+      this->fit->SetParLimits(3, 0., 100.); // C
       this->fit->SetParLimits(4, 0.5, 0.6); // nu
-      // this->fit->SetParLimits(5, 0., 10.); // tau
+      this->fit->SetParLimits(5, 0., 1e-2); // tau
       this->fit->SetParLimits(6, 0., 1.); // a
       this->fit->SetParLimits(7, -1., 1.); // b
       break;
     case InputSettings::kPol2GausXex:
       this->fit->SetParameters(A, mu, sigma, C, nu, tau, a, b, c);
-      this->fit->SetParLimits(0, 0., 1.);
+      this->fit->SetParLimits(0, 0., 1.); // A
       if (this->inputs.fixMu) {
         this->fit->SetParLimits(1, this->data->GetXaxis()->GetBinLowEdge(extremeBin), this->data->GetXaxis()->GetBinUpEdge(extremeBin));
       } else {
         this->fit->SetParLimits(1, this->inputs.massWindowMin, this->inputs.massWindowMax);
       }
-      this->fit->SetParLimits(2, 0., 1.);
-      // this->fit->SetParLimits(3, 0., 1.);
-      this->fit->SetParLimits(4, 0.5, 0.6);
-      // this->fit->SetParLimits(5, 0., 10.);
-      this->fit->SetParLimits(6, 0., 1.);
-      this->fit->SetParLimits(7, -1., 1.);
+      this->fit->SetParLimits(2, 0., 1.); // sigma
+      this->fit->SetParLimits(3, 0., 100.); // C
+      this->fit->SetParLimits(4, 0.5, 0.6); // nu
+      this->fit->SetParLimits(5, 0., 1e-2); // tau
+      this->fit->SetParLimits(6, 0., 1.); // a
+      this->fit->SetParLimits(7, -1., 1.); // b
       break;
     case InputSettings::kPol1Voigt:
       this->fit->SetParameters(A, mu, sigma, Gamma, a, b);
@@ -991,8 +1247,29 @@ void MassFitter::setFitInitialValues() {
       this->fit->SetParLimits(5, -1., 1.);
       break;
     default:
-      cout << "MassFitter::setFitInitialValues() Error: do not have initial values for function " << this->inputs.fitName << endl;
+      string s = "MassFitter::setFitInitialValues() Error: do not have initial values for function " + this->inputs.fitName;
+      this->inputs.printLog(s, InputSettings::kErrors);
       return;
+  }
+
+  for (int iP = 0; iP < this->fit->GetNpar(); iP++) {
+    bool parChanged = false;
+    double parameter = this->fit->GetParameter(iP);
+    double parMin = -1e6, parMax = 1e6;
+    this->fit->GetParLimits(iP, parMin, parMax);
+    if (parameter < parMin) {
+      parameter = parMin;
+      parChanged = true;
+    }
+    if (parameter > parMax) {
+      parameter = parMax;
+      parChanged = true;
+    }
+    if (parChanged) {
+      string s = "MassFitter::setFitInitialValues() Warning: parameter " + to_string(iP) + " outside limits, changed to " + to_string(parameter);
+      this->inputs.printLog(s, InputSettings::kWarnings);
+      this->fit->SetParameter(iP, parameter);
+    }
   }
 }
 
@@ -1062,6 +1339,43 @@ vector<TF1*> MassFitter::loadFitParts() {
       f3->SetParameters(a, b, c);
       parts.push_back(f3);
     }
+  } else if (this->inputs.fitType == InputSettings::kPol1ExpGausExp || this->inputs.fitType == InputSettings::kPol2ExpGausExp) {
+    double A, mu, sigma, lambda_L, lambda_R;
+    double a, b, c;
+    A = this->fit->GetParameter(0);
+    mu = this->fit->GetParameter(1);
+    sigma = this->fit->GetParameter(2);
+    lambda_L = this->fit->GetParameter(3);
+    lambda_R = this->fit->GetParameter(4);
+    a = this->fit->GetParameter(5);
+    b = this->fit->GetParameter(6);
+    if (this->inputs.fitType == InputSettings::kPol2ExpGausExp) c = this->fit->GetParameter(7);
+
+    string s = TString::Format("%s_%s", fName.c_str(), "f1").Data();
+    TF1* f1 = new TF1(s.c_str(), "[0]*TMath::Gaus(x,[1],[2]) * (x > ([1]-[2]*[3])) * (x < ([1]+[2]*[4]))", mu - sigma*lambda_L, mu+ sigma*lambda_R);
+    f1->SetParameters(A, mu, sigma, lambda_L, lambda_R);
+    parts.push_back(f1);
+
+    s = TString::Format("%s_%s", fName.c_str(), "f2").Data();
+    TF1* f2 = new TF1(s.c_str(), "[0]*TMath::Exp((x - [1] + [2]*[3]/2.)/([2]/[3])) * (x <= [1]-[2]*[3])", this->inputs.fitmin, mu - sigma*lambda_L);
+    f2->SetParameters(A, mu, sigma, lambda_L);
+    parts.push_back(f2);
+
+    s = TString::Format("%s_%s", fName.c_str(), "f3").Data();
+    TF1* f3 = new TF1(s.c_str(), "[0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3])", mu + sigma*lambda_R, this->inputs.fitmax);
+    f3->SetParameters(A, mu, sigma, lambda_R);
+    parts.push_back(f3);
+
+    s = TString::Format("%s_%s", fName.c_str(), "f4").Data();
+    if (this->inputs.fitType == InputSettings::kPol1ExpGausExp) {
+      TF1* f4 = new TF1(s.c_str(), "[0]+[1]*x", this->inputs.fitmin, this->inputs.fitmax);
+      f4->SetParameters(a, b);
+      parts.push_back(f4);
+    } else {
+      TF1* f4 = new TF1(s.c_str(), "[0]+[1]*x+[2]*x*x", this->inputs.fitmin, this->inputs.fitmax);
+      f4->SetParameters(a, b, c);
+      parts.push_back(f4);
+    }
   } else if (this->inputs.fitType == InputSettings::kPol1GausExp || this->inputs.fitType == InputSettings::kPol2GausExp) {
     double A, mu, sigma, lambda;
     double a, b, c;
@@ -1080,7 +1394,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     parts.push_back(f1);
 
     s = TString::Format("%s_%s", fName.c_str(), "f2").Data();
-    TF1* f2 = new TF1(s.c_str(), "[0]*TMath::Exp(-(x - ([1]+[2]/[3])/2.)/([2]/[3])) * (x > [1]+[2]*[3])", mu+sigma*lambda, this->inputs.fitmax);
+    TF1* f2 = new TF1(s.c_str(), "[0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3])", mu+sigma*lambda, this->inputs.fitmax);
     f2->SetParameters(A, mu, sigma, lambda);
     parts.push_back(f2);
 
@@ -1147,7 +1461,7 @@ vector<TF1*> MassFitter::loadFitParts() {
     parts.push_back(f1);
 
     s = TString::Format("%s_%s", fName.c_str(), "f2").Data();
-    TF1* f2 = new TF1(s.c_str(), "[0]*TMath::Exp(-(x - ([1]+[2]/[3])/2.)/([2]/[3])) * (x > [1]+[2]*[3])", mu+sigma*lambda, this->inputs.fitmax);
+    TF1* f2 = new TF1(s.c_str(), "[0]*TMath::Exp(-(x - [1] - [2]*[3]/2.)/([2]/[3])) * (x >= [1]+[2]*[3])", mu+sigma*lambda, this->inputs.fitmax);
     f2->SetParameters(A, mu, sigma, lambda);
     parts.push_back(f2);
 
@@ -1269,7 +1583,8 @@ vector<TF1*> MassFitter::loadFitParts() {
       parts.push_back(f2);
     }
   } else {
-    cout << "InputSettings::setFitParts() Error: do not know the parts of this function" << endl;
+    string s = "InputSettings::setFitParts() Error: do not know the parts of this function";
+    this->inputs.printLog(s, InputSettings::kErrors);
   }
   this->fitParts = parts;
   return parts;
@@ -1402,7 +1717,8 @@ int MassFitter::setRebinNumberFromHadronAndPt() {
 
 void MassFitter::setSignalRegionFromSigma() {
   if (this->fitParts.size() == 0) {
-    cout << "MassFitter::setSignalRegionFromSigma() Error: fit parts not set" << endl;
+    string s = "MassFitter::setSignalRegionFromSigma() Error: fit parts not set";
+    this->inputs.printLog(s, InputSettings::kErrors);
     return;
   }
 
@@ -1447,6 +1763,7 @@ void FitSummariser::summariseFitInfo() {
   this->summariseFitInfo(this->inputs.histName);
 }
 
+// Puts fit info from all pt bins into a single TH2 histogram
 void FitSummariser::summariseFitInfo(string inputHistName) {
   int nPtBins = this->inputs.ptBinEdges.size();
   int nFitInfos = -1;
@@ -1456,7 +1773,8 @@ void FitSummariser::summariseFitInfo(string inputHistName) {
   } else if (inputHistName == "fitResults") {
     nFitInfos = 12;
   } else {
-    cout << "writeFitInfo: unknown hist name " << inputHistName << endl;
+    string s = "summariseFitInfo: unknown hist name " + inputHistName;
+    this->inputs.printLog(s, InputSettings::kErrors);
     return;
   }
 
@@ -1468,7 +1786,8 @@ void FitSummariser::summariseFitInfo(string inputHistName) {
 
   TFile* file = TFile::Open(this->inputs.inputFileName.c_str(), "READ");
   if (!file) {
-    cout << "Could not open file " << this->inputs.inputFileName << endl;
+    string s = "Could not open file " + this->inputs.inputFileName;
+    this->inputs.printLog(s, InputSettings::kErrors);
     return;
   }
 
@@ -1477,7 +1796,8 @@ void FitSummariser::summariseFitInfo(string inputHistName) {
     string histName = this->inputs.getSaveNameFromPt(inputHistName);
     TH1* hist = (TH1*)file->Get(histName.c_str());
     if (!hist) {
-      cout << "Could not find histogram " << histName << " in file " << this->inputs.inputFileName << endl;
+      string s = "Could not find histogram " + histName + " in file " + this->inputs.inputFileName;
+      this->inputs.printLog(s, InputSettings::kErrors);
       continue;
     }
 
@@ -1507,28 +1827,38 @@ struct FitPlotter {
   private:
   public:
     InputSettings inputs;
-    MassFitter massFitter;
+    MassFitter mf;
 
     TCanvas* canvas = nullptr;
     TH1F* frame = nullptr;
     TLegend* legend = nullptr;
 
-    FitPlotter() { InputSettings(); MassFitter(); }
-    FitPlotter(InputSettings& x) { this->inputs = x; this->massFitter = MassFitter(x); }
-    FitPlotter(MassFitter& x) { this->massFitter = x; this->inputs = x.inputs; }
+    double expectedSignalFraction = -1;
+    double expectedSigFracLeft = -1;
+    double expectedSigFracRight = -1;
 
-    TH1* loadMassHist();
+    FitPlotter() { InputSettings(); MassFitter(); }
+    FitPlotter(InputSettings& x) { this->inputs = x; this->mf = MassFitter(x); }
+    FitPlotter(MassFitter& x) { this->mf = x; this->inputs = x.inputs; }
+
     vector<TF1*> loadFitParts();
     TF1* loadFit();
+    TH1* loadMassHist();
+    TH1* loadSignalRegionHist();
     void plotFitInfo();
     int plotFitInfo(int infoToPlot);
     void plotFitParts();
+    void plotSignalRegion();
+
+    void autoCanvas();
+    void autoFrame();
 };
 
 vector<TF1*> FitPlotter::loadFitParts() {
   TFile* file = TFile::Open(this->inputs.inputFileName.c_str(), "READ");
   if (!file) {
-    cout << "Could not open file " << this->inputs.inputFileName << endl;
+    string s = "Could not open file " + this->inputs.inputFileName;
+    this->inputs.printLog(s, InputSettings::kErrors);
     return {};
   }
 
@@ -1543,37 +1873,45 @@ vector<TF1*> FitPlotter::loadFitParts() {
     parts.push_back(f);
   }
 
-  this->massFitter.fitParts = parts;
+  this->mf.fitParts = parts;
   return parts;
 }
 
 TF1* FitPlotter::loadFit() {
   TFile* file = TFile::Open(this->inputs.inputFileName.c_str(), "READ");
   if (!file) {
-    cout << "Could not open file " << this->inputs.inputFileName << endl;
+    string s = "Could not open file " + this->inputs.inputFileName;
     return nullptr;
   }
 
   string fName = this->inputs.getSaveNameFromPt("fit");
   TF1* f = (TF1*)file->Get(fName.c_str());
-  this->massFitter.fit = (TF1*)f->Clone();
+  this->mf.fit = (TF1*)f->Clone();
   return f;
 }
 
 TH1* FitPlotter::loadMassHist() {
   TFile* file = TFile::Open(this->inputs.inputFileName.c_str(), "READ");
   if (!file) {
-    cout << "Could not open file " << this->inputs.inputFileName << endl;
+    string s = "Could not open file " + this->inputs.inputFileName;
+    this->inputs.printLog(s, InputSettings::kErrors);
     return nullptr;
   }
 
   string histName = this->inputs.getSaveNameFromPt("data");
   TH1* hist = (TH1*)file->Get(histName.c_str());
   if (!hist) {
-    cout << "Could not find histogram " << histName << " in file " << this->inputs.inputFileName << endl;
+    string s = "Could not find histogram " + histName + " in file " + this->inputs.inputFileName;
+    this->inputs.printLog(s, InputSettings::kErrors);
     return nullptr;
   }
-  this->massFitter.data = (TH1*)hist->Clone(histName.c_str());
+  this->mf.data = (TH1*)hist->Clone(histName.c_str());
+  return hist;
+}
+
+TH1* FitPlotter::loadSignalRegionHist() {
+  array<int, 2> signalRegionBins = getProjectionBins(this->mf.data->GetXaxis(), this->mf.inputs.signalRegionMin, this->mf.inputs.signalRegionMax);
+  TH1* hist = makeHistSubset(this->mf.data, signalRegionBins[0], signalRegionBins[1], this->inputs.getSaveNameFromPt("signalRegion"));
   return hist;
 }
 
@@ -1585,26 +1923,27 @@ void FitPlotter::plotFitInfo() {
   }
 }
 
-int FitPlotter::plotFitInfo(int infoToPlot)
-{
+int FitPlotter::plotFitInfo(int infoToPlot) {
   TFile* file = TFile::Open(this->inputs.inputFileName.c_str(), "READ");
 
   TH2* fitInfo = (TH2*)file->Get(this->inputs.histName.c_str());
   if (!fitInfo) {
-    cout << "FitPlotter::plotFitInfo() Error: Could not find histogram " << this->inputs.histName << " in file " << this->inputs.inputFileName << endl;
+    string s = "FitPlotter::plotFitInfo() Error: Could not find histogram " + this->inputs.histName + " in file " + this->inputs.inputFileName;
+    this->inputs.printLog(s, InputSettings::kErrors);
     return 1;
   }
 
   if (infoToPlot < 0 || infoToPlot >= fitInfo->GetNbinsY()) {
-    cout << "FitPlotter::plotFitInfo() Error: Invalid column " << infoToPlot << " selected for plotting " << this->inputs.histName << endl;
-    cout << "Valid range is 0 to " << fitInfo->GetNbinsY() - 1 << endl;
+    string s = "FitPlotter::plotFitInfo() Info: Invalid column " + to_string(infoToPlot) + " selected for plotting " + this->inputs.histName + "\nValid range is 0 to " + to_string(fitInfo->GetNbinsY() - 1);
+    this->inputs.printLog(s, InputSettings::kInfo);
     return 2;
   }
 
   TH1* hist = (TH1*)fitInfo->ProjectionX("hist", infoToPlot+1, infoToPlot+1);
   setStyle(hist, 0);
   if (!this->canvas) {
-    cout << "FitPlotter::plotFitIfo() Warning: Canvas not set, creating automatically" << endl;
+    string s = "FitPlotter::plotFitIfo(): Canvas not set, creating automatically";
+    this->inputs.printLog(s, InputSettings::kInfo);
     TCanvas* canvas = new TCanvas("canvas", "canvas", 800, 600);
     canvas->SetLogy(this->inputs.logplot);
     this->canvas = canvas;
@@ -1637,7 +1976,8 @@ int FitPlotter::plotFitInfo(int infoToPlot)
   string outputFileName = this->inputs.outputFileName;
   if (outputFileName == "") {
     outputFileName = this->inputs.hadron + "_" + this->inputs.fitName + "_" + this->inputs.histName + to_string(infoToPlot) + ".pdf";
-    cout << "FitPlotter::plotFitInfo() Warning: outputFileName not set, using: " << outputFileName << endl;
+    string s = "FitPlotter::plotFitInfo(): outputFileName not set, using: " + outputFileName;
+    this->inputs.printLog(s, InputSettings::kInfo);
   }
   hist->Draw();
   hist->Draw("same text45");
@@ -1648,49 +1988,102 @@ int FitPlotter::plotFitInfo(int infoToPlot)
 void FitPlotter::plotFitParts() {
   if (this->inputs.outputFileName == "") {
     this->inputs.outputFileName = this->inputs.getSaveNameFromPt(this->inputs.hadron + "_" + this->inputs.fitName, ".pdf");
-    cout << "FitPlotter::plotFitParts() Warning: outputFileName not set, using: " << this->inputs.outputFileName << endl;
+    string s = "FitPlotter::plotFitParts(): outputFileName not set, using: " + this->inputs.outputFileName;
+    this->inputs.printLog(s, InputSettings::kInfo);
   }
 
   if (!this->canvas) {
-    cout << "FitPlotter::plotFitParts() Warning: Canvas not set, creating automatically" << endl;
-    TCanvas* canvas = new TCanvas("canvas", "canvas", 800, 600);
-    canvas->SetLogy(this->inputs.logplot);
-    this->canvas = canvas;
+    string s = "FitPlotter::plotFitParts(): Canvas not set, creating automatically";
+    this->inputs.printLog(s, InputSettings::kInfo);
+    this->autoCanvas();
   }
 
   this->canvas->cd();
   if (!this->frame) {
-    cout << "FitPlotter::plotFitParts() Warning: Frame not set, creating automatically" << endl;
-    double xMinFrame = this->massFitter.data->GetXaxis()->GetXmin();
-    double xMaxFrame = this->massFitter.data->GetXaxis()->GetXmax();
-    double yMinFrame = 0.;
-    double yMaxFrame = 1.1 * getHistUpperBound(this->massFitter.data, false);
-    string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(this->inputs.hadron).c_str()).Data();
-    string yTitle = "";
-    string histTitle = TString::Format("%s, (%.1f < #it{p}_{T, V0} < %.1f)", getDataSet(this->inputs.train).c_str(), this->inputs.lowpt, this->inputs.highpt).Data();
-
-    TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-    frame->SetTitle(histTitle.c_str());
-    this->frame = frame;
+    string s = "FitPlotter::plotFitParts(): Frame not set, creating automatically";
+    this->inputs.printLog(s, InputSettings::kInfo);
+    this->autoFrame();
   }
 
   this->frame->Draw();
   if (this->legend) this->legend->Draw("same");
 
-  for (int i = 0; i < this->massFitter.fitParts.size(); i++) {
-    TF1* f = this->massFitter.fitParts[i];
+  for (int i = 0; i < this->mf.fitParts.size(); i++) {
+    TF1* f = this->mf.fitParts[i];
     setStyle(f, i + 2);
-    f->SetRange(this->massFitter.data->GetXaxis()->GetXmin(), this->massFitter.data->GetXaxis()->GetXmax());
+    f->SetRange(this->mf.data->GetXaxis()->GetXmin(), this->mf.data->GetXaxis()->GetXmax());
     f->Draw("same");
   }
   // Only do this if auto setup is requested
-  setStyle(this->massFitter.data, 0);
-  setStyle(this->massFitter.fit, 1);
-  this->massFitter.fit->SetRange(this->massFitter.data->GetXaxis()->GetXmin(), this->massFitter.data->GetXaxis()->GetXmax());
+  setStyle(this->mf.data, 0);
+  setStyle(this->mf.fit, 1);
+  this->mf.fit->SetRange(this->mf.data->GetXaxis()->GetXmin(), this->mf.data->GetXaxis()->GetXmax());
 
-  this->massFitter.data->Draw("same");
-  this->massFitter.fit->Draw("same");
+  this->mf.data->Draw("same");
+  this->mf.fit->Draw("same");
   this->canvas->SaveAs(this->inputs.outputFileName.c_str());
+}
+
+void FitPlotter::plotSignalRegion() {
+  if (this->inputs.outputFileName == "") {
+    this->inputs.outputFileName = this->inputs.getSaveNameFromPt(this->inputs.hadron + "_" + this->inputs.fitName, "_SR.pdf");
+    string s = "FitPlotter::plotSignalRegion(): outputFileName not set, using: " + this->inputs.outputFileName;
+    this->inputs.printLog(s, InputSettings::kInfo);
+  }
+
+  if (!this->canvas) {
+    string s = "FitPlotter::plotSignalRegion(): Canvas not set, creating automatically";
+    this->inputs.printLog(s, InputSettings::kInfo);
+    this->autoCanvas();
+  }
+
+  this->canvas->cd();
+  if (!this->frame) {
+    string s = "FitPlotter::plotSignalRegion(): Frame not set, creating automatically";
+    this->inputs.printLog(s, InputSettings::kInfo);
+    this->autoFrame();
+  }
+
+  setStyle(this->mf.data, 0);
+  TH1* hSR = this->loadSignalRegionHist();
+  hSR->SetFillColorAlpha(kGreen, 0.3);
+  hSR->Print();
+
+  this->frame->Draw();
+  if (this->legend) {
+    this->legend->AddEntry(this->mf.data, "Data", "p");
+    this->legend->AddEntry(hSR, "Signal region", "f");
+    string regionText = TString::Format("(%.3f, %.3f)", this->mf.inputs.signalRegionMin, this->mf.inputs.signalRegionMax).Data();
+    legend->AddEntry((TObject*)0, regionText.c_str(), "");
+    if (this->expectedSignalFraction > 0) {
+      legend->AddEntry((TObject*)0, TString::Format("Signal: %.2f%%", 1e2*this->expectedSignalFraction).Data(), "");
+    }
+    this->legend->Draw("same");
+  }
+
+  hSR->Draw("bars same");
+  this->mf.data->Draw("same");
+  this->canvas->SaveAs(this->mf.inputs.outputFileName.c_str());
+}
+
+void FitPlotter::autoCanvas() {
+  TCanvas* canvas = new TCanvas("canvas", "canvas", 800, 600);
+  canvas->SetLogy(this->inputs.logplot);
+  this->canvas = canvas;
+}
+
+void FitPlotter::autoFrame() {
+  double xMinFrame = this->mf.data->GetXaxis()->GetXmin();
+  double xMaxFrame = this->mf.data->GetXaxis()->GetXmax();
+  double yMinFrame = 0.;
+  double yMaxFrame = 1.1 * getHistUpperBound(this->mf.data, false);
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(this->inputs.hadron).c_str()).Data();
+  string yTitle = "";
+  string histTitle = TString::Format("%s, (%.1f < #it{p}_{T, V0} < %.1f)", getDataSet(this->inputs.train).c_str(), this->inputs.lowpt, this->inputs.highpt).Data();
+
+  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle(histTitle.c_str());
+  this->frame = frame;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1766,6 +2159,19 @@ void plotFitInfo(InputSettings& x) {
   p.plotFitInfo();
 }
 
+// Plot the fit information by reading the file, automatic setup
+void plotFitInfo() {
+  InputSettings x;
+  x.hadron = "K0S";
+  x.train = 252064;
+  x.setFitType("pol1ExpGausExp");
+  x.setInputFileNameFromFit();
+  x.nSigma = 3.;
+  x.outputFileName = "";
+
+  plotFitInfo(x);
+}
+
 // Summarise the fit information by reading the file
 void summariseFitInfo(InputSettings& x) {
   FitSummariser f(x);
@@ -1773,7 +2179,21 @@ void summariseFitInfo(InputSettings& x) {
   f.summariseFitInfo("fitResults");
 }
 
-// This runs the entire workflow in order
+// Summarise the fit information by reading the file, automatic setup
+void summariseFitInfo() {
+  InputSettings x;
+  x.hadron = "K0S";
+  x.train = 252064;
+  x.setFitType("pol1ExpGausExp");
+  x.setInputFileNameFromFit();
+  x.setPtBinEdgesFromHadron();
+  x.nSigma = 3.;
+  x.outputFileName = x.inputFileName;
+
+  summariseFitInfo(x);
+}
+
+// This runs the entire workflow in order for given pt bins
 void quickRun(InputSettings& x) {
   vector<vector<double>> ptBinEdges = x.ptBinEdges;
 
@@ -1804,6 +2224,7 @@ void quickRun(InputSettings& x) {
   p.plotFitInfo();
 }
 
+// Setup for quickRun(x)
 void quickRun() {
   InputSettings x;
   x.train = 252064;
@@ -1814,8 +2235,11 @@ void quickRun() {
   x.fixMu = true;
 
   // x.setFitXFromHadron();
-  x.setFitX(0.45, 0.55); // x.setFitX(0.4, 0.55);
-  x.setPolInitXFromHadron();
+  // x.setFitX(0.45, 0.55);
+  x.setFitX(0.42, 0.55);
+  // x.setPolInitXFromHadron();
+  // x.setPolInitX(0.4, 0.6);
+  // x.setPolInitX(0.42, 0.45, 0.55);
   x.setMassWindowDiffFromHadron();
   x.setInputFileNameFromTrain();
   x.outputFileName = x.hadron + "_" + x.fitName + ".root";
@@ -1824,9 +2248,10 @@ void quickRun() {
   quickRun(x);
 }
 
+// Perform fit in a single pt bin
 void singleRun() {
   InputSettings x;
-  x.setPt(3., 4.);
+  x.setPt(10., 15.);
   x.train = 252064;
   x.hadron = "K0S";
   x.setFitType("pol1GausGausXex");
@@ -1834,18 +2259,24 @@ void singleRun() {
   x.nSigma = 3.;
   x.fixMu = true;
 
-  x.setFitXFromHadron();
+  // x.setFitX(0.42, 0.53);
+  x.setFitX(0.42, 0.55);
+  // x.setPolInitX(0.4, 0.6);
   x.setPolInitXFromHadron();
   x.setMassWindowDiffFromHadron();
   x.setInputFileNameFromTrain();
   x.outputFileName = x.hadron + "_" + x.fitName + ".root";
 
   MassFitter m(x);
-  // m.doFitting();
   m.loadMassHist();
   m.loadFitFunction();
   m.setFitInitialValues();
   printParLimits(m.fit);
+
+  m.fit->SetParameter(5, 0.1); m.fit->SetParLimits(5, 0.1, 100.);
+  // m.fit->SetParameter(6, 0.5); m.fit->SetParLimits(6, 0.5, 0.55);
+  // m.fit->SetParameter(7, 1e-3);
+
   m.data->Fit(m.fit, "R");
   printParLimits(m.fit);
   // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
@@ -1854,11 +2285,140 @@ void singleRun() {
   m.loadFitResults();
   m.loadResidualHist();
   m.loadPullHist();
+
+  // m.fitResults
+  // return;
   m.writeOutputsToFile();
 
   FitPlotter p(m);
   p.inputs.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
   p.plotFitParts();
+
+  // Update fit parameters and results hists in file and plot the new versions
+  // FitSummariser f(x);
+  // f.inputs.setInputFileNameFromFit();
+  // f.inputs.outputFileName = x.inputFileName;
+  // f.summariseFitInfo("fitParams");
+  // f.summariseFitInfo("fitResults");
+
+  // FitPlotter q(x);
+  // q.inputs.setInputFileNameFromFit();
+  // q.inputs.outputFileName = x.inputFileName;
+  // q.inputs.histName = "fitParams";
+  // q.plotFitInfo();
+  // q.inputs.histName = "fitResults";
+  // q.plotFitInfo();
+}
+
+void calcSignalRegion() {
+  InputSettings x;
+  x.hadron = "K0S";
+  x.train = 252064;
+  x.setFitType("pol1GausGaus");
+  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.setPt(10., 15.);
+
+  x.nSigma = 3;
+
+  FitPlotter f(x);
+  f.loadMassHist();
+  TF1* fit = f.loadFit();
+
+  switch (f.inputs.fitType) {
+    case InputSettings::kPol1GausGaus:
+    case InputSettings::kPol2GausGaus: {
+      array<double, 2> sigRegion = GaussGaussSigRegionFromSteps(f.mf.inputs.nSigma, fit);
+      f.mf.inputs.setSignalRegion(sigRegion[0], sigRegion[1]);
+      double sigFrac = GaussGaussSigFrac(f.mf.inputs.nSigma, fit);
+      f.expectedSignalFraction = sigFrac;
+      break;
+      }
+    case InputSettings::kPol1ExpGausExp:
+    case InputSettings::kPol2ExpGausExp: {
+      array<double, 2> sigRegion = ExpGaussExpSigRegion(f.mf.inputs.nSigma, fit);
+      f.mf.inputs.setSignalRegion(sigRegion[0], sigRegion[1]);
+      double leftSigFrac = ExpGaussExpSigFrac(f.mf.inputs.nSigma, fit, true);
+      double rightSigFrac = ExpGaussExpSigFrac(f.mf.inputs.nSigma, fit, false);
+      f.expectedSigFracLeft = leftSigFrac;
+      f.expectedSigFracRight = rightSigFrac;
+      break;
+      }
+    default:
+      cout << "Nothing to see here..." << endl;
+  }
+  cout << "Signal region: (" << f.mf.inputs.signalRegionMin << ", " << f.mf.inputs.signalRegionMax << ")\n";
+  cout << "Signal fraction left: " << f.expectedSigFracLeft * 100 << "%\n"
+       << "Signal fraction right: " << f.expectedSigFracRight * 100 << "%\n"
+       << "Expected signal fraction: " << f.expectedSignalFraction * 100 << "%" << endl;
+
+  f.mf.inputs.outputFileName = f.mf.inputs.getSaveNameFromPt(f.mf.inputs.hadron + "_" + f.mf.inputs.fitName, "_SR.pdf");
+  f.legend = CreateLegend(0.25, 0.5, 0.65, 0.85, "", 0.04);
+  // f.plotSignalRegion();
+
+  double s = 0.95; // Scale we're looking for
+  double epsilon = 1e-4; // Tolerance
+  bool found = false;
+  int nx = 10000;
+  double xmin = 0., xmax = 10.;
+
+  TH1* hist = new TH1D("hist", "Signal fraction vs nSigma;nSigma", nx, xmin, xmax);
+  TH1* histLow = new TH1D("histLow", "Signal fraction vs nSigma;nSigma", nx, xmin, xmax);
+  TH1* histHigh = new TH1D("histHigh", "Signal fraction vs nSigma;nSigma", nx, xmin, xmax);
+  for (int i = 0; i < nx; i++) {
+    double nSigma = hist->GetXaxis()->GetBinCenter(i + 1);
+    double sigFrac = GaussGaussSigFrac(nSigma, fit);
+    hist->SetBinContent(i + 1, sigFrac);
+
+    if (sigFrac >= s) {
+      histHigh->SetBinContent(i + 1, sigFrac);
+      if (!found) {
+        found = true;
+        cout << "nSigma = " << nSigma
+             << "\ns = " << sigFrac * 100 << "%" << endl;
+      }
+    }
+    else histLow->SetBinContent(i + 1, sigFrac);
+  }
+
+  // hist->Draw();
+  histHigh->SetLineColor(kGreen);
+  histLow->SetLineColor(kRed);
+  histHigh->Draw();
+  histLow->Draw("same");
+
+  int firstBin = hist->FindFirstBinAbove(s);
+  cout << "nSigma = " << hist->GetXaxis()->GetBinCenter(firstBin)
+       << "\ns = " << hist->GetBinContent(firstBin) * 100 << "%" << endl;
+
+  // double dt = 0.5; // Step size decrease
+  // bool signChange = false; // We went from over to under the target fraction
+  // vector<double> fractions;
+  // vector<double> sigSteps = {3};
+  // for (int i = 0; i < 100; i++) {
+  //   double n = sigSteps[i];
+  //   double f = GaussGaussSigFrac(n, fit);
+  //   fractions.push_back(f);
+
+  //   if (f >= s - epsilon && f <= s + epsilon)
+  //     break;
+
+  //   if (f < s - epsilon) {
+  //   }
+  // }
+
+  // cout << "{n} = ";
+  // for (double n : sigSteps) {
+  //   cout << n << ", ";
+  // }
+  // cout << "\n{s} = ";
+  // for (double f : fractions) {
+  //   cout << f * 100 << ", ";
+  // }
+  // cout << "\n\n";
+
+  // cout << "Found nSigma for target fraction " << s * 100 << "%\n"
+  //      << "nSigma = " << sigSteps.back()
+  //      << "\ns = " << GaussGaussSigFrac(sigSteps.back(), fit) * 100 << endl;
 }
 
 #endif

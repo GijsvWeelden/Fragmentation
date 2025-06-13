@@ -18,8 +18,8 @@
 
 const double MassPi = 0.139570;
 const double MassProton = 0.938272;
-const double MassK0S = 0.497611;
-const double MassLambda0 = 1.115683;
+// const double MassK0S = 0.497611;
+// const double MassLambda0 = 1.115683;
 
 double MK(double p)
 { return 0.00281882007 + 0.00114057004 * p + 0.00172138005 * TMath::Exp(-1. * p / 0.500262022); }

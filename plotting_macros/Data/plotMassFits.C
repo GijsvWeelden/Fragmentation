@@ -1963,6 +1963,137 @@ array<double, 2> SignalFinder::GG_SigRegionFromFrac(double s, TF1* f = nullptr) 
   return {mu - n * Sigma, mu + n * Sigma};
 }
 
+array<double, 2> SignalFinder::GGE_SigRegionFromSteps(double n, TF1* f = nullptr) {
+  if (!f) f = mf->fit;
+
+  double ampNarrow = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigmaNarrow = f->GetParameter(2);
+  double lambda = f->GetParameter(3); // Crossover point
+  double ampWide = f->GetParameter(4);
+  double sigmaWide = f->GetParameter(5);
+
+  TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", mf->inputs->fitmin, mf->inputs->fitmax);
+  g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
+  double Sigma = getGG_Sigma(g);
+
+  double tau = sigmaNarrow / lambda;
+
+  double leftSide = mu - n * Sigma;
+
+  double rightSide = mu + n * sigmaNarrow;
+  if (n > lambda) rightSide = mu + lambda * sigmaNarrow + (n - lambda) * tau;
+
+  return {leftSide, rightSide};
+}
+
+array<double, 2> SignalFinder::GGE_SigRegionFromFrac(double s, TF1* f = nullptr) {
+  if (!f) f = mf->fit;
+
+  int binL = hGGE_SigFracL->FindFirstBinAbove(s);
+  int binR = hGGE_SigFracR->FindFirstBinAbove(s);
+
+  if (s > hGGE_SigFracL->GetBinContent(hGGE_SigFracL->GetNbinsX())) {
+    string war = "SignalFinder::GGE_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
+    inputs->printLog(war, InputSettings::kWarnings);
+    binL = hGGE_SigFracL->GetNbinsX();
+  }
+  if (s > hGGE_SigFracR->GetBinContent(hGGE_SigFracR->GetNbinsX())) {
+    string war = "SignalFinder::GGE_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
+    inputs->printLog(war, InputSettings::kWarnings);
+    binR = hGGE_SigFracR->GetNbinsX();
+  }
+
+  double nL = hGGE_SigFracL->GetXaxis()->GetBinCenter(binL);
+  double nR = hGGE_SigFracR->GetXaxis()->GetBinCenter(binR);
+
+  double ampNarrow = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigmaNarrow = f->GetParameter(2);
+  double lambda = f->GetParameter(3); // Crossover point
+  double ampWide = f->GetParameter(4);
+  double sigmaWide = f->GetParameter(5);
+  double tau = sigmaNarrow / lambda;
+
+  TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", mf->inputs->fitmin, mf->inputs->fitmax);
+  g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
+  double Sigma = getGG_Sigma(g);
+
+  inputs->nSigmaLeft = nL;
+  inputs->nSigmaRight = nR;
+  signalFractionLeft = hGGE_SigFracL->GetBinContent(binL);
+  signalFractionRight = hGGE_SigFracR->GetBinContent(binR);
+
+  double leftSide mu - nL * Sigma;
+  double rightSide = mu + nR * sigmaNarrow;
+  if (nR > lambda) rightSide = mu + lambda * sigmaNarrow + (nR - lambda) * tau;
+
+  return {leftSide, rightSide};
+}
+
+array<double, 2> SignalFinder::EGE_SigRegionFromSteps(double n, TF1* f = nullptr) {
+  if (!f) f = mf->fit;
+
+  double amp = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigma = f->GetParameter(2);
+  double lambdaL = f->GetParameter(3); // Crossover point left
+  double lambdaR = f->GetParameter(4); // Crossover point right
+
+  double tauL = sigma / lambdaL;
+  double tauR = sigma / lambdaR;
+
+  double leftSide = mu - n * sigma;
+  if (n > lambdaL) leftSide = mu - lambdaL * sigma - (n - lambdaL) * tauL;
+
+  double rightSide = mu + n * sigma;
+  if (n > lambdaR) rightSide = mu + lambdaR * sigma + (n - lambdaR) * tauR;
+
+  return {leftSide, rightSide};
+}
+
+array<double, 2> SignalFinder::EGE_SigRegionFromFrac(double s, TF1* f = nullptr) {
+  if (!f) f = mf->fit;
+
+  int binL = hEGE_SigFracL->FindFirstBinAbove(s);
+  int binR = hEGE_SigFracR->FindFirstBinAbove(s);
+
+  if (s > hEGE_SigFracL->GetBinContent(hEGE_SigFracL->GetNbinsX())) {
+    string war = "SignalFinder::EGE_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
+    inputs->printLog(war, InputSettings::kWarnings);
+    binL = hEGE_SigFracL->GetNbinsX();
+  }
+  if (s > hEGE_SigFracR->GetBinContent(hEGE_SigFracR->GetNbinsX())) {
+    string war = "SignalFinder::EGE_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
+    inputs->printLog(war, InputSettings::kWarnings);
+    binR = hEGE_SigFracR->GetNbinsX();
+  }
+
+  double nL = hEGE_SigFracL->GetXaxis()->GetBinCenter(binL);
+  double nR = hEGE_SigFracR->GetXaxis()->GetBinCenter(binR);
+
+  double mu = f->GetParameter(1);
+  double sigma = f->GetParameter(2);
+  double lambdaL = f->GetParameter(3); // Crossover point left
+  double lambdaR = f->GetParameter(4); // Crossover point right
+
+  inputs->nSigmaLeft = nL;
+  inputs->nSigmaRight = nR;
+  signalFractionLeft = hEGE_SigFracL->GetBinContent(binL);
+  signalFractionRight = hEGE_SigFracR->GetBinContent(binR);
+
+  double tauL = sigma / lambdaL;
+  double tauR = sigma / lambdaR;
+
+  double leftSide = mu - nL * sigma;
+  if (nL > lambdaL) leftSide = mu - lambdaL * sigma - (nL - lambdaL) * tauL;
+
+  double rightSide = mu + nR * sigma;
+  if (nR > lambdaR) rightSide = mu + lambdaR * sigma + (nR - lambdaR) * tauR;
+
+  return {leftSide, rightSide};
+}
+
 double SignalFinder::GG_SigFrac(double n, TF1* f = nullptr) {
   if (!f) f = mf->fit;
 
@@ -1983,6 +2114,47 @@ double SignalFinder::GG_SigFrac(double n, TF1* f = nullptr) {
   y *= ampWide * sigmaWide;
 
   double s = (x + y) / (ampNarrow * sigmaNarrow + ampWide * sigmaWide);
+  return s;
+}
+
+double SignalFinder::GGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = false) {
+  if (!f) f = mf->fit;
+
+  double ampNarrow = f->GetParameter(0);
+  double mu = f->GetParameter(1);
+  double sigmaNarrow = f->GetParameter(2);
+  double lambda = f->GetParameter(3); // Crossover point
+  double ampWide = f->GetParameter(4);
+  double sigmaWide = f->GetParameter(5);
+
+  if (leftSide) {
+    // Make double Gaussian from f
+    TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", f->GetXmin(), f->GetXmax());
+    g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
+    return GG_SigFrac(n, g);
+  }
+
+  double N = ampNarrow * sigmaNarrow * TMath::Sqrt(TMath::PiOver2());
+  double W = ampWide * sigmaWide * TMath::Sqrt(TMath::PiOver2());
+  double E = ampNarrow * sigmaNarrow * exp(-lambda*lambda / 2) / lambda;
+
+  double s;
+  if (n > lambda) {
+    double x = W * TMath::Erf((lambda + n / lambda - 1) * sigmaNarrow / (sqrt(2) * sigmaWide));
+    double y = N * TMath::Erf(lambda / sqrt(2));
+    double z = E * (1 - exp(lambda - n));
+    s = x + y + z;
+  } else {
+    TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", f->GetXmin(), f->GetXmax());
+    g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
+    double Sigma = getGG_Sigma(g);
+
+    double x = W * TMath::Erf((n * Sigma) / (sqrt(2) * sigmaWide));
+    double y = N * TMath::Erf((n * Sigma) / (sqrt(2) * sigmaNarrow));
+    s = x + y;
+  }
+
+  s /= (W + N * TMath::Erf(lambda / sqrt(2)) + E);
   return s;
 }
 
@@ -2007,82 +2179,6 @@ double SignalFinder::EGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = fal
   }
   s /= (x + y);
   return s;
-}
-
-// array<double, 2> GaussGaussExpSigRegion(double n, TF1* f) {
-//   double ampNarrow = f->GetParameter(0);
-//   double mu = f->GetParameter(1);
-//   double sigmaNarrow = f->GetParameter(2);
-//   double lambda = f->GetParameter(3); // Crossover point
-//   double ampWide = f->GetParameter(4);
-//   double sigmaWide = f->GetParameter(5);
-
-//   double tau = sigmaNarrow / lambda;
-
-//   // Make double Gaussian from f
-//   TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", f->GetXmin(), f->GetXmax());
-//   g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
-//   array<double, 2> gaussRegion = GaussGaussSigRegionFromSteps(n, g);
-
-//   double leftSide = gaussRegion[0];
-//   double rightSide = gaussRegion[1];
-//   if (n < lambda) rightSide = mu + n * sigmaNarrow;
-//   if (n > lambda) rightSide = mu + lambda * sigmaNarrow + (n - lambda) * tau;
-
-//   // TODO: Think about how to define the weird signal region here
-//   return {leftSide, rightSide};
-// }
-
-// double GaussGaussExpSigFrac(double n, TF1* f, bool leftSide) {
-//   double ampNarrow = f->GetParameter(0);
-//   double mu = f->GetParameter(1);
-//   double sigmaNarrow = f->GetParameter(2);
-//   double lambda = f->GetParameter(3); // Crossover point
-//   double ampWide = f->GetParameter(4);
-//   double sigmaWide = f->GetParameter(5);
-
-//   if (leftSide) {
-//     // Make double Gaussian from f
-//     TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", f->GetXmin(), f->GetXmax());
-//     g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
-//     return GaussGaussSigFrac(n, f);
-//   }
-
-//   double x = (lambda + n / lambda - 1) * sigmaNarrow / (sqrt(2) * sigmaWide);
-//   x = TMath::Erf(x);
-//   x *= ampWide * sigmaWide;
-
-//   double y = lambda / sqrt(2);
-//   y = TMath::Erf(y);
-//   y *= ampNarrow * sigmaNarrow;
-//   y *= sqrt(TMath::PiOver2());
-
-//   double z = exp(- lambda*lambda / 2);
-//   z *= ampNarrow * sigmaNarrow / lambda;
-
-//   double s = (x + y + z * (1 - exp(lambda - n))) / (ampNarrow * sigmaNarrow + y + z);
-//   return s;
-// }
-
-array<double, 2> SignalFinder::EGE_SigRegionFromSteps(double n, TF1* f = nullptr) {
-  if (!f) f = mf->fit;
-
-  double amp = f->GetParameter(0);
-  double mu = f->GetParameter(1);
-  double sigma = f->GetParameter(2);
-  double lambdaL = f->GetParameter(3); // Crossover point left
-  double lambdaR = f->GetParameter(4); // Crossover point right
-
-  double tauL = sigma / lambdaL;
-  double tauR = sigma / lambdaR;
-
-  double leftSide = mu - n * sigma;
-  if (n > lambdaL) leftSide = mu - lambdaL * sigma - (n - lambdaL) * tauL;
-
-  double rightSide = mu + n * sigma;
-  if (n > lambdaR) rightSide = mu + lambdaR * sigma + (n - lambdaR) * tauR;
-
-  return {leftSide, rightSide};
 }
 
 TH1* SignalFinder::GG_makeSigFracHist(TF1* f = nullptr) {
@@ -2124,6 +2220,59 @@ TH1* SignalFinder::GG_loadSigFracHist() {
   return hist;
 }
 
+TH1* SignalFinder::GGE_makeSigFracHist(TF1* f = nullptr, bool leftSide = false) {
+  if (!f) f = mf->fit;
+
+  int nx = nBins;
+  double xmin = xMin, xmax = xMax;
+  string histTitle = TString::Format("Signal Fraction, %s;#it{n}#Sigma", (leftSide) ? "left side" : "right side").Data();
+  TH1* hist = new TH1D("hist", histTitle.c_str(), nx, xmin, xmax);
+
+  for (int i = 0; i < nx; i++) {
+    double n = hist->GetXaxis()->GetBinCenter(i + 1);
+    double s = GGE_SigFrac(n, f, leftSide);
+    hist->SetBinContent(i + 1, s);
+  }
+  string histName = TString::Format("signalFraction%s", (leftSide) ? "Left" : "Right").Data();
+  histName = inputs->getSaveNameFromPt(histName.c_str());
+
+  if (leftSide)
+    hGGE_SigFracL = (TH1*)hist->Clone(histName.c_str());
+  else
+    hGGE_SigFracR = (TH1*)hist->Clone(histName.c_str());
+
+  return hist;
+}
+
+TH1* SignalFinder::GGE_loadSigFracHist(bool leftSide = false) {
+  TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
+  if (!file) {
+    string err = "SignalFinder::GGE_loadSigFracHist() Error: could not open file " + inputs->inputFileName;
+    inputs->printLog(err, InputSettings::kErrors);
+    return nullptr;
+  }
+
+  string s = inputs->histName;
+  if (s == "") {
+    s = TString::Format("signalFraction%s", (leftSide) ? "Left" : "Right").Data();
+    s = inputs->getSaveNameFromPt(s.c_str());
+  }
+
+  TH1* hist = (TH1*)file->Get(s.c_str());
+  if (!hist) {
+    string err = "SignalFinder::GGE_loadSigFracHist() Error: could not find histogram " + s + " in file " + inputs->inputFileName;
+    inputs->printLog(err, InputSettings::kErrors);
+    return nullptr;
+  }
+
+  if (leftSide)
+    hGGE_SigFracL = (TH1*)hist->Clone();
+  else
+    hGGE_SigFracR = (TH1*)hist->Clone();
+
+  return hist;
+}
+
 TH1* SignalFinder::EGE_makeSigFracHist(TF1* f = nullptr, bool leftSide = false) {
   if (!f) f = mf->fit;
 
@@ -2151,7 +2300,7 @@ TH1* SignalFinder::EGE_makeSigFracHist(TF1* f = nullptr, bool leftSide = false) 
 TH1* SignalFinder::EGE_loadSigFracHist(bool leftSide = false) {
   TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
   if (!file) {
-    string err = "SignalFinder::GGE_loadSigFracHist() Error: could not open file " + inputs->inputFileName;
+    string err = "SignalFinder::EGE_loadSigFracHist() Error: could not open file " + inputs->inputFileName;
     inputs->printLog(err, InputSettings::kErrors);
     return nullptr;
   }
@@ -2164,7 +2313,7 @@ TH1* SignalFinder::EGE_loadSigFracHist(bool leftSide = false) {
 
   TH1* hist = (TH1*)file->Get(s.c_str());
   if (!hist) {
-    string err = "SignalFinder::GGE_loadSigFracHist() Error: could not find histogram " + s + " in file " + inputs->inputFileName;
+    string err = "SignalFinder::EGE_loadSigFracHist() Error: could not find histogram " + s + " in file " + inputs->inputFileName;
     inputs->printLog(err, InputSettings::kErrors);
     return nullptr;
   }

@@ -25,18 +25,28 @@ TESTID=00$DIGITS/00$TRAINRUN
 # OUTPUTDIR=/Users/gijsvanweelden/Documents/TrainOutput
 OUTPUTDIR=$TRAIN_OUT_DIR
 [ ! -d "${OUTPUTDIR}" ] && echo "The directory for train output does not exist! Check that you know where you are writing to! Requested directory: ${OUTPUTDIR}" && exit 1
-# cd ${OUTPUTDIR}
 
 # make and enter the relevant dir
 [ ! -d "${OUTPUTDIR}/${TRAINRUN}" ] && mkdir ${OUTPUTDIR}/${TRAINRUN}
 OUTPUTDIR=${OUTPUTDIR}/${TRAINRUN}
-# cd $TRAINRUN
+
+echo "Downloading results for train run ${TRAINRUN} to ${OUTPUTDIR}"
+
+ALIEN_TRAIN_DIR="/alice/cern.ch/user/a/alihyperloop/outputs/00${DIGITS}/${TRAINRUN}"
 
 ### 1 Download the full merged output AnalysisResults.root
-# there is an extra nested directory
-NEST_A=`alien_ls /alice/cern.ch/user/a/alihyperloop/outputs/00${DIGITS}/${TRAINRUN}`
+# There is an extra nested directory. There may be multiple, but it seems we always want the first one.
+NEST_A=`alien_ls ${ALIEN_TRAIN_DIR}`
 
-alien_cp alien:/alice/cern.ch/user/a/alihyperloop/outputs/00${DIGITS}/${TRAINRUN}/${NEST_A}/AnalysisResults.root file:${OUTPUTDIR}/AnalysisResults.root
+firstLine=`echo "${NEST_A}" | head -1`
+if [[ "${firstLine}" != "${NEST_A}" ]]; then
+  echo "WARNING! There are multiple nested dirs!"
+  echo "alien_ls ${ALIEN_TRAIN_DIR}"
+  echo "${NEST_A}"
+  echo "Selecting ${firstLine}"
+fi
+
+alien_cp ${ALIEN_TRAIN_DIR}/${firstLine}/AnalysisResults.root file:${OUTPUTDIR}/AnalysisResults.root
 
 ### 2 Download config, stdout from the test directory
 curl -k --cert ~/.globus/usercert.pem --cert-type PEM --key ~/.globus/userkey.pem \

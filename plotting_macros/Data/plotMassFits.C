@@ -287,7 +287,7 @@ struct InputSettings{
     double massWindowMin = -1., massWindowMax = -1.;
     double polInitx0 = -1., polInitx1 = -1., polInitx2 = -1.;
     double signalRegionMin = -1., signalRegionMax = -1.;
-    double nSigma = -1.;
+    double nSigma = -1., nSigmaL = -1., nSigmaR = -1.;
 
     enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1BreitWignerXex, kPol2BreitWignerXex, kPol1ExpGausExp, kPol2ExpGausExp, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausGausXex, kPol2GausGausXex, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
 
@@ -1883,11 +1883,9 @@ struct SignalFinder {
 
     int nBins = 100;
     double xMin = 0, xMax = 10;
-    TH1* hGG_SigFrac = nullptr;
-    TH1* hGGE_SigFracL = nullptr;
-    TH1* hGGE_SigFracR = nullptr;
-    TH1* hEGE_SigFracL = nullptr;
-    TH1* hEGE_SigFracR = nullptr;
+    TH1* hSigFrac = nullptr;
+    TH1* hSigFracL = nullptr;
+    TH1* hSigFracR = nullptr;
 
     double signalFraction = -1;
     double signalFractionLeft = -1;
@@ -1946,20 +1944,20 @@ array<double, 2> SignalFinder::GG_SigRegionFromSteps(double n, TF1* f = nullptr)
 array<double, 2> SignalFinder::GG_SigRegionFromFrac(double s, TF1* f = nullptr) {
   if (!f) f = mf->fit;
 
-  int bin = hGG_SigFrac->FindFirstBinAbove(s);
+  int bin = hSigFrac->FindFirstBinAbove(s);
 
-  if (s > hGG_SigFrac->GetBinContent(hGG_SigFrac->GetNbinsX())) {
+  if (s > hSigFrac->GetBinContent(hSigFrac->GetNbinsX())) {
     string war = "SignalFinder::GG_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
     inputs->printLog(war, InputSettings::kWarnings);
-    bin = hGG_SigFrac->GetNbinsX();
+    bin = hSigFrac->GetNbinsX();
   }
 
-  double n = hGG_SigFrac->GetXaxis()->GetBinCenter(bin);
+  double n = hSigFrac->GetXaxis()->GetBinCenter(bin);
   double Sigma = getGG_Sigma(f);
   double mu = f->GetParameter(1);
 
   inputs->nSigma = n;
-  signalFraction = hGG_SigFrac->GetBinContent(bin);
+  signalFraction = hSigFrac->GetBinContent(bin);
   return {mu - n * Sigma, mu + n * Sigma};
 }
 
@@ -1990,22 +1988,22 @@ array<double, 2> SignalFinder::GGE_SigRegionFromSteps(double n, TF1* f = nullptr
 array<double, 2> SignalFinder::GGE_SigRegionFromFrac(double s, TF1* f = nullptr) {
   if (!f) f = mf->fit;
 
-  int binL = hGGE_SigFracL->FindFirstBinAbove(s);
-  int binR = hGGE_SigFracR->FindFirstBinAbove(s);
+  int binL = hSigFracL->FindFirstBinAbove(s);
+  int binR = hSigFracR->FindFirstBinAbove(s);
 
-  if (s > hGGE_SigFracL->GetBinContent(hGGE_SigFracL->GetNbinsX())) {
+  if (s > hSigFracL->GetBinContent(hSigFracL->GetNbinsX())) {
     string war = "SignalFinder::GGE_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
     inputs->printLog(war, InputSettings::kWarnings);
-    binL = hGGE_SigFracL->GetNbinsX();
+    binL = hSigFracL->GetNbinsX();
   }
-  if (s > hGGE_SigFracR->GetBinContent(hGGE_SigFracR->GetNbinsX())) {
+  if (s > hSigFracR->GetBinContent(hSigFracR->GetNbinsX())) {
     string war = "SignalFinder::GGE_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
     inputs->printLog(war, InputSettings::kWarnings);
-    binR = hGGE_SigFracR->GetNbinsX();
+    binR = hSigFracR->GetNbinsX();
   }
 
-  double nL = hGGE_SigFracL->GetXaxis()->GetBinCenter(binL);
-  double nR = hGGE_SigFracR->GetXaxis()->GetBinCenter(binR);
+  double nL = hSigFracL->GetXaxis()->GetBinCenter(binL);
+  double nR = hSigFracR->GetXaxis()->GetBinCenter(binR);
 
   double ampNarrow = f->GetParameter(0);
   double mu = f->GetParameter(1);
@@ -2019,12 +2017,12 @@ array<double, 2> SignalFinder::GGE_SigRegionFromFrac(double s, TF1* f = nullptr)
   g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
   double Sigma = getGG_Sigma(g);
 
-  inputs->nSigmaLeft = nL;
-  inputs->nSigmaRight = nR;
-  signalFractionLeft = hGGE_SigFracL->GetBinContent(binL);
-  signalFractionRight = hGGE_SigFracR->GetBinContent(binR);
+  inputs->nSigmaL = nL;
+  inputs->nSigmaR = nR;
+  signalFractionLeft = hSigFracL->GetBinContent(binL);
+  signalFractionRight = hSigFracR->GetBinContent(binR);
 
-  double leftSide mu - nL * Sigma;
+  double leftSide = mu - nL * Sigma;
   double rightSide = mu + nR * sigmaNarrow;
   if (nR > lambda) rightSide = mu + lambda * sigmaNarrow + (nR - lambda) * tau;
 
@@ -2055,32 +2053,32 @@ array<double, 2> SignalFinder::EGE_SigRegionFromSteps(double n, TF1* f = nullptr
 array<double, 2> SignalFinder::EGE_SigRegionFromFrac(double s, TF1* f = nullptr) {
   if (!f) f = mf->fit;
 
-  int binL = hEGE_SigFracL->FindFirstBinAbove(s);
-  int binR = hEGE_SigFracR->FindFirstBinAbove(s);
+  int binL = hSigFracL->FindFirstBinAbove(s);
+  int binR = hSigFracR->FindFirstBinAbove(s);
 
-  if (s > hEGE_SigFracL->GetBinContent(hEGE_SigFracL->GetNbinsX())) {
+  if (s > hSigFracL->GetBinContent(hSigFracL->GetNbinsX())) {
     string war = "SignalFinder::EGE_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
     inputs->printLog(war, InputSettings::kWarnings);
-    binL = hEGE_SigFracL->GetNbinsX();
+    binL = hSigFracL->GetNbinsX();
   }
-  if (s > hEGE_SigFracR->GetBinContent(hEGE_SigFracR->GetNbinsX())) {
+  if (s > hSigFracR->GetBinContent(hSigFracR->GetNbinsX())) {
     string war = "SignalFinder::EGE_SigRegionFromFrac() Warning: s = " + to_string(s) + " is larger than the maximum signal fraction in the histogram. Using the maximum value instead.";
     inputs->printLog(war, InputSettings::kWarnings);
-    binR = hEGE_SigFracR->GetNbinsX();
+    binR = hSigFracR->GetNbinsX();
   }
 
-  double nL = hEGE_SigFracL->GetXaxis()->GetBinCenter(binL);
-  double nR = hEGE_SigFracR->GetXaxis()->GetBinCenter(binR);
+  double nL = hSigFracL->GetXaxis()->GetBinCenter(binL);
+  double nR = hSigFracR->GetXaxis()->GetBinCenter(binR);
 
   double mu = f->GetParameter(1);
   double sigma = f->GetParameter(2);
   double lambdaL = f->GetParameter(3); // Crossover point left
   double lambdaR = f->GetParameter(4); // Crossover point right
 
-  inputs->nSigmaLeft = nL;
-  inputs->nSigmaRight = nR;
-  signalFractionLeft = hEGE_SigFracL->GetBinContent(binL);
-  signalFractionRight = hEGE_SigFracR->GetBinContent(binR);
+  inputs->nSigmaL = nL;
+  inputs->nSigmaR = nR;
+  signalFractionLeft = hSigFracL->GetBinContent(binL);
+  signalFractionRight = hSigFracR->GetBinContent(binR);
 
   double tauL = sigma / lambdaL;
   double tauR = sigma / lambdaR;
@@ -2194,7 +2192,7 @@ TH1* SignalFinder::GG_makeSigFracHist(TF1* f = nullptr) {
     hist->SetBinContent(i + 1, s);
   }
   string histName = inputs->getSaveNameFromPt("signalFraction");
-  hGG_SigFrac = (TH1*)hist->Clone(histName.c_str());
+  hSigFrac = (TH1*)hist->Clone(histName.c_str());
   return hist;
 }
 
@@ -2216,7 +2214,7 @@ TH1* SignalFinder::GG_loadSigFracHist() {
     inputs->printLog(err, InputSettings::kErrors);
     return nullptr;
   }
-  hGG_SigFrac = (TH1*)hist->Clone();
+  hSigFrac = (TH1*)hist->Clone();
   return hist;
 }
 
@@ -2237,9 +2235,9 @@ TH1* SignalFinder::GGE_makeSigFracHist(TF1* f = nullptr, bool leftSide = false) 
   histName = inputs->getSaveNameFromPt(histName.c_str());
 
   if (leftSide)
-    hGGE_SigFracL = (TH1*)hist->Clone(histName.c_str());
+    hSigFracL = (TH1*)hist->Clone(histName.c_str());
   else
-    hGGE_SigFracR = (TH1*)hist->Clone(histName.c_str());
+    hSigFracR = (TH1*)hist->Clone(histName.c_str());
 
   return hist;
 }
@@ -2266,9 +2264,9 @@ TH1* SignalFinder::GGE_loadSigFracHist(bool leftSide = false) {
   }
 
   if (leftSide)
-    hGGE_SigFracL = (TH1*)hist->Clone();
+    hSigFracL = (TH1*)hist->Clone();
   else
-    hGGE_SigFracR = (TH1*)hist->Clone();
+    hSigFracR = (TH1*)hist->Clone();
 
   return hist;
 }
@@ -2279,20 +2277,20 @@ TH1* SignalFinder::EGE_makeSigFracHist(TF1* f = nullptr, bool leftSide = false) 
   int nx = nBins;
   double xmin = xMin, xmax = xMax;
   string histTitle = TString::Format("Signal Fraction, %s;#it{n}#Sigma", (leftSide) ? "left side" : "right side").Data();
-  TH1* hist = new TH1D("hist", histTitle.c_str(), nx, xmin, xmax);
+  string histName = TString::Format("signalFraction%s", (leftSide) ? "Left" : "Right").Data();
+  histName = inputs->getSaveNameFromPt(histName.c_str());
+  TH1* hist = new TH1D(histName.c_str(), histTitle.c_str(), nx, xmin, xmax);
 
   for (int i = 0; i < nx; i++) {
     double n = hist->GetXaxis()->GetBinCenter(i + 1);
     double s = EGE_SigFrac(n, f, leftSide);
     hist->SetBinContent(i + 1, s);
   }
-  string histName = TString::Format("signalFraction%s", (leftSide) ? "Left" : "Right").Data();
-  histName = inputs->getSaveNameFromPt(histName.c_str());
 
   if (leftSide)
-    hGGE_SigFracL = (TH1*)hist->Clone(histName.c_str());
+    hSigFracL = (TH1*)hist->Clone();
   else
-    hGGE_SigFracR = (TH1*)hist->Clone(histName.c_str());
+    hSigFracR = (TH1*)hist->Clone();
 
   return hist;
 }
@@ -2319,9 +2317,9 @@ TH1* SignalFinder::EGE_loadSigFracHist(bool leftSide = false) {
   }
 
   if (leftSide)
-    hGGE_SigFracL = (TH1*)hist->Clone();
+    hSigFracL = (TH1*)hist->Clone();
   else
-    hGGE_SigFracR = (TH1*)hist->Clone();
+    hSigFracR = (TH1*)hist->Clone();
 
   return hist;
 }
@@ -2775,7 +2773,7 @@ void saveSignalFractionHists_GG() {
     sf.nBins = 1e5;
     sf.GG_makeSigFracHist(sf.mf->fit);
     sf.inputs->outputFileName = sf.inputs->inputFileName;
-    sf.inputs->writeOutputToFile(sf.hGG_SigFrac);
+    sf.inputs->writeOutputToFile(sf.hSigFrac);
   }
 }
 
@@ -2787,6 +2785,7 @@ void saveSignalFractionHists_EGE() {
   x.setFitType("pol1ExpGausExp");
   x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
   x.setPtBinEdgesFromHadron();
+  x.verbosity = InputSettings::kInfo;
 
   const bool leftSide = true;
 
@@ -2801,8 +2800,38 @@ void saveSignalFractionHists_EGE() {
     sf.inputs->outputFileName = sf.inputs->inputFileName;
     sf.EGE_makeSigFracHist(sf.mf->fit, leftSide);
     sf.EGE_makeSigFracHist(sf.mf->fit, !leftSide);
-    sf.inputs->writeOutputToFile(sf.hEGE_SigFracL);
-    sf.inputs->writeOutputToFile(sf.hEGE_SigFracR);
+
+    sf.inputs->writeOutputToFile(sf.hSigFracL);
+    sf.inputs->writeOutputToFile(sf.hSigFracR);
+  }
+}
+
+// Creates the signal fraction histograms for the GGE fit, as used in calcSignalRegion_GGE
+void saveSignalFractionHists_GGE() {
+  InputSettings x;
+  x.hadron = "K0S";
+  x.train = 252064;
+  x.setFitType("pol1GausGausExp");
+  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.setPtBinEdgesFromHadron();
+  x.verbosity = InputSettings::kInfo;
+
+  const bool leftSide = true;
+
+  for (int iPt = 0; iPt < x.ptBinEdges.size(); iPt++) {
+    cout << "Processing pt bin " << iPt << ": (" << x.ptBinEdges[iPt][0] << ", " << x.ptBinEdges[iPt][1] << ")" << endl;
+    x.setPt(x.ptBinEdges[iPt][0], x.ptBinEdges[iPt][1]);
+
+    SignalFinder sf(x);
+    sf.mf->loadSavedMassHist();
+    sf.mf->loadSavedFitFunction();
+    sf.nBins = 1e5;
+    sf.inputs->outputFileName = sf.inputs->inputFileName;
+    sf.GGE_makeSigFracHist(sf.mf->fit, leftSide);
+    sf.GGE_makeSigFracHist(sf.mf->fit, !leftSide);
+
+    sf.inputs->writeOutputToFile(sf.hSigFracL);
+    sf.inputs->writeOutputToFile(sf.hSigFracR);
   }
 }
 
@@ -2889,7 +2918,6 @@ void calcSignalRegion_EGE() {
   x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25}, {25., 30}, {30., 40.}};
 
   const bool leftSide = true;
-  const bool rightSide = !leftSide;
 
   for (int iPt = 0; iPt < x.ptBinEdges.size(); iPt++) {
     cout << "Processing pt bin " << iPt << ": (" << x.ptBinEdges[iPt][0] << ", " << x.ptBinEdges[iPt][1] << ")" << endl;
@@ -2898,52 +2926,123 @@ void calcSignalRegion_EGE() {
     SignalFinder sf(x);
     sf.mf->loadSavedMassHist();
     sf.mf->loadSavedFitFunction();
-    sf.EGE_loadSigFracHist(leftSide); // Left side
-    sf.EGE_loadSigFracHist(rightSide); // Right side
+    sf.EGE_loadSigFracHist(leftSide);
+    sf.EGE_loadSigFracHist(!leftSide);
 
-    // // n = 3
-    // sf.inputs->nSigma = 3;
-    // sf.signalFractionLeft = sf.EGE_SigFrac(sf.inputs->nSigma, sf.mf->fit, leftSide);
-    // array<double, 2> sigRegion = sf.EGE_SigRegionFromSteps(sf.inputs->nSigma, sf.mf->fit);
-    // cout << "n = 3:"
-    //     << "\nSignal region: (" << sigRegion[0] << ", " << sigRegion[1] << ")"
-    //     << "\nSignal fraction: " << sf.signalFraction * 100 << "%\n" << endl;
+    // n = 3
+    sf.inputs->nSigma = 3;
+    sf.signalFractionLeft = sf.EGE_SigFrac(sf.inputs->nSigma, sf.mf->fit, leftSide);
+    sf.signalFractionRight = sf.EGE_SigFrac(sf.inputs->nSigma, sf.mf->fit, !leftSide);
+    array<double, 2> sigRegion = sf.EGE_SigRegionFromSteps(sf.inputs->nSigma, sf.mf->fit);
+
+    string coutput;
+    coutput = TString::Format("n = 3: \nSignal region: (%f, %f) \nSignal fraction (left, right): %f%%, %f%%", sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s_L = %.2f \\) \\%%, \\(s_R = %.2f \\) \\%%}", sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    cout << coutput << endl;
 
     // TH1* hSR_n3 = sf.makeSigRegionHist();
     // hSR_n3->SetName("signalRegion_n3");
 
     // s = 0.90
-    // double desiredSignalFraction = 0.90;
-    // sf.signalFraction = desiredSignalFraction;
-    // sigRegion = sf.GG_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
-    // cout << "s = " << desiredSignalFraction * 100 << "%"
-    //     << "\nnSigma = " << sf.inputs->nSigma
-    //     << "\nSignal region: (" << sigRegion[0] << ", " << sigRegion[1] << ")"
-    //     << "\nSignal fraction from histogram: " << sf.signalFraction * 100 << "%\n" << endl;
+    double desiredSignalFraction = 0.90;
+    sf.signalFractionLeft = desiredSignalFraction;
+    sf.signalFractionRight = desiredSignalFraction;
+    sigRegion = sf.EGE_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
+    // coutput = TString::Format("s = %.f%%: \nnSigma = (%f, %f) \nSignal region: (%f, %f) \nSignal fraction: (%f%%, %f%%)", desiredSignalFraction * 100, sf.inputs->nSigmaL, sf.inputs->nSigmaR, sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\(n_R = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigmaL, sf.inputs->nSigmaR).Data();
+    cout << coutput << endl;
 
     // TH1* hSR_s90 = sf.makeSigRegionHist();
     // hSR_s90->SetName("signalRegion_s90");
 
     // s = 0.95
-    // desiredSignalFraction = 0.95;
-    // sf.signalFraction = desiredSignalFraction;
-    // sigRegion = sf.GG_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
-    // cout << "s = " << desiredSignalFraction * 100 << "%"
-    //     << "\nnSigma = " << sf.inputs->nSigma
-    //     << "\nSignal region: (" << sigRegion[0] << ", " << sigRegion[1] << ")"
-    //     << "\nSignal fraction from histogram: " << sf.signalFraction * 100 << "%\n" << endl;
+    desiredSignalFraction = 0.95;
+    sigRegion = sf.EGE_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
+    // coutput = TString::Format("s = %.f%%: \nnSigma = (%f, %f) \nSignal region: (%f, %f) \nSignal fraction: (%f%%, %f%%)", desiredSignalFraction * 100, sf.inputs->nSigmaL, sf.inputs->nSigmaR, sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\(n_R = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigmaL, sf.inputs->nSigmaR).Data();
+    cout << coutput << endl;
 
     // TH1* hSR_s95 = sf.makeSigRegionHist();
     // hSR_s95->SetName("signalRegion_s95");
 
     // s = 0.99
-    // desiredSignalFraction = 0.99;
-    // sf.signalFraction = desiredSignalFraction;
-    // sigRegion = sf.GG_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
-    // cout << "s = " << desiredSignalFraction * 100 << "%"
-    //     << "\nnSigma = " << sf.inputs->nSigma
-    //     << "\nSignal region: (" << sigRegion[0] << ", " << sigRegion[1] << ")"
-    //     << "\nSignal fraction from histogram: " << sf.signalFraction * 100 << "%\n" << endl;
+    desiredSignalFraction = 0.99;
+    sigRegion = sf.EGE_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
+    // coutput = TString::Format("s = %.f%%: \nnSigma = (%f, %f) \nSignal region: (%f, %f) \nSignal fraction: (%f%%, %f%%)", desiredSignalFraction * 100, sf.inputs->nSigmaL, sf.inputs->nSigmaR, sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\(n_R = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigmaL, sf.inputs->nSigmaR).Data();
+    cout << coutput << endl;
+
+    // TH1* hSR_s99 = sf.makeSigRegionHist();
+    // hSR_s99->SetName("signalRegion_s99");
+  }
+}
+
+// Calculates the signal region for the expgausexp, for 3 Sigma, s = 90%, 95%, and 99% signal fraction
+// Uses saved signal fraction histogram
+void calcSignalRegion_GGE() {
+  InputSettings x;
+  x.hadron = "K0S";
+  x.train = 252064;
+  x.setFitType("pol1GausGausExp");
+  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+
+  // GGE
+  x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25}, {25., 30}, {30., 40.}};
+
+  const bool leftSide = true;
+
+  for (int iPt = 0; iPt < x.ptBinEdges.size(); iPt++) {
+    cout << "Processing pt bin " << iPt << ": (" << x.ptBinEdges[iPt][0] << ", " << x.ptBinEdges[iPt][1] << ")" << endl;
+    x.setPt(x.ptBinEdges[iPt][0], x.ptBinEdges[iPt][1]);
+
+    SignalFinder sf(x);
+    sf.mf->loadSavedMassHist();
+    sf.mf->loadSavedFitFunction();
+    sf.GGE_loadSigFracHist(leftSide);
+    sf.GGE_loadSigFracHist(!leftSide);
+
+    // n = 3
+    sf.inputs->nSigma = 3;
+    sf.signalFractionLeft = sf.GGE_SigFrac(sf.inputs->nSigma, sf.mf->fit, leftSide);
+    sf.signalFractionRight = sf.GGE_SigFrac(sf.inputs->nSigma, sf.mf->fit, !leftSide);
+    array<double, 2> sigRegion = sf.GGE_SigRegionFromSteps(sf.inputs->nSigma, sf.mf->fit);
+
+    string coutput;
+    coutput = TString::Format("n = 3: \nSignal region: (%f, %f) \nSignal fraction (left, right): %f%%, %f%%", sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s_L = %.2f \\) \\%%, \\(s_R = %.2f \\) \\%%}", sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    cout << coutput << endl;
+
+    // TH1* hSR_n3 = sf.makeSigRegionHist();
+    // hSR_n3->SetName("signalRegion_n3");
+
+    // s = 0.90
+    double desiredSignalFraction = 0.90;
+    sf.signalFractionLeft = desiredSignalFraction;
+    sf.signalFractionRight = desiredSignalFraction;
+    sigRegion = sf.GGE_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
+    // coutput = TString::Format("s = %.f%%: \nnSigma = (%f, %f) \nSignal region: (%f, %f) \nSignal fraction: (%f%%, %f%%)", desiredSignalFraction * 100, sf.inputs->nSigmaL, sf.inputs->nSigmaR, sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\(n_R = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigmaL, sf.inputs->nSigmaR).Data();
+    cout << coutput << endl;
+
+    // TH1* hSR_s90 = sf.makeSigRegionHist();
+    // hSR_s90->SetName("signalRegion_s90");
+
+    // s = 0.95
+    desiredSignalFraction = 0.95;
+    sigRegion = sf.GGE_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
+    // coutput = TString::Format("s = %.f%%: \nnSigma = (%f, %f) \nSignal region: (%f, %f) \nSignal fraction: (%f%%, %f%%)", desiredSignalFraction * 100, sf.inputs->nSigmaL, sf.inputs->nSigmaR, sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\(n_R = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigmaL, sf.inputs->nSigmaR).Data();
+    cout << coutput << endl;
+
+    // TH1* hSR_s95 = sf.makeSigRegionHist();
+    // hSR_s95->SetName("signalRegion_s95");
+
+    // s = 0.99
+    desiredSignalFraction = 0.99;
+    sigRegion = sf.GGE_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
+    // coutput = TString::Format("s = %.f%%: \nnSigma = (%f, %f) \nSignal region: (%f, %f) \nSignal fraction: (%f%%, %f%%)", desiredSignalFraction * 100, sf.inputs->nSigmaL, sf.inputs->nSigmaR, sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\(n_R = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigmaL, sf.inputs->nSigmaR).Data();
+    cout << coutput << endl;
 
     // TH1* hSR_s99 = sf.makeSigRegionHist();
     // hSR_s99->SetName("signalRegion_s99");

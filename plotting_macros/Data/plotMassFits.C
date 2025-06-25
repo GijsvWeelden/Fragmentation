@@ -1658,6 +1658,7 @@ TH1* MassFitter::loadFitParams() {
   return h;
 }
 
+// TODO: This should maybe be moved to SignalFinder and done separately of the fits
 TH1* MassFitter::loadFitResults() {
   if (!this->fit)
     return nullptr;
@@ -1749,6 +1750,7 @@ string MassFitter::setHistNameFromTrain() {
   string s = "jet-fragmentation";
   if (inputs->train == 287744) s += "_id12406";
   if (inputs->train == 419996) s += "_id28293";
+  if (inputs->train == 426828) s += "_id28293";
 
   s += "/data/V0/V0PtMass";
 
@@ -1887,13 +1889,21 @@ struct SignalFinder {
     TH1* hSigFracL = nullptr;
     TH1* hSigFracR = nullptr;
 
-    double signalFraction = -1;
-    double signalFractionLeft = -1;
-    double signalFractionRight = -1;
+    double signalFraction = -1, signalFractionLeft = -1, signalFractionRight = -1;
+    double hSig, hBkg, hSigPlusBkg; // Signal from histogram
+    double fSig, fBkg, fSigPlusBkg; // Signal from fit
+
+    vector<int> bkgFits = {};
 
     SignalFinder() { inputs = new InputSettings(); mf = new MassFitter(*inputs); }
     SignalFinder(InputSettings& x) { inputs = &x; mf = new MassFitter(x); }
     SignalFinder(MassFitter& x) { mf = &x; inputs = x.inputs; }
+
+    // Calculate the signal and background
+    void calcSigBkg();
+
+    // Defining the signal region and finding the expected fraction of total signal
+    double getGG_Sigma(TF1* f); // Characteristic length
 
     // Signal region
     array<double, 2> GG_SigRegionFromSteps(double n, TF1* f);
@@ -1902,9 +1912,6 @@ struct SignalFinder {
     array<double, 2> GGE_SigRegionFromFrac(double s, TF1* f);
     array<double, 2> EGE_SigRegionFromSteps(double n, TF1* f);
     array<double, 2> EGE_SigRegionFromFrac(double s, TF1* f);
-
-    // Characteristic length
-    double getGG_Sigma(TF1* f);
 
     // Signal fraction
     double GG_SigFrac(double n, TF1* f);
@@ -1922,6 +1929,27 @@ struct SignalFinder {
     // Select data within signal region
     TH1* makeSigRegionHist();
 };
+
+void SignalFinder::calcSigBkg() {
+  array<int, 2> sigBins = getProjectionBins(mf->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax);
+  double xmin = mf->data->GetXaxis()->GetBinLowEdge(sigBins[0]);
+  double xmax = mf->data->GetXaxis()->GetBinUpEdge(sigBins[1]);
+
+  hSigPlusBkg = mf->data->Integral(sigBins[0], sigBins[1]);
+  fSigPlusBkg = mf->fit->Integral(xmin, xmax);
+
+  double background = 0;
+  for (int i : bkgFits) {
+    TF1* f = mf.fitParts[i - 1]->Clone(("f" + to_string(i)).c_str());
+    f->SetRange(xmin, xmax);
+    background += f->Integral(xmin, xmax);
+  }
+  hBkg = background;
+  fBkg = background;
+
+  hSig = hSigPlusBkg - hBkg;
+  fSig = fSigPlusBkg - fBkg;
+}
 
 double SignalFinder::getGG_Sigma(TF1* f = nullptr) {
   if (!f) f = mf->fit;
@@ -2681,10 +2709,11 @@ void fitMassAndPlotPartsAllBins(InputSettings& x) {
 
 // Setup for fitMassAndPlotPartsAllBins(x)
 void fitMassAndPlotPartsAllBins() {
+  gROOT->SetBatch();
   InputSettings x;
-  x.train = 419996;
+  x.train = 426828;
   x.hadron = "K0S";
-  x.setFitType("pol1GausGaus");
+  x.setFitType("pol1ExpGausExp");
   x.normaliseData = true;
   x.nSigma = 3.;
   x.fixMu = true;
@@ -2701,10 +2730,10 @@ void fitMassAndPlotPartsAllBins() {
 // Perform fit in a single pt bin
 void fitMassAndPlotPartsSingleBin() {
   InputSettings x;
-  x.setPt(10., 15.);
-  x.train = 419996;
+  x.setPt(25., 30.);
+  x.train = 426828;
   x.hadron = "K0S";
-  x.setFitType("pol1GausGaus");
+  x.setFitType("pol1ExpGausExp");
   x.normaliseData = true;
   x.nSigma = 3.;
   x.fixMu = true;
@@ -2730,12 +2759,10 @@ void fitMassAndPlotPartsSingleBin() {
   m.loadResidualHist();
   m.loadPullHist();
 
-  // m.fitResults
-  // return;
   m.writeOutputsToFile();
 
   FitPlotter p(m);
-  p.inputs->outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+  p.inputs->outputFileName = p.inputs->getSaveNameFromPt(p.inputs->hadron + "_" + p.inputs->fitName, ".pdf");
   p.plotFitParts();
 
   // Update fit parameters and results hists in file and plot the new versions
@@ -2760,7 +2787,7 @@ void saveSignalFractionHists_GG() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1GausGaus");
-  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
   x.setPtBinEdgesFromHadron();
 
   for (int iPt = 0; iPt < x.ptBinEdges.size(); iPt++) {
@@ -2783,7 +2810,7 @@ void saveSignalFractionHists_EGE() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1ExpGausExp");
-  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
   x.setPtBinEdgesFromHadron();
   x.verbosity = InputSettings::kInfo;
 
@@ -2812,7 +2839,7 @@ void saveSignalFractionHists_GGE() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1GausGausExp");
-  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
   x.setPtBinEdgesFromHadron();
   x.verbosity = InputSettings::kInfo;
 
@@ -2842,7 +2869,7 @@ void calcSignalRegion_GG() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1GausGaus");
-  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
 
   // GG
   x.ptBinEdges = { {0., 1.}, {1., 2.}, {2., 3.}, {3., 4.}, {4., 5.}, {5., 10.}};
@@ -2860,48 +2887,50 @@ void calcSignalRegion_GG() {
     sf.inputs->nSigma = 3;
     sf.signalFraction = sf.GG_SigFrac(sf.inputs->nSigma, sf.mf->fit);
     array<double, 2> sigRegion = sf.GG_SigRegionFromSteps(sf.inputs->nSigma, sf.mf->fit);
-    cout << "n = 3:"
-        << "\nSignal region: (" << sigRegion[0] << ", " << sigRegion[1] << ")"
-        << "\nSignal fraction: " << sf.signalFraction * 100 << "%\n" << endl;
 
-    TH1* hSR_n3 = sf.makeSigRegionHist();
-    hSR_n3->SetName("signalRegion_n3");
+    string coutput;
+    // coutput = TString::Format("n = 3: \nSignal region: (%f, %f) \nSignal fraction: %f%%", sigRegion[0], sigRegion[1], sf.signalFraction * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s = %.2f \\) \\%%}", sigRegion[0], sigRegion[1], sf.signalFraction * 100).Data();
+    cout << coutput << endl;
+
+    // TH1* hSR_n3 = sf.makeSigRegionHist();
+    // hSR_n3->SetName("signalRegion_n3");
 
     // s = 0.90
     double desiredSignalFraction = 0.90;
     sf.signalFraction = desiredSignalFraction;
     sigRegion = sf.GG_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
-    cout << "s = " << desiredSignalFraction * 100 << "%"
-        << "\nnSigma = " << sf.inputs->nSigma
-        << "\nSignal region: (" << sigRegion[0] << ", " << sigRegion[1] << ")"
-        << "\nSignal fraction from histogram: " << sf.signalFraction * 100 << "%\n" << endl;
 
-    TH1* hSR_s90 = sf.makeSigRegionHist();
-    hSR_s90->SetName("signalRegion_s90");
+    // coutput = TString::Format("s = %.f%%: \nnSigma = %f \nSignal region: (%f, %f) \nSignal fraction: %f%%", desiredSignalFraction * 100, sf.inputs->nSigma, sigRegion[0], sigRegion[1], sf.signalFraction * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigma).Data();
+    cout << coutput << endl;
+
+    // TH1* hSR_s90 = sf.makeSigRegionHist();
+    // hSR_s90->SetName("signalRegion_s90");
 
     // s = 0.95
     desiredSignalFraction = 0.95;
     sf.signalFraction = desiredSignalFraction;
     sigRegion = sf.GG_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
-    cout << "s = " << desiredSignalFraction * 100 << "%"
-        << "\nnSigma = " << sf.inputs->nSigma
-        << "\nSignal region: (" << sigRegion[0] << ", " << sigRegion[1] << ")"
-        << "\nSignal fraction from histogram: " << sf.signalFraction * 100 << "%\n" << endl;
 
-    TH1* hSR_s95 = sf.makeSigRegionHist();
-    hSR_s95->SetName("signalRegion_s95");
+    // coutput = TString::Format("s = %.f%%: \nnSigma = %f \nSignal region: (%f, %f) \nSignal fraction: %f%%", desiredSignalFraction * 100, sf.inputs->nSigma, sigRegion[0], sigRegion[1], sf.signalFraction * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigma).Data();
+    cout << coutput << endl;
+
+    // TH1* hSR_s95 = sf.makeSigRegionHist();
+    // hSR_s95->SetName("signalRegion_s95");
 
     // s = 0.99
     desiredSignalFraction = 0.99;
     sf.signalFraction = desiredSignalFraction;
     sigRegion = sf.GG_SigRegionFromFrac(desiredSignalFraction, sf.mf->fit);
-    cout << "s = " << desiredSignalFraction * 100 << "%"
-        << "\nnSigma = " << sf.inputs->nSigma
-        << "\nSignal region: (" << sigRegion[0] << ", " << sigRegion[1] << ")"
-        << "\nSignal fraction from histogram: " << sf.signalFraction * 100 << "%\n" << endl;
 
-    TH1* hSR_s99 = sf.makeSigRegionHist();
-    hSR_s99->SetName("signalRegion_s99");
+    // coutput = TString::Format("s = %.f%%: \nnSigma = %f \nSignal region: (%f, %f) \nSignal fraction: %f%%", desiredSignalFraction * 100, sf.inputs->nSigma, sigRegion[0], sigRegion[1], sf.signalFraction * 100).Data();
+    coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n = %.2f \\)}", sigRegion[0], sigRegion[1], sf.inputs->nSigma).Data();
+    cout << coutput << endl;
+
+    // TH1* hSR_s99 = sf.makeSigRegionHist();
+    // hSR_s99->SetName("signalRegion_s99");
   }
 }
 
@@ -2912,7 +2941,7 @@ void calcSignalRegion_EGE() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1ExpGausExp");
-  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
 
   // GGE & EGE
   x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25}, {25., 30}, {30., 40.}};
@@ -2984,7 +3013,7 @@ void calcSignalRegion_GGE() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1GausGausExp");
-  x.inputFileName = x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
 
   // GGE
   x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25}, {25., 30}, {30., 40.}};
@@ -3008,7 +3037,7 @@ void calcSignalRegion_GGE() {
     array<double, 2> sigRegion = sf.GGE_SigRegionFromSteps(sf.inputs->nSigma, sf.mf->fit);
 
     string coutput;
-    coutput = TString::Format("n = 3: \nSignal region: (%f, %f) \nSignal fraction (left, right): %f%%, %f%%", sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
+    // coutput = TString::Format("n = 3: \nSignal region: (%f, %f) \nSignal fraction (left, right): %f%%, %f%%", sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
     coutput = TString::Format("& \\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s_L = %.2f \\) \\%%, \\(s_R = %.2f \\) \\%%}", sigRegion[0], sigRegion[1], sf.signalFractionLeft * 100, sf.signalFractionRight * 100).Data();
     cout << coutput << endl;
 

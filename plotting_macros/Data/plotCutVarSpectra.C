@@ -16,1443 +16,608 @@
 
 #include "../histUtils.C"
 
-const double MassK0S = 0.497611;
-const double MassLambda0 = 1.115683;
+// Cut variation: See how the mass spectrum changes when varying the V0 variable cuts
 
-// -------------------------------------------------------------------------------------------------
-// Functions for background fitting, rejects peak region
-// Parameter [0] -> Hi LeftBg Boundary
-// Parameter [1] -> Lo RightBg Boundary
-double pol1bkg(double *x, double *par)
-{
-  if (x[0] > par[0] && x[0] < par[1]) {
-    TF1::RejectPoint();
-    return 0;
-  }
-  return par[2] + par[3]*x[0];
-}
-// Is there a smart way to implement these separately for Lambda and antiLambda?
-// * Lambda0     = 1.10192774, 1.12922828
-// * AntiLambda0 = 1.10181581, 1.12952655
-double pol2bkg(double *x, double *par)
-{
-  if (x[0] > 1.10192774 && x[0] < 1.12922828) {
-    TF1::RejectPoint();
-    return 0;
-  }
-  return par[0] + par[1]*x[0] + par[2]*x[0]*x[0];
-}
-double pol2bkgVar(double *x, double *par)
-{
-  if (x[0] > par[0] && x[0] < par[1]) {
-    TF1::RejectPoint();
-    return 0;
-  }
-  return par[2] + par[3]*x[0] + par[4]*x[0]*x[0];
+#ifndef CUTVARIATION_C
+#define CUTVARIATION_C
+
+namespace MyEnums {
+  enum Verbosity {kErrors, kWarnings, kInfo, kDebug};
+  enum FitType   {kExpGausExp, kGausGaus, kGausGausExp};
+  enum Variable  {kR, kCtau, kCosPA, kDCAp, kDCAn, kDCAd};
+  enum CutType   {kLower, kUpper, kBoth};
 }
 
-// -------------------------------------------------------------------------------------------------
+using namespace MyEnums;
 
-void K0SPurity(string inName = "AnalysisResults.root", double ptmin = 0., double ptmax = 100.)
-{
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
+struct InputSettings {
+  private:
+  public:
+    int train, rebinNumber, nHists;
+    int fitType = -1, var = -1, verbosity = kWarnings, cutType = -1;
+    string inputFileNameHist, inputFileNameFit, outputFileName;
+    string hadron, fitName, histName, varName, varSymbol;
+
+    vector<vector<double>> ptBinEdges = {};
+    vector<double> varLimits = {};
+
+    double ptmin, ptmax, lowpt, highpt;
+    double varmin, varmax, lowvar, highvar;
+    double fitmin, fitmax;
+    double massWindowMin, massWindowMax, signalRegionMin, signalRegionMax;
+
+    bool logplot = false;
+
+    double getMass();
+    string getSaveNameFromPt(string prefix, string suffix);
+    string getSaveNameFromVar(string prefix, string suffix);
+    string getVarSymbol(int xMaxLegend);
+    string printLog(string message, int verbThreshold);
+    string setFitName(int fit);
+    int setFitType(string fit);
+    void setFitX(double a, double b);
+    string setInputFileNameFromTrain();
+    string setInputFileNameFromFit();
+    void setMassWindow(double a, double b);
+    void setPt(double a, double b);
+    vector<vector<double>> setPtBinEdges();
+    void setSignalRegion(); // Auto-setup based on table. To be implemented
+    void setSignalRegion(double a, double b);
+    string setVar(int v);
+    void setVarLimits(double a, double b);
+    template <typename T> int writeOutputToFile(T* obj);
+};
+
+
+double InputSettings::getMass() {
+  if (hadron == "K0S")
+    return MassK0S;
+  if (hadron == "Lambda" || hadron == "AntiLambda")
+    return MassLambda;
+
+  return -1.;
+}
+
+string InputSettings::getSaveNameFromPt(string prefix, string suffix = "") {
+  string s = TString::Format("%s_pt%.1f-%.1f%s", prefix.c_str(), lowpt, highpt, suffix.c_str()).Data();
+  return s;
+}
+
+string InputSettings::getSaveNameFromVar(string prefix, string suffix = "") {
+  string s = TString::Format("%s_%s%.1f-%.1f%s", prefix.c_str(), varName.c_str(), lowvar, highvar, suffix.c_str()).Data();
+  return s;
+}
+
+string InputSettings::getVarSymbol(int x = -1) {
+  if (x < 0) x = var;
+  string v = "";
+  switch (x) {
+    case kR:
+      v = "R";
+      break;
+    case kCtau:
+      v = "c#tau";
+      break;
+    case kCosPA:
+      v = "cos(PA)";
+      break;
+    case kDCAp:
+      v = "DCA pos";
+      break;
+    case kDCAn:
+      v = "DCA neg";
+      break;
+    case kDCAd:
+      v = "DCA dau";
+      break;
+    default:
+      string s = "InputSettings::getVarSymbol() Error: requested unknown variable";
+      printLog(s, kErrors);
+  }
+  return v;
+}
+
+string InputSettings::printLog(string message, int verbThreshold) {
+  if (verbosity < verbThreshold)
+    return "";
+
+  cout << message << endl;
+  return message;
+}
+
+string InputSettings::setFitName(int fit = -1) {
+  if (fit >= 0) fitType = fit;
+
+  switch (fitType) {
+    case kExpGausExp:
+      fitName = "ExpGausExp";
+      break;
+    case kGausGaus:
+      fitName = "GausGaus";
+      break;
+    case kGausGausExp:
+      fitName = "GausGausExp";
+      break;
+    default:
+      string s = "InputSettings::setFitName() Error: requested unknown function";
+      printLog(s, kErrors);
+  }
+  return fitName;
+}
+
+int InputSettings::setFitType(string fit = "") {
+  if (fit != "") fitName = fit;
+
+  if (fitName == "ExpGausExp") {
+    fitType = kExpGausExp;
+  } else if (fitName == "GausGaus") {
+    fitType = kGausGaus;
+  } else if (fitName == "GausGausExp") {
+    fitType = kGausGausExp;
+  } else {
+    string s = "InputSettings::getFitType() Error: requested unknown function " + fitName;
+    printLog(s, kErrors);
+  }
+
+  return fitType;
+}
+
+void InputSettings::setFitX(double a, double b) {
+  if (a > b) {
+    string s = "InputSettings::setFitX() Error: fitmin > fitmax";
+    printLog(s, kErrors);
     return;
   }
-  const int nDim = 4;
-  const int ptAxis = 0;
-  const int K0SmassAxis = 1;
-  const int Lambda0massAxis = 2;
-  const int AntiLambda0massAxis = 3;
-  gStyle->SetNdivisions(505, "xy");
+  fitmin = a;
+  fitmax = b;
+}
 
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
-  double textSize = 0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool SetLogy = false;
-  double xMinFrame = 0.4, xMaxFrame = 0.6, yMinFrame = 0., yMaxFrame = .06;
-  double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
-  double xLatex = 0.23, yLatex = 0.93;
-  int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName("K0S").c_str()).Data();
-  yTitle = "count";
-  dataSet = "LHC22o_pass6_minBias";
+string InputSettings::setInputFileNameFromTrain() {
+  string s = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
+  inputFileNameHist = s;
+  return s;
+}
 
-  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogy) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-  TLine* line = new TLine(MassK0S, yMinFrame, MassK0S, yMaxFrame);
-  line->SetLineColor(GetColor(0));
-  line->SetLineWidth(2);
-  line->SetLineStyle(9);
+string InputSettings::setInputFileNameFromFit() {
+  string s = hadron + "_pol1" + fitName + ".root";
+  inputFileNameFit = s;
+  return s;
+}
 
-  histName = "V0PtMass";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+void InputSettings::setMassWindow(double a, double b) {
+  if (a > b) {
+    string s = "InputSettings::setMassWindow() Error: massWindowMin > massWindowMax";
+    printLog(s, kErrors);
+    return;
+  }
+  massWindowMin = a;
+  massWindowMax = b;
+}
 
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-  TH1D* mass = (TH1D*)thn->Projection(K0SmassAxis);
-  double nV0s = mass->Integral();
-  mass->Scale(1./nV0s); // TODO: Normalising shows S+B=0 in TLatex. How to deal with this?
-  setStyle(mass, 0);
-  legend->AddEntry(mass, "data");
+void InputSettings::setPt(double a, double b) {
+  if (a > b) {
+    string s = "InputSettings::setPt() Error: ptmin > ptmax";
+    printLog(s, kErrors);
+    return;
+  }
+  ptmin = a;
+  ptmax = b;
+  lowpt = a;
+  highpt = b;
+}
 
-  canvas->cd();
+vector<vector<double>> InputSettings::setPtBinEdges() {
+  if (fitType == kGausGaus) {
+    vector<vector<double>> x = {{0., 1.}, {1., 2.}, {2., 3.}, {3., 4.}, {4., 5.}, {5., 10.}};
+    ptBinEdges = x;
+  } else if (fitType == kGausGausExp || fitType == kExpGausExp) {
+    vector<vector<double>> x = {{10., 15.}, {15., 20.}, {20., 25.}, {25., 30.}, {30., 40.}};
+    ptBinEdges = x;
+  }
+  return ptBinEdges;
+}
+
+void InputSettings::setSignalRegion(double a, double b) {
+  if (a > b) {
+    string s = "InputSettings::setSignalRegion() Error: signalRegionMin > signalRegionMax";
+    printLog(s, kErrors);
+    return;
+  }
+  signalRegionMin = a;
+  signalRegionMax = b;
+}
+
+string InputSettings::setVar(int v) {
+  string name;
+  switch (v) {
+    case kR:
+      name = "Radius";
+      break;
+    case kCtau:
+      name = "Ctau";
+      break;
+    case kCosPA:
+      name = "CosPA";
+      break;
+    case kDCAp:
+      name = "DCApos";
+      break;
+    case kDCAn:
+      name = "DCAneg";
+      break;
+    case kDCAd:
+      name = "DCAd";
+      break;
+    default:
+      {
+        string s = "InputSettings::setVar() Error: requested unknown var " + to_string(v);
+        printLog(s, kErrors);
+      }
+  }
+  var = v;
+  varName = name;
+  varSymbol = getVarSymbol();
+  return varName;
+}
+
+void InputSettings::setVarLimits(double a, double b) {
+  if (a > b) {
+    string s = "InputSettings::setVarLimits() Error: varmin > varmax";
+    printLog(s, kErrors);
+    return;
+  }
+  varmin = a;
+  varmax = b;
+  lowvar = a;
+  highvar = b;
+}
+
+template <typename T>
+int InputSettings::writeOutputToFile(T* obj) {
+  if (!obj)
+    return 1;
+
+  TFile* file = TFile::Open(outputFileName.c_str(), "UPDATE");
+  obj->Write(obj->GetName(), TObject::kOverwrite);
+  file->Close();
+  return 0;
+}
+
+// ---------------------------------------------------------------
+
+struct FitLoader {
+  private:
+  public:
+    InputSettings* inputs;
+    TH3* data = nullptr;
+    TH1* mass = nullptr;
+    TF1* fit = nullptr;
+    vector<TF1*> fitParts = {};
+
+    vector<double> signal = {};
+    vector<double> background = {};
+    vector<double> signalPlusBackground = {};
+
+    FitLoader() { inputs = new InputSettings(); }
+    FitLoader(InputSettings& x) { inputs = &x; }
+
+    TH3* loadData();
+    TF1* loadFitFunction();
+    vector<TF1*> loadFitParts();
+    TH1* loadMass();
+
+    string setHistNameFromTrain();
+};
+
+TF1* FitLoader::loadFitFunction() {
+  TFile* file = TFile::Open(inputs->inputFileNameFit.c_str(), "READ");
+  if (!file) {
+    string s = "Could not open file " + inputs->inputFileNameFit;
+    inputs->printLog(s, kErrors);
+    return nullptr;
+  }
+
+  string fitName = inputs->getSaveNameFromPt("fit");
+  TF1* f = (TF1*)file->Get(fitName.c_str());
+  if (!f) {
+    string s = "Could not find fit function " + fitName + " in file " + inputs->inputFileNameFit;
+    inputs->printLog(s, kErrors);
+    return nullptr;
+  }
+
+  fit = (TF1*)f->Clone();
+  return f;
+}
+
+TH3* FitLoader::loadData() {
+  TFile* f = TFile::Open(inputs->inputFileNameHist.c_str(), "READ");
+  if (!f) {
+    string s = "Could not open file " + inputs->inputFileNameHist;
+    inputs->printLog(s, kErrors);
+    return nullptr;
+  }
+
+  if (inputs->histName == "") {
+    setHistNameFromTrain();
+    string s = "FitLoader::loadData(): histName not set, setting to: " + inputs->histName;
+    inputs->printLog(s, MyEnums::kInfo);
+  }
+  TH3* hist = (TH3*)f->Get(inputs->histName.c_str());
+  if (!hist) {
+    string s = "Could not find histogram " + inputs->histName + " in file " + inputs->inputFileNameHist;
+    inputs->printLog(s, kErrors);
+    return nullptr;
+  }
+
+  data = (TH3*)hist->Clone("data");
+  return hist;
+}
+
+vector<TF1*> FitLoader::loadFitParts() {
+  TFile* file = TFile::Open(inputs->inputFileNameFit.c_str(), "READ");
+  if (!file) {
+    string s = "Could not open file " + inputs->inputFileNameFit;
+    inputs->printLog(s, kErrors);
+    return {};
+  }
+
+  vector<TF1*> parts = {};
+  int maxParts = 10; // To prevent infinite loop
+  for (int i = 0; i < maxParts; i++) {
+    string fName = inputs->getSaveNameFromPt("fit", "_f" + to_string(i));
+    TF1* f = (TF1*)file->Get(fName.c_str());
+    if (!f) break;
+
+    parts.push_back(f);
+  }
+
+  fitParts = parts;
+  return parts;
+}
+
+TH1* FitLoader::loadMass() {
+  TH3* hist = (TH3*)data->Clone("hist");
+
+  array<int, 2> ptBins = getProjectionBins(hist->GetXaxis(), inputs->ptmin, inputs->ptmax);
+  array<int, 2> varBins = getProjectionBins(hist->GetYaxis(), inputs->varmin, inputs->varmax);
+
+  inputs->lowpt = hist->GetXaxis()->GetBinLowEdge(ptBins[0]);
+  inputs->highpt = hist->GetXaxis()->GetBinUpEdge(ptBins[1]);
+  inputs->lowvar = hist->GetYaxis()->GetBinLowEdge(varBins[0]);
+  inputs->highvar = hist->GetYaxis()->GetBinUpEdge(varBins[1]);
+
+  string histName = inputs->getSaveNameFromPt("mass");
+  histName = inputs->getSaveNameFromVar(histName);
+  TH1* h = hist->ProjectionZ(histName.c_str(), ptBins[0], ptBins[1], varBins[0], varBins[1]);
+
+  string s = TString::Format("FitLoader::loadMass(): \npt: %.1f-%.1f (%d, %d), \nvar: %.1f-%.1f (%d, %d), \nname: %s", inputs->lowpt, inputs->highpt, ptBins[0], ptBins[1], inputs->lowvar, inputs->highvar, varBins[0], varBins[1], histName.c_str()).Data();
+  inputs->printLog(s, kDebug);
+  return h;
+}
+
+string FitLoader::setHistNameFromTrain() {
+  string s = "jet-fragmentation";
+  if (inputs->train == 287744) s += "_id12406";
+  if (inputs->train == 419996) s += "_id28293";
+  if (inputs->train == 426828) s += "_id28293";
+
+  s += "/data/V0/" + inputs->hadron + "Pt" + inputs->varName + "Mass";
+  inputs->histName = s;
+  return s;
+}
+
+// ---------------------------------------------------------------
+
+struct SignalFinder {
+  private:
+  public:
+    InputSettings* inputs;
+    FitLoader* fl;
+
+    double hSig, hBkg, hSigPlusBkg; // Calculated from hist
+    double fSig, fBkg, fSigPlusBkg; // Calculated from fit
+
+    vector<int> bkgFits = {};
+
+    SignalFinder() { inputs = new InputSettings(); fl = new FitLoader(*inputs); }
+    SignalFinder(InputSettings& x) { inputs = &x; fl = new FitLoader(x); }
+    SignalFinder(FitLoader& x) { fl = &x; inputs = x.inputs; }
+
+    // Select data within signal region
+    void calcSigBkg();
+};
+
+void SignalFinder::calcSigBkg() {
+  // Calculate signal and background with data hist and bkg fit function
+  array<int, 2> sigBins = getProjectionBins(fl->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax);
+  double xmin = fl->data->GetXaxis()->GetBinLowEdge(sigBins[0]);
+  double xmax = fl->data->GetXaxis()->GetBinUpEdge(sigBins[1]);
+
+  hSigPlusBkg = fl->mass->Integral(sigBins[0], sigBins[1]);
+  fSigPlusBkg = fl->fit->Integral(xmin, xmax);
+
+  hBkg = 0;
+  for (int i : bkgFits) {
+    if (i <= 0 || i > bkgFits.size()) {
+      string s = "SignalFinder::calcSigBkg Error: index " + to_string(i)
+                 + " is out of range of fitParts (" + to_string(1)
+                 + ", " + to_string(bkgFits.size()) + ")";
+      inputs->printLog(s, kErrors);
+      return;
+    }
+    TF1* f = (TF1*)fl->fitParts[i - 1]->Clone();
+    f->SetRange(xmin, xmax);
+    hBkg += f->Integral(xmin, xmax);
+  }
+  fBkg = hBkg; // Both calculated from fit
+
+  hSig = hSigPlusBkg - hBkg;
+  fSig = fSigPlusBkg - fBkg;
+}
+
+// ---------------------------------------------------------------
+
+struct Plotter {
+  private:
+  public:
+    InputSettings* inputs;
+    FitLoader* fl;
+    SignalFinder* sf;
+
+    TCanvas* canvas = nullptr;
+    TH1F* frame = nullptr;
+    TLegend* legend = nullptr;
+    vector<TLatex*> latex = {};
+
+    Plotter() { inputs = new InputSettings(); fl = new FitLoader(*inputs); sf = new SignalFinder(*inputs); }
+    Plotter(InputSettings& x) { inputs = &x; fl = new FitLoader(x); sf = new SignalFinder(x); }
+    Plotter(FitLoader& x) { fl = &x; inputs = x.inputs; sf = new SignalFinder(*inputs); }
+    Plotter(SignalFinder& x) { sf = &x; fl = x.fl; inputs = x.inputs; }
+
+    // FIXME: What do we want to plot?
+    // Fits are done to normalised histograms, but we need total integral for relative efficiency
+
+    // Can read out peak heights from TH3/1
+    // Multiply fit parameters by peak height
+    // Peak height factors out of integrals
+    // Plot spectrum with cuts as bar graph?
+    vector<double> setVarLimits(int n);
+    void plotCutVariationSpectrum();
+};
+
+vector<double> Plotter::setVarLimits(int n) {
+  int nBins = fl->data->GetNbinsY();
+  if (n <= 0 || n > nBins) {
+    string s = "Plotter::setVarLimits() Error: n = " + to_string(n)
+               + " is out of range of data histogram (" + to_string(1)
+               + ", " + to_string(nBins) + ")";
+    inputs->printLog(s, kErrors);
+    return {};
+  }
+
+  if (nBins % n != 0) {
+    string s = "Plotter::setVarLimits() Error: nBins = " + to_string(nBins)
+               + " is not divisible by n = " + to_string(n);
+    inputs->printLog(s, kErrors);
+    return {};
+  }
+
+  // n hists to plot, each with a different cut
+  int chunk = nBins / n;
+  double xmin = fl->data->GetYaxis()->GetBinLowEdge(1);
+  double xmax = fl->data->GetYaxis()->GetBinUpEdge(nBins);
+
+  vector<double> limits;
+  for (int i = 0; i < n; i++) {
+    if (inputs->cutType == kUpper) {
+      int b = nBins - i * chunk;
+      limits.push_back(fl->data->GetYaxis()->GetBinUpEdge(b));
+    }
+    if (inputs->cutType == kLower) {
+      int b = i * chunk + 1;
+      limits.push_back(fl->data->GetYaxis()->GetBinLowEdge(b));
+    }
+  }
+  inputs->varLimits = limits;
+  return inputs->varLimits;
+}
+
+void Plotter::plotCutVariationSpectrum() {
+  vector<TH1*> hists;
+
+  double minVal = fl->data->GetYaxis()->GetBinLowEdge(1);
+  double maxVal = fl->data->GetYaxis()->GetBinUpEdge(fl->data->GetNbinsY());
+
+  if (!canvas) canvas = new TCanvas("canvas", "canvas", 800, 600);
+  if (!legend) legend = CreateLegend(0.55, 0.85, 0.55, 0.85, "", 0.04);
+  for (int i = 0; i < inputs->varLimits.size(); i++) {
+    if (inputs->cutType == kUpper)
+      inputs->setVarLimits(minVal, inputs->varLimits[i]);
+    else
+      inputs->setVarLimits(inputs->varLimits[i], maxVal);
+
+    TH1* h = fl->loadMass();
+    setStyle(h, i, 1);
+    legend->AddEntry(h, TString::Format("%.1f < %s < %.1f", inputs->lowvar, inputs->varSymbol.c_str(), inputs->highvar), "f");
+    hists.push_back(h);
+  }
+
+  if (!frame) {
+    double xMinFrame = hists[0]->GetXaxis()->GetXmin();
+    double xMaxFrame = hists[0]->GetXaxis()->GetXmax();
+    double yMinFrame = 0., yMaxFrame = hists[0]->GetMaximum() * 1.2;
+    string xTitle = TString::Format("#it{M} (%s) [GeV/#it{c}^{2}]", formatHadronDaughters(inputs->hadron).c_str()).Data();
+    string yTitle = "Counts";
+    frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  }
+
   frame->Draw();
-  mass->Draw("same");
+  for (auto h : hists) h->Draw("same bar");
 
-  // double parameters[5];
-  double sidebandRegion[2] = {0.465, 0.525}; // mu ± 7 sigma
-  double signalRegion[2] = {0.48, 0.51}; // mu ± 5 sigma
-  double fitRegion[2] = {0.44, 0.555};
-  // double sidebandRegion[2] = {0.46221947, 0.53135842}; // mu ± 7 sigma
-  // double signalRegion[2] = {0.47209646, 0.52148143}; // mu ± 5 sigma
-  // double fitRegion[2] = {0.4, 0.6};
-  // TF1* background_extrapolated = new TF1("background_extrapolated", "pol1", fitRegion[0], fitRegion[1]);
-  // TF1* background = new TF1("background", pol1bkg, fitRegion[0], fitRegion[1], 4);
-  // TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
-  // TF1* signalFromTotal = new TF1("signalFromTotal", "gaus", signalRegion[0], signalRegion[1]);
-  // TF1* total = new TF1("total", "pol1(0) + gaus(2)", fitRegion[0], fitRegion[1]);
-
-  double parameters[6];
-  TF1* background_extrapolated = new TF1("background_extrapolated", "pol2", fitRegion[0], fitRegion[1]);
-  TF1* background = new TF1("background", pol2bkgVar, fitRegion[0], fitRegion[1], 5);
-  TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
-  TF1* signalFromTotal = new TF1("signalFromTotal", "gaus", signalRegion[0], signalRegion[1]);
-  TF1* total = new TF1("total", "pol2(0) + gaus(3)", fitRegion[0], fitRegion[1]);
-
-  background->SetParameter(0, sidebandRegion[0]); background->SetParameter(1, sidebandRegion[1]);
-  setStyle(background, 1);
-  TFitResultPtr bkgPtr = mass->Fit("background", "S");
-  parameters[0] = background->GetParameter(2); parameters[1] = background->GetParameter(3); parameters[2] = background->GetParameter(4);
-  // parameters[0] = background->GetParameter(2); parameters[1] = background->GetParameter(3);
-  legend->AddEntry(background, "background");
-
-  setStyle(background_extrapolated, 1);
-  background_extrapolated->SetParameters(parameters);
-  background_extrapolated->SetLineStyle(9);
-
-  setStyle(signal, 2);
-  mass->Fit("signal", "R+");
-  signal->GetParameters(&parameters[3]);
-  // signal->GetParameters(&parameters[2]);
-  legend->AddEntry(signal, "signal");
-
-  setStyle(total, 3);
-  total->SetParameters(parameters);
-  mass->Fit("total", "R+");
-  legend->AddEntry(total, "combined");
-
-  if (legend) legend->Draw("same");
-  latexText = TString::Format("%s, %.0f < #it{p}_{T, V0} < %.0f GeV/#it{c}", dataSet.c_str(), ptmin, ptmax).Data();
-  TLatex* latex = CreateLatex(0.3, 0.95, latexText, textSize);
-  latex->Draw("same");
-
-  double bkgOffset = total->GetParameter(0); double bkgOffsetErr = total->GetParError(0);
-  double bkgSlope = total->GetParameter(1);  double bkgSlopeErr = total->GetParError(1);
-  double norm = total->GetParameter(2);      double normErr = total->GetParError(2);
-  double mu = total->GetParameter(3);        double muErr = total->GetParError(3);
-  double sigma = total->GetParameter(4);     double sigmaErr = total->GetParError(4);
-
-  TLatex* latexChi = CreateLatex(0.6, 0.8, TString::Format("#chi^{2}/NDF = %.2f / %d = %.2f", total->GetChisquare(), total->GetNDF(), total->GetChisquare() / total->GetNDF()).Data(), textSize);
-  TLatex* latexMu = CreateLatex(0.6, 0.7, TString::Format("#mu = %.3f #pm %.3f MeV/#it{c}^{2}", 1e3 * mu, 1e3 * muErr).Data(), textSize);
-  TLatex* latexSigma = CreateLatex(0.6, 0.6, TString::Format("#sigma = %.3f #pm %.3f MeV/#it{c}^{2}", 1e3 * sigma, 1e3 * sigmaErr).Data(), textSize);
-
-  // double bkgEstimate = background->Integral(signalRegion[0], signalRegion[1]);
-  double bkgEstimate = background_extrapolated->Integral(signalRegion[0], signalRegion[1]);
-  double bkgErr = background->IntegralError(signalRegion[0], signalRegion[1], background->GetParameters(), bkgPtr->GetCovarianceMatrix().GetMatrixArray());
-  double sigPlusBkgErr;
-  double sigPlusBkg = mass->IntegralAndError(mass->FindBin(signalRegion[0]), mass->FindBin(signalRegion[1]), sigPlusBkgErr, "width");
-  double purity = 1 - bkgEstimate / sigPlusBkg;
-  TLatex* latexS = CreateLatex(0.6, 0.5, TString::Format("S+B = %.1f #pm %.1f", sigPlusBkg * nV0s, sigPlusBkgErr * nV0s).Data(), textSize);
-  TLatex* latexB = CreateLatex(0.6, 0.4, TString::Format("B = %.1f #pm %.1f", bkgEstimate * nV0s, bkgErr * nV0s).Data(), textSize);
-  TLatex* latexPurity = CreateLatex(0.6, 0.3, TString::Format("Purity = %.2f %%", purity * 1e2).Data(), textSize);
-
-  latexMu->Draw("same");
-  latexSigma->Draw("same");
-  latexS->Draw("same");
-  latexB->Draw("same");
-  latexChi->Draw("same");
-  latexPurity->Draw("same");
-  background_extrapolated->Draw("same");
-  line->Draw("same");
-
-  saveName = "K0S_purity";
-  saveName = TString::Format("%s_pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  canvas->SaveAs(saveName.c_str());
-
-  cout << TString::Format("#mu - 12 #sigma = %.8f GeV/#it{c}^{2}", (mu - 12 * sigma)) << endl;
-  cout << TString::Format("#mu - 7 #sigma = %.8f GeV/#it{c}^{2}", (mu - 7 * sigma)) << endl;
-  cout << TString::Format("#mu - 5 #sigma = %.8f GeV/#it{c}^{2}", (mu - 5 * sigma)) << endl;
-  cout << TString::Format("#mu - 3 #sigma = %.8f GeV/#it{c}^{2}", (mu - 3 * sigma)) << endl;
-  cout << TString::Format("#mu + 3 #sigma = %.8f GeV/#it{c}^{2}", (mu + 3 * sigma)) << endl;
-  cout << TString::Format("#mu + 5 #sigma = %.8f GeV/#it{c}^{2}", (mu + 5 * sigma)) << endl;
-  cout << TString::Format("#mu + 7 #sigma = %.8f GeV/#it{c}^{2}", (mu + 7 * sigma)) << endl;
-  cout << TString::Format("#mu + 12 #sigma = %.8f GeV/#it{c}^{2}", (mu + 12 * sigma)) << endl;
-
-  cout << "S+B count in signal region: " << sigPlusBkg << endl;
-  cout << "B integral in signal region: " << bkgEstimate << endl;
-  cout << "S estimate: " << sigPlusBkg - bkgEstimate << endl;
-  cout << "Purity: " << purity << " = " << 1e2*purity << "%" << endl;
-}
-void Lambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0., double ptmax = 100.)
-{
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  const int nDim = 4;
-  const int ptAxis = 0;
-  const int K0SmassAxis = 1;
-  const int Lambda0massAxis = 2;
-  const int AntiLambda0massAxis = 3;
-  gStyle->SetNdivisions(505, "xy");
-
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
-  double textSize = 0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool SetLogy = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 1.1;
-  double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
-  double xLatex = 0.23, yLatex = 0.93;
-  int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName("Lambda0").c_str()).Data();
-  yTitle = "";
-  dataSet = "LHC22o_pass6_minBias";
-
-  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogy) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  histName = "V0PtMass";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-  TH1D* mass = (TH1D*)thn->Projection(Lambda0massAxis);
-  double nV0s = mass->GetBinContent(mass->GetMaximumBin()); //mass->Integral();
-  mass->Scale(1./nV0s);
-  setStyle(mass, 0);
-  legend->AddEntry(mass, "data");
-
-  canvas->cd();
-  frame->Draw();
-  mass->Draw("same");
-
-  double parameters[6];
-  double sidebandRegion[2] = {1.10192774, 1.12922828}; // mu ± 7 sigma
-  // double signalRegion[2] = {1.10582782, 1.12532820}; // mu ± 5 sigma
-  // double signalRegion[2] = {1.10970764, 1.12146894}; // mu ± 3 sigma
-  // double signalRegion[2] = {1.11164110, 1.11953024}; // mu ± 2 sigma
-  double signalRegion[2] = {1.11361338, 1.11755796}; // mu ± 1 sigma
-  double fitRegion[2] = {1.08, 1.215};
-  // double sidebandRegion[2] = {1.105, 1.125}; // Hand picked, improve in future
-  // double signalRegion[2] = {1.1125, 1.12}; // Hand picked, improve in future
-  // double fitRegion[2] = {1.09, 1.215};
-  TF1* background_extrapolated = new TF1("background_extrapolated", "pol2", fitRegion[0], fitRegion[1]);
-  // TF1* background = new TF1("background", "pol2", fitRegion[0], fitRegion[1]);
-  TF1* background = new TF1("background", pol2bkg, fitRegion[0], fitRegion[1], 3);
-  TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
-  TF1* total = new TF1("total", "pol2(0) + gaus(3)", fitRegion[0], fitRegion[1]);
-
-  background->SetParameter(0, sidebandRegion[0]); background->SetParameter(1, sidebandRegion[1]);
-  setStyle(background, 1);
-  TFitResultPtr bkgPtr = mass->Fit("background", "S");
-  background->GetParameters(&parameters[0]);
-  legend->AddEntry(background, "background");
-
-  setStyle(background_extrapolated, 1);
-  background_extrapolated->SetParameters(parameters);
-  background_extrapolated->SetLineStyle(9);
-
-  setStyle(signal, 2);
-  mass->Fit("signal", "R+");
-  signal->GetParameters(&parameters[3]);
-  legend->AddEntry(signal, "signal");
-
-  setStyle(total, 3);
-  total->SetParameters(parameters);
-  mass->Fit("total", "R+");
-  legend->AddEntry(total, "combined");
-
-  if (legend) legend->Draw("same");
-  latexText = TString::Format("%s, %.0f < #it{p}_{T, V0} < %.0f GeV/#it{c}", dataSet.c_str(), ptmin, ptmax).Data();
-  TLatex* latex = CreateLatex(0.3, 0.95, latexText, textSize);
-  latex->Draw("same");
-
-  double bkgOffset = total->GetParameter(0); double bkgOffsetErr = total->GetParError(0);
-  double bkgSlope = total->GetParameter(1);  double bkgSlopeErr = total->GetParError(1);
-  double bkgQuad = total->GetParameter(2);   double bkgQuadErr = total->GetParError(2);
-  double norm = total->GetParameter(3);      double normErr = total->GetParError(3);
-  double mu = total->GetParameter(4);        double muErr = total->GetParError(4);
-  double sigma = total->GetParameter(5);     double sigmaErr = total->GetParError(5);
-
-  TLatex* latexChi = CreateLatex(0.6, 0.8, TString::Format("#chi^{2}/NDF = %.2f / %d = %.2f", total->GetChisquare(), total->GetNDF(), total->GetChisquare() / total->GetNDF()).Data(), textSize);
-  TLatex* latexMu = CreateLatex(0.6, 0.7, TString::Format("#mu = %.3f #pm %.3f MeV/#it{c}^{2}", 1e3 * mu, 1e3 * muErr).Data(), textSize);
-  TLatex* latexSigma = CreateLatex(0.6, 0.6, TString::Format("#sigma = %.3f #pm %.3f MeV/#it{c}^{2}", 1e3 * sigma, 1e3 * sigmaErr).Data(), textSize);
-
-  // double bkgEstimate = background->Integral(signalRegion[0], signalRegion[1]);
-  double bkgEstimate = background_extrapolated->Integral(signalRegion[0], signalRegion[1]);
-  double bkgErr = background->IntegralError(signalRegion[0], signalRegion[1], background->GetParameters(), bkgPtr->GetCovarianceMatrix().GetMatrixArray());
-  double sigPlusBkgErr;
-  double sigPlusBkg = mass->IntegralAndError(mass->FindBin(signalRegion[0]), mass->FindBin(signalRegion[1]), sigPlusBkgErr, "width");
-  double purity = 1 - bkgEstimate / sigPlusBkg;
-  TLatex* latexS = CreateLatex(0.6, 0.5, TString::Format("S+B = %.1f #pm %.1f", sigPlusBkg * nV0s, sigPlusBkgErr * nV0s).Data(), textSize);
-  TLatex* latexB = CreateLatex(0.6, 0.4, TString::Format("B = %.1f #pm %.1f", bkgEstimate * nV0s, bkgErr * nV0s).Data(), textSize);
-  TLatex* latexPurity = CreateLatex(0.6, 0.3, TString::Format("Purity = %.2f %%", purity * 1e2).Data(), textSize);
-
-  latexMu->Draw("same");
-  latexSigma->Draw("same");
-  latexS->Draw("same");
-  latexB->Draw("same");
-  latexChi->Draw("same");
-  latexPurity->Draw("same");
-  background_extrapolated->Draw("same");
-
-  saveName = "Lambda0_purity";
-  saveName = TString::Format("%s_pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  canvas->SaveAs(saveName.c_str());
-
-  cout << TString::Format("#mu - 12 #sigma = %.8f GeV/#it{c}^{2}", (mu - 12 * sigma)) << endl;
-  cout << TString::Format("#mu - 7 #sigma = %.8f GeV/#it{c}^{2}", (mu - 7 * sigma)) << endl;
-  cout << TString::Format("#mu - 5 #sigma = %.8f GeV/#it{c}^{2}", (mu - 5 * sigma)) << endl;
-  cout << TString::Format("#mu - 3 #sigma = %.8f GeV/#it{c}^{2}", (mu - 3 * sigma)) << endl;
-  cout << TString::Format("#mu - 2 #sigma = %.8f GeV/#it{c}^{2}", (mu - 2 * sigma)) << endl;
-  cout << TString::Format("#mu - 1 #sigma = %.8f GeV/#it{c}^{2}", (mu - 1 * sigma)) << endl;
-  cout << TString::Format("#mu + 1 #sigma = %.8f GeV/#it{c}^{2}", (mu + 1 * sigma)) << endl;
-  cout << TString::Format("#mu + 2 #sigma = %.8f GeV/#it{c}^{2}", (mu + 2 * sigma)) << endl;
-  cout << TString::Format("#mu + 3 #sigma = %.8f GeV/#it{c}^{2}", (mu + 3 * sigma)) << endl;
-  cout << TString::Format("#mu + 5 #sigma = %.8f GeV/#it{c}^{2}", (mu + 5 * sigma)) << endl;
-  cout << TString::Format("#mu + 7 #sigma = %.8f GeV/#it{c}^{2}", (mu + 7 * sigma)) << endl;
-  cout << TString::Format("#mu + 12 #sigma = %.8f GeV/#it{c}^{2}", (mu + 12 * sigma)) << endl;
-
-  cout << "S+B count in signal region: " << sigPlusBkg << endl;
-  cout << "B integral in signal region: " << bkgEstimate << endl;
-  cout << "S estimate: " << sigPlusBkg - bkgEstimate << endl;
-  cout << "Purity: " << purity << " = " << 1e2 * purity << "%" << endl;
-}
-void AntiLambda0Purity(string inName = "AnalysisResults.root", double ptmin = 0., double ptmax = 100.)
-{
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  const int nDim = 4;
-  const int ptAxis = 0;
-  const int K0SmassAxis = 1;
-  const int Lambda0massAxis = 2;
-  const int AntiLambda0massAxis = 3;
-  gStyle->SetNdivisions(505, "xy");
-
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
-  double textSize = 0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool SetLogy = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 80e6;
-  double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
-  double xLatex = 0.23, yLatex = 0.93;
-  int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName("AntiLambda0").c_str()).Data();
-  yTitle = "count";
-  dataSet = "LHC22o_pass6_minBias";
-
-  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogy) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  histName = "V0PtMass";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-  TH1D* mass = (TH1D*)thn->Projection(AntiLambda0massAxis);
-  setStyle(mass, 0);
-  legend->AddEntry(mass, "data");
-
-  canvas->cd();
-  frame->Draw();
-  mass->Draw("same");
-
-  double parameters[6];
-  double signalRegion[2] = {1.10582782, 1.12532820}; // mu ± 5 sigma
-  double fitRegion[2] = {1.08, 1.215};
-  TF1* background_extrapolated = new TF1("background_extrapolated", "pol2", fitRegion[0], fitRegion[1]);
-  // TF1* background = new TF1("background", "pol2", fitRegion[0], fitRegion[1]);
-  TF1* background = new TF1("background", pol2bkg, fitRegion[0], fitRegion[1], 3);
-  TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
-  TF1* total = new TF1("total", "pol2(0) + gaus(3)", fitRegion[0], fitRegion[1]);
-
-  setStyle(background, 1);
-  TFitResultPtr bkgPtr = mass->Fit("background", "S");
-  background->GetParameters(&parameters[0]);
-  legend->AddEntry(background, "background");
-
-  setStyle(background_extrapolated, 1);
-  background_extrapolated->SetParameters(parameters);
-  background_extrapolated->SetLineStyle(9);
-
-  setStyle(signal, 2);
-  mass->Fit("signal", "R+");
-  signal->GetParameters(&parameters[3]);
-  legend->AddEntry(signal, "signal");
-
-  setStyle(total, 3);
-  total->SetParameters(parameters);
-  mass->Fit("total", "R+");
-  legend->AddEntry(total, "combined");
-
-  if (legend) legend->Draw("same");
-  latexText = TString::Format("%s, %.0f < #it{p}_{T, V0} < %.0f GeV/#it{c}", dataSet.c_str(), ptmin, ptmax).Data();
-  TLatex* latex = CreateLatex(0.3, 0.95, latexText, textSize);
-  latex->Draw("same");
-
-  double bkgOffset = total->GetParameter(0); double bkgOffsetErr = total->GetParError(0);
-  double bkgSlope = total->GetParameter(1);  double bkgSlopeErr = total->GetParError(1);
-  double bkgQuad = total->GetParameter(2);   double bkgQuadErr = total->GetParError(2);
-  double norm = total->GetParameter(3);      double normErr = total->GetParError(3);
-  double mu = total->GetParameter(4);        double muErr = total->GetParError(4);
-  double sigma = total->GetParameter(5);     double sigmaErr = total->GetParError(5);
-
-  TLatex* latexChi = CreateLatex(0.6, 0.8, TString::Format("#chi^{2}/NDF = %.2f / %d = %.2f", total->GetChisquare(), total->GetNDF(), total->GetChisquare() / total->GetNDF()).Data(), textSize);
-  TLatex* latexMu = CreateLatex(0.6, 0.7, TString::Format("#mu = %.3f #pm %.3f MeV/#it{c}^{2}", 1e3 * mu, 1e3 * muErr).Data(), textSize);
-  TLatex* latexSigma = CreateLatex(0.6, 0.6, TString::Format("#sigma = %.3f #pm %.3f MeV/#it{c}^{2}", 1e3 * sigma, 1e3 * sigmaErr).Data(), textSize);
-
-  // double bkgEstimate = background->Integral(signalRegion[0], signalRegion[1]);
-  double bkgEstimate = background_extrapolated->Integral(signalRegion[0], signalRegion[1]);
-  double bkgErr = background->IntegralError(signalRegion[0], signalRegion[1], background->GetParameters(), bkgPtr->GetCovarianceMatrix().GetMatrixArray());
-  double sigPlusBkgErr;
-  double sigPlusBkg = mass->IntegralAndError(mass->FindBin(signalRegion[0]), mass->FindBin(signalRegion[1]), sigPlusBkgErr, "width");
-  double purity = 1 - bkgEstimate / sigPlusBkg;
-  TLatex* latexS = CreateLatex(0.6, 0.5, TString::Format("S+B = %.1f #pm %.1f", sigPlusBkg, sigPlusBkgErr).Data(), textSize);
-  TLatex* latexB = CreateLatex(0.6, 0.4, TString::Format("B = %.1f #pm %.1f", bkgEstimate, bkgErr).Data(), textSize);
-  TLatex* latexPurity = CreateLatex(0.6, 0.3, TString::Format("Purity = %.2f %%", purity * 1e2).Data(), textSize);
-
-  latexMu->Draw("same");
-  latexSigma->Draw("same");
-  latexS->Draw("same");
-  latexB->Draw("same");
-  latexChi->Draw("same");
-  latexPurity->Draw("same");
-  background_extrapolated->Draw("same");
-
-  saveName = "AntiLambda0_purity";
-  saveName = TString::Format("%s_pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax);
-  saveName = TString::Format("%s.pdf", saveName.c_str());
-  canvas->SaveAs(saveName.c_str());
-
-  cout << TString::Format("#mu - 12 #sigma = %.8f GeV/#it{c}^{2}", (mu - 12 * sigma)) << endl;
-  cout << TString::Format("#mu - 7 #sigma = %.8f GeV/#it{c}^{2}", (mu - 7 * sigma)) << endl;
-  cout << TString::Format("#mu - 5 #sigma = %.8f GeV/#it{c}^{2}", (mu - 5 * sigma)) << endl;
-  cout << TString::Format("#mu - 3 #sigma = %.8f GeV/#it{c}^{2}", (mu - 3 * sigma)) << endl;
-  cout << TString::Format("#mu + 3 #sigma = %.8f GeV/#it{c}^{2}", (mu + 3 * sigma)) << endl;
-  cout << TString::Format("#mu + 5 #sigma = %.8f GeV/#it{c}^{2}", (mu + 5 * sigma)) << endl;
-  cout << TString::Format("#mu + 7 #sigma = %.8f GeV/#it{c}^{2}", (mu + 7 * sigma)) << endl;
-  cout << TString::Format("#mu + 12 #sigma = %.8f GeV/#it{c}^{2}", (mu + 12 * sigma)) << endl;
-
-  cout << "S+B count in signal region: " << sigPlusBkg << endl;
-  cout << "B integral in signal region: " << bkgEstimate << endl;
-  cout << "S estimate: " << sigPlusBkg - bkgEstimate << endl;
-  cout << "Purity: " << purity << " = " << 1e2 * purity << "%" << endl;
-}
-
-// -------------------------------------------------------------------------------------------------
-
-// Plot mass spectrum for different V0 cuts in one figure
-void cutVarMassWrtNoCut(string inName = "", string hypothesis = "", int cutAxis = -1, double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  if ( ("K0S" == hypothesis) + ("Lambda0" == hypothesis) + ("AntiLambda0" == hypothesis) != 1) {
-    cout << "Error: hypothesis must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if (cutAxis < 0) {
-    cout << "Error: cutAxis must be specified (4-9)" << endl;
-    return;
-  }
-  const int nDim                = 10;
-  const int ptAxis              = 0;
-  const int K0SmassAxis         = 1;
-  const int Lambda0massAxis     = 2;
-  const int AntiLambda0massAxis = 3;
-  const int RAxis               = 4;
-  const int ctauAxis            = 5;
-  const int cosPAAxis           = 6;
-  const int DCApAxis            = 7;
-  const int DCAnAxis            = 8;
-  const int DCAdAxis            = 9;
-
-  std::array<string, nDim> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0mass", "R", "ctau", "cosPA", "DCAp", "DCAn", "DCAd"};
-  int projectionAxis = ("K0S" == hypothesis)*K0SmassAxis + ("Lambda0" == hypothesis)*Lambda0massAxis + ("AntiLambda0" == hypothesis)*AntiLambda0massAxis;
-  gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
-  double textSize = 0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool SetLogy = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
-  if ("K0S" == hypothesis) { xMinFrame = 0.4, xMaxFrame = 0.6, yMaxFrame = 0.1; }
-  if (doRatio) { yMinFrame = 0.5, yMaxFrame = 1.2; }
-  double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
-  double xLatex = 0.23, yLatex = 0.93;
-  int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
-  yTitle = "#frac{N}{N(uncut)}";
-  dataSet = "LHC22o_pass6_minBias";
-
-  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogy) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  histName = "V0CutVariation";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-
-  // Apply pt selection for all histograms
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-
-  TH1D* stdmass = (TH1D*)thn->Projection(projectionAxis);
-  double stdmassIntegral = stdmass->Integral();
-  stdmass->Scale(1./stdmassIntegral);
-  setStyle(stdmass, 0);
-  legend->AddEntry(stdmass, "No cut");
-  latexText = TString::Format("%s, %.0f < #it{p}_{T, V0} < %.0f GeV/#it{c}", dataSet.c_str(), ptmin, ptmax).Data();
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
-
-  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
-  for (int iBin = underflowBin + 1; iBin <= overflowBin; iBin++) {
-    THnSparseD* thn_copy = (THnSparseD*)thn->Clone("thn_copy");
-    thn_copy->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]); // Just to be sure
-
-    // Cut the axis off at the bottom (var > binLowEdge)
-    thn_copy->GetAxis(cutAxis)->SetRange(iBin, overflowBin);
-    if ( (ctauAxis == cutAxis) + (DCAdAxis == cutAxis) ) {
-      // Cut the axis off at the top (var < binUpEdge)
-      thn_copy->GetAxis(cutAxis)->SetRange(underflowBin, overflowBin - iBin);
-    }
-    TH1D* mass = (TH1D*)thn_copy->Projection(projectionAxis);
-    mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
-    mass->Scale(1./stdmassIntegral);
-    setStyle(mass, iBin);
-
-    if (doRatio) { mass->Divide(stdmass); }
-    histVector.push_back(mass);
-
-    // Legend stuff
-    string legendEntry;
-    double binEdge = thn_copy->GetAxis(cutAxis)->GetBinLowEdge(iBin);
-    if ( (ctauAxis == cutAxis) + (DCAdAxis == cutAxis) ) {
-      binEdge = thn_copy->GetAxis(cutAxis)->GetBinUpEdge(iBin);
-    }
-    switch (cutAxis) {
-      case RAxis:
-        legendEntry = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case ctauAxis:
-        legendEntry = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case cosPAAxis:
-        legendEntry = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCApAxis:
-        legendEntry = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAnAxis:
-        legendEntry = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAdAxis:
-        legendEntry = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-    }
-    legend->AddEntry(mass, legendEntry.c_str());
-  }
-  if (doRatio) { stdmass->Divide(stdmass); }
-  frame->Draw();
-  stdmass->Draw("same hist");
-  for (auto hist : histVector) {
-    hist->Draw("same hist");
-  }
   legend->Draw("same");
-  latex->Draw("same");
-
-  saveName = TString::Format("m%s_wrtNoCut", hypothesis.c_str()).Data();
-  saveName = TString::Format("%s_%s", saveName.c_str(), axisNames[cutAxis].c_str()).Data();
-  saveName = TString::Format("%s_%s", saveName.c_str(), doRatio ? "ratio" : "spectrum").Data();
-  saveName = TString::Format("%s_v0pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax).Data();
-  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
-  canvas->SaveAs(saveName.c_str());
+  canvas->SaveAs(inputs->outputFileName.c_str());
 }
 
-void cutVarMassWrtStdCut(string inName = "", string hypothesis = "", int cutAxis = -1, double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  if ( ("K0S" == hypothesis) + ("Lambda0" == hypothesis) + ("AntiLambda0" == hypothesis) != 1) {
-    cout << "Error: hypothesis must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if (cutAxis < 0) {
-    cout << "Error: cutAxis must be specified (4-9)" << endl;
-    return;
-  }
-  const int nDim                = 10;
-  const int ptAxis              = 0;
-  const int K0SmassAxis         = 1;
-  const int Lambda0massAxis     = 2;
-  const int AntiLambda0massAxis = 3;
-  const int RAxis               = 4;
-  const int ctauAxis            = 5;
-  const int cosPAAxis           = 6;
-  const int DCApAxis            = 7;
-  const int DCAnAxis            = 8;
-  const int DCAdAxis            = 9;
+// ---------------------------------------------------------------
 
-  // Bins corresponding to standard cuts. We don't cut on the first 4 axes, so -1 to ignore
-  std::array<int, nDim> stdBins = {-1, -1, -1, -1, 3, 2 - 1*("K0S" == hypothesis), 3, 2, 2, 1};
-  std::array<string, nDim> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0mass", "R", "ctau", "cosPA", "DCAp", "DCAn", "DCAd"};
-  int projectionAxis = ("K0S" == hypothesis)*K0SmassAxis + ("Lambda0" == hypothesis)*Lambda0massAxis + ("AntiLambda0" == hypothesis)*AntiLambda0massAxis;
-  gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
-  double textSize = 0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool SetLogy = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
-  if ("K0S" == hypothesis) {
-    xMinFrame = 0.4, xMaxFrame = 0.6, yMaxFrame = 0.11;
-    if (doRatio) { yMinFrame = 0.8, yMaxFrame = 1.3; }
-  }
-  else { if (doRatio) { yMinFrame = 0.9, yMaxFrame = 1.1; } }
-  double xMinLegend = 0.25, xMaxLegend = 0.5, yMinLegend = 0.65, yMaxLegend = 0.85;
-  double xLatex = 0.23, yLatex = 0.93;
-  int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
-  yTitle = "#frac{N}{N(std)}";
-  dataSet = "LHC22o_pass6_minBias";
+// Plots the spectrum for defined variations of the reconstruction parameters
+void plotCutVariationSpectrum(InputSettings x) {
+  string outputFileName = x.varName;
+  if (x.cutType == kLower) outputFileName += "_Lower";
+  if (x.cutType == kUpper) outputFileName += "_Upper";
+  x.outputFileName = x.getSaveNameFromPt(outputFileName, ".pdf");
 
-  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
+  FitLoader m(x);
+  m.setHistNameFromTrain();
+  m.loadData();
+  m.loadFitFunction();
+  m.loadFitParts();
 
-  histName = "V0CutVariation";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
+  Plotter p(m);
+  if (x.varLimits.empty())
+    p.setVarLimits(x.nHists); // Cut off an equal part of the hist each time
 
-  // Apply pt selection for all histograms
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-
-  thn->GetAxis(cutAxis)->SetRange(1, 1 + thn->GetAxis(cutAxis)->GetNbins());
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-  latexText = TString::Format("%s, %.0f < #it{p}_{T, V0} < %.0f GeV/#it{c}", dataSet.c_str(), ptmin, ptmax).Data();
-  TLatex* latex = CreateLatex(xLatex, yLatex, latexText, textSize);
-
-  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
-  for (int iBin = underflowBin + 1; iBin <= overflowBin; iBin++) {
-    THnSparseD* thn_copy = (THnSparseD*)thn->Clone("thn_copy");
-    thn_copy->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]); // Just to be sure
-
-    // Cut the axis off at the bottom (var > binLowEdge)
-    thn_copy->GetAxis(cutAxis)->SetRange(iBin, overflowBin);
-    if ( (ctauAxis == cutAxis) + (DCAdAxis == cutAxis) ) {
-      // Cut the axis off at the top (var < binUpEdge)
-      thn_copy->GetAxis(cutAxis)->SetRange(underflowBin, overflowBin - iBin);
-    }
-    TH1D* mass = (TH1D*)thn_copy->Projection(projectionAxis);
-    mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
-    // mass->Scale(1./stdmassIntegral);
-    setStyle(mass, iBin);
-
-    // if (doRatio) { mass->Divide(stdmass); }
-    histVector.push_back(mass);
-
-    // Legend stuff
-    string legendEntry;
-    double binEdge = thn_copy->GetAxis(cutAxis)->GetBinLowEdge(iBin);
-    if ( (ctauAxis == cutAxis) + (DCAdAxis == cutAxis) ) {
-      binEdge = thn_copy->GetAxis(cutAxis)->GetBinUpEdge(iBin);
-    }
-    switch (cutAxis) {
-      case RAxis:
-        legendEntry = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case ctauAxis:
-        legendEntry = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case cosPAAxis:
-        legendEntry = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCApAxis:
-        legendEntry = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAnAxis:
-        legendEntry = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAdAxis:
-        legendEntry = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-    }
-    legend->AddEntry(mass, legendEntry.c_str());
-    if (iBin == stdBins[cutAxis]) {
-      yTitle = TString::Format("#frac{N}{N(%s)}", legendEntry.c_str()).Data();
-      setStyle(mass, 0);
-    }
-  }
-  TH1D* stdmass = (TH1D*)histVector[stdBins[cutAxis]-1]->Clone("stdmass");
-  double stdmassIntegral = stdmass->Integral();
-  for (auto hist : histVector) {
-  if (doRatio) { hist->Divide(stdmass); }
-  else { hist->Scale(1./stdmassIntegral); }
-  }
-
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogy) { canvas->SetLogy(); }
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  frame->Draw();
-  for (auto hist : histVector) {
-    hist->Draw("same hist");
-  }
-  legend->Draw("same");
-  latex->Draw("same");
-
-  saveName = TString::Format("m%s_wrtStdCut", hypothesis.c_str()).Data();
-  saveName = TString::Format("%s_%s", saveName.c_str(), axisNames[cutAxis].c_str()).Data();
-  saveName = TString::Format("%s_%s", saveName.c_str(), doRatio ? "ratio" : "spectrum").Data();
-  saveName = TString::Format("%s_v0pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax).Data();
-  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
-  canvas->SaveAs(saveName.c_str());
+  p.legend = CreateLegend(0.55, 0.85, 0.55, 0.85, "", 0.04);
+  p.plotCutVariationSpectrum();
 }
 
-void cutRMassWrtNoCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtNoCut(inName, hypothesis, 4, ptmin, ptmax, doRatio); }
-void cutRMassWrtStdCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtStdCut(inName, hypothesis, 4, ptmin, ptmax, doRatio); }
+// Plot spectra for 1 pt bin
+void plotCutVariationSpectrumOneBin() {
+  InputSettings x; x.verbosity = kWarnings;
+  x.hadron = "K0S";
+  x.train = 426828;
+  x.setFitType("GausGaus");
+  x.cutType = kLower; // Set cut type for variation
+  x.setVar(kCtau);
+  x.setPt(1., 2.);
+  x.nHists = 5;
 
-void cutCtauMassWrtNoCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtNoCut(inName, hypothesis, 5, ptmin, ptmax, doRatio); }
-void cutCtauMassWrtStdCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtStdCut(inName, hypothesis, 5, ptmin, ptmax, doRatio); }
+  x.setInputFileNameFromTrain();
+  x.inputFileNameFit = x.hadron + "_pol1" + x.fitName + "/" + x.hadron + "_pol1" + x.fitName + ".root";
 
-void cutCosPAMassWrtNoCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtNoCut(inName, hypothesis, 6, ptmin, ptmax, doRatio); }
-void cutCosPAMassWrtStdCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtStdCut(inName, hypothesis, 6, ptmin, ptmax, doRatio); }
-
-void cutDCApMassWrtNoCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtNoCut(inName, hypothesis, 7, ptmin, ptmax, doRatio); }
-void cutDCApMassWrtStdCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtStdCut(inName, hypothesis, 7, ptmin, ptmax, doRatio); }
-
-void cutDCAnMassWrtNoCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtNoCut(inName, hypothesis, 8, ptmin, ptmax, doRatio); }
-void cutDCAnMassWrtStdCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtStdCut(inName, hypothesis, 8, ptmin, ptmax, doRatio); }
-
-void cutDCAdMassWrtNoCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtNoCut(inName, hypothesis, 9, ptmin, ptmax, doRatio); }
-void cutDCAdMassWrtStdCut(string inName = "", string hypothesis = "", double ptmin = 0., double ptmax = 100., bool doRatio = false)
-{ cutVarMassWrtStdCut(inName, hypothesis, 9, ptmin, ptmax, doRatio); }
-
-// -------------------------------------------------------------------------------------------------
-
-// Plot mass spectrum for different V0 cuts in separate figures with purity calculation
-array<TFitResultPtr, 3> fitK0S(TH1D* mass, double* sidebandRegion, double* signalRegion, double* fitRegion)
-{
-  double parameters[5];
-
-  TF1* bkg = new TF1("bkg", pol1bkg, fitRegion[0], fitRegion[1], 4);
-  TF1* bkgE = new TF1("bkgE", "pol1", fitRegion[0], fitRegion[1]);
-  TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
-  TF1* total = new TF1("total", "pol1(0) + gaus(2)", fitRegion[0], fitRegion[1]);
-
-  bkg->SetParameter(0, sidebandRegion[0]); bkg->SetParameter(1, sidebandRegion[1]);
-  bkg->FixParameter(0, sidebandRegion[0]); bkg->FixParameter(1, sidebandRegion[1]);
-  setStyle(bkg, 1, 2);
-  TFitResultPtr bkgPtr = mass->Fit("bkg", "S R");
-  parameters[0] = bkg->GetParameter(2); parameters[1] = bkg->GetParameter(3);
-
-  setStyle(bkgE, 1, 2);
-  bkgE->SetParameters(parameters);
-  bkgE->SetLineStyle(2);
-  bkgE->Draw("same");
-
-  setStyle(signal, 2, 2);
-  TFitResultPtr sigPtr = mass->Fit("signal", "S R+");
-  signal->GetParameters(&parameters[2]);
-
-  setStyle(total, 3, 2);
-  total->SetParameters(parameters);
-  TFitResultPtr totPtr = mass->Fit("total", "S R+");
-
-  return {bkgPtr, sigPtr, totPtr};
+  plotCutVariationSpectrum(x);
 }
-array<TFitResultPtr, 3> fitLambda(TH1D* mass, double* sidebandRegion, double* signalRegion, double* fitRegion)
-{
-  double parameters[6];
-  TF1* bkg = new TF1("bkg", pol2bkgVar, fitRegion[0], fitRegion[1], 5);
-  // TF1* bkg = new TF1("bkg", "pol2", fitRegion[0], fitRegion[1]);
-  TF1* sig = new TF1("sig", "gaus", signalRegion[0], signalRegion[1]);
-  TF1* tot = new TF1("tot", "pol2(0) + gaus(3)", fitRegion[0], fitRegion[1]);
-  bkg->SetParameter(0, sidebandRegion[0]); bkg->SetParameter(1, sidebandRegion[1]);
-  bkg->FixParameter(0, sidebandRegion[0]); bkg->FixParameter(1, sidebandRegion[1]);
 
-  setStyle(bkg, 1);
-  TFitResultPtr bkgPtr = mass->Fit("bkg", "S R");
-  parameters[0] = bkg->GetParameter(2);
-  parameters[1] = bkg->GetParameter(3);
-  parameters[2] = bkg->GetParameter(4);
-  // return {nullptr, nullptr, nullptr};
+// Plot spectra for all pt bins
+void plotCutVariationSpectrumAllBins() {
+  gROOT->SetBatch();
+  InputSettings x; x.verbosity = kWarnings;
+  x.hadron = "K0S";
+  x.train = 426828;
+  x.setFitType("GausGaus");
+  x.cutType = kLower; // Set cut type for variation
+  // Radius, Ctau, CosPA, DCAp, DCAn, DCAd
+  x.setVar(kDCAd);
+  x.nHists = 5;
 
-  TF1* bkgExtr = new TF1("bkgExtr", "pol2", fitRegion[0], fitRegion[1]);
-  bkgExtr->SetParameter(0, bkg->GetParameter(2));
-  bkgExtr->SetParameter(1, bkg->GetParameter(3));
-  bkgExtr->SetParameter(2, bkg->GetParameter(4));
-  setStyle(bkgExtr, 1);
-  bkgExtr->SetLineStyle(9);
-  bkgExtr->Draw("same");
+  x.setInputFileNameFromTrain();
+  x.inputFileNameFit = x.hadron + "_pol1" + x.fitName + "/" + x.hadron + "_pol1" + x.fitName + ".root";
+  x.setPtBinEdges();
 
-  setStyle(sig, 2);
-  TFitResultPtr sigPtr = mass->Fit("sig", "S R+");
-  sig->GetParameters(&parameters[3]);
-
-  setStyle(tot, 3);
-  tot->SetParameters(parameters);
-  TFitResultPtr totPtr = mass->Fit("tot", "S R+");
-
-  return {bkgPtr, sigPtr, totPtr};
+  for (int i = 0; i < x.ptBinEdges.size(); i++) {
+    x.setPt(x.ptBinEdges[i][0], x.ptBinEdges[i][1]);
+    plotCutVariationSpectrum(x);
+  }
 }
-void cutVarK0SPurity(string inName = "", int cutAxis = -1, double ptmin = 0., double ptmax = 100.)
-{
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  string hypothesis = "K0S";
-  if ( ("K0S" == hypothesis) + ("Lambda0" == hypothesis) + ("AntiLambda0" == hypothesis) != 1) {
-    cout << "Error: hypothesis must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if (cutAxis < 4 || cutAxis > 9) {
-    cout << "Error: cutAxis must be specified (4-9)" << endl;
-    return;
-  }
-  const int nDim                = 10;
-  const int ptAxis              = 0;
-  const int K0SmassAxis         = 1;
-  const int Lambda0massAxis     = 2;
-  const int AntiLambda0massAxis = 3;
-  const int RAxis               = 4;
-  const int ctauAxis            = 5;
-  const int cosPAAxis           = 6;
-  const int DCApAxis            = 7;
-  const int DCAnAxis            = 8;
-  const int DCAdAxis            = 9;
 
-  std::array<string, nDim> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0mass", "R", "ctau", "cosPA", "DCAp", "DCAn", "DCAd"};
-  int projectionAxis = ("K0S" == hypothesis)*K0SmassAxis + ("Lambda0" == hypothesis)*Lambda0massAxis + ("AntiLambda0" == hypothesis)*AntiLambda0massAxis;
-  gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
-  double textSize = 0.08; //0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool SetLogy = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
-  if ("K0S" == hypothesis) { xMinFrame = 0.4, xMaxFrame = 0.6, yMaxFrame = 0.1; }
-  double xMinLegend = 0.2, xMaxLegend = 0.8, yMinLegend = 0.1, yMaxLegend = 0.5;
-  double xLatex = 0.23, yLatex = 0.93;
-  int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
-  yTitle = "#frac{N}{N(uncut)}";
-  dataSet = "LHC22o_pass6_minBias";
-
-  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogy) { canvas->SetLogy(); }
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  if (RAxis == cutAxis || cosPAAxis == cutAxis) { canvas->Divide(4, 2); }
-  else { canvas->Divide(3, 2);}
-
-  histName = "V0CutVariation";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-
-  // Apply pt selection for all histograms
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-
-  double normalisationFactor = 1.;
-  double uncutSignal = 1.;
-
-  double sidebandRegion[2] = {0.46221947, 0.53135842}; // mu ± 7 sigma
-  double signalRegion[2] = {0.47209646, 0.52148143}; // mu ± 5 sigma
-  double fitRegion[2] = {0.4, 0.6};
-
-  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
-  for (int iBin = underflowBin; iBin <= overflowBin; iBin++) {
-    THnSparseD* thn_copy = (THnSparseD*)thn->Clone("thn_copy");
-    thn_copy->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]); // Just to be sure
-
-    // Cut the axis off at the bottom (var > binLowEdge)
-    thn_copy->GetAxis(cutAxis)->SetRange(iBin, overflowBin);
-    if ( (ctauAxis == cutAxis) || (DCAdAxis == cutAxis) ) {
-      // Cut the axis off at the top (var < binUpEdge)
-      thn_copy->GetAxis(cutAxis)->SetRange(underflowBin, overflowBin - iBin);
-    }
-
-    TH1D* mass = (TH1D*)thn_copy->Projection(projectionAxis);
-    mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
-    setStyle(mass, 0);
-
-    // Latex stuff
-    double binEdge = thn_copy->GetAxis(cutAxis)->GetBinLowEdge(iBin);
-    if ( (ctauAxis == cutAxis) || (DCAdAxis == cutAxis) ) {
-      binEdge = thn_copy->GetAxis(cutAxis)->GetBinUpEdge(iBin);
-    }
-    switch (cutAxis) {
-      case RAxis:
-        latexText = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case ctauAxis:
-        latexText = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case cosPAAxis:
-        latexText = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCApAxis:
-        latexText = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAnAxis:
-        latexText = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAdAxis:
-        latexText = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-    } // switch (cutAxis)
-
-    if (0 == iBin) {
-      normalisationFactor = mass->Integral();
-      latexText = "No cut";
-    }
-    mass->Scale(1./normalisationFactor);
-
-    canvas->cd(iBin+1);
-    TH1F* tmpframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-    tmpframe->Draw();
-    mass->Draw("same");
-
-    // Purity extraction
-    array<TFitResultPtr, 3> fitresults = fitK0S(mass, sidebandRegion, signalRegion, fitRegion);
-    TFitResultPtr bkgPtr = fitresults[0];
-
-    TF1* bkgE = new TF1("bkgE", "pol1", fitRegion[0], fitRegion[1]);
-    TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
-    TF1* total = new TF1("total", "pol1(0) + gaus(2)", fitRegion[0], fitRegion[1]);
-
-    setStyle(bkgE, 1);
-    setStyle(signal, 2);
-    setStyle(total, 3);
-
-    bkgE->SetParameter(0, *(bkgPtr->GetParams() + 2));
-    bkgE->SetParameter(1, *(bkgPtr->GetParams() + 3));
-
-    signal->SetParameter(0, *(fitresults[1]->GetParams()));
-    signal->SetParameter(1, *(fitresults[1]->GetParams() + 1));
-
-    total->SetParameter(0, *(fitresults[2]->GetParams()));
-    total->SetParameter(1, *(fitresults[2]->GetParams() + 1));
-    total->SetParameter(2, *(fitresults[2]->GetParams() + 2));
-    total->SetParameter(3, *(fitresults[2]->GetParams() + 3));
-    total->SetParameter(4, *(fitresults[2]->GetParams() + 4));
-
-    if (0 == iBin) {
-      legend->AddEntry(mass, "data");
-      legend->AddEntry(bkgE, "background");
-      legend->AddEntry(signal, "signal");
-      legend->AddEntry(total, "combined");
-    }
-
-    // Draw latex with purity in here.
-    double bkgEstimate = bkgE->Integral(signalRegion[0], signalRegion[1]);
-    double bkgErr = bkgE->IntegralError(signalRegion[0], signalRegion[1], bkgE->GetParameters(), bkgPtr->GetCovarianceMatrix().GetMatrixArray());
-    double sigPlusBkgErr;
-    double sigPlusBkg = mass->IntegralAndError(mass->FindBin(signalRegion[0]), mass->FindBin(signalRegion[1]), sigPlusBkgErr, "width");
-    double purity = 1 - bkgEstimate / sigPlusBkg;
-    double sigEst = sigPlusBkg * purity;
-
-    if (0 == iBin) { uncutSignal = sigEst; }
-    double efficiency = sigEst / uncutSignal;
-
-    if (cosPAAxis != cutAxis) {
-      latexText = TString::Format("%s, purity %.2f %%", latexText.c_str(), 1e2*purity).Data();
-    }
-    TLatex* tmplatex = CreateLatex(xLatex, yLatex, latexText.c_str(), textSize);
-    tmplatex->Draw("same");
-
-    if (cosPAAxis == cutAxis) {
-      string sublatextext = TString::Format("%.3f: p %.2f%%, #eta %.2f%%", binEdge, 1e2*purity, 1e2*efficiency).Data();
-      if (0 == iBin) { sublatextext = TString::Format("No cut: p %.2f%%", 1e2*purity).Data(); }
-      TLatex* sublatex = CreateLatex(0.05, 0.8 - iBin*0.15, sublatextext.c_str(), textSize);
-      canvas->cd(overflowBin + 3);
-      sublatex->Draw("same");
-    }
-    else if (0 != iBin){
-      string sublatextext = TString::Format("#eta %.2f%%", 1e2*efficiency).Data();
-      TLatex* sublatex = CreateLatex(xLatex + 0.1, yLatex - 0.1, sublatextext.c_str(), textSize);
-      sublatex->Draw("same");
-    }
-  }
-
-  canvas->cd(overflowBin + 2);
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, V0} = %.0f - %.0f GeV/#it{c} }", dataSet.c_str(), ptmin, ptmax).Data();
-  TLatex* latex = CreateLatex(0.2, 0.7, latexText, textSize);
-  latex->Draw();
-  legend->Draw("same");
-
-  saveName = TString::Format("purity%s", hypothesis.c_str()).Data();
-  saveName = TString::Format("%s_%s", saveName.c_str(), axisNames[cutAxis].c_str()).Data();
-  saveName = TString::Format("%s_v0pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax).Data();
-  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
-  canvas->SaveAs(saveName.c_str());
-}
-void cutVarLambdaPurity(string inName = "", int cutAxis = -1, double ptmin = 0., double ptmax = 100.)
-{
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  string hypothesis = "Lambda0";
-  if ( ("K0S" == hypothesis) + ("Lambda0" == hypothesis) + ("AntiLambda0" == hypothesis) != 1) {
-    cout << "Error: hypothesis must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if (cutAxis < 4 || cutAxis > 9) {
-    cout << "Error: cutAxis must be specified (4-9)" << endl;
-    return;
-  }
-  const int nDim                = 10;
-  const int ptAxis              = 0;
-  const int K0SmassAxis         = 1;
-  const int Lambda0massAxis     = 2;
-  const int AntiLambda0massAxis = 3;
-  const int RAxis               = 4;
-  const int ctauAxis            = 5;
-  const int cosPAAxis           = 6;
-  const int DCApAxis            = 7;
-  const int DCAnAxis            = 8;
-  const int DCAdAxis            = 9;
-
-  std::array<string, nDim> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0mass", "R", "ctau", "cosPA", "DCAp", "DCAn", "DCAd"};
-  int projectionAxis = ("K0S" == hypothesis)*K0SmassAxis + ("Lambda0" == hypothesis)*Lambda0massAxis + ("AntiLambda0" == hypothesis)*AntiLambda0massAxis;
-  gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
-  double textSize = 0.08; //0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool SetLogy = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
-  if ("K0S" == hypothesis) { xMinFrame = 0.4, xMaxFrame = 0.6, yMaxFrame = 0.1; }
-  double xMinLegend = 0.2, xMaxLegend = 0.8, yMinLegend = 0.1, yMaxLegend = 0.5;
-  double xLatex = 0.23, yLatex = 0.93;
-  int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
-  yTitle = "#frac{N}{N(uncut)}";
-  dataSet = "LHC22o_pass6_minBias";
-
-  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogy) { canvas->SetLogy(); }
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  if (RAxis == cutAxis || cosPAAxis == cutAxis) { canvas->Divide(4, 2); }
-  else { canvas->Divide(3, 2);}
-
-  histName = "V0CutVariation";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-
-  // Apply pt selection for all histograms
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-
-  double normalisationFactor = 1.;
-  double uncutSignal = 1.;
-
-  double sidebandRegion[2] = {1.105, 1.125}; // Hand picked, improve in future
-  double signalRegion[2] = {1.1125, 1.12}; // Hand picked, improve in future
-  double fitRegion[2] = {1.09, 1.215};
-
-  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
-  for (int iBin = underflowBin; iBin <= overflowBin; iBin++) {
-    THnSparseD* thn_copy = (THnSparseD*)thn->Clone("thn_copy");
-    thn_copy->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]); // Just to be sure
-
-    // Cut the axis off at the bottom (var > binLowEdge)
-    thn_copy->GetAxis(cutAxis)->SetRange(iBin, overflowBin);
-    if ( (ctauAxis == cutAxis) || (DCAdAxis == cutAxis) ) {
-      // Cut the axis off at the top (var < binUpEdge)
-      thn_copy->GetAxis(cutAxis)->SetRange(underflowBin, overflowBin - iBin);
-    }
-
-    TH1D* mass = (TH1D*)thn_copy->Projection(projectionAxis);
-    mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
-    setStyle(mass, 0);
-
-    // Latex stuff
-    double binEdge = thn_copy->GetAxis(cutAxis)->GetBinLowEdge(iBin);
-    if ( (ctauAxis == cutAxis) || (DCAdAxis == cutAxis) ) {
-      binEdge = thn_copy->GetAxis(cutAxis)->GetBinUpEdge(iBin);
-    }
-    switch (cutAxis) {
-      case RAxis:
-        latexText = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case ctauAxis:
-        latexText = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case cosPAAxis:
-        latexText = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCApAxis:
-        latexText = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAnAxis:
-        latexText = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAdAxis:
-        latexText = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-    } // switch (cutAxis)
-
-    if (0 == iBin) {
-      normalisationFactor = mass->Integral();
-      latexText = "No cut";
-    }
-    mass->Scale(1./normalisationFactor);
-
-    canvas->cd(iBin+1);
-    TH1F* tmpframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-    tmpframe->Draw();
-    mass->Draw("same");
-
-    // Purity extraction
-    array<TFitResultPtr, 3> fitresults = fitLambda(mass, sidebandRegion, signalRegion, fitRegion);
-    TFitResultPtr bkgPtr = fitresults[0];
-
-    TF1* bkgE = new TF1("bkgE", "pol2", fitRegion[0], fitRegion[1]);
-    TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
-    TF1* total = new TF1("total", "pol2(0) + gaus(3)", fitRegion[0], fitRegion[1]);
-
-    setStyle(bkgE, 1);
-    setStyle(signal, 2);
-    setStyle(total, 3);
-
-    bkgE->SetParameter(0, *(fitresults[0]->GetParams() + 2));
-    bkgE->SetParameter(1, *(fitresults[0]->GetParams() + 3));
-    bkgE->SetParameter(2, *(fitresults[0]->GetParams() + 4));
-
-    signal->SetParameter(0, *(fitresults[1]->GetParams()));
-    signal->SetParameter(1, *(fitresults[1]->GetParams() + 1));
-
-    total->SetParameter(0, *(fitresults[2]->GetParams()));
-    total->SetParameter(1, *(fitresults[2]->GetParams() + 1));
-    total->SetParameter(2, *(fitresults[2]->GetParams() + 2));
-    total->SetParameter(3, *(fitresults[2]->GetParams() + 3));
-    total->SetParameter(4, *(fitresults[2]->GetParams() + 4));
-
-    if (0 == iBin) {
-      legend->AddEntry(mass, "data");
-      legend->AddEntry(bkgE, "background");
-      legend->AddEntry(signal, "signal");
-      legend->AddEntry(total, "combined");
-    }
-
-    // Draw latex with purity in here.
-    double bkgEstimate = bkgE->Integral(signalRegion[0], signalRegion[1]);
-    double bkgErr = bkgE->IntegralError(signalRegion[0], signalRegion[1], bkgE->GetParameters(), bkgPtr->GetCovarianceMatrix().GetMatrixArray());
-    double sigPlusBkgErr;
-    double sigPlusBkg = mass->IntegralAndError(mass->FindBin(signalRegion[0]), mass->FindBin(signalRegion[1]), sigPlusBkgErr, "width");
-    double purity = 1 - bkgEstimate / sigPlusBkg;
-    double sigEst = sigPlusBkg * purity;
-
-    if (0 == iBin) { uncutSignal = sigEst; }
-    double efficiency = sigEst / uncutSignal;
-
-    if (cosPAAxis != cutAxis) {
-      latexText = TString::Format("%s, purity %.2f %%", latexText.c_str(), 1e2*purity).Data();
-    }
-    TLatex* tmplatex = CreateLatex(xLatex, yLatex, latexText.c_str(), textSize);
-    tmplatex->Draw("same");
-
-    if (cosPAAxis == cutAxis) {
-      string sublatextext = TString::Format("%.3f: p %.2f%%, #eta %.2f%%", binEdge, 1e2*purity, 1e2*efficiency).Data();
-      if (0 == iBin) { sublatextext = TString::Format("No cut: p %.2f%%", 1e2*purity).Data(); }
-      TLatex* sublatex = CreateLatex(0.05, 0.8 - iBin*0.15, sublatextext.c_str(), textSize);
-      canvas->cd(overflowBin + 3);
-      sublatex->Draw("same");
-    }
-    else if (0 != iBin){
-      string sublatextext = TString::Format("#eta %.2f%%", 1e2*efficiency).Data();
-      TLatex* sublatex = CreateLatex(xLatex + 0.1, yLatex - 0.1, sublatextext.c_str(), textSize);
-      sublatex->Draw("same");
-    }
-  }
-
-  canvas->cd(overflowBin + 2);
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, V0} = %.0f - %.0f GeV/#it{c} }", dataSet.c_str(), ptmin, ptmax).Data();
-  TLatex* latex = CreateLatex(0.2, 0.7, latexText, textSize);
-  latex->Draw();
-  legend->Draw("same");
-
-  saveName = TString::Format("purity%s", hypothesis.c_str()).Data();
-  saveName = TString::Format("%s_%s", saveName.c_str(), axisNames[cutAxis].c_str()).Data();
-  saveName = TString::Format("%s_v0pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax).Data();
-  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
-  canvas->SaveAs(saveName.c_str());
-}
-void cutVarAntiLambdaPurity(string inName = "", int cutAxis = -1, double ptmin = 0., double ptmax = 100.)
-{
-  if ("" == inName) {
-    cout << "Error: inName must be specified" << endl;
-    return;
-  }
-  string hypothesis = "AntiLambda0";
-  if ( ("K0S" == hypothesis) + ("Lambda0" == hypothesis) + ("AntiLambda0" == hypothesis) != 1) {
-    cout << "Error: hypothesis must be either K0S, Lambda0, or AntiLambda0" << endl;
-    return;
-  }
-  if (cutAxis < 4 || cutAxis > 9) {
-    cout << "Error: cutAxis must be specified (4-9)" << endl;
-    return;
-  }
-  const int nDim                = 10;
-  const int ptAxis              = 0;
-  const int K0SmassAxis         = 1;
-  const int Lambda0massAxis     = 2;
-  const int AntiLambda0massAxis = 3;
-  const int RAxis               = 4;
-  const int ctauAxis            = 5;
-  const int cosPAAxis           = 6;
-  const int DCApAxis            = 7;
-  const int DCAnAxis            = 8;
-  const int DCAdAxis            = 9;
-
-  std::array<string, nDim> axisNames = {"pt", "K0Smass", "Lambda0mass", "AntiLambda0mass", "R", "ctau", "cosPA", "DCAp", "DCAn", "DCAd"};
-  int projectionAxis = ("K0S" == hypothesis)*K0SmassAxis + ("Lambda0" == hypothesis)*Lambda0massAxis + ("AntiLambda0" == hypothesis)*AntiLambda0massAxis;
-  gStyle->SetNdivisions(505, "xy");
-  string saveName, histName, histTitle, xTitle, yTitle, legendTitle, latexText, dataSet;
-  double textSize = 0.08; //0.04;
-  double labelSize = 0.04;
-  double titleSize = 0.04;
-  bool SetLogy = false;
-  double xMinFrame = 1.015, xMaxFrame = 1.215, yMinFrame = 0., yMaxFrame = 0.08;
-  if ("K0S" == hypothesis) { xMinFrame = 0.4, xMaxFrame = 0.6, yMaxFrame = 0.1; }
-  double xMinLegend = 0.2, xMaxLegend = 0.8, yMinLegend = 0.1, yMaxLegend = 0.5;
-  double xLatex = 0.23, yLatex = 0.93;
-  int xCanvas = 1800, yCanvas = 900;
-  int rebinNumber = 5;
-  xTitle = TString::Format("#it{M}_{%s} (GeV/#it{c}^{2})", formatHadronName(hypothesis).c_str()).Data();
-  yTitle = "#frac{N}{N(uncut)}";
-  dataSet = "LHC22o_pass6_minBias";
-
-  std::vector<TH1D*> histVector; std::vector<TF1*> funcVector;
-  TCanvas* canvas = new TCanvas("Plot", "Plot", xCanvas, yCanvas);
-  if (SetLogy) { canvas->SetLogy(); }
-  TLegend* legend = CreateLegend(xMinLegend, xMaxLegend, yMinLegend, yMaxLegend, legendTitle, textSize);
-
-  if (RAxis == cutAxis || cosPAAxis == cutAxis) { canvas->Divide(4, 2); }
-  else { canvas->Divide(3, 2);}
-
-  histName = "V0CutVariation";
-  histName = TString::Format("jet-fragmentation/data/V0/%s", histName.c_str()).Data();
-  TFile* inFile = TFile::Open(inName.c_str());
-  THnSparseD* thn = (THnSparseD*)inFile->Get(histName.c_str());
-
-  // Apply pt selection for all histograms
-  std::array<int,2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptmin, ptmax);
-  thn->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]);
-  double lowpt = thn->GetAxis(ptAxis)->GetBinLowEdge(ptBins[0]);
-  double highpt = thn->GetAxis(ptAxis)->GetBinUpEdge(ptBins[1]);
-
-  double normalisationFactor = 1.;
-  double uncutSignal = 1.;
-
-  double sidebandRegion[2] = {1.105, 1.125}; // Hand picked, improve in future
-  double signalRegion[2] = {1.1125, 1.12}; // Hand picked, improve in future
-  double fitRegion[2] = {1.09, 1.215};
-
-  int underflowBin = 0, overflowBin = 1 + thn->GetAxis(cutAxis)->GetNbins();
-  for (int iBin = underflowBin; iBin <= overflowBin; iBin++) {
-    THnSparseD* thn_copy = (THnSparseD*)thn->Clone("thn_copy");
-    thn_copy->GetAxis(ptAxis)->SetRange(ptBins[0], ptBins[1]); // Just to be sure
-
-    // Cut the axis off at the bottom (var > binLowEdge)
-    thn_copy->GetAxis(cutAxis)->SetRange(iBin, overflowBin);
-    if ( (ctauAxis == cutAxis) || (DCAdAxis == cutAxis) ) {
-      // Cut the axis off at the top (var < binUpEdge)
-      thn_copy->GetAxis(cutAxis)->SetRange(underflowBin, overflowBin - iBin);
-    }
-
-    TH1D* mass = (TH1D*)thn_copy->Projection(projectionAxis);
-    mass->SetName(TString::Format("mass_axis%d_bin%d", cutAxis, iBin).Data());
-    setStyle(mass, 0);
-
-    // Latex stuff
-    double binEdge = thn_copy->GetAxis(cutAxis)->GetBinLowEdge(iBin);
-    if ( (ctauAxis == cutAxis) || (DCAdAxis == cutAxis) ) {
-      binEdge = thn_copy->GetAxis(cutAxis)->GetBinUpEdge(iBin);
-    }
-    switch (cutAxis) {
-      case RAxis:
-        latexText = TString::Format("%s > %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case ctauAxis:
-        latexText = TString::Format("%s < %.0f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case cosPAAxis:
-        latexText = TString::Format("%s > %.3f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCApAxis:
-        latexText = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAnAxis:
-        latexText = TString::Format("%s > %.2f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-      case DCAdAxis:
-        latexText = TString::Format("%s < %.1f", axisNames[cutAxis].c_str(), binEdge).Data();
-        break;
-    } // switch (cutAxis)
-
-    if (0 == iBin) {
-      normalisationFactor = mass->Integral();
-      latexText = "No cut";
-    }
-    mass->Scale(1./normalisationFactor);
-
-    canvas->cd(iBin+1);
-    TH1F* tmpframe = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-    tmpframe->Draw();
-    mass->Draw("same");
-
-    // Purity extraction
-    array<TFitResultPtr, 3> fitresults = fitLambda(mass, sidebandRegion, signalRegion, fitRegion);
-    TFitResultPtr bkgPtr = fitresults[0];
-
-    TF1* bkgE = new TF1("bkgE", "pol2", fitRegion[0], fitRegion[1]);
-    TF1* signal = new TF1("signal", "gaus", signalRegion[0], signalRegion[1]);
-    TF1* total = new TF1("total", "pol2(0) + gaus(3)", fitRegion[0], fitRegion[1]);
-
-    setStyle(bkgE, 1);
-    setStyle(signal, 2);
-    setStyle(total, 3);
-
-    bkgE->SetParameter(0, *(fitresults[0]->GetParams() + 2));
-    bkgE->SetParameter(1, *(fitresults[0]->GetParams() + 3));
-    bkgE->SetParameter(2, *(fitresults[0]->GetParams() + 4));
-
-    signal->SetParameter(0, *(fitresults[1]->GetParams()));
-    signal->SetParameter(1, *(fitresults[1]->GetParams() + 1));
-
-    total->SetParameter(0, *(fitresults[2]->GetParams()));
-    total->SetParameter(1, *(fitresults[2]->GetParams() + 1));
-    total->SetParameter(2, *(fitresults[2]->GetParams() + 2));
-    total->SetParameter(3, *(fitresults[2]->GetParams() + 3));
-    total->SetParameter(4, *(fitresults[2]->GetParams() + 4));
-
-    if (0 == iBin) {
-      legend->AddEntry(mass, "data");
-      legend->AddEntry(bkgE, "background");
-      legend->AddEntry(signal, "signal");
-      legend->AddEntry(total, "combined");
-    }
-
-    // Draw latex with purity in here.
-    double bkgEstimate = bkgE->Integral(signalRegion[0], signalRegion[1]);
-    double bkgErr = bkgE->IntegralError(signalRegion[0], signalRegion[1], bkgE->GetParameters(), bkgPtr->GetCovarianceMatrix().GetMatrixArray());
-    double sigPlusBkgErr;
-    double sigPlusBkg = mass->IntegralAndError(mass->FindBin(signalRegion[0]), mass->FindBin(signalRegion[1]), sigPlusBkgErr, "width");
-    double purity = 1 - bkgEstimate / sigPlusBkg;
-    double sigEst = sigPlusBkg * purity;
-
-    if (0 == iBin) { uncutSignal = sigEst; }
-    double efficiency = sigEst / uncutSignal;
-
-    if (cosPAAxis != cutAxis) {
-      latexText = TString::Format("%s, purity %.2f %%", latexText.c_str(), 1e2*purity).Data();
-    }
-    TLatex* tmplatex = CreateLatex(xLatex, yLatex, latexText.c_str(), textSize);
-    tmplatex->Draw("same");
-
-    if (cosPAAxis == cutAxis) {
-      string sublatextext = TString::Format("%.3f: p %.2f%%, #eta %.2f%%", binEdge, 1e2*purity, 1e2*efficiency).Data();
-      if (0 == iBin) { sublatextext = TString::Format("No cut: p %.2f%%", 1e2*purity).Data(); }
-      TLatex* sublatex = CreateLatex(0.05, 0.8 - iBin*0.15, sublatextext.c_str(), textSize);
-      canvas->cd(overflowBin + 3);
-      sublatex->Draw("same");
-    }
-    else if (0 != iBin){
-      string sublatextext = TString::Format("#eta %.2f%%", 1e2*efficiency).Data();
-      TLatex* sublatex = CreateLatex(xLatex + 0.1, yLatex - 0.1, sublatextext.c_str(), textSize);
-      sublatex->Draw("same");
-    }
-  }
-
-  canvas->cd(overflowBin + 2);
-  latexText = TString::Format("#splitline{ %s }{ #it{p}_{T, V0} = %.0f - %.0f GeV/#it{c} }", dataSet.c_str(), ptmin, ptmax).Data();
-  TLatex* latex = CreateLatex(0.2, 0.7, latexText, textSize);
-  latex->Draw();
-  legend->Draw("same");
-
-  saveName = TString::Format("purity%s", hypothesis.c_str()).Data();
-  saveName = TString::Format("%s_%s", saveName.c_str(), axisNames[cutAxis].c_str()).Data();
-  saveName = TString::Format("%s_v0pt%.1f-%.1f", saveName.c_str(), ptmin, ptmax).Data();
-  saveName = TString::Format("%s.pdf", saveName.c_str()).Data();
-  canvas->SaveAs(saveName.c_str());
-}
+#endif // CUTVARIATION_C

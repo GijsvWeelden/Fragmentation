@@ -590,7 +590,7 @@ void InputSettings::setMassWindowDiffFromHadron() {
   if (this->hadron == "K0S") {
     this->setMassWindowDiff(2e-2, 2e-2);
   } else {
-    this->setMassWindowDiff(-1., -1.);
+    this->setMassWindowDiff(5e-3, 5e-3);
   }
 }
 
@@ -612,7 +612,7 @@ void InputSettings::setPolInitXFromHadron() {
   if (this->hadron == "K0S") {
     this->setPolInitX(0.45, 0.55, 0.57);
   } else {
-    this->setPolInitX(-1., -1., -1.);
+    this->setPolInitX(1.09, 1.1, 1.13);
   }
 }
 
@@ -862,6 +862,10 @@ TF1* MassFitter::loadFitFunction() {
   string expression = this->inputs->getFitExpression();
   TF1* f = new TF1(saveName.c_str(), expression.c_str(), this->inputs->fitmin, this->inputs->fitmax);
   this->fit = (TF1*)f->Clone();
+
+  if (inputs->verbosity >= InputSettings::kDebug)
+    f->Print();
+
   return f;
 }
 
@@ -957,6 +961,10 @@ TH1* MassFitter::loadMassHist() {
 
   string hName = this->inputs->getSaveNameFromPt("data");
   this->data = (TH1*)h->Clone(hName.c_str());
+
+  if (inputs->verbosity >= InputSettings::kDebug)
+    h->Print();
+
   return h;
 }
 
@@ -1940,7 +1948,7 @@ void SignalFinder::calcSigBkg() {
 
   double background = 0;
   for (int i : bkgFits) {
-    TF1* f = mf.fitParts[i - 1]->Clone(("f" + to_string(i)).c_str());
+    TF1* f = (TF1*)mf->fitParts[i - 1]->Clone(("f" + to_string(i)).c_str());
     f->SetRange(xmin, xmax);
     background += f->Integral(xmin, xmax);
   }
@@ -2730,15 +2738,15 @@ void fitMassAndPlotPartsAllBins() {
 // Perform fit in a single pt bin
 void fitMassAndPlotPartsSingleBin() {
   InputSettings x;
-  x.setPt(25., 30.);
+  x.setPt(10., 15.);
   x.train = 426828;
-  x.hadron = "K0S";
+  x.hadron = "Lambda";
   x.setFitType("pol1ExpGausExp");
   x.normaliseData = true;
   x.nSigma = 3.;
   x.fixMu = true;
 
-  x.setFitX(0.42, 0.55);
+  x.setFitX(1.1, 1.13);
   x.setPolInitXFromHadron();
   x.setMassWindowDiffFromHadron();
   x.setInputFileNameFromTrain();
@@ -2755,7 +2763,7 @@ void fitMassAndPlotPartsSingleBin() {
   // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
   m.loadFitParts();
   m.loadFitParams();
-  m.loadFitResults();
+  // m.loadFitResults();
   m.loadResidualHist();
   m.loadPullHist();
 
@@ -2764,21 +2772,6 @@ void fitMassAndPlotPartsSingleBin() {
   FitPlotter p(m);
   p.inputs->outputFileName = p.inputs->getSaveNameFromPt(p.inputs->hadron + "_" + p.inputs->fitName, ".pdf");
   p.plotFitParts();
-
-  // Update fit parameters and results hists in file and plot the new versions
-  // FitSummariser f(x);
-  // f.inputs->setInputFileNameFromFit();
-  // f.inputs->outputFileName = x.inputFileName;
-  // f.summariseFitInfo("fitParams");
-  // f.summariseFitInfo("fitResults");
-
-  // FitPlotter q(x);
-  // q.inputs->setInputFileNameFromFit();
-  // q.inputs->outputFileName = x.inputFileName;
-  // q.inputs->histName = "fitParams";
-  // q.plotFitInfo();
-  // q.inputs->histName = "fitResults";
-  // q.plotFitInfo();
 }
 
 // Creates the signal fraction histograms for the GG fit, as used in calcSignalRegion_GG

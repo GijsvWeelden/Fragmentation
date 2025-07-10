@@ -50,6 +50,10 @@ string getDataSet(int train)
     case 420215: return "LHC22o_pass7_small";
     case 426828: return "LHC22o_pass7";
     case 428560: return "LHC22o_pass7_medium";
+    case 436232: return "LHC22o_pass7_small";
+    case 436233: return "LHC22o_pass7_small";
+    case 439670: return "LHC25a2b";
+    case 439671: return "LHC25a2b";
     default:     return "Could not find dataset";
   }
 }

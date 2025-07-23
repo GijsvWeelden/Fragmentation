@@ -8,6 +8,7 @@ alias dep="$O2PHYSICS_ROOT/share/scripts/find_dependencies.py -t" # Finds table 
 alias applyformatting="clang-format -style=file -i" # Usage: format <file>
 alias copytrainresults="${FRAGMENTATION_DIR}/scripts/copyTrainResults"
 alias mergetrainoutput="${FRAGMENTATION_DIR}/scripts/mergeTrainOutput"
+alias o2linter="python3 Scripts/o2_linter.py"
 
 if [[ $SSH_CONNECTION == "" ]]; then
   alias o2="zsh ${FRAGMENTATION_DIR}/scripts/load-o2"

@@ -291,7 +291,7 @@ struct InputSettings{
 
     enum FitType {kPol1BreitWigner, kPol2BreitWigner, kPol1BreitWignerXex, kPol2BreitWignerXex, kPol1ExpGausExp, kPol2ExpGausExp, kPol1GausExp, kPol2GausExp, kPol1GausGaus, kPol2GausGaus, kPol1GausGausExp, kPol2GausGausExp, kPol1GausGausXex, kPol2GausGausXex, kPol1GausXex, kPol2GausXex, kPol1Voigt, kPol2Voigt};
 
-    enum Verbosity {kErrors, kWarnings, kInfo, kDebug};
+    enum Verbosity {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
 
     double getMass();
     string getFitExpression();
@@ -1315,16 +1315,20 @@ vector<TF1*> MassFitter::loadSavedFitParts() {
     inputs->printLog(s, InputSettings::kErrors);
     return {};
   }
+  inputs->printLog("MassFitter::loadSavedFitParts() opening file " + inputs->inputFileName, InputSettings::kDebug);
 
   vector<TF1*> parts = {};
   int maxParts = 10; // To prevent infinite loop
-  for (int i = 0; i < maxParts; i++) {
+  for (int i = 1; i < maxParts; i++) {
+    inputs->printLog("Getting fit part " + inputs->getSaveNameFromPt("fit", "_f" + to_string(i)), InputSettings::kDebugMax);
     string fName = inputs->getSaveNameFromPt("fit", "_f" + to_string(i));
     TF1* f = (TF1*)file->Get(fName.c_str());
     if (!f) break;
 
     parts.push_back(f);
   }
+
+  inputs->printLog("MassFitter::loadSavedFitParts() loaded " + to_string(parts.size()) + " fit parts", InputSettings::kDebug);
 
   fitParts = parts;
   return parts;
@@ -1909,17 +1913,19 @@ struct SignalFinder {
 
     // Calculate the signal and background
     void calcSigBkg();
+    void setBkgFits();
+    array<double, 2> getSignalRegion(bool useSigma, bool set);
 
     // Defining the signal region and finding the expected fraction of total signal
     double getGG_Sigma(TF1* f); // Characteristic length
 
     // Signal region
-    array<double, 2> GG_SigRegionFromSteps(double n, TF1* f);
-    array<double, 2> GG_SigRegionFromFrac(double s, TF1* f);
-    array<double, 2> GGE_SigRegionFromSteps(double n, TF1* f);
-    array<double, 2> GGE_SigRegionFromFrac(double s, TF1* f);
-    array<double, 2> EGE_SigRegionFromSteps(double n, TF1* f);
-    array<double, 2> EGE_SigRegionFromFrac(double s, TF1* f);
+    array<double, 2> GG_SigRegionFromSteps(double n, TF1* f = nullptr);
+    array<double, 2> GG_SigRegionFromFrac(double s, TF1* f = nullptr);
+    array<double, 2> GGE_SigRegionFromSteps(double n, TF1* f = nullptr);
+    array<double, 2> GGE_SigRegionFromFrac(double s, TF1* f = nullptr);
+    array<double, 2> EGE_SigRegionFromSteps(double n, TF1* f = nullptr);
+    array<double, 2> EGE_SigRegionFromFrac(double s, TF1* f = nullptr);
 
     // Signal fraction
     double GG_SigFrac(double n, TF1* f);
@@ -1939,26 +1945,123 @@ struct SignalFinder {
 };
 
 void SignalFinder::calcSigBkg() {
+  if (mf->fitParts.empty()) {
+    inputs->printLog("SignalFinder::calcSigBkg: fit parts not set, loading saved fit parts", InputSettings::kInfo);
+    mf->loadSavedFitParts();
+  }
+
   array<int, 2> sigBins = getProjectionBins(mf->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax);
   double xmin = mf->data->GetXaxis()->GetBinLowEdge(sigBins[0]);
   double xmax = mf->data->GetXaxis()->GetBinUpEdge(sigBins[1]);
 
-  hSigPlusBkg = mf->data->Integral(sigBins[0], sigBins[1]);
+  // TF1 integral is equivalent to TH1 integral with "width" option
+  hSigPlusBkg = mf->data->Integral(sigBins[0], sigBins[1], "width");
   fSigPlusBkg = mf->fit->Integral(xmin, xmax);
 
   double background = 0;
   for (int i : bkgFits) {
     TF1* f = (TF1*)mf->fitParts[i - 1]->Clone(("f" + to_string(i)).c_str());
     f->SetRange(xmin, xmax);
-    background += f->Integral(xmin, xmax);
+    double bkg = f->Integral(xmin, xmax);
+    inputs->printLog(TString::Format("f%d: %f", i, bkg).Data(), InputSettings::kDebugMax);
+    background += bkg;
   }
   hBkg = background;
   fBkg = background;
 
   hSig = hSigPlusBkg - hBkg;
   fSig = fSigPlusBkg - fBkg;
+
+  string s = TString::Format("SignalFinder::calcSigBkg: \nhSigPlusBkg = %f, hSig = %f, hBkg = %f,\nfSigPlusBkg = %f, fSig = %f, fBkg = %f", hSigPlusBkg, hSig, hBkg, fSigPlusBkg, fSig, fBkg).Data();
+  inputs->printLog(s, InputSettings::kDebug);
 }
 
+void SignalFinder::setBkgFits() {
+  bkgFits.clear();
+  switch (inputs->fitType) {
+    case InputSettings::kPol1GausGaus:
+      bkgFits.push_back(3);
+      break;
+    case InputSettings::kPol1GausGausExp:
+      bkgFits.push_back(4);
+      break;
+    case InputSettings::kPol1ExpGausExp:
+      bkgFits.push_back(4);
+      break;
+    default:
+      inputs->printLog("SignalFinder::setBkgFits: can't set bkg fits for fit type " + to_string(inputs->fitType), InputSettings::kErrors);
+      return;
+  }
+
+  string s = "SignalFinder::setBkgFits: bkg fits for function " + inputs->fitName + ": ";
+  for (auto i : bkgFits) {
+    s += to_string(i) + ", ";
+  }
+  inputs->printLog(s, InputSettings::kDebug);
+}
+
+array<double, 2> SignalFinder::getSignalRegion(bool useSigma, bool set = true) {
+  array<double, 2> signalRegion = {-1., -1.};
+  if (!mf->data) {
+    inputs->printLog("SignalFinder::getSignalRegion() no data hist loaded!", InputSettings::kErrors);
+    return signalRegion;
+  }
+  if (!mf->fit) {
+    inputs->printLog("SignalFinder::getSignalRegion() no fit loaded!", InputSettings::kErrors);
+    return signalRegion;
+  }
+
+  switch (inputs->fitType) {
+    case InputSettings::kPol1GausGaus:
+      if (useSigma)
+        signalRegion = GG_SigRegionFromSteps(inputs->nSigma);
+      else {
+        GG_loadSigFracHist();
+        signalRegion = GG_SigRegionFromFrac(signalFraction);
+      }
+      break;
+    case InputSettings::kPol1GausGausExp:
+      if (useSigma)
+        signalRegion = GGE_SigRegionFromSteps(inputs->nSigma);
+      else {
+        GGE_loadSigFracHist(true);
+        GGE_loadSigFracHist(false);
+        signalRegion = GGE_SigRegionFromFrac(signalFraction);
+      }
+      break;
+    case InputSettings::kPol1ExpGausExp:
+      if (useSigma)
+        signalRegion = EGE_SigRegionFromSteps(inputs->nSigma);
+      else {
+        EGE_loadSigFracHist(true);
+        EGE_loadSigFracHist(false);
+        signalRegion = EGE_SigRegionFromFrac(signalFraction);
+      }
+      break;
+    default:
+      inputs->printLog("SignalFinder::getSignalRegion: fit type " + to_string(inputs->fitType) + " not supported", InputSettings::kErrors);
+      return signalRegion;
+  }
+  if (set)
+    inputs->setSignalRegion(signalRegion[0], signalRegion[1]);
+  return signalRegion;
+}
+
+double SignalFinder::getSignalFraction(double n) {
+  switch (inputs->fitType) {
+    case InputSettings::kPol1GausGaus:
+      return GG_SigFrac(n);
+    case InputSettings::kPol1GausGausExp:
+      return GGE_SigFrac(n);
+    case InputSettings::kPol1ExpGausExp:
+      return EGE_SigFrac(n);
+    default:
+      inputs->printLog("SignalFinder::getSignalFraction(): no sigfrac for fit " + inputs->fitName, InputSettings::kErrors);
+      return -1;
+  }
+}
+
+// For specific fit types
 double SignalFinder::getGG_Sigma(TF1* f = nullptr) {
   if (!f) f = mf->fit;
   double ampNarrow = f->GetParameter(0);
@@ -2683,6 +2786,12 @@ void summariseFitInfo() {
   summariseFitInfo(x);
 }
 
+// -------------------------------------------------------------------------------------------------
+//
+// Fit the mass spectrum and plot the fit parts
+//
+// -------------------------------------------------------------------------------------------------
+
 // This runs the entire workflow in order for given pt bins
 void fitMassAndPlotPartsAllBins(InputSettings& x) {
   vector<vector<double>> ptBinEdges = x.ptBinEdges;
@@ -2774,6 +2883,12 @@ void fitMassAndPlotPartsSingleBin() {
   p.plotFitParts();
 }
 
+// -------------------------------------------------------------------------------------------------
+//
+// Given a fit, calculate what the signal region should be
+//
+// -------------------------------------------------------------------------------------------------
+
 // Creates the signal fraction histograms for the GG fit, as used in calcSignalRegion_GG
 void saveSignalFractionHists_GG() {
   InputSettings x;
@@ -2862,7 +2977,8 @@ void calcSignalRegion_GG() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1GausGaus");
-  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = to_string(x.train) + "/MassFits/" + x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  // x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
 
   // GG
   x.ptBinEdges = { {0., 1.}, {1., 2.}, {2., 3.}, {3., 4.}, {4., 5.}, {5., 10.}};
@@ -3068,6 +3184,61 @@ void calcSignalRegion_GGE() {
 
     // TH1* hSR_s99 = sf.makeSigRegionHist();
     // hSR_s99->SetName("signalRegion_s99");
+  }
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Calculate the purity in the signal region, given a fit
+//
+// -------------------------------------------------------------------------------------------------
+
+void calcPurity(bool printLatex = false) {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.hadron = "K0S";
+  x.train = 252064;
+  x.setFitType("pol1GausGaus");
+  x.inputFileName = to_string(x.train) + "/MassFits/" + x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+
+  bool useSigma = false;
+  const bool leftSide = true;
+  SignalFinder sf(x);
+  sf.setBkgFits();
+
+  x.nSigma = 3.;
+  // sf.signalFraction = 0.90;
+  if (x.nSigma > 0)
+    useSigma = true;
+
+  if (x.fitType == InputSettings::kPol1GausGaus)
+    x.ptBinEdges = { {0., 1.}, {1., 2.}, {2., 3.}, {3., 4.}, {4., 5.}, {5., 10.}};
+  else
+    x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25.}, {25., 30.}, {30., 40.}};
+
+  // In a given pt bin:
+  for (int iPt = 0; iPt < x.ptBinEdges.size(); iPt++) {
+    x.setPt(x.ptBinEdges[iPt][0], x.ptBinEdges[iPt][1]);
+    sf.mf->loadSavedMassHist();
+    sf.mf->loadSavedFitFunction();
+    sf.getSignalRegion(useSigma);
+    sf.calcSigBkg();
+    if (useSigma)
+      sf.getSignalFraction(x.nSigma);
+
+    double hPurity = sf.hSig / sf.hSigPlusBkg;
+    double fPurity = sf.fSig / sf.fSigPlusBkg;
+
+    // if GG
+
+    string s = TString::Format("Pt: %f - %f. Signal region: %f, %f \n", x.lowpt, x.highpt, x.signalRegionMin, x.signalRegionMax).Data();
+    if (useSigma)
+      s += TString::Format("Signal fraction: %f \n", sf.signalFraction).Data();
+    else
+      s += TString::Format("n: %f \n", x.nSigma).Data();
+
+    s += TString::Format("Purity: %f (h), %f (f) \nh-f: %g, f/h: %g, (h-f)/h: %g", hPurity, fPurity, fPurity - hPurity, hPurity / fPurity, (hPurity - fPurity) / hPurity).Data();
+
+    x.printLog(s, InputSettings::kInfo);
   }
 }
 

@@ -1914,6 +1914,7 @@ struct SignalFinder {
     // Calculate the signal and background
     void calcSigBkg();
     void setBkgFits();
+    void getSignalFraction(double n);
     array<double, 2> getSignalRegion(bool useSigma, bool set);
 
     // Defining the signal region and finding the expected fraction of total signal
@@ -1928,9 +1929,9 @@ struct SignalFinder {
     array<double, 2> EGE_SigRegionFromFrac(double s, TF1* f = nullptr);
 
     // Signal fraction
-    double GG_SigFrac(double n, TF1* f);
-    double GGE_SigFrac(double n, TF1* f, bool leftSide);
-    double EGE_SigFrac(double n, TF1* f, bool leftSide);
+    double GG_SigFrac(double n, TF1* f = nullptr);
+    double GGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = false);
+    double EGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = false);
 
     // Make and load signal fraction histograms
     TH1* GG_makeSigFracHist(TF1* f);
@@ -2047,17 +2048,22 @@ array<double, 2> SignalFinder::getSignalRegion(bool useSigma, bool set = true) {
   return signalRegion;
 }
 
-double SignalFinder::getSignalFraction(double n) {
+void SignalFinder::getSignalFraction(double n) {
+  const bool left = true;
   switch (inputs->fitType) {
     case InputSettings::kPol1GausGaus:
-      return GG_SigFrac(n);
+      signalFraction = GG_SigFrac(n);
+      break;
     case InputSettings::kPol1GausGausExp:
-      return GGE_SigFrac(n);
+      signalFractionLeft = GGE_SigFrac(n, nullptr, left);
+      signalFractionRight = GGE_SigFrac(n, nullptr, !left);
+      break;
     case InputSettings::kPol1ExpGausExp:
-      return EGE_SigFrac(n);
+      signalFractionLeft = EGE_SigFrac(n, nullptr, left);
+      signalFractionRight = EGE_SigFrac(n, nullptr, !left);
+      break;
     default:
       inputs->printLog("SignalFinder::getSignalFraction(): no sigfrac for fit " + inputs->fitName, InputSettings::kErrors);
-      return -1;
   }
 }
 
@@ -2239,6 +2245,8 @@ double SignalFinder::GG_SigFrac(double n, TF1* f = nullptr) {
   double ampWide = f->GetParameter(3);
   double sigmaWide = f->GetParameter(4);
 
+  inputs->printLog(TString::Format("GG_SigFrac: n = %f, \nampNarrow = %f, sigmaNarrow = %f, ampWide = %f, sigmaWide = %f", n, ampNarrow, sigmaNarrow, ampWide, sigmaWide).Data(), InputSettings::kDebug);
+
   double Sigma = getGG_Sigma(f);
 
   double x = n * Sigma / (sqrt(2) * sigmaNarrow);
@@ -2251,6 +2259,7 @@ double SignalFinder::GG_SigFrac(double n, TF1* f = nullptr) {
   y *= ampWide * sigmaWide;
 
   double s = (x + y) / (ampNarrow * sigmaNarrow + ampWide * sigmaWide);
+  inputs->printLog(TString::Format("GG_SigFrac: s = %f", s).Data(), InputSettings::kDebug);
   return s;
 }
 
@@ -2263,6 +2272,8 @@ double SignalFinder::GGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = fal
   double lambda = f->GetParameter(3); // Crossover point
   double ampWide = f->GetParameter(4);
   double sigmaWide = f->GetParameter(5);
+
+  inputs->printLog(TString::Format("GGE_SigFrac: n = %f, \nampNarrow = %f, mu = %f, sigmaNarrow = %f, lambda = %f, \nampWide = %f, sigmaWide = %f", n, ampNarrow, mu, sigmaNarrow, lambda, ampWide, sigmaWide).Data(), InputSettings::kDebug);
 
   if (leftSide) {
     // Make double Gaussian from f
@@ -2292,6 +2303,7 @@ double SignalFinder::GGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = fal
   }
 
   s /= (W + N * TMath::Erf(lambda / sqrt(2)) + E);
+  inputs->printLog(TString::Format("GGE_SigFrac: s_R = %f", s).Data(), InputSettings::kDebug);
   return s;
 }
 
@@ -2304,6 +2316,8 @@ double SignalFinder::EGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = fal
   double lambdaL = f->GetParameter(3); // Crossover point left
   double lambdaR = f->GetParameter(4); // Crossover point right
 
+  inputs->printLog(TString::Format("EGE_SigFrac: n = %f, \namp = %f, mu = %f, sigma = %f, lambdaL = %f, lambdaR = %f", n, amp, mu, sigma, lambdaL, lambdaR).Data(), InputSettings::kDebug);
+
   double lambda = (leftSide) ? lambdaL : lambdaR;
 
   double x = lambda * sqrt(TMath::PiOver2()) * TMath::Erf(lambda / TMath::Sqrt2());
@@ -2315,6 +2329,7 @@ double SignalFinder::EGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = fal
     s += y * (1 - exp(lambda - n));
   }
   s /= (x + y);
+  inputs->printLog(TString::Format("EGE_SigFrac: s_%s = %f", (leftSide) ? "L" : "R", s).Data(), InputSettings::kDebug);
   return s;
 }
 
@@ -3118,11 +3133,12 @@ void calcSignalRegion_EGE() {
 // Calculates the signal region for the expgausexp, for 3 Sigma, s = 90%, 95%, and 99% signal fraction
 // Uses saved signal fraction histogram
 void calcSignalRegion_GGE() {
-  InputSettings x;
+  InputSettings x; //x.verbosity = InputSettings::kDebug;
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1GausGausExp");
-  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = to_string(x.train) + "/MassFits/" + x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  // x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
 
   // GGE
   x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25}, {25., 30}, {30., 40.}};
@@ -3193,11 +3209,16 @@ void calcSignalRegion_GGE() {
 //
 // -------------------------------------------------------------------------------------------------
 
-void calcPurity(bool printLatex = false) {
+void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = false) {
+  if (nSigma * desiredSignalFraction > 0) {
+    cout << "Please set either nSigma or desiredSignalFraction, not both. Aborting" << endl;
+    return;
+  }
+
   InputSettings x; x.verbosity = InputSettings::kInfo;
   x.hadron = "K0S";
   x.train = 252064;
-  x.setFitType("pol1GausGaus");
+  x.setFitType("pol1ExpGausExp");
   x.inputFileName = to_string(x.train) + "/MassFits/" + x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
 
   bool useSigma = false;
@@ -3205,8 +3226,8 @@ void calcPurity(bool printLatex = false) {
   SignalFinder sf(x);
   sf.setBkgFits();
 
-  x.nSigma = 3.;
-  // sf.signalFraction = 0.90;
+  x.nSigma = nSigma;
+  sf.signalFraction = desiredSignalFraction;
   if (x.nSigma > 0)
     useSigma = true;
 
@@ -3228,15 +3249,38 @@ void calcPurity(bool printLatex = false) {
     double hPurity = sf.hSig / sf.hSigPlusBkg;
     double fPurity = sf.fSig / sf.fSigPlusBkg;
 
-    // if GG
+    x.printLog(TString::Format("Pt: %.f - %.f", x.lowpt, x.highpt).Data(), InputSettings::kInfo);
+    string s;
 
-    string s = TString::Format("Pt: %f - %f. Signal region: %f, %f \n", x.lowpt, x.highpt, x.signalRegionMin, x.signalRegionMax).Data();
-    if (useSigma)
-      s += TString::Format("Signal fraction: %f \n", sf.signalFraction).Data();
-    else
-      s += TString::Format("n: %f \n", x.nSigma).Data();
+    switch (x.fitType) {
+      case InputSettings::kPol1GausGaus:
+        if (printLatex && useSigma)
+          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s = %.2f \\) \\%%, \\newline \\(p = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, sf.signalFraction * 100., hPurity * 100.).Data();
+        if (printLatex && !useSigma)
+          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n = %.2f \\), \\newline \\(p = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, x.nSigma, hPurity * 100.).Data();
 
-    s += TString::Format("Purity: %f (h), %f (f) \nh-f: %g, f/h: %g, (h-f)/h: %g", hPurity, fPurity, fPurity - hPurity, hPurity / fPurity, (hPurity - fPurity) / hPurity).Data();
+        if (!printLatex && useSigma)
+          s = TString::Format("Signal region: %f, %f \nExpected signal fraction: %f \nPurity: %f (h), %f (f) \nh-f: %g, f/h: %g, (h-f)/h: %g", x.signalRegionMin, x.signalRegionMax, sf.signalFraction, hPurity, fPurity, fPurity - hPurity, hPurity / fPurity, (hPurity - fPurity) / hPurity).Data();
+
+        if (!printLatex && !useSigma)
+          s = TString::Format("Signal region: %f, %f \nExpected n: %f \nPurity: %f (h), %f (f) \nh-f: %g, f/h: %g, (h-f)/h: %g", x.signalRegionMin, x.signalRegionMax, x.nSigma, hPurity, fPurity, fPurity - hPurity, hPurity / fPurity, (hPurity - fPurity) / hPurity).Data();
+        break;
+      case InputSettings::kPol1ExpGausExp: // Same as kPol1GausGausExp
+      case InputSettings::kPol1GausGausExp:
+        if (printLatex && useSigma)
+          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s_L = %.2f \\) \\%%, \\newline \\(s_R = %.2f \\) \\%%, \\newline \\(p = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, sf.signalFractionLeft * 100., sf.signalFractionRight * 100., hPurity * 100.).Data();
+        if (printLatex && !useSigma)
+          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\newline \\(n_R = %.2f \\), \\newline \\(p = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, x.nSigmaL, x.nSigmaR, hPurity * 100.).Data();
+
+        if (!printLatex && useSigma)
+          s = TString::Format("Signal region: %f, %f \nExpected signal fraction: %f (L), %f (R) \nPurity: %f (h), %f (f) \nh-f: %g, f/h: %g, (h-f)/h: %g", x.signalRegionMin, x.signalRegionMax, sf.signalFractionLeft, sf.signalFractionRight, hPurity, fPurity, fPurity - hPurity, hPurity / fPurity, (hPurity - fPurity) / hPurity).Data();
+
+        if (!printLatex && !useSigma)
+          s = TString::Format("Signal region: %f, %f \nExpected n: %f \nPurity: %f (h), %f (f) \nh-f: %g, f/h: %g, (h-f)/h: %g", x.signalRegionMin, x.signalRegionMax, x.nSigma, hPurity, fPurity, fPurity - hPurity, hPurity / fPurity, (hPurity - fPurity) / hPurity).Data();
+        break;
+      default:
+        s = TString::Format("Unknown fit type: %s", x.fitName.c_str()).Data();
+    }
 
     x.printLog(s, InputSettings::kInfo);
   }

@@ -340,6 +340,54 @@ TH1* makeHistSubset(TH1* data, int minBin, int maxBin, string name = "region") {
 
 // -------------------------------------------------------------------------------------------------
 //
+// Make new rebinned histogram and propagates errors via sum of squares
+// Take caution: bin edges must line up!
+//
+// -------------------------------------------------------------------------------------------------
+
+TH1* rebinHist(const TH1* input, TH1* output) {
+  // +2 to include underflow and overflow bins
+  double newContents[output->GetNbinsX() + 2];
+  double newErrorsSquared[output->GetNbinsX() + 2];
+
+  for (int ib = 0; ib <= input->GetNbinsX() + 1; ib++) {
+    double binContent = input->GetBinContent(ib);
+    double binCentre = input->GetBinCenter(ib);
+    double binError = input->GetBinError(ib);
+
+    int newBin = output->FindBin(binCentre);
+    newContents[newBin] += binContent;
+    newErrorsSquared[newBin] += binError * binError;
+  }
+
+  // Loop over output to set the content and errors
+  for (int ib = 0; ib <= output->GetNbinsX() + 1; ib++) {
+    double content = newContents[ib];
+    double errorSquared = newErrorsSquared[ib];
+
+    output->SetBinContent(ib, content);
+    output->SetBinError(ib, std::sqrt(errorSquared));
+  }
+  return output;
+}
+
+TH1* rebinnedV0PtHist(string hadron, string name) {
+  if (hadron == "K0S") {
+    const int nBinsK0S = 11;
+    const double edgesK0S[nBinsK0S + 1] = {0., 1., 2., 3., 4., 5., 10., 15., 20., 25., 30., 40.};
+    return new TH1D(name.c_str(), name.c_str(), nBinsK0S, edgesK0S);
+  } else if (hadron == "Lambda" || hadron == "AntiLambda") {
+    const int nBinsLAL = 10;
+    const double edgesLAL[nBinsLAL + 1] = {0., 1., 2., 3., 4., 5., 10., 15., 20., 30., 40.};
+    return new TH1D(name.c_str(), name.c_str(), nBinsLAL, edgesLAL);
+  } else {
+    cout << "Hadron not recognised for rebinned V0 pt hist: " << hadron << endl;
+    return nullptr;
+  }
+}
+
+// -------------------------------------------------------------------------------------------------
+//
 // Print the parameter names, values, and limits of a function
 //
 // -------------------------------------------------------------------------------------------------

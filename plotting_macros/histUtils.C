@@ -32,9 +32,13 @@ const double MassLambda = 1.115683;
 const double MassLambda0 = MassLambda;
 gStyle->SetNdivisions(505, "xy");
 
-// Helpful functions
-string getDataSet(int train)
-{
+// -------------------------------------------------------------------------------------------------
+//
+// Get the name of the dataset corresponding to a train number
+//
+// -------------------------------------------------------------------------------------------------
+
+string getDataSet(int train) {
   switch (train) {
     case 210373: return "LHC24b1b";
     case 252064: return "LHC22o_pass6";
@@ -58,26 +62,317 @@ string getDataSet(int train)
   }
 }
 
+// -------------------------------------------------------------------------------------------------
+//
+// Get bins corresponding to a range on an axis
+// Default behaviour is to include overflow and underflow bins
+//
+// -------------------------------------------------------------------------------------------------
+
+std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const double max, double epsilon = 1e-3) {
+  int firstBin = 0, lastBin = axis->GetNbins() + 1;
+  if (min > -900)
+    firstBin = axis->FindBin(min + epsilon);
+  if (max > -900)
+    lastBin = axis->FindBin(max - epsilon);
+  return std::array{firstBin, lastBin};
+}
+
+std::array<double, 2> getProjectionEdges(const TAxis* axis, const std::array<int, 2>& range) {
+  return std::array{axis->GetBinLowEdge(range[0]), axis->GetBinUpEdge(range[1])};
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Check if a histogram is empty in a given range
+//
+// -------------------------------------------------------------------------------------------------
+
+// Check if a histogram is empty in a given range
+bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10) {
+  double integral = h->Integral(low, high);
+  if (std::isnan(integral))
+    return true;
+  else
+    return (integral < threshold);
+}
+bool isHistEmptyInRange(TH2* h, int xlow, int xhigh, int ylow, int yhigh, double threshold = 1e-10) {
+  return isHistEmptyInRange(h->ProjectionX("px", ylow, yhigh), xlow, xhigh, threshold);
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Get histogram bounds (1D only!)
+//
+// -------------------------------------------------------------------------------------------------
+
+// Return the bin with the most extreme value in a range of the histogram
+// Optionally accounts for error
+int getExtremeBinInRange(TH1* h, int minBin, int maxBin, bool doError, bool doMin) {
+  // Start scale at most extreme value
+  int extremeBin = 0;
+  double scale = std::numeric_limits<double>::lowest();
+  if (doMin)
+    scale = std::numeric_limits<double>::max();
+
+  for (int i = minBin; i <= maxBin; i++) {
+    double bc = h->GetBinContent(i);
+    double be = h->GetBinError(i);
+    double s = bc;
+    if (doError)
+      doMin ? s -= be : s += be;
+
+    bool isExtremeBin = (doMin && s < scale) || (!doMin && s > scale);
+    if (isExtremeBin) {
+      scale = s;
+      extremeBin = i;
+    }
+  }
+  return extremeBin;
+}
+
+// Return the upper or lower of a histogram in a bin range
+double getScaleInRange(TH1* h, int minBin, int maxBin, bool doError, bool doMin) {
+  int extremeBin = getExtremeBinInRange(h, minBin, maxBin, doError, doMin);
+  double binContent = h->GetBinContent(extremeBin);
+  double binError = h->GetBinError(extremeBin);
+
+  if (doError)
+    return doMin ? binContent - binError : binContent + binError;
+  else
+    return binContent;
+}
+
+// Return the scale of a number of histograms in a bin range
+double getScaleInRange(vector<TH1*> v, int minBin, int maxBin, bool doError, bool doMin, bool doSum) {
+  double scale = 0;
+  for (auto h : v) {
+    double s = getScaleInRange(h, minBin, maxBin, doError, doMin);
+
+    if (doSum)
+      scale = doMin ? scale - s : scale + s;
+    else
+      scale = doMin ? std::min(scale, s) : std::max(scale, s);
+  }
+  return scale;
+}
+
+// Lower bounds
+int getLowerBoundBinInRange(TH1* h, int minBin, int maxBin, bool doError) {
+  return getExtremeBinInRange(h, minBin, maxBin, doError, true);
+}
+int getLowerBoundBin(TH1* h, bool doError) {
+  return getLowerBoundBinInRange(h, 1, h->GetNbinsX(), doError);
+}
+
+double getLowerBoundInRange(TH1* h, int minBin, int maxBin, bool doError) {
+  return getScaleInRange(h, minBin, maxBin, doError, true);
+}
+double getLowerBound(TH1* h, bool doError) {
+  return getLowerBoundInRange(h, 1, h->GetNbinsX(), doError);
+}
+
+double getLowerBoundInRange(vector<TH1*> v, int minBin, int maxBin, bool doError, bool doSum) {
+  return getScaleInRange(v, minBin, maxBin, doError, true, doSum);
+}
+double getLowerBound(vector<TH1*> v, bool doError, bool doSum) {
+  return getLowerBoundInRange(v, 1, v[0]->GetNbinsX(), doError, doSum);
+}
+
+// Upper bounds
+int getUpperBoundBinInRange(TH1* h, int minBin, int maxBin, bool doError) {
+  return getExtremeBinInRange(h, minBin, maxBin, doError, false);
+}
+int getUpperBoundBin(TH1* h, bool doError) {
+  return getUpperBoundBinInRange(h, 1, h->GetNbinsX(), doError);
+}
+
+double getUpperBoundInRange(TH1* h, int minBin, int maxBin, bool doError) {
+  return getScaleInRange(h, minBin, maxBin, doError, false);
+}
+double getUpperBound(TH1* h, bool doError) {
+  return getUpperBoundInRange(h, 1, h->GetNbinsX(), doError);
+}
+
+double getUpperBoundInRange(vector<TH1*> v, int minBin, int maxBin, bool doError, bool doSum) {
+  return getScaleInRange(v, minBin, maxBin, doError, false, doSum);
+}
+double getUpperBound(vector<TH1*> v, bool doError, bool doSum) {
+  return getUpperBoundInRange(v, 1, v[0]->GetNbinsX(), doError, doSum);
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Styling for histograms, lines, functions, etc.
+//
+// -------------------------------------------------------------------------------------------------
+
+// Set histogram colours and markers
+void setStyle(TH1* hist, int styleNumber, double alpha = -1, int lineWidth = 3) {
+  hist->SetLineWidth(lineWidth);
+  hist->SetLineColor(GetColor(styleNumber));
+  hist->SetMarkerStyle(GetMarker(styleNumber));
+  hist->SetMarkerColor(GetColor(styleNumber));
+  if (alpha > 0.) {
+    hist->SetFillColorAlpha(GetColor(styleNumber), alpha);
+  }
+}
+
+void setStyle(TLine* line, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
+  line->SetLineWidth(lineWidth);
+  line->SetLineColor(GetColor(styleNumber));
+  line->SetLineStyle(lineStyle);
+}
+
+void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3) {
+  f->SetLineWidth(lineWidth);
+  f->SetLineColor(GetColor(styleNumber));
+  f->SetLineStyle(lineStyle);
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Formatting text for V0s
+//
+// -------------------------------------------------------------------------------------------------
+
+// Formats the hadron name to look nice (Greek letters, sub- and superscripts)
+string formatHadronName(string hadron) {
+  string had = hadron;
+  if (hadron == "pi"){
+    had = "#pi^{#pm}";
+  }
+  else if (hadron == "pi0"){
+    had = "#pi^{0}";
+  }
+  else if (hadron == "K0S"){
+    had = "K^{0}_{S}";
+  }
+  else if (hadron == "Lambda0" || hadron == "Lambda"){
+    // had = "#Lambda^{0}";
+    had = "#Lambda";
+  }
+  else if (hadron == "AntiLambda0" || hadron == "AntiLambda"){
+    // had = "#bar{#Lambda}^{0}";
+    had = "#bar{#Lambda}";
+  }
+  return had;
+}
+
+// Returns decay products given a hadron
+string formatHadronDaughters(string hadron) {
+  string daughters = hadron;
+  if ("K0S" == hadron) {
+    daughters = "#pi^{+}#pi^{-}";
+  }
+  else if ("Lambda0" == hadron || "Lambda" == hadron) {
+    daughters = "p#pi^{-}";
+  }
+  else if ("AntiLambda0" == hadron || "AntiLambda" == hadron) {
+    daughters = "#bar{p}#pi^{+}";
+  }
+  return daughters;
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Normalise 2D histograms
+//
+// -------------------------------------------------------------------------------------------------
+
+void normaliseHistRowByRow(TH2* hist) {
+  int firstColBin = 1, lastColBin = hist->GetNbinsX();
+  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
+  for (int iRow = 1; iRow <= lastRowBin; iRow++) {
+    double integral = hist->Integral(firstColBin, lastColBin, iRow, iRow);
+    if (integral < 1) { continue; }
+    for (int iCol = 1; iCol <= lastColBin; iCol++) {
+      double binContent = hist->GetBinContent(iCol, iRow);
+      binContent /= integral;
+      hist->SetBinContent(iCol, iRow, binContent);
+    }
+  }
+}
+
+void normaliseHistColByCol(TH2* hist) {
+  int firstColBin = 1, lastColBin = hist->GetNbinsX();
+  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
+  for (int iCol = 1; iCol <= lastColBin; iCol++) {
+    double integral = hist->Integral(iCol, iCol, firstRowBin, lastRowBin);
+    if (integral < 1) { continue; }
+    for (int iRow = 1; iRow <= lastRowBin; iRow++) {
+      double binContent = hist->GetBinContent(iCol, iRow);
+      binContent /= integral;
+      hist->SetBinContent(iCol, iRow, binContent);
+    }
+  }
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Rounding for log plots
+//
+// -------------------------------------------------------------------------------------------------
+
+double roundToNextPowerOfTen(double x) {
+  return std::pow(10., std::ceil(std::log10(x)));
+}
+
+double roundToPrevPowerOfTen(double x) {
+  return std::pow(10., std::floor(std::log10(x)));
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Make a subset of a histogram
+//
+// -------------------------------------------------------------------------------------------------
+
+TH1* makeHistSubset(TH1* data, int minBin, int maxBin, string name = "region") {
+  TH1* region = (TH1*)data->Clone(name.c_str());
+  region->Reset();
+  for (int i = minBin; i <= maxBin; i++) {
+    region->SetBinContent(i, data->GetBinContent(i));
+    region->SetBinError(i, data->GetBinError(i));
+  }
+  return region;
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Print the parameter names, values, and limits of a function
+//
+// -------------------------------------------------------------------------------------------------
+
+void printParLimits(TF1* f) {
+  for (int i = 0; i < f->GetNpar(); i++) {
+    double min, max;
+    f->GetParLimits(i, min, max);
+    cout << f->GetName() << " (" << i << " = " << f->GetParName(i) << ") " << f->GetParameter(i) << " (" << min << ", " << max << ")" << endl;
+  }
+  cout << endl;
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Deprecated functions
+//
+// -------------------------------------------------------------------------------------------------
+
 template <typename T>
-T loadHist(TFile* inFile, string histName)
-{
+T loadHist(TFile* inFile, string histName) {
   T hist = (T)inFile->Get(TString::Format("%s", histName.c_str()).Data());
   return hist;
 }
 
 template <typename T>
-T loadHist(TDirectory* inDir, string histName)
-{
+T loadHist(TDirectory* inDir, string histName) {
   T hist = (T)inDir->Get(TString::Format("%s", histName.c_str()).Data());
   return hist;
 }
 
 // 1D histogram version
-void plotOneHist(TH1F* hist, string xTitle, string yTitle, string histTitle, string legendTitle, string saveName,
-                 double xMinFrame, double xMaxFrame, double yMinFrame, double yMaxFrame,
-                 double xMinLegend, double xMaxLegend, double yMinLegend, double yMaxLegend,
-                 bool setLogY, bool drawLegend)
-{
+void plotOneHist(TH1F* hist, string xTitle, string yTitle, string histTitle, string legendTitle, string saveName, double xMinFrame, double xMaxFrame, double yMinFrame, double yMaxFrame, double xMinLegend, double xMaxLegend, double yMinLegend, double yMaxLegend, bool setLogY, bool drawLegend) {
   auto nc = new TCanvas("Plot", "Plot", 600, 600);
   nc->SetLeftMargin(0.15);
   nc->cd();
@@ -103,12 +398,9 @@ void plotOneHist(TH1F* hist, string xTitle, string yTitle, string histTitle, str
   nc->SaveAs(TString::Format("./%s.pdf", saveName.c_str()).Data());
   delete nc;
 }
+
 // 2D histogram version
-void plotOneHist(TH2F* hist, string xTitle, string yTitle, string histTitle, string saveName,
-                 double xMinFrame, double xMaxFrame, double yMinFrame, double yMaxFrame,
-                 double xMinLegend, double xMaxLegend, double yMinLegend, double yMaxLegend,
-                 bool setLogZ, bool drawLegend)
-{
+void plotOneHist(TH2F* hist, string xTitle, string yTitle, string histTitle, string saveName, double xMinFrame, double xMaxFrame, double yMinFrame, double yMaxFrame, double xMinLegend, double xMaxLegend, double yMinLegend, double yMaxLegend, bool setLogZ, bool drawLegend) {
   auto nc = new TCanvas("Plot", "Plot", 600, 600);
   nc->SetLeftMargin(0.15);
   nc->cd();
@@ -131,9 +423,9 @@ void plotOneHist(TH2F* hist, string xTitle, string yTitle, string histTitle, str
   nc->SaveAs(TString::Format("./%s.pdf", saveName.c_str()).Data());
   delete nc;
 }
+
 template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText)
-{
+void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, string saveName, string setDrawOption, string latexText) {
   canvas->cd();
   frame->Draw();
   string drawOption = "same";
@@ -148,9 +440,9 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend
   if (latexText != "") { DrawLatex(0.4, 0.8, latexText.c_str(), legend->GetTextSize()); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
+
 template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, TLatex* latex, string saveName, string setDrawOption)
-{
+void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, TLatex* latex, string saveName, string setDrawOption) {
   canvas->cd();
   frame->Draw();
   string drawOption = "same";
@@ -165,10 +457,10 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend
   if (latex) { latex->Draw("same"); }
   canvas->SaveAs(TString::Format("./%s", saveName.c_str()).Data());
 }
+
 // Plot n histograms, but set all colours, markers, etc. manually
 template <typename T>
-void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, vector<TLatex*> latexVector, string setDrawOption = "")
-{
+void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend* legend, vector<TLatex*> latexVector, string setDrawOption = "") {
   canvas->cd();
   frame->Draw();
   string drawOption = "same";
@@ -185,13 +477,9 @@ void plotNHists(TCanvas* canvas, TH1F* frame, std::vector<T> histVector, TLegend
   }
   canvas->SaveAs(canvas->GetName());
 }
+
 // Plot only histograms
-void plotNHists(std::vector<TH1F*> histVector, std::vector<string> histNameVector,
-                string xTitle, string yTitle, string histTitle, string legendTitle, string saveName,
-                double xMinFrame, double xMaxFrame, double yMinFrame, double yMaxFrame,
-                double xMinLegend, double xMaxLegend, double yMinLegend, double yMaxLegend,
-                bool setLogY, string setHistDrawOption)
-{
+void plotNHists(std::vector<TH1F*> histVector, std::vector<string> histNameVector, string xTitle, string yTitle, string histTitle, string legendTitle, string saveName, double xMinFrame, double xMaxFrame, double yMinFrame, double yMaxFrame, double xMinLegend, double xMaxLegend, double yMinLegend, double yMaxLegend, bool setLogY, string setHistDrawOption) {
   // TODO: how to properly handle exceptions?
   // Check if each histogram/function has an associated name
   if (histVector.size() != histNameVector.size()){
@@ -232,14 +520,9 @@ void plotNHists(std::vector<TH1F*> histVector, std::vector<string> histNameVecto
   nc->SaveAs(TString::Format("./%s.pdf", saveName.c_str()).Data());
   delete nc;
 }
+
 // Plot n histograms and n functions
-void plotNHists(std::vector<TH1F*> histVector, std::vector<string> histNameVector,
-                std::vector<TF1*> funcVector, std::vector<string> funcNameVector,
-                string xTitle, string yTitle, string histTitle, string saveName,
-                double xMinFrame, double xMaxFrame, double yMinFrame, double yMaxFrame,
-                double xMinLegend, double xMaxLegend, double yMinLegend, double yMaxLegend,
-                bool setLogY, string setHistDrawOption, string setFuncDrawOption)
-{
+void plotNHists(std::vector<TH1F*> histVector, std::vector<string> histNameVector, std::vector<TF1*> funcVector, std::vector<string> funcNameVector, string xTitle, string yTitle, string histTitle, string saveName, double xMinFrame, double xMaxFrame, double yMinFrame, double yMaxFrame, double xMinLegend, double xMaxLegend, double yMinLegend, double yMaxLegend, bool setLogY, string setHistDrawOption, string setFuncDrawOption) {
   // TODO: how to properly handle exceptions?
   // Check if each histogram/function has an associated name
   if (histVector.size() != histNameVector.size()){
@@ -297,8 +580,7 @@ void plotNHists(std::vector<TH1F*> histVector, std::vector<string> histNameVecto
 }
 
 // Project a 2D histogram onto a 1D histogram
-TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax)
-{
+TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, double axMin, double axMax) {
   TH1F* outputHist;
   TH2F* inputClone = (TH2F*)inputHist->Clone("CloneOfInput");
   int firstBin = 1; int lastBin = -1;
@@ -340,12 +622,9 @@ TH1F* projectHist(TH2F* inputHist, string projectionAxis, string histName, doubl
   delete inputClone;
   return outputHist;
 }
+
 // Project a 4D histogram onto a 2D histogram
-TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, string histName,
-                  double axis0Min, double axis0Max, double axis1Min, double axis1Max,
-                  double axis2Min, double axis2Max, double axis3Min, double axis3Max)
-{
-  // TH2F* outputHist;
+TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, string histName, double axis0Min, double axis0Max, double axis1Min, double axis1Max, double axis2Min, double axis2Max, double axis3Min, double axis3Max) {
   THnF* inputClone = (THnF*)inputHist->Clone("CloneOfInput");
 
   int firstBinAxis0 = 1; int lastBinAxis0 = inputClone->GetAxis(0)->GetNbins() + 1;
@@ -372,176 +651,4 @@ TH2F* projectHist(THnF* inputHist, int projectionAxisX, int projectionAxisY, str
   return outputHist;
 }
 
-// Get bins corresponding to a range on an axis
-// Default behaviour is to include overflow and underflow bins
-std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const double max, double epsilon = 1e-3)
-{
-  int firstBin = 0, lastBin = axis->GetNbins() + 1;
-  if (min > -900) { firstBin = axis->FindBin(min + epsilon); }
-  if (max > -900) { lastBin = axis->FindBin(max - epsilon); }
-  return std::array{firstBin, lastBin};
-}
-
-// Check if a histogram is empty in a given range
-bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10)
-{
-  double integral = h->Integral(low, high);
-  if (std::isnan(integral))
-    return true;
-  else
-    return (integral < threshold);
-}
-bool isHistEmptyInRange(TH2* h, int xlow, int xhigh, int ylow, int yhigh, double threshold = 1e-10)
-{
-  return isHistEmptyInRange(h->ProjectionX("px", ylow, yhigh), xlow, xhigh, threshold);
-}
-
-// Returns the upper or lower bound for drawing histogram. Optionally accounts for error
-double getHistScale(TH1* h, bool doError, bool doMin = false)
-{
-  int bin;
-  if (!doError) {
-    bin = doMin ? h->GetMinimumBin() : h->GetMaximumBin();
-    return h->GetBinContent(bin);
-  }
-  // Initialise with max/min bin content to ensure scale is overwritten when checking min/max
-  bin = doMin ? h->GetMaximumBin() : h->GetMinimumBin();
-  double scale = h->GetBinContent(bin);
-  for (int i = 1; i <= h->GetNbinsX(); i++) {
-    double bc = h->GetBinContent(i);
-    double be = h->GetBinError(i);
-    if (doMin) scale = min(scale, bc - be);
-    else scale = max(scale, bc + be);
-  }
-  return scale;
-}
-double getHistScale(vector<TH1*> v, bool doError, bool doSum, bool doMin = false)
-{
-  double scale = 0;
-  if (doSum) {
-    TH1* sum = (TH1*)v[0]->Clone("sum");
-    sum->Reset();
-    for (auto h : v) sum->Add(h);
-    scale = getHistScale(sum, doError, doMin);
-  }
-  else {
-    for (auto h : v) {
-      double s = getHistScale(h, doError, doMin);
-      if (doMin) scale = min(scale, s);
-      else scale = max(scale, s);
-    }
-  }
-  return scale;
-}
-// Returns the lower bound for drawing histogram. Optionally accounts for error
-double getHistLowerBound(TH1* h, bool doError)
-{
-  return getHistScale(h, doError, true);
-}
-double getHistLowerBound(vector<TH1*> v, bool doError, bool doSum)
-{
-  return getHistScale(v, doError, doSum, true);
-}
-// Returns the upper bound for drawing histogram. Optionally accounts for error
-double getHistUpperBound(TH1* h, bool doError)
-{
-  return getHistScale(h, doError, false);
-}
-double getHistUpperBound(vector<TH1*> v, bool doError, bool doSum)
-{
-  return getHistScale(v, doError, doSum, false);
-}
-
-// Set histogram colours and markers
-void setStyle(TH1* hist, int styleNumber, double alpha = -1, int lineWidth = 3)
-{
-  hist->SetLineWidth(lineWidth);
-  hist->SetLineColor(GetColor(styleNumber));
-  hist->SetMarkerStyle(GetMarker(styleNumber));
-  hist->SetMarkerColor(GetColor(styleNumber));
-  if (alpha > 0.) {
-    hist->SetFillColorAlpha(GetColor(styleNumber), alpha);
-  }
-}
-void setStyle(TLine* line, int styleNumber, int lineStyle = 9, int lineWidth = 3)
-{
-  line->SetLineWidth(lineWidth);
-  line->SetLineColor(GetColor(styleNumber));
-  line->SetLineStyle(lineStyle);
-}
-void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3)
-{
-  f->SetLineWidth(lineWidth);
-  f->SetLineColor(GetColor(styleNumber));
-  f->SetLineStyle(lineStyle);
-}
-
-// Formats the hadron name to look nice (Greek letters, sub- and superscripts)
-string formatHadronName(string hadron)
-{
-  string had = hadron;
-  if (hadron == "pi"){
-    had = "#pi^{#pm}";
-  }
-  else if (hadron == "pi0"){
-    had = "#pi^{0}";
-  }
-  else if (hadron == "K0S"){
-    had = "K^{0}_{S}";
-  }
-  else if (hadron == "Lambda0" || hadron == "Lambda"){
-    // had = "#Lambda^{0}";
-    had = "#Lambda";
-  }
-  else if (hadron == "AntiLambda0" || hadron == "AntiLambda"){
-    // had = "#bar{#Lambda}^{0}";
-    had = "#bar{#Lambda}";
-  }
-  return had;
-}
-// Returns decay products given a hadron
-string formatHadronDaughters(string hadron)
-{
-  string daughters = hadron;
-  if ("K0S" == hadron) {
-    daughters = "#pi^{+}#pi^{-}";
-  }
-  else if ("Lambda0" == hadron || "Lambda" == hadron) {
-    daughters = "p#pi^{-}";
-  }
-  else if ("AntiLambda0" == hadron || "AntiLambda" == hadron) {
-    daughters = "#bar{p}#pi^{+}";
-  }
-  return daughters;
-}
-// Normalise 2D histogram row-by-row
-void normaliseHistRowByRow(TH2* hist)
-{
-  int firstColBin = 1, lastColBin = hist->GetNbinsX();
-  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
-  for (int iRow = 1; iRow <= lastRowBin; iRow++) {
-    double integral = hist->Integral(firstColBin, lastColBin, iRow, iRow);
-    if (integral < 1) { continue; }
-    for (int iCol = 1; iCol <= lastColBin; iCol++) {
-      double binContent = hist->GetBinContent(iCol, iRow);
-      binContent /= integral;
-      hist->SetBinContent(iCol, iRow, binContent);
-    }
-  }
-}
-// Normalise 2D histogram col-by-col
-void normaliseHistColByCol(TH2* hist)
-{
-  int firstColBin = 1, lastColBin = hist->GetNbinsX();
-  int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
-  for (int iCol = 1; iCol <= lastColBin; iCol++) {
-    double integral = hist->Integral(iCol, iCol, firstRowBin, lastRowBin);
-    if (integral < 1) { continue; }
-    for (int iRow = 1; iRow <= lastRowBin; iRow++) {
-      double binContent = hist->GetBinContent(iCol, iRow);
-      binContent /= integral;
-      hist->SetBinContent(iCol, iRow, binContent);
-    }
-  }
-}
 #endif // HISTUTILS_H

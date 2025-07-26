@@ -54,6 +54,7 @@ string getDataSet(int train) {
     case 420215: return "LHC22o_pass7_small";
     case 426828: return "LHC22o_pass7";
     case 428560: return "LHC22o_pass7_medium";
+    case 436064: return "LHC25a2";
     case 436232: return "LHC22o_pass7_small";
     case 436233: return "LHC22o_pass7_small";
     case 439670: return "LHC25a2b";
@@ -345,30 +346,26 @@ TH1* makeHistSubset(TH1* data, int minBin, int maxBin, string name = "region") {
 //
 // -------------------------------------------------------------------------------------------------
 
-TH1* rebinHist(const TH1* input, TH1* output) {
-  // +2 to include underflow and overflow bins
-  double newContents[output->GetNbinsX() + 2];
-  double newErrorsSquared[output->GetNbinsX() + 2];
-
-  for (int ib = 0; ib <= input->GetNbinsX() + 1; ib++) {
-    double binContent = input->GetBinContent(ib);
-    double binCentre = input->GetBinCenter(ib);
-    double binError = input->GetBinError(ib);
-
-    int newBin = output->FindBin(binCentre);
-    newContents[newBin] += binContent;
-    newErrorsSquared[newBin] += binError * binError;
+TH1* rebinHist(const TH1* input, const TH1* output) {
+  TH1* h = (TH1*)output->Clone(TString::Format("%s_rebinned", input->GetName()).Data());
+  h->Reset();
+  double newContents[h->GetNbinsX() + 2];
+  double newErrorsSquared[h->GetNbinsX() + 2];
+  for (int i = 0; i <= input->GetNbinsX()+1; i++) {
+    double content = input->GetBinContent(i);
+    double centre = input->GetBinCenter(i);
+    double error = input->GetBinError(i);
+    int newBin = h->FindBin(centre);
+    newContents[newBin] += content;
+    newErrorsSquared[newBin] += error * error;
   }
-
-  // Loop over output to set the content and errors
-  for (int ib = 0; ib <= output->GetNbinsX() + 1; ib++) {
-    double content = newContents[ib];
-    double errorSquared = newErrorsSquared[ib];
-
-    output->SetBinContent(ib, content);
-    output->SetBinError(ib, std::sqrt(errorSquared));
+  for (int i = 0; i <= h->GetNbinsX()+1; i++) {
+    double content = newContents[i];
+    double error = std::sqrt(newErrorsSquared[i]);
+    h->SetBinContent(i, content);
+    h->SetBinError(i, error);
   }
-  return output;
+  return h;
 }
 
 TH1* rebinnedV0PtHist(string hadron, string name) {

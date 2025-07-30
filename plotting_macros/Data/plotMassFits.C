@@ -18,46 +18,6 @@
 #ifndef __PLOTMASSFITS_H__
 #define __PLOTMASSFITS_H__
 
-// Return hist scale in a range of the histogram
-double getHistScaleInRange(TH1* h, int minBin, int maxBin, bool doError, bool doMin) {
-  double scale = doMin ? 1e12 : -1e12;
-  for (int i = minBin; i <= maxBin; i++) {
-    double bc = h->GetBinContent(i);
-    double be = h->GetBinError(i);
-    double s = bc;
-    if (doError)
-      doMin ? s -= be : s += be;
-
-    if (doMin)
-      scale = min(scale, s);
-    else
-      scale = max(scale, s);
-  }
-  return scale;
-}
-
-int getExtremeBinInRange(TH1* h, int minBin, int maxBin, bool doError, bool doMin) {
-  int BIN = -1;
-  double scale = doMin ? 1e12 : -1e12;
-  for (int i = minBin; i <= maxBin; i++) {
-    double bc = h->GetBinContent(i);
-    double be = h->GetBinError(i);
-    double s = bc;
-    if (doError)
-      doMin ? s -= be : s += be;
-
-    if (doMin && s < scale) {
-      scale = s;
-      BIN = i;
-    }
-    else if (s > scale) {
-      scale = s;
-      BIN = i;
-    }
-  }
-  return BIN;
-}
-
 double chisqInRange(TH1* hist, TF1* fit, int minBin, int maxBin) {
   double chisq = 0;
   for (int i = minBin; i <= maxBin; i++) {
@@ -85,34 +45,6 @@ double ndfInRange(TF1* fit, int minBin, int maxBin) {
 double ndfInRange(TH1* data, TF1* fit, double xmin, double xmax) {
   array<int, 2> bins = getProjectionBins(data->GetXaxis(), xmin, xmax);
   return ndfInRange(fit, bins[0], bins[1]);
-}
-
-double roundToNextPowerOfTen(double x) {
-  return std::pow(10., std::ceil(std::log10(x)));
-}
-double roundToPrevPowerOfTen(double x) {
-  return std::pow(10., std::floor(std::log10(x)));
-}
-
-// Return a hist that is a subset of the input hist
-TH1* makeHistSubset(TH1* data, int minBin, int maxBin, string name = "region") {
-  TH1* region = (TH1*)data->Clone(name.c_str());
-  region->Reset();
-  for (int i = minBin; i <= maxBin; i++) {
-    region->SetBinContent(i, data->GetBinContent(i));
-    region->SetBinError(i, data->GetBinError(i));
-  }
-  return region;
-}
-
-// Prints the parameter limits of a function
-void printParLimits(TF1* f) {
-  for (int i = 0; i < f->GetNpar(); i++) {
-    double min, max;
-    f->GetParLimits(i, min, max);
-    cout << f->GetName() << " (" << i << " = " << f->GetParName(i) << ") " << f->GetParameter(i) << " (" << min << ", " << max << ")" << endl;
-  }
-  cout << endl;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -956,7 +888,7 @@ TH1* MassFitter::loadMassHist() {
   if (this->inputs->normaliseData) {
     bins = getProjectionBins(h->GetXaxis(), this->inputs->massWindowMin, this->inputs->massWindowMax);
     minBin = bins[0], maxBin = bins[1];
-    h->Scale(1./getHistScaleInRange(h, minBin, maxBin, false, false));
+    h->Scale(1./getScaleInRange(h, minBin, maxBin, false, false));
   }
 
   string hName = this->inputs->getSaveNameFromPt("data");
@@ -2571,9 +2503,9 @@ int FitPlotter::plotFitInfo(int infoToPlot) {
     if (this->inputs->histName == "fitResults")
       histTitle += fitInfo->GetYaxis()->GetBinLabel(infoToPlot + 1);
 
-    yMinFrame = getHistLowerBound(hist, false);
+    yMinFrame = getLowerBound(hist, false);
     yMinFrame *= (yMinFrame < 0) ? 1.1 : 0.9;
-    yMaxFrame = 1.1 * getHistUpperBound(hist, false);
+    yMaxFrame = 1.1 * getUpperBound(hist, false);
   }
 
   hist->SetTitle(histTitle.c_str());
@@ -2684,7 +2616,7 @@ void FitPlotter::autoFrame() {
   double xMinFrame = this->mf->data->GetXaxis()->GetXmin();
   double xMaxFrame = this->mf->data->GetXaxis()->GetXmax();
   double yMinFrame = 0.;
-  double yMaxFrame = 1.1 * getHistUpperBound(this->mf->data, false);
+  double yMaxFrame = 1.1 * getUpperBound(this->mf->data, false);
   string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(this->inputs->hadron).c_str()).Data();
   string yTitle = "";
   string histTitle = TString::Format("%s, (%.1f < #it{p}_{T, V0} < %.1f)", getDataSet(this->inputs->train).c_str(), this->inputs->lowpt, this->inputs->highpt).Data();
@@ -2862,19 +2794,20 @@ void fitMassAndPlotPartsAllBins() {
 // Perform fit in a single pt bin
 void fitMassAndPlotPartsSingleBin() {
   InputSettings x;
-  x.setPt(10., 15.);
+  x.setPt(9., 10.);
   x.train = 426828;
-  x.hadron = "Lambda";
-  x.setFitType("pol1ExpGausExp");
+  x.hadron = "K0S";
+  x.setFitType("pol1GausGaus");
   x.normaliseData = true;
   x.nSigma = 3.;
   x.fixMu = true;
 
-  x.setFitX(1.1, 1.13);
+  // x.setFitX(1.1, 1.13);
+  x.setFitX(0.42, 0.55);
   x.setPolInitXFromHadron();
   x.setMassWindowDiffFromHadron();
   x.setInputFileNameFromTrain();
-  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+  // x.outputFileName = x.hadron + "_" + x.fitName + ".root";
 
   MassFitter m(x);
   m.loadMassHist();
@@ -2891,10 +2824,10 @@ void fitMassAndPlotPartsSingleBin() {
   m.loadResidualHist();
   m.loadPullHist();
 
-  m.writeOutputsToFile();
+  // m.writeOutputsToFile();
 
   FitPlotter p(m);
-  p.inputs->outputFileName = p.inputs->getSaveNameFromPt(p.inputs->hadron + "_" + p.inputs->fitName, ".pdf");
+  // p.inputs->outputFileName = p.inputs->getSaveNameFromPt(p.inputs->hadron + "_" + p.inputs->fitName, ".pdf");
   p.plotFitParts();
 }
 

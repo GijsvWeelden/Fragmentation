@@ -54,12 +54,12 @@ namespace MyStrings {
 
 namespace MyEnums {
   enum Verb {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
-  enum TriggerBins {kEMCALReadout = 9, kJetFullHighPt = 10, kJetFullLowPt = 11, kGammaHighPtEMCal = 16, kGammaLowPtEMCal = 18, kGammaVeryLowPtEMCal = 20};
+  enum TriggerBins {kEMCalReadout = 9, kJetFullHighPt = 10, kJetFullLowPt = 11, kGammaHighPtEMCal = 16, kGammaLowPtEMCal = 18, kGammaVeryLowPtEMCal = 20};
 }
 
 string getTriggerName(int trigger) {
   switch (trigger) {
-    case MyEnums::kEMCALReadout: return MyStrings::sEMCalReadout;
+    case MyEnums::kEMCalReadout: return MyStrings::sEMCalReadout;
     case MyEnums::kJetFullHighPt: return MyStrings::sJetFullHighPt;
     case MyEnums::kJetFullLowPt: return MyStrings::sJetFullLowPt;
     case MyEnums::kGammaHighPtEMCal: return MyStrings::sGammaHighPtEMCal;
@@ -184,6 +184,7 @@ struct Plotter {
     void addLatex(double x, double y, string s);
     void addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle, int lineWidth);
     void makeCanvas(string s, double x, double y);
+    void makeCanvas(double x, double y, string s);
     void makeFrame(string sx, string sy);
     void makeFrame(double x0, double x1, double y0, double y1, string sx, string sy);
     void makeLegend(double x0, double x1, double y0, double y1, string s);
@@ -234,6 +235,9 @@ void Plotter::makeFrame(string sx, string sy) {
   inputs->printLog(TString::Format("Plotter::makeFrame() x: %.2f, %.2f \ny: %.2f, %.2f", xMinFrame, xMaxFrame, yMinFrame, yMaxFrame).Data(), MyEnums::kDebug);
   makeFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, sx, sy);
 }
+void Plotter::makeCanvas(double x, double y, string s = "canvas") {
+  makeCanvas(s, x, y);
+}
 void Plotter::makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
   if (!canvas) makeCanvas();
   frame = DrawFrame(x0, x1, y0, y1, sx, sy);
@@ -243,12 +247,6 @@ void Plotter::makeLegend(double x0, double x1, double y0, double y1, string s) {
 }
 
 void Plotter::plot() {
-  if (hists.empty()) {
-    string s = "Plotter::plot(): Hist vector is empty! Aborting";
-    inputs->printLog(s, kErrors);
-    return;
-  }
-
   if (inputs->ratioplot) {
     TH1* baseCopy = (TH1*)hists[0]->Clone("baseCopy");
     for (auto& h : hists) h->Divide(baseCopy);
@@ -355,7 +353,7 @@ TH1* getTriggerCorrelation(InputSettings& x, TriggerBins trigger, TriggerBins as
 
   triggers->GetXaxis()->SetBinLabel(kTrigger, getTriggerName(trigger).c_str());
   triggers->GetXaxis()->SetBinLabel(kAssociate, getTriggerName(associate).c_str());
-  triggers->GetXaxis()->SetBinLabel(kBothBin, "Both");
+  triggers->GetXaxis()->SetBinLabel(kBothBin, "Overlap");
 
   triggers->SetBinContent(kTrigger, hTriggerCorrelation->GetBinContent(trigger, trigger));
   triggers->SetBinContent(kAssociate, hTriggerCorrelation->GetBinContent(associate, associate));
@@ -363,7 +361,7 @@ TH1* getTriggerCorrelation(InputSettings& x, TriggerBins trigger, TriggerBins as
   return triggers;
 }
 
-void plotTriggerCorrelation(int trigger, int associate) {
+void plotTriggerCorrelation(TriggerBins trigger, TriggerBins associate) {
   InputSettings x; x.verbosity = kDebug;
   x.train = 462605;
   x.setInputFileNameFromTrain();
@@ -374,7 +372,6 @@ void plotTriggerCorrelation(int trigger, int associate) {
     return;
   }
 
-  TCanvas* c = new TCanvas("c", "c", 800, 600);
   setStyle(triggers, 0);
   triggers->SetStats(0);
   triggers->Scale(1. / triggers->GetBinContent(1)); // Normalise to primary trigger
@@ -390,6 +387,38 @@ void plotTriggerCorrelation(int trigger, int associate) {
   p.plot();
 }
 
+void plotTriggerCorrelationText(TriggerBins trigger, TriggerBins associate) {
+  InputSettings x; x.verbosity = kDebug;
+  x.train = 462605;
+  x.setInputFileNameFromTrain();
+  x.outputFileName = "triggerCorrelation_" + getTriggerName(trigger) + "-" + getTriggerName(associate) + ".pdf";
+  TH1* triggers = getTriggerCorrelation(x, trigger, associate);
+  if (!triggers) {
+    x.printLog(TString::Format("plotTriggerCorrelation() Error: could not get trigger correlation for %d and %d", trigger, associate).Data(), kErrors);
+    return;
+  }
+
+  setStyle(triggers, 0);
+  triggers->SetStats(0);
+  triggers->Scale(1. / triggers->GetBinContent(1)); // Normalise to primary trigger
+  triggers->SetMinimum(0.);
+  triggers->SetMaximum(1.1);
+
+  Plotter p(x);
+  p.makeCanvas();
+  p.frame = (TH1F*)triggers->Clone("frame");
+
+  p.addLatex(0.45, 0.83, TString::Format("%s, %s", sThisThesis.c_str(), sData.c_str()).Data());
+  p.addLatex(0.45, 0.78, sSqrtS.c_str());
+
+  // p.addLatex(0.45, triggers->GetBinContent(2), TString::Format("%.2f", triggers->GetBinContent(2)).Data());
+  // p.addLatex(0.45, triggers->GetBinContent(3), TString::Format("%.2f", triggers->GetBinContent(3)).Data());
+
+  p.frame->Draw("hist text0");
+  for (auto l : p.objects) l->Draw();
+  p.canvas->SaveAs(x.outputFileName.c_str());
+}
+
 void plotTriggerCorrelation() {
   gROOT->SetBatch(true);
   plotTriggerCorrelation(kGammaHighPtEMCal, kJetFullHighPt);
@@ -397,11 +426,135 @@ void plotTriggerCorrelation() {
   plotTriggerCorrelation(kGammaLowPtEMCal, kJetFullHighPt);
   plotTriggerCorrelation(kGammaLowPtEMCal, kJetFullLowPt);
 
-  plotTriggerCorrelation(kJetFullLowPt, kJetFullHighPt);
-  plotTriggerCorrelation(kGammaLowPtEMCal, kGammaHighPtEMCal);
-
   plotTriggerCorrelation(kJetFullHighPt, kJetFullLowPt);
   plotTriggerCorrelation(kGammaHighPtEMCal, kGammaLowPtEMCal);
+}
+
+void jetGammaCorrelation1D(bool drawText = false) {
+  vector<TriggerBins> triggers = {kJetFullLowPt, kJetFullHighPt, kGammaHighPtEMCal, kGammaLowPtEMCal};
+  enum Bins {kJetHighGammaHigh = 1, kJetLowGammaHigh, kJetHighGammaLow, kJetLowGammaLow, kNbinsPlusOne};
+  InputSettings x; x.verbosity = kDebug;
+  x.train = 462605;
+  x.setInputFileNameFromTrain();
+  double textSize = 0.05;
+
+  string histName = "triggerCorrelation_";
+  for (auto trig : triggers) {
+    histName += getTriggerName(trig) + "-";
+  }
+  x.outputFileName = histName + "1D.pdf";
+
+  TFile* file = TFile::Open(x.inputFileName.c_str(), "READ");
+  TH2* hTriggerCorrelation = (TH2*)file->Get(x.histName.c_str());
+
+  int nTriggersPerPlot = kNbinsPlusOne - 1;
+  TH1* hTriggers = new TH1D(histName.c_str(), ";;Fraction of jet trigger rate", nTriggersPerPlot, 0, nTriggersPerPlot);
+  hTriggers->GetXaxis()->SetBinLabel(kJetHighGammaHigh, TString::Format("#splitline{%s &}{ %s}", getTriggerName(kJetFullHighPt).c_str(), getTriggerName(kGammaHighPtEMCal).c_str()).Data());
+  hTriggers->GetXaxis()->SetBinLabel(kJetLowGammaHigh, TString::Format("#splitline{%s &}{ %s}", getTriggerName(kJetFullLowPt).c_str(), getTriggerName(kGammaHighPtEMCal).c_str()).Data());
+  hTriggers->GetXaxis()->SetBinLabel(kJetHighGammaLow, TString::Format("#splitline{%s &}{ %s}", getTriggerName(kJetFullHighPt).c_str(), getTriggerName(kGammaLowPtEMCal).c_str()).Data());
+  hTriggers->GetXaxis()->SetBinLabel(kJetLowGammaLow, TString::Format("#splitline{%s &}{ %s}", getTriggerName(kJetFullLowPt).c_str(), getTriggerName(kGammaLowPtEMCal).c_str()).Data());
+
+  double jetLowCorrection = 10, gammaLowCorrection = 20.;
+  double nJetFullHigh          = hTriggerCorrelation->GetBinContent(kJetFullHighPt, kJetFullHighPt);
+  double nJetFullLow           = hTriggerCorrelation->GetBinContent(kJetFullLowPt, kJetFullLowPt) * jetLowCorrection;
+  double nGammaHigh            = hTriggerCorrelation->GetBinContent(kGammaHighPtEMCal, kGammaHighPtEMCal);
+  double nGammaLow             = hTriggerCorrelation->GetBinContent(kGammaLowPtEMCal, kGammaLowPtEMCal) * gammaLowCorrection;
+  double nJetFullHighGammaHigh = hTriggerCorrelation->GetBinContent(kJetFullHighPt, kGammaHighPtEMCal);
+  double nJetFullHighGammaLow  = hTriggerCorrelation->GetBinContent(kJetFullHighPt, kGammaLowPtEMCal) * gammaLowCorrection;
+  double nJetFullLowGammaHigh  = hTriggerCorrelation->GetBinContent(kJetFullLowPt, kGammaHighPtEMCal) * jetLowCorrection;
+  double nJetFullLowGammaLow   = hTriggerCorrelation->GetBinContent(kJetFullLowPt, kGammaLowPtEMCal) * jetLowCorrection * gammaLowCorrection;
+
+  hTriggers->SetBinContent(kJetHighGammaHigh, nJetFullHighGammaHigh / nJetFullHigh);
+  hTriggers->SetBinContent(kJetHighGammaLow, nJetFullHighGammaLow / nJetFullHigh);
+  hTriggers->SetBinContent(kJetLowGammaHigh, nJetFullLowGammaHigh / nJetFullLow);
+  hTriggers->SetBinContent(kJetLowGammaLow, nJetFullLowGammaLow / nJetFullLow);
+
+  setStyle(hTriggers, 0);
+  hTriggers->SetStats(0);
+  hTriggers->SetMinimum(0.);
+  hTriggers->SetMaximum(1.);
+  hTriggers->GetXaxis()->SetLabelSize(textSize);
+  hTriggers->GetYaxis()->SetLabelSize(textSize);
+  hTriggers->GetYaxis()->SetTitleSize(textSize);
+  hTriggers->SetMarkerSize(2.);
+  // hTriggers->SetBarOffset(0.6);
+
+  Plotter p(x);
+  p.textSize = textSize;
+  if (drawText) p.setDrawOption("text0");
+  // p.setDrawOption("bar");
+  p.makeCanvas(1400, 600);
+  p.frame = (TH1F*)hTriggers->Clone("frame");
+  // p.frame->Reset();
+  p.hists.push_back(hTriggers);
+
+  p.addLatex(0.25, 0.80, sThisThesis.c_str());
+  p.addLatex(0.25, 0.75, sData.c_str());
+  p.addLatex(0.25, 0.70, sSqrtS.c_str());
+  p.plot();
+}
+
+void jetGammaCorrelation2D(bool drawText = true) {
+  vector<TriggerBins> triggers = {kJetFullLowPt, kJetFullHighPt, kGammaHighPtEMCal, kGammaLowPtEMCal};
+  enum xBins {kJetLow = 1, kJetHigh, kNxPlusOne};
+  enum yBins {kGammaLow = 1, kGammaHigh, kNyPlusOne};
+  InputSettings x; x.verbosity = kDebug;
+  x.train = 462605;
+  x.setInputFileNameFromTrain();
+
+  string histName = "triggerCorrelation_";
+  for (auto trig : triggers) {
+    histName += getTriggerName(trig) + "-";
+  }
+  x.outputFileName = histName + "2D.pdf";
+
+  TFile* file = TFile::Open(x.inputFileName.c_str(), "READ");
+  TH2* hTriggerCorrelation = (TH2*)file->Get(x.histName.c_str());
+
+  TH2* hTriggers = new TH2D(histName.c_str(), "Fraction of jet trigger rate", kNxPlusOne - 1, 0, kNxPlusOne - 1, kNyPlusOne - 1, 0, kNyPlusOne - 1);
+  hTriggers->GetXaxis()->SetBinLabel(kJetLow, getTriggerName(kJetFullLowPt).c_str());
+  hTriggers->GetXaxis()->SetBinLabel(kJetHigh, getTriggerName(kJetFullHighPt).c_str());
+  hTriggers->GetYaxis()->SetBinLabel(kGammaLow, getTriggerName(kGammaLowPtEMCal).c_str());
+  hTriggers->GetYaxis()->SetBinLabel(kGammaHigh, getTriggerName(kGammaHighPtEMCal).c_str());
+
+  double jetLowCorrection = 10, gammaLowCorrection = 20.;
+  double nJetFullHigh          = hTriggerCorrelation->GetBinContent(kJetFullHighPt, kJetFullHighPt);
+  double nJetFullLow           = hTriggerCorrelation->GetBinContent(kJetFullLowPt, kJetFullLowPt) * jetLowCorrection;
+  double nGammaHigh            = hTriggerCorrelation->GetBinContent(kGammaHighPtEMCal, kGammaHighPtEMCal);
+  double nGammaLow             = hTriggerCorrelation->GetBinContent(kGammaLowPtEMCal, kGammaLowPtEMCal) * gammaLowCorrection;
+  double nJetFullHighGammaHigh = hTriggerCorrelation->GetBinContent(kJetFullHighPt, kGammaHighPtEMCal);
+  double nJetFullHighGammaLow  = hTriggerCorrelation->GetBinContent(kJetFullHighPt, kGammaLowPtEMCal) * gammaLowCorrection;
+  double nJetFullLowGammaHigh  = hTriggerCorrelation->GetBinContent(kJetFullLowPt, kGammaHighPtEMCal) * jetLowCorrection;
+  double nJetFullLowGammaLow   = hTriggerCorrelation->GetBinContent(kJetFullLowPt, kGammaLowPtEMCal) * jetLowCorrection * gammaLowCorrection;
+
+  hTriggers->SetBinContent(kJetLow, kGammaLow, nJetFullLowGammaLow / nJetFullLow);
+  hTriggers->SetBinContent(kJetLow, kGammaHigh, nJetFullLowGammaHigh / nJetFullLow);
+  hTriggers->SetBinContent(kJetHigh, kGammaLow, nJetFullHighGammaLow / nJetFullHigh);
+  hTriggers->SetBinContent(kJetHigh, kGammaHigh, nJetFullHighGammaHigh / nJetFullHigh);
+
+  setStyle(hTriggers, 0);
+  hTriggers->SetStats(0);
+  hTriggers->SetMinimum(0.);
+  hTriggers->SetMaximum(1.);
+  hTriggers->SetMarkerSize(2.);
+
+  Plotter p(x);
+  if (drawText) p.setDrawOption("text0");
+  else p.setDrawOption("colz");
+
+  p.makeCanvas(800, 600);
+  gPad->SetLeftMargin(0.25);
+
+  p.frame = (TH1F*)hTriggers->Clone("frame");
+  p.frame->GetXaxis()->SetLabelSize(0.05);
+  p.frame->GetYaxis()->SetLabelSize(0.05);
+  p.frame->Reset();
+  p.hists.push_back(hTriggers);
+
+  p.addLatex(0.03, 0.90, sThisThesis.c_str());
+  p.addLatex(0.03, 0.85, sData.c_str());
+  p.addLatex(0.03, 0.80, sSqrtS.c_str());
+  p.plot();
 }
 
 #endif

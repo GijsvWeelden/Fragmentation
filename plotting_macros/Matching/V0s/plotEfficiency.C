@@ -27,7 +27,7 @@
 namespace MyEnums {
   enum Verb {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
   enum Level {kGenerator, kReconstructed, kGeneratorJet, kReconstructedJet, kGeneratorJetMatched, kReconstructedJetMatched, kReconstructedPileUpOnly, kReconstructedJetPileUpOnly, kReconstructedJetMatchedPileUpOnly};
-  enum Strings {kPt, kOther};
+  enum PlotType {kPlotPt, kPlotEff, kPlotPtJets, kPlotEffJets, kPlotPtJetsMatched, kPlotEffJetsMatched};
 }
 using namespace MyEnums;
 
@@ -64,6 +64,7 @@ struct InputSettings{
     void setLowHighFromAxis(const TAxis* axis, double& low, double& high);
     void setEta(double a, double b);
     void setJetPt(double a, double b);
+    void setJetPt(vector<double> bin);
     void setPt(double a, double b);
     vector<vector<double>> setPtBinEdgesFromHadron();
     vector<vector<double>> setPtBinEdgesSorted(vector<vector<double>> x);
@@ -106,10 +107,10 @@ string InputSettings::getHistName(int x) {
       s += "/inclusive/" + hadron + "PtEtaMassWrongCollision";
       break;
     case kReconstructedJetPileUpOnly:
-      s += "/jets/JetPtEta" + hadron + "PtEtaMassWrongCollision";
+      s += "/jets/JetPtEta" + hadron + "PtWrongCollision";
       break;
     case kReconstructedJetMatchedPileUpOnly:
-      s += "/jets/JetsPtEta" + hadron + "PtEtaMassWrongCollision";
+      s += "/jets/JetsPtEta" + hadron + "PtWrongCollision";
       break;
     default:
       printLog("InputSettings::getHistName() Error: invalid setting " + to_string(x), kErrors);
@@ -192,6 +193,10 @@ void InputSettings::setJetPt(double a, double b) {
   this->ptmaxjet = b;
   this->lowptjet = a;
   this->highptjet = b;
+}
+
+void InputSettings::setJetPt(vector<double> bin) {
+  setJetPt(bin[0], bin[1]);
 }
 
 vector<vector<double>> InputSettings::setPtBinEdgesFromHadron() {
@@ -339,12 +344,6 @@ void Plotter::makeLegend(double x0, double x1, double y0, double y1, string s) {
 }
 
 void Plotter::plot() {
-  if (hists.empty()) {
-    string s = "Plotter::plot(): Hist vector is empty! Aborting";
-    inputs->printLog(s, kErrors);
-    return;
-  }
-
   if (inputs->ratioplot) {
     TH1* baseCopy = (TH1*)hists[0]->Clone("baseCopy");
     for (auto& h : hists) h->Divide(baseCopy);
@@ -409,6 +408,16 @@ struct EfficiencyFinder {
 
   TH1* getPtHist(int type, string name);
   std::array<TH1*, 2> getPtHistRebinnedAndNormalised(int type);
+
+  void plotIncl(bool plotSpectra, bool subPileUp, bool rebinHists);
+  void plotPtIncl(bool subPileUp, bool rebinHists);
+  void plotEffIncl(bool subPileUp, bool rebinHists);
+
+  void plotJets(double ptmin, double ptmax, bool plotSpectra, bool subPileUp, bool plotMatched, bool rebinHists);
+  void plotPtJets(double ptmin, double ptmax, bool subPileUp, bool rebinHists);
+  void plotPtJetsMatched(double ptmin, double ptmax, bool subPileUp, bool rebinHists);
+  void plotEffJets(double ptmin, double ptmax, bool subPileUp, bool rebinHists);
+  void plotEffJetsMatched(double ptmin, double ptmax, bool subPileUp, bool rebinHists);
 };
 
 TH1* EfficiencyFinder::getPtHist(int type, string name) {
@@ -495,37 +504,20 @@ std::array<TH1*, 2> EfficiencyFinder::getPtHistRebinnedAndNormalised(int type) {
   return std::array{hRecRebinned, hGenRebinned};
 }
 
-// -------------------------------------------------------------------------------------------------
-//
-// Interface
-//
-// -------------------------------------------------------------------------------------------------
-
-void plotIncl(bool plotSpectra, bool subPileUp, bool rebinHists) {
-  InputSettings x; x.verbosity = kDebug;
-  x.hadron = "K0S";
-  x.train = ; // Wait for train with pileup corrections
-  x.setInputFileNameFromTrain();
-  x.outputFileName = x.hadron + "_incl";
-  x.outputFileName += plotSpectra ? "_pt" : "_eff";
-  x.outputFileName += subPileUp ? "_subPU" : "";
-  x.outputFileName += ".pdf";
-  x.setEta(-0.9, 0.9);
-
-  EfficiencyFinder ef(x);
-  ef.plotter->hists.clear();
-  TH1* hRec = ef.getPtHist(kReconstructed, "hRec");
-  TH1* hGen = ef.getPtHist(kGenerator, "hGen");
+void EfficiencyFinder::plotIncl(bool plotSpectra, bool subPileUp, bool rebinHists) {
+  plotter->hists.clear();
+  TH1* hRec = getPtHist(kReconstructed, "hRec");
+  TH1* hGen = getPtHist(kGenerator, "hGen");
 
   if (subPileUp) {
-    TH1* hRecPileUp = ef.getPtHist(kReconstructedPileUpOnly, "hRecPileUp");
+    TH1* hRecPileUp = getPtHist(kReconstructedPileUpOnly, "hRecPileUp");
     hRec->Add(hRecPileUp, -1);
   }
 
   if (rebinHists) {
-    TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(x.hadron, "hRecRebinned"));
+    TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(inputs->hadron, "hRecRebinned"));
     hRec = (TH1*)tmp->Clone();
-    tmp = rebinHist(hGen, rebinnedV0PtHist(x.hadron, "hGenRebinned"));
+    tmp = rebinHist(hGen, rebinnedV0PtHist(inputs->hadron, "hGenRebinned"));
     hGen = (TH1*)tmp->Clone();
   }
 
@@ -534,75 +526,66 @@ void plotIncl(bool plotSpectra, bool subPileUp, bool rebinHists) {
   hRec->Scale(1. / xSec, "width");
 
   if (plotSpectra) {
-    x.logplot = true;
-    ef.plotter->hists.push_back(hRec);
-    ef.plotter->hists.push_back(hGen);
-    ef.plotter->setHistStyles();
+    inputs->logplot = true;
+    plotter->hists.push_back(hRec);
+    plotter->hists.push_back(hGen);
+    plotter->setHistStyles();
 
-    ef.plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
-    ef.plotter->legend->AddEntry(hGen, "Generated");
-    ef.plotter->legend->AddEntry(hRec, "Reconstructed");
+    plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
+    plotter->legend->AddEntry(hGen, "Generated");
+    plotter->legend->AddEntry(hRec, "Reconstructed");
 
-    string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-    string yTitle = TString::Format("#frac{1}{%s} %s", ef.plotter->sSigma.c_str(), ef.plotter->getdYdXString(ef.plotter->sSigma, xTitle).c_str()).Data();
-    ef.plotter->makeFrame(0., 40., 1e-9, 10., xTitle, yTitle);
+    string xTitle = plotter->getPtString(plotter->sV0);
+    string yTitle = TString::Format("#frac{1}{%s} %s", plotter->sSigma.c_str(), plotter->getdYdXString(plotter->sSigma, xTitle).c_str()).Data();
+    plotter->makeFrame(0., 40., 1e-9, 10., xTitle, yTitle);
 
-    ef.plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", ef.plotter->sThisThesis.c_str(), ef.plotter->sPythia.c_str()).Data());
-    ef.plotter->addLatex(0.45, 0.78, ef.plotter->sSqrtS.c_str());
-    ef.plotter->addLatex(0.45, 0.73, TString::Format("|#eta| < %.1f", ef.inputs->etamax).Data());
+    plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", plotter->sThisThesis.c_str(), plotter->sPythia.c_str()).Data());
+    plotter->addLatex(0.45, 0.78, plotter->sSqrtS.c_str());
+    plotter->addLatex(0.45, 0.73, TString::Format("|#eta| < %.1f", inputs->etamax).Data());
   } else { // Efficiency
     TH1* hEff = (TH1*)hRec->Clone("hEff");
     hEff->Divide(hGen);
-    ef.plotter->hists.push_back(hEff);
-    ef.plotter->setHistStyles();
+    plotter->hists.push_back(hEff);
+    plotter->setHistStyles();
 
-    string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
+    string xTitle = plotter->getPtString(plotter->sV0);
     string yTitle = "Efficiency";
 
-    ef.plotter->makeFrame(0., 40., 0., 1.1, xTitle, yTitle);
-    ef.plotter->addLatex(0.63, 0.80, ef.plotter->sThisThesis.c_str());
-    ef.plotter->addLatex(0.63, 0.75, ef.plotter->sPythia.c_str());
-    ef.plotter->addLatex(0.63, 0.70, ef.plotter->sSqrtS.c_str());
-    ef.plotter->addLatex(0.63, 0.65, TString::Format("|#eta| < %.1f", ef.inputs->etamax).Data());
+    plotter->makeFrame(0., 40., 0., 1.1, xTitle, yTitle);
+    plotter->addLatex(0.63, 0.80, plotter->sThisThesis.c_str());
+    plotter->addLatex(0.63, 0.75, plotter->sPythia.c_str());
+    plotter->addLatex(0.63, 0.70, plotter->sSqrtS.c_str());
+    plotter->addLatex(0.63, 0.65, TString::Format("|#eta| < %.1f", inputs->etamax).Data());
   }
 
-  ef.plotter->plot();
+  plotter->plot();
 }
-void plotPtIncl(bool subPileUp, bool rebinHists) { plotIncl(true, subPileUp, rebinHists); }
-void plotEffIncl(bool subPileUp, bool rebinHists) { plotIncl(false, subPileUp, rebinHists); }
 
-void plotJets(double ptmin, double ptmax, bool plotSpectra, bool subPileUp, bool plotMatched, bool rebinHists) {
-  InputSettings x; x.verbosity = kDebug;
-  x.hadron = "K0S";
-  x.train = ;
+void EfficiencyFinder::plotPtIncl(bool subPileUp, bool rebinHists) {
+  plotIncl(true, subPileUp, rebinHists);
+}
 
-  x.setInputFileNameFromTrain();
-  x.setEta(-0.5, 0.5);
-  x.setJetPt(ptmin, ptmax);
-  x.outputFileName = x.hadron;
-  x.outputFileName += plotSpectra ? "_pt" : "_eff";
-  x.outputFileName += TString::Format("_jetpt%.f-%.f", x.ptminjet, x.ptmaxjet).Data();
-  x.outputFileName += subPileUp ? "_subPU" : "";
-  x.outputFileName += plotMatched ? "_matched" : "";
-  x.outputFileName += ".pdf";
+void EfficiencyFinder::plotEffIncl(bool subPileUp, bool rebinHists) {
+  plotIncl(false, subPileUp, rebinHists);
+}
 
-  EfficiencyFinder ef(x);
-  ef.plotter->hists.clear();
+void EfficiencyFinder::plotJets(double ptmin, double ptmax, bool plotSpectra, bool subPileUp, bool plotMatched, bool rebinHists) {
+  plotter->hists.clear();
   int jetType = plotMatched ? kReconstructedJetMatched : kReconstructedJet;
-  TH1* hRec = ef.getPtHist(jetType, "hRec");
+  TH1* hRec = getPtHist(jetType, "hRec");
   jetType = plotMatched ? kGeneratorJetMatched : kGeneratorJet;
-  TH1* hGen = ef.getPtHist(jetType, "hGen");
+  TH1* hGen = getPtHist(jetType, "hGen");
 
   if (subPileUp) {
     jetType = plotMatched ? kReconstructedJetMatchedPileUpOnly : kReconstructedJetPileUpOnly;
-    TH1* hRecPileUp = ef.getPtHist(jetType, "hRecPileUp");
+    TH1* hRecPileUp = getPtHist(jetType, "hRecPileUp");
     hRec->Add(hRecPileUp, -1);
   }
 
   if (rebinHists) {
-    TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(x.hadron, "hRecRebinned"));
+    TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(inputs->hadron, "hRecRebinned"));
     hRec = (TH1*)tmp->Clone();
-    tmp = rebinHist(hGen, rebinnedV0PtHist(x.hadron, "hGenRebinned"));
+    tmp = rebinHist(hGen, rebinnedV0PtHist(inputs->hadron, "hGenRebinned"));
     hGen = (TH1*)tmp->Clone();
   }
 
@@ -612,392 +595,192 @@ void plotJets(double ptmin, double ptmax, bool plotSpectra, bool subPileUp, bool
   hRec->Scale(1. / xSec, "width");
 
   if (plotSpectra) {
-    x.logplot = true;
-    ef.plotter->hists.push_back(hRec);
-    ef.plotter->hists.push_back(hGen);
-    ef.plotter->setHistStyles();
+    inputs->logplot = true;
+    plotter->hists.push_back(hRec);
+    plotter->hists.push_back(hGen);
+    plotter->setHistStyles();
 
-    ef.plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
-    ef.plotter->legend->AddEntry(hGen, "Generated");
-    ef.plotter->legend->AddEntry(hRec, "Reconstructed");
+    plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
+    plotter->legend->AddEntry(hGen, "Generated");
+    plotter->legend->AddEntry(hRec, "Reconstructed");
 
-    string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-    string yTitle = TString::Format("#frac{1}{%s} %s", ef.plotter->sSigma.c_str(), ef.plotter->getdYdXString(ef.plotter->sSigma, xTitle).c_str()).Data();
-    ef.plotter->makeFrame(0., ptmax, 1e-5, 1., xTitle, yTitle);
+    string xTitle = plotter->getPtString(plotter->sV0);
+    string yTitle = TString::Format("#frac{1}{%s} %s", plotter->sSigma.c_str(), plotter->getdYdXString(plotter->sSigma, xTitle).c_str()).Data();
+    plotter->makeFrame(0., ptmax, 1e-5, 1., xTitle, yTitle);
 
-    ef.plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", ef.plotter->sThisThesis.c_str(), ef.plotter->sPythia.c_str()).Data());
-    ef.plotter->addLatex(0.45, 0.78, ef.plotter->sSqrtS.c_str());
-    ef.plotter->addLatex(0.45, 0.73, TString::Format("%s, %s, |#eta| < %.1f", ef.plotter->sAntiktJets.c_str(), ef.plotter->sRadius.c_str(), ef.inputs->etamax).Data());
-    ef.plotter->addLatex(0.45, 0.68, TString::Format("%.1f < %s < %.1f %s", ef.inputs->ptminjet, ef.plotter->getPtString("jet").c_str(), ef.inputs->ptmaxjet, ef.plotter->sGevC.c_str()).Data());
+    plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", plotter->sThisThesis.c_str(), plotter->sPythia.c_str()).Data());
+    plotter->addLatex(0.45, 0.78, plotter->sSqrtS.c_str());
+    plotter->addLatex(0.45, 0.73, TString::Format("%s, %s, |#eta| < %.1f", plotter->sAntiktJets.c_str(), plotter->sRadius.c_str(), inputs->etamax).Data());
+    plotter->addLatex(0.45, 0.68, TString::Format("%.1f < %s < %.1f %s", inputs->ptminjet, plotter->getPtString("jet").c_str(), inputs->ptmaxjet, plotter->sGevC.c_str()).Data());
   } else { // Efficiency
     TH1* hEff = (TH1*)hRec->Clone("hEff");
     hEff->Divide(hGen);
-    ef.plotter->hists.push_back(hEff);
-    ef.plotter->setHistStyles();
+    plotter->hists.push_back(hEff);
+    plotter->setHistStyles();
 
-    string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
+    string xTitle = plotter->getPtString(plotter->sV0);
     string yTitle = "Efficiency";
-    ef.plotter->makeFrame(0., ptmax, 0., 1.1, xTitle, yTitle);
+    plotter->makeFrame(0., ptmax, 0., 1.1, xTitle, yTitle);
 
-    ef.plotter->addLatex(0.63, 0.80, ef.plotter->sThisThesis.c_str());
-    ef.plotter->addLatex(0.63, 0.75, ef.plotter->sPythia.c_str());
-    ef.plotter->addLatex(0.63, 0.70, ef.plotter->sSqrtS.c_str());
-    ef.plotter->addLatex(0.63, 0.65, TString::Format("%s, %s, |#eta| < %.1f", ef.plotter->sAntiktJets.c_str(), ef.plotter->sRadius.c_str(), ef.inputs->etamax).Data());
-    ef.plotter->addLatex(0.63, 0.60, TString::Format("%.1f < %s < %.1f %s", ef.inputs->ptminjet, ef.plotter->getPtString("jet").c_str(), ef.inputs->ptmaxjet, ef.plotter->sGevC.c_str()).Data());
+    plotter->addLatex(0.63, 0.80, plotter->sThisThesis.c_str());
+    plotter->addLatex(0.63, 0.75, plotter->sPythia.c_str());
+    plotter->addLatex(0.63, 0.70, plotter->sSqrtS.c_str());
+    plotter->addLatex(0.63, 0.65, TString::Format("%s, %s, |#eta| < %.1f", plotter->sAntiktJets.c_str(), plotter->sRadius.c_str(), inputs->etamax).Data());
+    plotter->addLatex(0.63, 0.60, TString::Format("%.1f < %s < %.1f %s", inputs->ptminjet, plotter->getPtString("jet").c_str(), inputs->ptmaxjet, plotter->sGevC.c_str()).Data());
   }
-  ef.plotter->plot();
+  plotter->plot();
 }
 
-void plotPtJets(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+void EfficiencyFinder::plotPtJets(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
   bool plotSpectra = true, plotMatched = false;
   plotJets(ptmin, ptmax, plotSpectra, subPileUp, plotMatched, rebinHists);
 }
-void plotPtJetsMatched(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+void EfficiencyFinder::plotPtJetsMatched(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
   bool plotSpectra = true, plotMatched = true;
   plotJets(ptmin, ptmax, plotSpectra, subPileUp, plotMatched, rebinHists);
 }
-void plotEffJets(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+void EfficiencyFinder::plotEffJets(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
   bool plotSpectra = false, plotMatched = false;
   plotJets(ptmin, ptmax, plotSpectra, subPileUp, plotMatched, rebinHists);
 }
-void plotEffJetsMatched(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+void EfficiencyFinder::plotEffJetsMatched(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
   bool plotSpectra = false, plotMatched = true;
   plotJets(ptmin, ptmax, plotSpectra, subPileUp, plotMatched, rebinHists);
 }
 
+// -------------------------------------------------------------------------------------------------
+//
+// Interface
+//
+// -------------------------------------------------------------------------------------------------
 
-// Pt and Efficiency
-// void plotPtIncl(bool rebin) {
+void doPlotting(PlotType mode, bool subPileUp, bool rebinHists, double ptmin = -1., double ptmax = -1.) {
+  InputSettings x; x.verbosity = kDebug;
+  x.hadron = "K0S";
+  x.train = 476307;
+  // 476306: MB
+  // 475816: Jet-Jet
+
+  x.setJetPt(ptmin, ptmax);
+  x.setInputFileNameFromTrain();
+  EfficiencyFinder ef(x);
+
+  switch (mode) {
+    case kPlotPt:
+      x.outputFileName = x.hadron + "_pt" + (subPileUp ? "_subPU" : "") + ".pdf";
+      x.setEta(-0.9, 0.9);
+      ef.plotPtIncl(subPileUp, rebinHists);
+      break;
+    case kPlotEff:
+      x.outputFileName = x.hadron + "_eff" + (subPileUp ? "_subPU" : "") + ".pdf";
+      x.setEta(-0.9, 0.9);
+      ef.plotEffIncl(subPileUp, rebinHists);
+      break;
+    case kPlotPtJets:
+      x.outputFileName = x.getNameFromJetPt(x.hadron + "_pt", (subPileUp ? "_subPU" : "")) + ".pdf";
+      x.setEta(-0.5, 0.5);
+      ef.plotPtJets(ptmin, ptmax, subPileUp, rebinHists);
+      break;
+    case kPlotEffJets:
+      x.outputFileName = x.getNameFromJetPt(x.hadron + "_eff", (subPileUp ? "_subPU" : "")) + ".pdf";
+      x.setEta(-0.5, 0.5);
+      ef.plotEffJets(ptmin, ptmax, subPileUp, rebinHists);
+      break;
+    case kPlotPtJetsMatched:
+      x.outputFileName = x.getNameFromJetPt(x.hadron + "_pt", "_matched") + (subPileUp ? "_subPU" : "") + ".pdf";
+      x.setEta(-0.5, 0.5);
+      ef.plotPtJetsMatched(ptmin, ptmax, subPileUp, rebinHists);
+      break;
+    case kPlotEffJetsMatched:
+      x.outputFileName = x.getNameFromJetPt(x.hadron + "_eff", "_matched") + (subPileUp ? "_subPU" : "") + ".pdf";
+      x.setEta(-0.5, 0.5);
+      ef.plotEffJetsMatched(ptmin, ptmax, subPileUp, rebinHists);
+      break;
+    default:
+      x.printLog("doPlotting() Error: invalid mode " + to_string(mode), kErrors);
+  }
+}
+
+void plotpt(bool subPileUp, bool rebinHists) { doPlotting(kPlotPt, subPileUp, rebinHists); }
+void ploteff(bool subPileUp, bool rebinHists) { doPlotting(kPlotEff, subPileUp, rebinHists); }
+
+void plotptjets(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+  doPlotting(kPlotPtJets, subPileUp, rebinHists, ptmin, ptmax);
+}
+void ploteffjets(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+  doPlotting(kPlotEffJets, subPileUp, rebinHists, ptmin, ptmax);
+}
+void plotptjetsmatched(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+  doPlotting(kPlotPtJetsMatched, subPileUp, rebinHists, ptmin, ptmax);
+}
+void ploteffjetsmatched(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+  doPlotting(kPlotEffJetsMatched, subPileUp, rebinHists, ptmin, ptmax);
+}
+
+void allmyplots(bool subPileUp = true, bool rebinHists = true) {
+  gROOT->SetBatch();
+
+  plotpt(subPileUp, rebinHists);
+  ploteff(subPileUp, rebinHists);
+
+  plotptjets(10., 20., subPileUp, rebinHists);
+  plotptjets(20., 30., subPileUp, rebinHists);
+
+  ploteffjets(10., 20., subPileUp, rebinHists);
+  ploteffjets(20., 30., subPileUp, rebinHists);
+
+  plotptjetsmatched(10., 20., subPileUp, rebinHists);
+  plotptjetsmatched(20., 30., subPileUp, rebinHists);
+
+  ploteffjetsmatched(10., 20., subPileUp, rebinHists);
+  ploteffjetsmatched(20., 30., subPileUp, rebinHists);
+}
+
+// void plotEffComparison(Level plotLevel, bool subPileUp = true, bool rebinHists = true) {
+//   vector<int> trains = {476306, 475816};
+//   vector<vector<double>> jetptbins = { {10., 20.}, {20., 30.} };
+//   // Plot eff for both trains or both pt bins
 //   InputSettings x; x.verbosity = kDebug;
-//   x.hadron = "K0S";
-//   x.train = 468658;
-
+//   x.train = trains[0];
 //   x.setInputFileNameFromTrain();
-//   x.outputFileName = x.hadron + "_incl_pt.pdf";
-//   x.logplot = true;
-//   x.setEta(-0.9, 0.9);
+//   x.setJetPt(jetptbins[0]);
 
-//   TH1* hRec;
-//   TH1* hGen;
+//   Level lRec =
+//   TH1* hRec = getPtHist(kReconstructed, "hRec");
+//   TH1* hGen = getPtHist(kGenerator, "hGen");
+// }
 
-//   EfficiencyFinder ef(x);
-//   ef.plotter->hists.clear();
-//   if (rebin) {
-//     std::array<TH1*, 2> hists = ef.getPtHistRebinnedAndNormalised(kReconstructed);
-//     hRec = hists[0];
-//     hGen = hists[1];
-//   } else {
-//     hRec = ef.getPtHist(kReconstructed, "hRec");
-//     hGen = ef.getPtHist(kGenerator, "hGen");
 
-//     double crossSection = hGen->Integral(1, hGen->GetNbinsX(), "width");
-//     hGen->Scale(1. / crossSection, "width");
-//     hRec->Scale(1. / crossSection, "width");
+
+//   if (subPileUp) {
+//     TH1* hRecPileUp = getPtHist(kReconstructedPileUpOnly, "hRecPileUp");
+//     hRec->Add(hRecPileUp, -1);
 //   }
 
-//   setStyle(hRec, 0);
-//   setStyle(hGen, 1);
-//   ef.plotter->hists.push_back(hRec);
-//   ef.plotter->hists.push_back(hGen);
-
-//   ef.plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
-//   ef.plotter->legend->AddEntry(hGen, "Generated");
-//   ef.plotter->legend->AddEntry(hRec, "Reconstructed");
-
-//   string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-//   string yTitle = TString::Format("#frac{1}{%s} %s", ef.plotter->sSigma.c_str(), ef.plotter->getdYdXString(ef.plotter->sSigma, xTitle).c_str()).Data();
-//   ef.plotter->makeFrame(0., 40., 1e-9, 10., xTitle, yTitle);
-
-//   ef.plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", ef.plotter->sThisThesis.c_str(), ef.plotter->sPythia.c_str()).Data());
-//   ef.plotter->addLatex(0.45, 0.78, ef.plotter->sSqrtS.c_str());
-//   ef.plotter->addLatex(0.45, 0.73, TString::Format("|#eta| < %.1f", ef.inputs->etamax).Data());
-
-//   ef.plotter->plot();
-// }
-
-// void plotEffIncl(bool rebin = true, bool logplot = false) {
-//   InputSettings x; x.verbosity = kDebug;
-//   x.hadron = "K0S";
-//   x.train = 436064;
-
-//   x.setInputFileNameFromTrain();
-//   x.outputFileName = x.hadron + "_incl_eff.pdf";
-//   x.setEta(-0.9, 0.9);
-//   x.logplot = logplot;
-
-//   EfficiencyFinder ef(x);
-//   ef.plotter->hists.clear();
-//   TH1* hEff;
-
-//   if (rebin) {
-//     std::array<TH1*, 2> ptHists = ef.getPtHistRebinnedAndNormalised(kReconstructed);
-//     TH1* hRecRebinned = ptHists[0];
-//     TH1* hGenRebinned = ptHists[1];
-
-//     hEff = (TH1*)hRecRebinned->Clone("hEff");
-//     hEff->Divide(hGenRebinned);
-//   } else {
-//     TH1* hRec = ef.getPtHist(kReconstructed, "hRec");
-//     TH1* hGen = ef.getPtHist(kGenerator, "hGen");
-//     hEff = (TH1*)hRec->Clone("hEff");
-//     hEff->Divide(hGen);
-//   }
-//   setStyle(hEff, 0);
-//   ef.plotter->hists.push_back(hEff);
-
-//   string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-//   string yTitle = "Efficiency";
-
-//   if (ef.inputs->logplot)
-//     ef.plotter->makeFrame(0., 40., 5e-2, 1., xTitle, yTitle);
-//   else
-//     ef.plotter->makeFrame(0., 40., 0., 1., xTitle, yTitle);
-
-//   ef.plotter->addLatex(0.63, 0.80, ef.plotter->sThisThesis.c_str());
-//   ef.plotter->addLatex(0.63, 0.75, ef.plotter->sPythia.c_str());
-//   ef.plotter->addLatex(0.63, 0.70, ef.plotter->sSqrtS.c_str());
-//   ef.plotter->addLatex(0.63, 0.65, TString::Format("|#eta| < %.1f", ef.inputs->etamax).Data());
-
-//   ef.plotter->plot();
-// }
-
-// void plotPtJets(double ptmin, double ptmax) {
-//   InputSettings x; x.verbosity = kDebug;
-//   x.hadron = "K0S";
-//   x.train = 436064;
-
-//   x.setInputFileNameFromTrain();
-//   x.logplot = true;
-//   x.setEta(-0.5, 0.5);
-//   x.setJetPt(ptmin, ptmax);
-//   x.outputFileName = TString::Format("%s_jetpt%.f-%.f.pdf", x.hadron.c_str(), x.ptminjet, x.ptmaxjet).Data();
-
-//   EfficiencyFinder ef(x);
-//   ef.plotter->hists.clear();
-//   std::array<TH1*, 2> ptHists = ef.getPtHistRebinnedAndNormalised(kReconstructedJet);
-//   TH1* hRecRebinned = ptHists[0];
-//   TH1* hGenRebinned = ptHists[1];
-
-//   setStyle(hRecRebinned, 0);
-//   setStyle(hGenRebinned, 1);
-//   ef.plotter->hists.push_back(hRecRebinned);
-//   ef.plotter->hists.push_back(hGenRebinned);
-
-//   ef.plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
-//   ef.plotter->legend->AddEntry(hGenRebinned, "Generated");
-//   ef.plotter->legend->AddEntry(hRecRebinned, "Reconstructed");
-
-//   string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-//   string yTitle = TString::Format("#frac{1}{%s} %s", ef.plotter->sSigma.c_str(), ef.plotter->getdYdXString(ef.plotter->sSigma, xTitle).c_str()).Data();
-//   ef.plotter->makeFrame(0., ptmax, 1e-5, 1., xTitle, yTitle);
-
-//   ef.plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", ef.plotter->sThisThesis.c_str(), ef.plotter->sPythia.c_str()).Data());
-//   ef.plotter->addLatex(0.45, 0.78, ef.plotter->sSqrtS.c_str());
-//   ef.plotter->addLatex(0.45, 0.73, TString::Format("%s, %s, |#eta| < %.1f", ef.plotter->sAntiktJets.c_str(), ef.plotter->sRadius.c_str(), ef.inputs->etamax).Data());
-//   ef.plotter->addLatex(0.45, 0.68, TString::Format("%.1f < %s < %.1f %s", ef.inputs->ptminjet, ef.plotter->getPtString("jet").c_str(), ef.inputs->ptmaxjet, ef.plotter->sGevC.c_str()).Data());
-
-//   ef.plotter->plot();
-// }
-
-// void plotEffJets(double ptmin, double ptmax, bool rebin = true, bool logplot = false) {
-//   InputSettings x; x.verbosity = kDebug;
-//   x.hadron = "K0S";
-//   x.train = 436064;
-
-//   x.setInputFileNameFromTrain();
-//   x.setEta(-0.5, 0.5);
-//   x.logplot = logplot;
-//   x.setJetPt(ptmin, ptmax);
-
-//   x.outputFileName = TString::Format("%s_jetpt%.f-%.f_eff.pdf", x.hadron.c_str(), x.ptminjet, x.ptmaxjet).Data();
-//   EfficiencyFinder ef(x);
-
-//   ef.plotter->hists.clear();
-
-//   TH1* hEff;
-//   if (rebin) {
-//     std::array<TH1*, 2> ptHists = ef.getPtHistRebinnedAndNormalised(kReconstructedJet);
-//     TH1* hRecRebinned = ptHists[0];
-//     TH1* hGenRebinned = ptHists[1];
-
-//     hEff = (TH1*)hRecRebinned->Clone("hEff");
-//     hEff->Divide(hGenRebinned);
-//     setStyle(hEff, 0);
-//     ef.plotter->hists.push_back(hEff);
-//   } else {
-//     TH1* hRec = ef.getPtHist(kReconstructedJet, "hRec");
-//     TH1* hGen = ef.getPtHist(kGeneratorJet, "hGen");
-//     hEff = (TH1*)hRec->Clone("hEff");
-//     hEff->Divide(hGen);
-//     setStyle(hEff, 0);
-//     ef.plotter->hists.push_back(hEff);
+//   if (rebinHists) {
+//     TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(inputs->hadron, "hRecRebinned"));
+//     hRec = (TH1*)tmp->Clone();
+//     tmp = rebinHist(hGen, rebinnedV0PtHist(inputs->hadron, "hGenRebinned"));
+//     hGen = (TH1*)tmp->Clone();
 //   }
 
-//   string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-//   string yTitle = "Efficiency";
-//   ef.plotter->makeFrame(0., ptmax, 0., 2., xTitle, yTitle);
+//   int jetType = plotMatched ? kReconstructedJetMatched : kReconstructedJet;
+//   TH1* hRec = getPtHist(jetType, "hRec");
+//   jetType = plotMatched ? kGeneratorJetMatched : kGeneratorJet;
+//   TH1* hGen = getPtHist(jetType, "hGen");
 
-//   ef.plotter->addLatex(0.25, 0.83, TString::Format("%s, %s", ef.plotter->sThisThesis.c_str(), ef.plotter->sPythia.c_str()).Data());
-//   ef.plotter->addLatex(0.25, 0.78, ef.plotter->sSqrtS.c_str());
-//   ef.plotter->addLatex(0.25, 0.73, TString::Format("%s, %s, |#eta| < %.1f", ef.plotter->sAntiktJets.c_str(), ef.plotter->sRadius.c_str(), ef.inputs->etamax).Data());
-//   ef.plotter->addLatex(0.25, 0.68, TString::Format("%.1f < %s < %.1f %s", ef.inputs->ptminjet, ef.plotter->getPtString("jet").c_str(), ef.inputs->ptmaxjet, ef.plotter->sGevC.c_str()).Data());
-
-//   ef.plotter->plot();
-// }
-
-// void plotPtJetsMatched(double ptmin, double ptmax) {
-//   InputSettings x; x.verbosity = kDebug;
-//   x.hadron = "K0S";
-//   x.train = 436064;
-
-//   x.setInputFileNameFromTrain();
-//   x.logplot = true;
-//   x.setEta(-0.5, 0.5);
-//   x.setJetPt(ptmin, ptmax);
-
-//   x.outputFileName = TString::Format("%s_jetpt%.f-%.f_matched.pdf", x.hadron.c_str(), x.ptminjet, x.ptmaxjet).Data();
-//   EfficiencyFinder ef(x);
-
-//   ef.plotter->hists.clear();
-//   std::array<TH1*, 2> ptHists = ef.getPtHistRebinnedAndNormalised(kReconstructedJetMatched);
-//   TH1* hRecRebinned = ptHists[0];
-//   TH1* hGenRebinned = ptHists[1];
-
-//   setStyle(hRecRebinned, 0);
-//   setStyle(hGenRebinned, 1);
-//   ef.plotter->hists.push_back(hRecRebinned);
-//   ef.plotter->hists.push_back(hGenRebinned);
-
-//   ef.plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
-//   ef.plotter->legend->AddEntry(hGenRebinned, "Generated");
-//   ef.plotter->legend->AddEntry(hRecRebinned, "Reconstructed");
-
-//   string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-//   string yTitle = TString::Format("#frac{1}{%s} %s", ef.plotter->sSigma.c_str(), ef.plotter->getdYdXString(ef.plotter->sSigma, xTitle).c_str()).Data();
-//   ef.plotter->makeFrame(0., 40., 1e-5, 1., xTitle, yTitle);
-
-//   ef.plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", ef.plotter->sThisThesis.c_str(), ef.plotter->sPythia.c_str()).Data());
-//   ef.plotter->addLatex(0.45, 0.78, ef.plotter->sSqrtS.c_str());
-//   ef.plotter->addLatex(0.45, 0.73, TString::Format("%s, %s, |#eta| < %.1f", ef.plotter->sAntiktJets.c_str(), ef.plotter->sRadius.c_str(), ef.inputs->etamax).Data());
-//   ef.plotter->addLatex(0.45, 0.68, TString::Format("%.1f < %s < %.1f GeV/#it{c}", ef.inputs->ptminjet, ef.plotter->getPtString("jet").c_str(), ef.inputs->ptmaxjet).Data());
-
-//   ef.plotter->plot();
-// }
-
-// void plotEffJetsMatched(double ptmin, double ptmax, bool rebin = true, bool logplot = false) {
-//   InputSettings x; x.verbosity = kDebug;
-//   x.hadron = "K0S";
-//   x.train = 436064;
-
-//   x.setInputFileNameFromTrain();
-//   x.logplot = logplot;
-//   x.setEta(-0.5, 0.5);
-//   x.setJetPt(ptmin, ptmax);
-
-//   x.outputFileName = TString::Format("%s_jetpt%.f-%.f_matched_eff.pdf", x.hadron.c_str(), x.ptminjet, x.ptmaxjet).Data();
-//   EfficiencyFinder ef(x);
-//   ef.plotter->hists.clear();
-
-//   TH1* hEff;
-//   if (rebin) {
-//     std::array<TH1*, 2> ptHists = ef.getPtHistRebinnedAndNormalised(kReconstructedJetMatched);
-//     TH1* hRecRebinned = ptHists[0];
-//     TH1* hGenRebinned = ptHists[1];
-
-//     hEff = (TH1*)hRecRebinned->Clone("hEff");
-//     hEff->Divide(hGenRebinned);
-//   } else {
-//     TH1* hRec = ef.getPtHist(kReconstructedJetMatched, "hRec");
-//     TH1* hGen = ef.getPtHist(kGeneratorJetMatched, "hGen");
-//     hEff = (TH1*)hRec->Clone("hEff");
-//     hEff->Divide(hGen);
+//   if (subPileUp) {
+//     jetType = plotMatched ? kReconstructedJetMatchedPileUpOnly : kReconstructedJetPileUpOnly;
+//     TH1* hRecPileUp = getPtHist(jetType, "hRecPileUp");
+//     hRec->Add(hRecPileUp, -1);
 //   }
-//   setStyle(hEff, 0);
-//   ef.plotter->hists.push_back(hEff);
 
-//   string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-//   string yTitle = "Efficiency";
-//   ef.plotter->makeFrame(0., ptmax, 0., 2., xTitle, yTitle);
+//   if (rebinHists) {
+//     TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(inputs->hadron, "hRecRebinned"));
+//     hRec = (TH1*)tmp->Clone();
+//     tmp = rebinHist(hGen, rebinnedV0PtHist(inputs->hadron, "hGenRebinned"));
+//     hGen = (TH1*)tmp->Clone();
+//   }
 
-//   ef.plotter->addLatex(0.25, 0.83, TString::Format("%s, %s", ef.plotter->sThisThesis.c_str(), ef.plotter->sPythia.c_str()).Data());
-//   ef.plotter->addLatex(0.25, 0.78, ef.plotter->sSqrtS.c_str());
-//   ef.plotter->addLatex(0.25, 0.73, TString::Format("%s, %s, |#eta| < %.1f", ef.plotter->sAntiktJets.c_str(), ef.plotter->sRadius.c_str(), ef.inputs->etamax).Data());
-//   ef.plotter->addLatex(0.25, 0.68, TString::Format("%.1f < %s < %.1f %s", ef.inputs->ptminjet, ef.plotter->getPtString("jet").c_str(), ef.inputs->ptmaxjet, ef.plotter->sGevC.c_str()).Data());
-
-//   ef.plotter->plot();
-// }
-
-// Pt and Efficiency with correct collisions
-// void plotPtInclNoPileUp() {
-//   InputSettings x; x.verbosity = kDebug;
-//   x.hadron = "K0S";
-//   x.train = 468658;
-
-//   x.setInputFileNameFromTrain();
-//   x.outputFileName = x.hadron + "_incl_pt_nopileup.pdf";
-//   x.logplot = true;
-//   x.setEta(-0.9, 0.9);
-
-//   EfficiencyFinder ef(x);
-//   ef.plotter->hists.clear();
-
-//   TH1* hGen = ef.getPtHist(kGenerator, "hGen");
-//   TH1* hRec = ef.getPtHist(kReconstructedWithPileUp, "hRec");
-//   TH1* hRecPileUp = ef.getPtHist(kReconstructedPileUpOnly, "hRecPileUp");
-
-//   hRec->Add(hRecPileUp, -1); // Subtract pile-up from reconstructed
-
-//   setStyle(hRec, 0);
-//   setStyle(hGen, 1);
-//   ef.plotter->hists.push_back(hRec);
-//   ef.plotter->hists.push_back(hGen);
-
-//   ef.plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
-//   ef.plotter->legend->AddEntry(hGen, "Generated");
-//   ef.plotter->legend->AddEntry(hRec, "Reconstructed, no pile-up");
-
-//   string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-//   // string yTitle = TString::Format("#frac{1}{%s} %s", ef.plotter->sSigma.c_str(), ef.plotter->getdYdXString(ef.plotter->sSigma, xTitle).c_str()).Data();
-//   string yTitle = "";
-//   ef.plotter->makeFrame(0., 40., 1e-2, 1e9, xTitle, yTitle);
-
-//   ef.plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", ef.plotter->sThisThesis.c_str(), ef.plotter->sPythia.c_str()).Data());
-//   ef.plotter->addLatex(0.45, 0.78, ef.plotter->sSqrtS.c_str());
-//   ef.plotter->addLatex(0.45, 0.73, TString::Format("|#eta| < %.1f", ef.inputs->etamax).Data());
-
-//   ef.plotter->plot();
-// }
-
-// void plotEffInclNoPileUp(bool rebin = true, bool logplot = false) {
-//   InputSettings x; x.verbosity = kDebug;
-//   x.hadron = "K0S";
-//   x.train = 468658;
-
-//   x.setInputFileNameFromTrain();
-//   x.outputFileName = x.hadron + "_incl_eff_nopileup.pdf";
-//   x.setEta(-0.9, 0.9);
-
-//   EfficiencyFinder ef(x);
-//   ef.plotter->hists.clear();
-
-//   TH1* hGen = ef.getPtHist(kGenerator, "hGen");
-//   // TH1* hRec = ef.getPtHist(kReconstructedWithPileUp, "hRec");
-//   // TH1* hRecPileUp = ef.getPtHist(kReconstructedPileUpOnly, "hRecPileUp");
-//   hRec->Add(hRecPileUp, -1); // Subtract pile-up from reconstructed
-
-//   TH1* hEff = (TH1*)hRec->Clone("hEff");
-//   hEff->Divide(hGen);
-//   setStyle(hEff, 0);
-//   ef.plotter->hists.push_back(hEff);
-
-//   ef.plotter->makeLegend(0.25, 0.45, 0.25, 0.35, "");
-//   ef.plotter->legend->AddEntry(hEff, "Efficiency");
-
-//   string xTitle = ef.plotter->getPtString(ef.plotter->sV0);
-//   string yTitle = "Efficiency";
-//   ef.plotter->makeFrame(0., 40., 0., 1.1, xTitle, yTitle);
-
-//   ef.plotter->plot();
-// }
 
 #endif

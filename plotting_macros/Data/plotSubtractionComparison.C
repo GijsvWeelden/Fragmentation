@@ -27,6 +27,7 @@ namespace MyStrings {
   string getdYdXString(string y, string x);
   string getdYdPtString(string y);
   string getdYdZString(string y);
+  string getVarRangeString(string var, double high);
   string getVarRangeString(double low, string var, double high);
   string getPtJetRangeString(double ptmin, double ptmax);
 
@@ -34,6 +35,7 @@ namespace MyStrings {
   const string sAntikt     = "Anti-#it{k}_{T}";
   const string sCharged    = "ch";
   const string sCounts     = "Counts";
+  const string sEta        = "#eta";
   const string sGevC       = "GeV/#it{c}";
   const string sGevCC      = "GeV/#it{c}^{2}";
   const string sJet        = "jet";
@@ -64,13 +66,21 @@ namespace MyStrings {
   const string sNV0         = sNumber + "_{" + sV0 + "}";
   const string sNK0S        = sNumber + "_{" + sK0S + "}";
 
+  const string sEtaJet      = sEta + "_{" + sJet + "}";
+  const string sEtaV0       = sEta + "_{" + sV0 + "}";
+  const string sEtaK0S      = sEta + "_{" + sK0S + "}";
+
   const string sPtJet       = getPtString(sJet);
+  const string sPtV0        = getPtString(sV0);
+  const string sPtK0S       = getPtString(sK0S);
   const string sZV0         = getZString(sV0);
   const string sZK0S        = getZString(sK0S);
 
   const string sJetsPerEvent     = getOneOverString(sNevts) + " " + getdYdXString(sNjets, sPtJet);
-  const string sV0PerJet         = getOneOverString(sNjets) + " " + getdYdZString(sV0);
-  const string sK0SPerJet        = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sZK0S);
+  const string sV0PtPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNV0, sPtV0);
+  const string sK0SPtPerJet      = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sPtK0S);
+  const string sV0ZPerJet        = getOneOverString(sNjets) + " " + getdYdZString(sV0);
+  const string sK0SZPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sZK0S);
   const string sLambdaPerJet     = getOneOverString(sNjets) + " " + getdYdZString(sLambda);
   const string sAntiLambdaPerJet = getOneOverString(sNjets) + " " + getdYdZString(sAntiLambda);
 }
@@ -107,6 +117,10 @@ string MyStrings::getVarRangeString(double low, string var, double high) {
   string sHigh = TString::Format("%.0f", high).Data();
   return TString::Format("%s < %s < %s", sLow.c_str(), var.c_str(), sHigh.c_str()).Data();
 }
+string MyStrings::getVarRangeString(string var, double high) {
+  string sHigh = TString::Format("%.0f", high).Data();
+  return TString::Format("%s < %s", var.c_str(), sHigh.c_str()).Data();
+}
 string MyStrings::getPtJetRangeString(double ptmin, double ptmax) {
   return getVarRangeString(ptmin, sPtJet, ptmax);
 }
@@ -114,7 +128,7 @@ string MyStrings::getPtJetRangeString(double ptmin, double ptmax) {
 namespace MyEnums {
   enum Verbosity {kErrors, kWarnings, kInfo, kDebug};
   enum Subtraction {kNone, kSubtract, kAddTracks, kUseFlags};
-  enum HistType {kEvents, kJet, kV0};
+  enum HistType {kEvents, kJet, kV0Pt, kV0InJetPt, kV0InJetZ};
 }
 
 using namespace MyStrings;
@@ -129,8 +143,10 @@ struct InputSettings {
 
     double jetptmin, jetptmax, jetptlow, jetpthigh;
     double ptmin, ptmax, ptlow, pthigh;
+    double etaMin = -0.9, etaMax = 0.9;
 
     bool logplot = false, ratioplot = false;
+    bool normalisePerJet = true;
 
     double getMass();
     string getSaveNameFromPt(string prefix, string suffix);
@@ -139,6 +155,7 @@ struct InputSettings {
     string setInputFileNameFromTrain();
     void setJetPt(double a, double b);
     void setPt(double a, double b);
+    void setEta(double a, double b);
     template <typename T> int writeOutputToFile(T* obj);
 };
 
@@ -197,6 +214,16 @@ void InputSettings::setPt(double a, double b) {
   ptmax = b;
   ptlow = a;
   pthigh = b;
+}
+
+void InputSettings::setEta(double a, double b) {
+  if (a > b) {
+    string s = "InputSettings::setEta() Error: etaMin > etaMax";
+    printLog(s, kErrors);
+    return;
+  }
+  etaMin = a;
+  etaMax = b;
 }
 
 template <typename T>
@@ -341,8 +368,8 @@ struct SubtractionComparison {
 
   void plotJetPt(bool doBase, bool doRatio);
   void plotJetPt();
-  void plotV0z(bool doBase, bool doRatio);
-  void plotV0z();
+  void plotV0InJetZ(bool doBase, bool doRatio);
+  void plotV0InJetZ();
 };
 
 string SubtractionComparison::getFragHistNameFromTrain(int train, int x) {
@@ -464,7 +491,7 @@ void SubtractionComparison::plotJetPt() {
 }
 
 // Plot V0 fragmentation spectrum (currently not per-jet normalised)
-void SubtractionComparison::plotV0z(bool doBase, bool doRatio) {
+void SubtractionComparison::plotV0InJetZ(bool doBase, bool doRatio) {
   InputSettings x;
   x.hadron = "K0S";
   x.train = 436232;
@@ -559,12 +586,12 @@ void SubtractionComparison::plotV0z(bool doBase, bool doRatio) {
 
   p.plotHists();
 }
-void SubtractionComparison::plotV0z() {
+void SubtractionComparison::plotV0InJetZ() {
   cout << "Plotting all V0 z figures" << endl;
-  plotV0z(0, 0);
-  plotV0z(0, 1);
-  plotV0z(1, 0);
-  plotV0z(1, 1);
+  plotV0InJetZ(0, 0);
+  plotV0InJetZ(0, 1);
+  plotV0InJetZ(1, 0);
+  plotV0InJetZ(1, 1);
 }
 
 // ---------------------------------------------------------------
@@ -592,10 +619,11 @@ struct JetFinderComparison {
   string getHistName(Subtraction iSub, HistType iHist, string hadron = "");
   double getNevts(Subtraction iSub);
   double getNjets(double ptmin, double ptmax, Subtraction iSub);
+  void plotJetFinderJetPt(bool doBase, bool doRatio);
   void plotJetPt(bool doBase, bool doRatio);
-  void plotJetPt();
-  void plotV0z(bool doBase, bool doRatio);
-  void plotV0z();
+  void plotV0Pt(bool doBase, bool doRatio);
+  void plotV0InJetPt(bool doBase, bool doRatio);
+  void plotV0InJetZ(bool doBase, bool doRatio);
 };
 
 string JetFinderComparison::getHistName(Subtraction iSub, HistType iHist, string hadron = "") {
@@ -625,7 +653,13 @@ string JetFinderComparison::getHistName(Subtraction iSub, HistType iHist, string
     case MyEnums::kJet:
       hist = "JetPtEtaPhi";
       break;
-    case MyEnums::kV0:
+    case MyEnums::kV0Pt:
+      hist = hadron + "PtEtaPhi";
+      break;
+    case MyEnums::kV0InJetPt:
+      hist = "JetPtEta" + hadron + "Pt";
+      break;
+    case MyEnums::kV0InJetZ:
       hist = "JetPtEta" + hadron + "Z";
       break;
     default:
@@ -645,10 +679,133 @@ double JetFinderComparison::getNevts(Subtraction iSub) {
 
 double JetFinderComparison::getNjets(double ptmin, double ptmax, Subtraction iSub) {
   TFile* file = TFile::Open(inputs->inputFileName.c_str());
-  TH3* jetPtEtaPhi = (TH3*)file->Get(getHistName(iSub, MyEnums::kJet).c_str());
-  array<int, 2> jetPtBins = getProjectionBins(jetPtEtaPhi->GetXaxis(), ptmin, ptmax);
-  TH1* jetPt = (TH1*)jetPtEtaPhi->ProjectionX("jetPt");
+  // TH3* jetPtEtaPhi = (TH3*)file->Get(getHistName(iSub, MyEnums::kJet).c_str());
+  THn* jetPtEtaPhi = (THn*)file->Get("jet-finder-v0-data-charged/hJet");
+  const int ptAxis = 1, etaAxis = 2;
+  array<int, 2> jetPtBins = getProjectionBins(jetPtEtaPhi->GetAxis(ptAxis), ptmin, ptmax);
+  array<int, 2> etaBins = getProjectionBins(jetPtEtaPhi->GetAxis(etaAxis), inputs->etaMin, inputs->etaMax);
+  TH1* jetPt = (TH1*)jetPtEtaPhi->Projection(ptAxis, "jetPt");
+
+  // if (iSub == MyEnums::kSubtract) {
+  //   // Need to correct for the fact that the jet pt spectrum has changed
+  //   TH3* h3NoSub = (TH3*)file->Get(getHistName(MyEnums::kNone, MyEnums::kJet).c_str());
+  //   etaBins = getProjectionBins(h3NoSub->GetYaxis(), inputs->etaMin, inputs->etaMax);
+  //   TH1* hNoSub = (TH1*)h3NoSub->ProjectionX("noSub");
+
+  //   TH3* h3Sub = (TH3*)file->Get(getHistName(MyEnums::kSubtract, MyEnums::kJet).c_str());
+  //   etaBins = getProjectionBins(h3Sub->GetYaxis(), inputs->etaMin, inputs->etaMax);
+  //   TH1* hSub = (TH1*)h3Sub->ProjectionX("sub");
+
+  //   jetPt->Add(hNoSub, -1);
+  //   jetPt->Add(hSub);
+  // }
+
   return jetPt->Integral(jetPtBins[0], jetPtBins[1]);
+}
+
+void JetFinderComparison::plotJetFinderJetPt(bool doBase, bool doRatio) {
+  InputSettings inputSubtract;
+  inputSubtract.train = trainSub;
+  InputSettings inputFlags;
+  inputFlags.train = trainFlags;
+
+  // Spectrum - Base vs V0 Sub vs Track-Adding
+  inputs->outputFileName = "jetfindercomp-jetfinderjetpt";
+  if (doRatio) {
+    inputs->ratioplot = true;
+    inputs->outputFileName += "ratio";
+  } else {
+    inputs->ratioplot = false;
+    inputs->logplot = true;
+  }
+  if (doBase) inputs->outputFileName += "-all";
+  inputs->outputFileName += ".pdf";
+
+  Plotter p(inputs);
+  p.makeCanvas();
+
+  if (doRatio) {
+    p.setDrawOption("hist");
+    p.makeFrame(0., 50., 0.6, 1.15, getPtString(sJet), sRatio);
+    p.legend = CreateLegend(0.30, 0.45, 0.20, 0.40, "", 0.04);
+    p.addLatex(0.30, 0.83, sThisThesis + ", " + sAliceData + ", " + sSqrtS);
+    p.addLatex(0.30, 0.78, sAntikt + " " + sChV0Jets + ", " + sRadius);
+  } else {
+    p.makeFrame(0., 50., 1e-8, 1e-2, getPtString(sJet), sJetsPerEvent);
+    p.legend = CreateLegend(0.30, 0.50, 0.17, 0.37, "", 0.04);
+    p.addLatex(0.40, 0.80, sThisThesis + ", " + sAliceData);
+    p.addLatex(0.40, 0.75, sSqrtS);
+    p.addLatex(0.40, 0.70, sAntikt + " " + sChV0Jets + ", " + sRadius);
+  }
+
+  TFile* fileX = TFile::Open(inputSubtract.setInputFileNameFromTrain().c_str(), "READ");
+  TFile* fileY = TFile::Open(inputFlags.setInputFileNameFromTrain().c_str(), "READ");
+
+  if (!fileX) {
+    string s = "Could not open file " + inputSubtract.inputFileName;
+    inputSubtract.printLog(s, kErrors);
+    return;
+  }
+  if (!fileY) {
+    string s = "Could not open file " + inputFlags.inputFileName;
+    inputFlags.printLog(s, kErrors);
+    return;
+  }
+
+  // inputs->printLog(TString::Format("From file %s, get %s \nFrom file %s, get %s \nFrom file %s, get %s \nSave to %s",
+  //   inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kNone, MyEnums::kJet).c_str(),
+  //   inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kSubtract, MyEnums::kJet).c_str(),
+  //   inputFlags.inputFileName.c_str(), getHistName(MyEnums::kUseFlags, MyEnums::kJet).c_str(),
+  //   inputs->outputFileName.c_str()).Data(),
+  //   MyEnums::kDebug);
+
+  inputs->inputFileName = inputSubtract.inputFileName;
+  double nEvtsBase = getNevts(MyEnums::kNone);
+  THn* h3Base = (THn*)fileX->Get("jet-finder-v0-data-charged/hJet");
+  array<int, 2> etaBins = getProjectionBins(h3Base->GetAxis(2), inputs->etaMin, inputs->etaMax);
+  h3Base->GetAxis(2)->SetRange(etaBins[0], etaBins[1]);
+  TH1* base = (TH1*)h3Base->Projection(1, "base");
+  base->Scale(1.0 / nEvtsBase, "width");
+  if (doBase) {
+    p.hists.push_back(base);
+    p.legend->AddEntry(base, "No subtraction");
+  }
+
+  double nEvtsSub = getNevts(MyEnums::kSubtract);
+  THn* h3Sub = (THn*)fileX->Get("jet-finder-v0-data-charged/hJet");
+  h3Sub->GetAxis(2)->SetRange(etaBins[0], etaBins[1]);
+  TH1* sub = (TH1*)h3Sub->Projection(1, "sub");
+  sub->Scale(1.0 / nEvtsSub, "width");
+  p.hists.push_back(sub);
+  p.legend->AddEntry(sub, "Subtract V0s");
+
+  inputs->inputFileName = inputFlags.inputFileName;
+  double nEvtsFlags = getNevts(MyEnums::kUseFlags);
+  THn* h3Flags = (THn*)fileY->Get("jet-finder-v0-data-charged/hJet");
+  etaBins = getProjectionBins(h3Flags->GetAxis(2), inputs->etaMin, inputs->etaMax);
+  h3Flags->GetAxis(2)->SetRange(etaBins[0], etaBins[1]);
+  TH1* flags = (TH1*)h3Flags->Projection(1, "flags");
+  flags->Scale(1.0 / nEvtsFlags, "width");
+  p.hists.push_back(flags);
+  p.legend->AddEntry(flags, "Exclude V0s before clustering");
+
+  if (inputs->verbosity >= MyEnums::kInfo) {
+    // Print integrals. Should have baseInt > subInt
+    double baseInt = p.hists[0]->Integral();
+    string baseName = p.hists[0]->GetName();
+    string s = "Jet pt hist integrals:";
+
+    for (int i = 0; i < p.hists.size(); i++) {
+      TH1* h = p.hists[i];
+      double integral = h->Integral();
+      string name = h->GetName();
+
+      s = TString::Format("%s\n%s: %.3g, diff% .3g, ratio: %.3g", s.c_str(), name.c_str(), integral, baseInt - integral, integral / baseInt).Data();
+    }
+    inputs->printLog(s, MyEnums::kInfo);
+  }
+
+  p.plotHists();
 }
 
 void JetFinderComparison::plotJetPt(bool doBase, bool doRatio) {
@@ -657,33 +814,30 @@ void JetFinderComparison::plotJetPt(bool doBase, bool doRatio) {
   InputSettings inputFlags;
   inputFlags.train = trainFlags;
 
-  Plotter p(inputs);
-  p.makeCanvas();
-  if (doRatio) {
-    p.setDrawOption("hist");
-    p.makeFrame(0., 50., 0.8, 1.2, getPtString(sJet), sRatio);
-  } else {
-    p.makeFrame(0., 50., 1e2, 3e6, getPtString(sJet), sJetsPerEvent);
-  }
-
   // Spectrum - Base vs V0 Sub vs Track-Adding
-  inputs->outputFileName = "jetfindercomp-";
+  inputs->outputFileName = "jetfindercomp-jetpt";
   if (doRatio) {
     inputs->ratioplot = true;
-    inputs->outputFileName += "jetratio";
+    inputs->outputFileName += "ratio";
   } else {
+    inputs->ratioplot = false;
     inputs->logplot = true;
-    inputs->outputFileName += "jetspectrum";
   }
   if (doBase) inputs->outputFileName += "-all";
   inputs->outputFileName += ".pdf";
-  p.legend = CreateLegend(0.30, 0.50, 0.17, 0.37, "", 0.04);
+
+  Plotter p(inputs);
+  p.makeCanvas();
 
   if (doRatio) {
-    p.addLatex(0.30, 0.50, sThisThesis + ", " + sAliceData);
-    p.addLatex(0.30, 0.45, sSqrtS);
-    p.addLatex(0.30, 0.40, sAntikt + " " + sChV0Jets + ", " + sRadius);
+    p.setDrawOption("hist");
+    p.makeFrame(0., 50., 0.6, 1.15, getPtString(sJet), sRatio);
+    p.legend = CreateLegend(0.30, 0.45, 0.20, 0.40, "", 0.04);
+    p.addLatex(0.30, 0.83, sThisThesis + ", " + sAliceData + ", " + sSqrtS);
+    p.addLatex(0.30, 0.78, sAntikt + " " + sChV0Jets + ", " + sRadius);
   } else {
+    p.makeFrame(0., 50., 1e-8, 1e-2, getPtString(sJet), sJetsPerEvent);
+    p.legend = CreateLegend(0.30, 0.50, 0.17, 0.37, "", 0.04);
     p.addLatex(0.40, 0.80, sThisThesis + ", " + sAliceData);
     p.addLatex(0.40, 0.75, sSqrtS);
     p.addLatex(0.40, 0.70, sAntikt + " " + sChV0Jets + ", " + sRadius);
@@ -709,8 +863,6 @@ void JetFinderComparison::plotJetPt(bool doBase, bool doRatio) {
     inputFlags.inputFileName.c_str(), getHistName(MyEnums::kUseFlags, MyEnums::kJet).c_str(),
     inputs->outputFileName.c_str()).Data(),
     MyEnums::kDebug);
-
-  // return;
 
   inputs->inputFileName = inputSubtract.inputFileName;
   double nEvtsBase = getNevts(MyEnums::kNone);
@@ -756,22 +908,21 @@ void JetFinderComparison::plotJetPt(bool doBase, bool doRatio) {
   p.plotHists();
 }
 
-void JetFinderComparison::plotV0z(bool doBase, bool doRatio) {
+void JetFinderComparison::plotV0Pt(bool doBase, bool doRatio) {
   InputSettings inputSubtract;
   inputSubtract.train = trainSub;
   InputSettings inputFlags;
   inputFlags.train = trainFlags;
 
   // Spectrum - Base vs V0 Sub vs Track-Adding
-  inputs->outputFileName = "jetfindercomp-";
+  inputs->outputFileName = "jetfindercomp-v0pt";
   if (doRatio) {
     inputs->ratioplot = true;
     inputs->logplot = false;
-    inputs->outputFileName += "v0ratio";
+    inputs->outputFileName += "ratio";
   } else {
     inputs->ratioplot = false;
     inputs->logplot = false;
-    inputs->outputFileName += "v0z";
   }
   if (doBase) inputs->outputFileName += "-all";
   inputs->outputFileName += ".pdf";
@@ -782,23 +933,26 @@ void JetFinderComparison::plotV0z(bool doBase, bool doRatio) {
 
   if (doRatio) {
     p.setDrawOption("hist");
-    p.makeFrame(0., 1., 0., 2., sZK0S, sRatio);
+    p.makeFrame(0., 50., 0., 2., sPtK0S, sRatio);
 
     p.addLatex(0.25, 0.80, sThisThesis + ", " + sAliceData);
     p.addLatex(0.25, 0.75, sSqrtS);
-    p.addLatex(0.25, 0.70, sAntikt + " " + sChV0Jets + ", " + sRadius);
+    p.addLatex(0.25, 0.70, sAntikt + " " + sChV0Jets);
+    p.addLatex(0.25, 0.65, sRadius + ", " + TString::Format("|%s| < %.1f", sEtaJet.c_str(), inputs->etaMax).Data());
+    p.addLatex(0.25, 0.60, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax).c_str());
   } else {
     if (inputs->logplot) {
       p.canvas->SetLogy();
-      p.makeFrame(0., 1., 1e-1, 1e3, sZK0S, sK0SPerJet);
+      p.makeFrame(0., 50., 1e-1, 1e3, sPtK0S, sK0SPtPerJet);
     } else {
-      p.makeFrame(0., 1., 0., 350., sZK0S, sK0SPerJet);
+      p.makeFrame(0., 50., 0., 350., sPtK0S, sK0SPtPerJet);
     }
 
     p.addLatex(0.45, 0.80, sThisThesis + ", " + sAliceData);
     p.addLatex(0.45, 0.75, sSqrtS);
-    p.addLatex(0.45, 0.70, sAntikt + " " + sChV0Jets + ", " + sRadius);
-    p.addLatex(0.45, 0.65, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax).c_str());
+    p.addLatex(0.45, 0.70, sAntikt + " " + sChV0Jets);
+    p.addLatex(0.45, 0.65, sRadius + ", " + TString::Format("|%s| < %.1f", sEtaJet.c_str(), inputs->etaMax).Data());
+    p.addLatex(0.45, 0.60, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax).c_str());
   }
 
   TFile* fileX = TFile::Open(inputSubtract.setInputFileNameFromTrain().c_str(), "READ");
@@ -816,34 +970,294 @@ void JetFinderComparison::plotV0z(bool doBase, bool doRatio) {
   }
 
   inputs->printLog(TString::Format("From file %s, get %s \nFrom file %s, get %s \nFrom file %s, get %s \nSave to %s",
-    inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kNone, MyEnums::kV0, inputs->hadron).c_str(),
-    inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kSubtract, MyEnums::kV0, inputs->hadron).c_str(),
-    inputFlags.inputFileName.c_str(), getHistName(MyEnums::kUseFlags, MyEnums::kV0, inputs->hadron).c_str(),
+    inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kNone, MyEnums::kV0Pt, inputs->hadron).c_str(),
+    inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kSubtract, MyEnums::kV0Pt, inputs->hadron).c_str(),
+    inputFlags.inputFileName.c_str(), getHistName(MyEnums::kUseFlags, MyEnums::kV0Pt, inputs->hadron).c_str(),
+    inputs->outputFileName.c_str()).Data(),
+    MyEnums::kDebug);
+
+  inputs->inputFileName = inputSubtract.inputFileName;
+  double nEvtsBase = getNevts(MyEnums::kNone);
+  TH3* h3Base = (TH3*)fileX->Get(getHistName(MyEnums::kNone, MyEnums::kV0Pt, inputs->hadron).c_str());
+  TH1* base = (TH1*)h3Base->ProjectionX("base");
+  base->Scale(1.0 / nEvtsBase, "width");
+  if (doBase) {
+    p.hists.push_back(base);
+    p.legend->AddEntry(base, "No subtraction");
+  }
+
+  double nEvtsSub = getNevts(MyEnums::kSubtract);
+  TH3* h3Sub = (TH3*)fileX->Get(getHistName(MyEnums::kSubtract, MyEnums::kV0Pt, inputs->hadron).c_str());
+  TH1* sub = (TH1*)h3Sub->ProjectionX("sub");
+  sub->Scale(1.0 / nEvtsSub, "width");
+  p.hists.push_back(sub);
+  p.legend->AddEntry(sub, "Subtract V0s");
+
+  inputs->inputFileName = inputFlags.inputFileName;
+  double nEvtsFlags = getNevts(MyEnums::kUseFlags);
+  TH3* h3Flags = (TH3*)fileY->Get(getHistName(MyEnums::kUseFlags, MyEnums::kV0Pt, inputs->hadron).c_str());
+  TH1* flags = (TH1*)h3Flags->ProjectionX("flags");
+  flags->Scale(1.0 / nEvtsFlags, "width");
+  p.hists.push_back(flags);
+  p.legend->AddEntry(flags, "Exclude V0s before clustering");
+
+  if (inputs->verbosity >= MyEnums::kInfo) {
+    // Print integrals. Should have baseInt > subInt
+    double baseInt = p.hists[0]->Integral();
+    string baseName = p.hists[0]->GetName();
+    string s = "V0 pt hist integrals:";
+
+    for (int i = 0; i < p.hists.size(); i++) {
+      TH1* h = p.hists[i];
+      double integral = h->Integral();
+      string name = h->GetName();
+
+      s = TString::Format("%s\n%s: %.3g, diff: % .3g, ratio: %.3g", s.c_str(), name.c_str(), integral, baseInt - integral, integral / baseInt).Data();
+    }
+    s += TString::Format("\nN evts: base: %.0f, sub: %.0f, flags: %.0f", nEvtsBase, nEvtsSub, nEvtsFlags).Data();
+    inputs->printLog(s, MyEnums::kInfo);
+  }
+
+  p.plotHists();
+}
+
+void JetFinderComparison::plotV0InJetPt(bool doBase, bool doRatio) {
+  InputSettings inputSubtract;
+  inputSubtract.train = trainSub;
+  InputSettings inputFlags;
+  inputFlags.train = trainFlags;
+
+  // Spectrum - Base vs V0 Sub vs Track-Adding
+  inputs->outputFileName = "jetfindercomp-v0pt";
+  if (doRatio) {
+    inputs->ratioplot = true;
+    inputs->logplot = false;
+    inputs->outputFileName += "ratio";
+  } else {
+    inputs->ratioplot = false;
+    inputs->logplot = true;
+  }
+  if (doBase) inputs->outputFileName += "-all";
+  inputs->outputFileName += inputs->getSaveNameFromJetPt("", "");
+  inputs->outputFileName += ".pdf";
+
+  Plotter p(inputs);
+  p.makeCanvas();
+  p.makeLegend(0.25, 0.45, 0.17, 0.37, "");
+
+  if (doRatio) {
+    p.setDrawOption("hist");
+    p.makeFrame(0., inputs->jetptmax, 0., 1.2, sPtK0S, sRatio);
+
+    p.addLatex(0.25, 0.80, sThisThesis + ", " + sAliceData);
+    p.addLatex(0.25, 0.75, sSqrtS);
+    p.addLatex(0.25, 0.70, sAntikt + " " + sChV0Jets);
+    p.addLatex(0.25, 0.65, sRadius + ", " + TString::Format("|%s| < %.1f", sEtaJet.c_str(), inputs->etaMax).Data());
+    p.addLatex(0.25, 0.60, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax).c_str());
+  } else {
+    if (inputs->logplot) {
+      p.canvas->SetLogy();
+      p.makeFrame(0., inputs->jetptmax, 1e-6, 1e1, sPtK0S, sK0SPtPerJet);
+    } else {
+      p.makeFrame(0., inputs->jetptmax, 0., 50., sPtK0S, sK0SPtPerJet);
+    }
+
+    p.addLatex(0.45, 0.80, sThisThesis + ", " + sAliceData);
+    p.addLatex(0.45, 0.75, sSqrtS);
+    p.addLatex(0.45, 0.70, sAntikt + " " + sChV0Jets);
+    p.addLatex(0.45, 0.65, sRadius + ", " + TString::Format("|%s| < %.1f", sEtaJet.c_str(), inputs->etaMax).Data());
+    p.addLatex(0.45, 0.60, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax).c_str());
+  }
+
+  TFile* fileX = TFile::Open(inputSubtract.setInputFileNameFromTrain().c_str(), "READ");
+  TFile* fileY = TFile::Open(inputFlags.setInputFileNameFromTrain().c_str(), "READ");
+
+  if (!fileX) {
+    string s = "Could not open file " + inputSubtract.inputFileName;
+    inputSubtract.printLog(s, kErrors);
+    return;
+  }
+  if (!fileY) {
+    string s = "Could not open file " + inputFlags.inputFileName;
+    inputFlags.printLog(s, kErrors);
+    return;
+  }
+
+  inputs->printLog(TString::Format("From file %s, get %s \nFrom file %s, get %s \nFrom file %s, get %s \nSave to %s",
+    inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kNone, MyEnums::kV0InJetPt, inputs->hadron).c_str(),
+    inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kSubtract, MyEnums::kV0InJetPt, inputs->hadron).c_str(),
+    inputFlags.inputFileName.c_str(), getHistName(MyEnums::kUseFlags, MyEnums::kV0InJetPt, inputs->hadron).c_str(),
     inputs->outputFileName.c_str()).Data(),
     MyEnums::kDebug);
 
   inputs->inputFileName = inputSubtract.inputFileName;
   double nJetsBase = getNjets(inputs->jetptmin, inputs->jetptmax, MyEnums::kNone);
-  TH3* h3Base = (TH3*)fileX->Get(getHistName(MyEnums::kNone, MyEnums::kV0, inputs->hadron).c_str());
-  TH1* base = (TH1*)h3Base->ProjectionZ("base");
-  base->Scale(1.0 / nJetsBase, "width");
+  double nEvtsBase = getNevts(MyEnums::kNone);
+  TH3* h3Base = (TH3*)fileX->Get(getHistName(MyEnums::kNone, MyEnums::kV0InJetPt, inputs->hadron).c_str());
+  array<int, 2> jetBins = getProjectionBins(h3Base->GetXaxis(), inputs->jetptmin, inputs->jetptmax);
+  TH1* base = (TH1*)h3Base->ProjectionZ("base", jetBins[0], jetBins[1], 1, h3Base->GetNbinsY());
+  if (inputs->normalisePerJet)
+    base->Scale(1.0 / nJetsBase, "width");
+  else
+    base->Scale(1.0 / nEvtsBase, "width");
+
   if (doBase) {
     p.hists.push_back(base);
     p.legend->AddEntry(base, "No subtraction");
   }
 
   double nJetsSub = getNjets(inputs->jetptmin, inputs->jetptmax, MyEnums::kSubtract);
-  TH3* h3Sub = (TH3*)fileX->Get(getHistName(MyEnums::kSubtract, MyEnums::kV0, inputs->hadron).c_str());
-  TH1* sub = (TH1*)h3Sub->ProjectionZ("sub");
-  sub->Scale(1.0 / nJetsSub, "width");
+  double nEvtsSub = getNevts(MyEnums::kSubtract);
+  TH3* h3Sub = (TH3*)fileX->Get(getHistName(MyEnums::kSubtract, MyEnums::kV0InJetPt, inputs->hadron).c_str());
+  jetBins = getProjectionBins(h3Sub->GetXaxis(), inputs->jetptmin, inputs->jetptmax);
+  TH1* sub = (TH1*)h3Sub->ProjectionZ("sub", jetBins[0], jetBins[1], 1, h3Sub->GetNbinsY());
+  if (inputs->normalisePerJet)
+    sub->Scale(1.0 / nJetsSub, "width");
+  else
+    sub->Scale(1.0 / nEvtsSub, "width");
   p.hists.push_back(sub);
   p.legend->AddEntry(sub, "Subtract V0s");
 
   inputs->inputFileName = inputFlags.inputFileName;
   double nJetsFlags = getNjets(inputs->jetptmin, inputs->jetptmax, MyEnums::kUseFlags);
-  TH3* h3Flags = (TH3*)fileY->Get(getHistName(MyEnums::kUseFlags, MyEnums::kV0, inputs->hadron).c_str());
+  double nEvtsFlags = getNevts(MyEnums::kUseFlags);
+  TH3* h3Flags = (TH3*)fileY->Get(getHistName(MyEnums::kUseFlags, MyEnums::kV0InJetPt, inputs->hadron).c_str());
+  jetBins = getProjectionBins(h3Flags->GetXaxis(), inputs->jetptmin, inputs->jetptmax);
+  TH1* flags = (TH1*)h3Flags->ProjectionZ("flags", jetBins[0], jetBins[1], 1, h3Flags->GetNbinsY());
+  if (inputs->normalisePerJet)
+    flags->Scale(1.0 / nJetsFlags, "width");
+  else
+    flags->Scale(1.0 / nEvtsFlags, "width");
+
+  p.hists.push_back(flags);
+  p.legend->AddEntry(flags, "Exclude V0s before clustering");
+
+  if (inputs->verbosity >= MyEnums::kInfo) {
+    // Print integrals. Should have baseInt > subInt
+    double baseInt = p.hists[0]->Integral();
+    string baseName = p.hists[0]->GetName();
+    string s = "V0 z hist integrals:";
+
+    for (int i = 0; i < p.hists.size(); i++) {
+      TH1* h = p.hists[i];
+      double integral = h->Integral();
+      string name = h->GetName();
+
+      s = TString::Format("%s\n%s: %.3g, diff: % .3g, ratio: %.3g", s.c_str(), name.c_str(), integral, baseInt - integral, integral / baseInt).Data();
+    }
+    s += TString::Format("\nN jets (%.0f < pT < %.0f): base: %.0f, sub: %.0f, flags: %.0f", inputs->jetptmin, inputs->jetpthigh, nJetsBase, nJetsSub, nJetsFlags).Data();
+    inputs->printLog(s, MyEnums::kInfo);
+  }
+
+  p.plotHists();
+ }
+
+void JetFinderComparison::plotV0InJetZ(bool doBase, bool doRatio) {
+  InputSettings inputSubtract;
+  inputSubtract.train = trainSub;
+  InputSettings inputFlags;
+  inputFlags.train = trainFlags;
+
+  // Spectrum - Base vs V0 Sub vs Track-Adding
+  inputs->outputFileName = "jetfindercomp-v0z";
+  if (doRatio) {
+    inputs->ratioplot = true;
+    inputs->logplot = false;
+    inputs->outputFileName += "ratio";
+  } else {
+    inputs->ratioplot = false;
+    inputs->logplot = false;
+  }
+  if (doBase) inputs->outputFileName += "-all";
+  inputs->outputFileName += inputs->getSaveNameFromJetPt("", "");
+  inputs->outputFileName += ".pdf";
+
+  Plotter p(inputs);
+  p.makeCanvas();
+  p.makeLegend(0.25, 0.45, 0.17, 0.37, "");
+
+  if (doRatio) {
+    p.setDrawOption("hist");
+    p.makeFrame(0., 1., 0., 2., sZK0S, sRatio);
+
+    p.addLatex(0.25, 0.80, sThisThesis + ", " + sAliceData);
+    p.addLatex(0.25, 0.75, sSqrtS);
+    p.addLatex(0.25, 0.70, sAntikt + " " + sChV0Jets);
+    p.addLatex(0.25, 0.65, sRadius + ", " + TString::Format("|%s| < %.1f", sEtaJet.c_str(), inputs->etaMax).Data());
+    p.addLatex(0.25, 0.60, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax).c_str());
+  } else {
+    if (inputs->logplot) {
+      p.canvas->SetLogy();
+      p.makeFrame(0., 1., 1e-1, 1e3, sZK0S, sK0SZPerJet);
+    } else {
+      p.makeFrame(0., 1., 0., 350., sZK0S, sK0SZPerJet);
+    }
+
+    p.addLatex(0.45, 0.80, sThisThesis + ", " + sAliceData);
+    p.addLatex(0.45, 0.75, sSqrtS);
+    p.addLatex(0.45, 0.70, sAntikt + " " + sChV0Jets);
+    p.addLatex(0.45, 0.65, sRadius + ", " + TString::Format("|%s| < %.1f", sEtaJet.c_str(), inputs->etaMax).Data());
+    p.addLatex(0.45, 0.60, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax).c_str());
+  }
+
+  TFile* fileX = TFile::Open(inputSubtract.setInputFileNameFromTrain().c_str(), "READ");
+  TFile* fileY = TFile::Open(inputFlags.setInputFileNameFromTrain().c_str(), "READ");
+
+  if (!fileX) {
+    string s = "Could not open file " + inputSubtract.inputFileName;
+    inputSubtract.printLog(s, kErrors);
+    return;
+  }
+  if (!fileY) {
+    string s = "Could not open file " + inputFlags.inputFileName;
+    inputFlags.printLog(s, kErrors);
+    return;
+  }
+
+  inputs->printLog(TString::Format("From file %s, get %s \nFrom file %s, get %s \nFrom file %s, get %s \nSave to %s",
+    inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kNone, MyEnums::kV0InJetZ, inputs->hadron).c_str(),
+    inputSubtract.inputFileName.c_str(), getHistName(MyEnums::kSubtract, MyEnums::kV0InJetZ, inputs->hadron).c_str(),
+    inputFlags.inputFileName.c_str(), getHistName(MyEnums::kUseFlags, MyEnums::kV0InJetZ, inputs->hadron).c_str(),
+    inputs->outputFileName.c_str()).Data(),
+    MyEnums::kDebug);
+
+  inputs->inputFileName = inputSubtract.inputFileName;
+  double nJetsBase = getNjets(inputs->jetptmin, inputs->jetptmax, MyEnums::kNone);
+  double nEvtsBase = getNevts(MyEnums::kNone);
+  TH3* h3Base = (TH3*)fileX->Get(getHistName(MyEnums::kNone, MyEnums::kV0InJetZ, inputs->hadron).c_str());
+  TH1* base = (TH1*)h3Base->ProjectionZ("base");
+  if (inputs->normalisePerJet)
+    base->Scale(1.0 / nJetsBase, "width");
+  else
+    base->Scale(1.0 / nEvtsBase, "width");
+
+  if (doBase) {
+    p.hists.push_back(base);
+    p.legend->AddEntry(base, "No subtraction");
+  }
+
+  double nJetsSub = getNjets(inputs->jetptmin, inputs->jetptmax, MyEnums::kSubtract);
+  double nEvtsSub = getNevts(MyEnums::kSubtract);
+  TH3* h3Sub = (TH3*)fileX->Get(getHistName(MyEnums::kSubtract, MyEnums::kV0InJetZ, inputs->hadron).c_str());
+  TH1* sub = (TH1*)h3Sub->ProjectionZ("sub");
+  if (inputs->normalisePerJet)
+    sub->Scale(1.0 / nJetsSub, "width");
+  else
+    sub->Scale(1.0 / nEvtsSub, "width");
+
+  p.hists.push_back(sub);
+  p.legend->AddEntry(sub, "Subtract V0s");
+
+  inputs->inputFileName = inputFlags.inputFileName;
+  double nJetsFlags = getNjets(inputs->jetptmin, inputs->jetptmax, MyEnums::kUseFlags);
+  double nEvtsFlags = getNevts(MyEnums::kUseFlags);
+  TH3* h3Flags = (TH3*)fileY->Get(getHistName(MyEnums::kUseFlags, MyEnums::kV0InJetZ, inputs->hadron).c_str());
   TH1* flags = (TH1*)h3Flags->ProjectionZ("flags");
-  flags->Scale(1.0 / nJetsFlags, "width");
+  if (inputs->normalisePerJet)
+    flags->Scale(1.0 / nJetsFlags, "width");
+  else
+    flags->Scale(1.0 / nEvtsFlags, "width");
+
   p.hists.push_back(flags);
   p.legend->AddEntry(flags, "Exclude V0s before clustering");
 
@@ -870,22 +1284,63 @@ void JetFinderComparison::plotV0z(bool doBase, bool doRatio) {
 // ---------------------------------------------------------------
 
 void plotjetpt() {
-  int trainSub = 474334;
-  int trainFlags = 474335;
+  int trainSub = 486343;
+  int trainFlags = 486347;
   JetFinderComparison jfc(trainSub, trainFlags);
   jfc.inputs->verbosity = MyEnums::kDebug;
+  jfc.inputs->logplot = true;
+  jfc.inputs->setEta(-0.5, 0.5);
   jfc.plotJetPt(1, 0);
+  jfc.inputs->logplot = false;
+  jfc.plotJetPt(1, 1);
 }
-void plotv0z() {
-  int trainSub = 474334;
-  int trainFlags = 474335;
-  double jetptmin = 20., jetptmax = 30.;
+void plotv0pt() {
+  int trainSub = 486343;
+  int trainFlags = 486347;
   JetFinderComparison jfc(trainSub, trainFlags);
-  jfc.inputs->setJetPt(jetptmin, jetptmax);
   jfc.inputs->hadron = "K0S";
   jfc.inputs->verbosity = MyEnums::kDebug;
-  jfc.plotV0z(1, 0);
-  jfc.plotV0z(1, 1);
+  jfc.inputs->setEta(-0.9, 0.9);
+  jfc.plotV0Pt(1, 0);
+  jfc.plotV0Pt(1, 1);
+}
+void plotv0injet() {
+  gROOT->SetBatch();
+  int trainSub = 486343;
+  int trainFlags = 486347;
+  JetFinderComparison jfc(trainSub, trainFlags);
+  jfc.inputs->hadron = "K0S";
+  jfc.inputs->verbosity = MyEnums::kDebug;
+  jfc.inputs->setEta(-0.5, 0.5);
+
+  jfc.inputs->setJetPt(10., 20.);
+  jfc.plotV0InJetZ(1, 0);
+  jfc.plotV0InJetZ(1, 1);
+  jfc.plotV0InJetPt(1, 0);
+  jfc.plotV0InJetPt(1, 1);
+  jfc.inputs->setJetPt(20., 30.);
+  jfc.plotV0InJetZ(1, 0);
+  jfc.plotV0InJetZ(1, 1);
+  jfc.plotV0InJetPt(1, 0);
+  jfc.plotV0InJetPt(1, 1);
+}
+
+JetFinderComparison setupJFC(double jetptmin = 10., double jetptmax = 20., bool normalisePerJet = true) {
+  int trainSub = 486343;
+  int trainFlags = 486347;
+  JetFinderComparison jfc(trainSub, trainFlags, jetptmin, jetptmax);
+  jfc.inputs->hadron = "K0S";
+  jfc.inputs->verbosity = MyEnums::kDebug;
+  jfc.inputs->normalisePerJet = normalisePerJet;
+  return jfc;
+}
+
+// Compare all jets (from jet finder thn) with ch+v0 jets
+void plotJetPt_Ch_ChV0() {
+  InputSettings x; x.verbosity = kDebug;
+  x.train = 476306;
+  x.setInputFileNameFromTrain();
+  // TODO: Finish
 }
 
 #endif // SUBTRACTION_COMPARISON_C

@@ -70,6 +70,10 @@ namespace MyStrings {
   const string sEtaV0       = sEta + "_{" + sV0 + "}";
   const string sEtaK0S      = sEta + "_{" + sK0S + "}";
 
+  const string sEtaJetRange = "|" + sEtaJet + "| < 0.5";
+  const string sEtaV0Range  = "|" + sEtaV0 + "| < 0.9";
+  const string sEtaK0SRange = "|" + sEtaK0S + "| < 0.9";
+
   const string sPtJet       = getPtString(sJet);
   const string sPtV0        = getPtString(sV0);
   const string sPtK0S       = getPtString(sK0S);

@@ -14,7 +14,10 @@ if [[ ${O2_ROOT} == "" ]]; then
   echo "You need to be in an O2 environment to run this script!"
   exit 1
 fi
-
+# TODO:
+# * Check alien-token-info, if token is outdated the programme will hang
+# * Allow for multiple trains to be given as input and download results for all of them
+# * Add flags so only test/train output will be downloaded when requested
 TRAINRUN=$1
 [ -z "${TRAINRUN}" ] && echo "Please provide a train run number as an argument!" && exit 1
 # try to get the testdir from the train run number

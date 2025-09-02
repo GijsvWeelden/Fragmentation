@@ -79,8 +79,8 @@ std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const 
   return std::array{firstBin, lastBin};
 }
 
-std::array<double, 2> getProjectionEdges(const TAxis* axis, const std::array<int, 2>& range) {
-  return std::array{axis->GetBinLowEdge(range[0]), axis->GetBinUpEdge(range[1])};
+std::array<double, 2> getProjectionEdges(const TAxis* axis, const std::array<int, 2>& bins) {
+  return std::array{axis->GetBinLowEdge(bins[0]), axis->GetBinUpEdge(bins[1])};
 }
 
 // -------------------------------------------------------------------------------------------------

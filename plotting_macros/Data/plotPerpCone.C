@@ -24,11 +24,172 @@
 //
 // -------------------------------------------------------------------------------------------------
 
-namespace MyEnums {
-  enum Verb {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
-  enum Foo {kGetJets, kGetJetV0s, kGetPCV0s};
+// Divide two histograms with protection against nan/null bin content
+// Assumes uncorrelated errors
+TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
+  // TODO: Check if same binning
+  TH1* result = (TH1*)base->Clone("result");
+  result->Reset();
+  for (int i = 0; i <= 1 + base->GetNbinsX(); i++) {
+    double numerator = base->GetBinContent(i);
+    double numError = base->GetBinError(i);
+    double denominator = divideBy->GetBinContent(i);
+    double denError = divideBy->GetBinError(i);
+
+    if (std::isnan(numerator) || std::isnan(denominator))
+      continue;
+    else if (std::abs(numerator) < threshold || std::abs(denominator) < threshold)
+      continue;
+
+    double numRelError = numError / numerator;
+    double denRelError = denError / denominator;
+
+    double newBinContent = numerator / denominator;
+    double newBinError = newBinContent * std::sqrt((numRelError * numRelError) + (denRelError * denRelError));
+
+    result->SetBinContent(i, newBinContent);
+    result->SetBinError(i, newBinError);
+  }
+  return result;
 }
-using namespace MyEnums;
+
+namespace MyStrings {
+  string getPtString(string subscript);
+  string getZString(string subscript);
+  string getRatioString(string num, string den);
+  string getOneOverString(string s);
+  string getdYdXString(string y, string x);
+  string getdYdPtString(string y);
+  string getdYdZString(string y);
+  string getVarRangeString(string var, double high);
+  string getVarRangeString(double low, string var, double high);
+  string getPtJetRangeString(double ptmin, double ptmax, bool addUnits);
+  string getPtV0RangeString(double ptmin, double ptmax, bool addUnits);
+
+  const string sALICE      = "ALICE";
+  const string sAntikt     = "Anti-#it{k}_{T}";
+  const string sCharged    = "ch";
+  const string sCounts     = "Counts";
+  const string sEta        = "#eta";
+  const string sGevC       = "GeV/#it{c}";
+  const string sGevCC      = "GeV/#it{c}^{2}";
+  const string sJet        = "jet";
+  const string sJets       = "jets";
+  const string sMass       = "#it{M}";
+  const string sNumber     = "#it{N}";
+  const string sRadius     = "#it{R} = 0.4";
+  const string sRatio      = "Ratio";
+  const string sSigma      = "#sigma";
+  const string sSqrtS      = "#sqrt{s} = 13.6 TeV";
+  const string sPpData     = "pp data";
+  const string sPythia     = "PYTHIA";
+  const string sThisThesis = "This Thesis";
+
+  const string sV0         = "V0";
+  const string sK0S        = formatHadronName("K0S");
+  const string sLambda     = formatHadronName("Lambda");
+  const string sAntiLambda = formatHadronName("AntiLambda");
+
+  // Strings derived from the ones above
+  const string sChJets      = sCharged + " " + sJets;
+  const string sChV0Jets    = sCharged + "+" + sV0 + " " + sJets;
+  const string sAliceData   = sALICE + " " + sPpData;
+  const string sAlicePythia = sALICE + " " + sPythia;
+
+  const string sNjets       = sNumber + "_{" + sJets + "}";
+  const string sNevts       = sNumber + "_{evts}";
+  const string sNV0         = sNumber + "_{" + sV0 + "}";
+  const string sNK0S        = sNumber + "_{" + sK0S + "}";
+
+  const string sEtaJet      = sEta + "_{" + sJet + "}";
+  const string sEtaV0       = sEta + "_{" + sV0 + "}";
+  const string sEtaK0S      = sEta + "_{" + sK0S + "}";
+
+  const string sEtaJetRange = "|" + sEtaJet + "| < 0.5";
+  const string sEtaV0Range  = "|" + sEtaV0 + "| < 0.9";
+  const string sEtaK0SRange = "|" + sEtaK0S + "| < 0.9";
+
+  const string sPtJet       = getPtString(sJet);
+  const string sPtV0        = getPtString(sV0);
+  const string sPtK0S       = getPtString(sK0S);
+  const string sZV0         = getZString(sV0);
+  const string sZK0S        = getZString(sK0S);
+
+  const string sJetsPerEvent     = getOneOverString(sNevts) + " " + getdYdXString(sNjets, sPtJet);
+  const string sV0PtPerEvt       = getOneOverString(sNevts) + " " + getdYdXString(sNV0, sPtV0);
+  const string sK0SPtPerEvt      = getOneOverString(sNevts) + " " + getdYdXString(sNK0S, sPtK0S);
+  const string sV0ZPerEvt       = getOneOverString(sNevts) + " " + getdYdXString(sNV0, sZV0);
+  const string sK0SZPerEvt      = getOneOverString(sNevts) + " " + getdYdXString(sNK0S, sZK0S);
+
+  const string sV0PtPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNV0, sPtV0);
+  const string sK0SPtPerJet      = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sPtK0S);
+  const string sV0ZPerJet        = getOneOverString(sNjets) + " " + getdYdZString(sV0);
+  const string sK0SZPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sZK0S);
+  const string sLambdaPerJet     = getOneOverString(sNjets) + " " + getdYdZString(sLambda);
+  const string sAntiLambdaPerJet = getOneOverString(sNjets) + " " + getdYdZString(sAntiLambda);
+}
+
+string MyStrings::getPtString(string subscript) {
+  if (subscript.empty())
+    return TString::Format("#it{p}_{T}").Data();
+  else
+    return TString::Format("#it{p}_{T, %s}", subscript.c_str()).Data();
+}
+string MyStrings::getZString(string subscript) {
+  if (subscript.empty())
+    return TString::Format("#it{z}").Data();
+  else
+    return TString::Format("#it{z}_{%s}", subscript.c_str()).Data();
+}
+string MyStrings::getRatioString(string num, string den) {
+  return TString::Format("#frac{%s}{%s}", num.c_str(), den.c_str()).Data();
+}
+string MyStrings::getOneOverString(string s) {
+  return (getRatioString("1", s));
+}
+string MyStrings::getdYdXString(string y, string x) {
+  return getRatioString("d" + y, "d" + x);
+}
+string MyStrings::getdYdPtString(string y) {
+  return getdYdXString(y, getPtString(y));
+}
+string MyStrings::getdYdZString(string y) {
+  return getdYdXString(y, getZString(y));
+}
+string MyStrings::getVarRangeString(double low, string var, double high) {
+  string sLow  = TString::Format("%.0f", low).Data();
+  string sHigh = TString::Format("%.0f", high).Data();
+  return TString::Format("%s < %s < %s", sLow.c_str(), var.c_str(), sHigh.c_str()).Data();
+}
+string MyStrings::getVarRangeString(string var, double high) {
+  string sHigh = TString::Format("%.0f", high).Data();
+  return TString::Format("%s < %s", var.c_str(), sHigh.c_str()).Data();
+}
+string MyStrings::getPtJetRangeString(double ptmin, double ptmax, bool addUnits = true) {
+  string s = TString::Format("%.f < %s < %.f", ptmin, sPtJet.c_str(), ptmax).Data();
+  if (addUnits)
+    s += TString::Format(" %s", sGevC.c_str()).Data();
+
+  return s;
+}
+string MyStrings::getPtV0RangeString(double ptmin, double ptmax, bool addUnits = true) {
+  string s = TString::Format("%.1f < %s < %.1f", ptmin, sPtV0.c_str(), ptmax).Data();
+  if (addUnits)
+    s += TString::Format(" %s", sGevC.c_str()).Data();
+
+  return s;
+}
+
+namespace VerbosityLevels {
+  enum Verbosity {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
+}
+namespace HistogramTypes {
+  enum HistType {kGetJets, kGetJetV0s, kGetPCV0s};
+}
+
+using namespace MyStrings;
+using namespace VerbosityLevels;
+using namespace HistogramTypes;
 
 struct InputSettings{
   private:
@@ -41,23 +202,24 @@ struct InputSettings{
     string inputFileName = "";
     string outputFileName = "";
     double ptmin = -1e3, ptmax = -1e3, lowpt = -1e3, highpt = -1e3;
-    double ptminjet = -1e3, ptmaxjet = -1e3, lowptjet = -1e3, highptjet = -1e3;
+    double ptjetmin = -1e3, ptjetmax = -1e3, lowptjet = -1e3, highptjet = -1e3;
     bool logplot = false;
     bool ratioplot = false;
     vector<vector<double>> ptBinEdges = {};
 
-    Verb verbosity = kWarnings;
+    VerbosityLevels::Verbosity verbosity = VerbosityLevels::kWarnings;
 
     double massWindowMin = -1., massWindowMax = -1.;
     double polInitx0 = -1., polInitx1 = -1., polInitx2 = -1.;
     double signalRegionMin = -1., signalRegionMax = -1.;
     double nSigma = -1., nSigmaL = -1., nSigmaR = -1.;
 
-    string getHistName(int x);
+    string getHistName(HistogramTypes::HistType x);
     double getMass();
     string getNameFromJetPt(string prefix, string suffix);
     string getNameFromPt(string prefix, string suffix);
-    string printLog(string message, int verbThreshold);
+    bool passVerbosityCheck(VerbosityLevels::Verbosity verbThreshold);
+    string printLog(string message, VerbosityLevels::Verbosity verbThreshold);
     int setHadron(string h);
     string setInputFileNameFromTrain();
     void setLowHighFromAxis(const TAxis* axis, double& low, double& high);
@@ -68,24 +230,24 @@ struct InputSettings{
     template <typename T> int writeOutputToFile(T* obj);
 };
 
-string InputSettings::getHistName(int x) {
+string InputSettings::getHistName(HistogramTypes::HistType x) {
   string s = "jet-fragmentation";
   if (train == 436232) {
-    s += (x == kGetPCV0s) ? "_id24581" : "_id24580";
+    s += (x == HistogramTypes::kGetPCV0s) ? "_id24581" : "_id24580";
   }
   s += "/data/";
   switch (x) {
-    case kGetJets:
+    case HistogramTypes::kGetJets:
       s += "jets/jetPtEtaPhi";
       break;
-    case kGetJetV0s:
+    case HistogramTypes::kGetJetV0s:
       s += "jets/V0/jetPtK0SPtMass";
       break;
-    case kGetPCV0s:
+    case HistogramTypes::kGetPCV0s:
       s += "PC/JetPtK0SPtMass";
       break;
     default:
-      printLog("InputSettings::getHistName() Error: invalid x", kErrors);
+      printLog("InputSettings::getHistName() Error: invalid x", VerbosityLevels::kErrors);
       s = "";
   }
   return s;
@@ -110,8 +272,12 @@ string InputSettings::getNameFromPt(string prefix, string suffix = "") {
   return s;
 }
 
-string InputSettings::printLog(string message, int verbThreshold) {
-  if (this->verbosity < verbThreshold)
+bool InputSettings::passVerbosityCheck(VerbosityLevels::Verbosity verbThreshold) {
+  return (verbosity >= verbThreshold);
+}
+
+string InputSettings::printLog(string message, VerbosityLevels::Verbosity verbThreshold) {
+  if (!passVerbosityCheck(verbThreshold))
     return "";
 
   cout << message << endl;
@@ -147,11 +313,11 @@ void InputSettings::setPt(double a, double b) {
 
 void InputSettings::setJetPt(double a, double b) {
   if (a > b) {
-    printLog("InputSettings::setJetPt() Error: ptminjet > ptmaxjet", kErrors);
+    printLog("InputSettings::setJetPt() Error: ptjetmin > ptjetmax", kErrors);
     return;
   }
-  this->ptminjet = a;
-  this->ptmaxjet = b;
+  this->ptjetmin = a;
+  this->ptjetmax = b;
   this->lowptjet = a;
   this->highptjet = b;
 }
@@ -216,7 +382,6 @@ struct Plotter {
     vector<TObject*> objects = {};
 
     double textSize = 0.04;
-    const string sCounts = "Counts";
     const string sGevC = "GeV/#it{c}";
     const string sGevCC = "GeV/#it{c}^{2}";
     const string sNjets = "#it{N}_{jets}";
@@ -234,6 +399,7 @@ struct Plotter {
     void makeFrame(double x0, double x1, double y0, double y1, string sx, string sy);
     void makeLegend(double x0, double x1, double y0, double y1, string s);
     void plot();
+    void reset();
     void setHistStyles();
 
     string getMassString();
@@ -266,7 +432,7 @@ void Plotter::makeFrame(string sx, string sy) {
   double yMinFrame = getLowerBound(hists, 0, 0) * 0.9;
   double yMaxFrame = getUpperBound(hists, 0, 0) * 1.2;
 
-  inputs->printLog(TString::Format("Plotter::makeFrame() x: %.2f, %.2f \ny: %.2f, %.2f", xMinFrame, xMaxFrame, yMinFrame, yMaxFrame).Data(), MyEnums::kDebug);
+  inputs->printLog(TString::Format("Plotter::makeFrame() x: %.2f, %.2f \ny: %.2f, %.2f", xMinFrame, xMaxFrame, yMinFrame, yMaxFrame).Data(), VerbosityLevels::kDebug);
 
   if (inputs->logplot) {
     roundToNextPowerOfTen(yMaxFrame);
@@ -277,7 +443,7 @@ void Plotter::makeFrame(string sx, string sy) {
       roundToPrevPowerOfTen(yMinFrame);
     }
   }
-  inputs->printLog(TString::Format("Plotter::makeFrame() x: %.2f, %.2f \ny: %.2f, %.2f", xMinFrame, xMaxFrame, yMinFrame, yMaxFrame).Data(), MyEnums::kDebug);
+  inputs->printLog(TString::Format("Plotter::makeFrame() x: %.2f, %.2f \ny: %.2f, %.2f", xMinFrame, xMaxFrame, yMinFrame, yMaxFrame).Data(), VerbosityLevels::kDebug);
   makeFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, sx, sy);
 }
 void Plotter::makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
@@ -289,15 +455,13 @@ void Plotter::makeLegend(double x0, double x1, double y0, double y1, string s) {
 }
 
 void Plotter::plot() {
-  if (hists.empty()) {
-    string s = "Plotter::plot(): Hist vector is empty! Aborting";
-    inputs->printLog(s, kErrors);
-    return;
-  }
+  if (hists.empty())
+    inputs->printLog("Plotter::plot(): Hist vector is empty!", kWarnings);
 
   if (inputs->ratioplot) {
     TH1* baseCopy = (TH1*)hists[0]->Clone("baseCopy");
-    for (auto& h : hists) h->Divide(baseCopy);
+    // for (auto& h : hists) h->Divide(baseCopy);
+    for (auto& h : hists) h = divideWithProtection(h, baseCopy);
   }
 
   if (!canvas) makeCanvas();
@@ -310,9 +474,20 @@ void Plotter::plot() {
 
   for (auto h : hists) {
     h->Draw(("same" + drawOption).c_str());
-    if (inputs->verbosity >= kDebug) h->Print();
+    if (inputs->passVerbosityCheck(Verbosity::kDebugMax))
+      h->Print("all");
+    else if (inputs->passVerbosityCheck(Verbosity::kDebug))
+      h->Print();
   }
   canvas->SaveAs(inputs->outputFileName.c_str());
+}
+
+void Plotter::reset() {
+  canvas = nullptr;
+  frame = nullptr;
+  legend = nullptr;
+  objects.clear();
+  hists.clear();
 }
 
 void Plotter::setHistStyles() {
@@ -348,15 +523,20 @@ struct PerpCone {
   PerpCone() { inputs = new InputSettings(); plotter = new Plotter(*inputs); }
   PerpCone(InputSettings& i) { inputs = &i; plotter = new Plotter(*inputs); }
 
-  TH1* getMassHist(int type);
+  TH1* getMassHist(HistogramTypes::HistType type);
   double getNjets();
-  TH1* getPtHist(int type);
+  array<TH1*, 2> getPerpConePtHists(bool rebin);
+  TH1* getPtHist(HistogramTypes::HistType type);
 
   void plotPerpConeMass();
+  void plotPerpConePt();
   TH1* rebinPtHist(TH1* hist);
+
+  bool greaterThan(double a, double b, double epsilon = 1e-5) { return a - b > epsilon; }
+  bool lessThan(double a, double b, double epsilon = 1e-5) { return greaterThan(b, a, epsilon); }
 };
 
-TH1* PerpCone::getMassHist(int type) {
+TH1* PerpCone::getMassHist(HistogramTypes::HistType type) {
   TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
   if (!file) {
     inputs->printLog("Could not open file " + inputs->inputFileName, kErrors);
@@ -365,7 +545,7 @@ TH1* PerpCone::getMassHist(int type) {
 
   TH3* h3 = (TH3*)file->Get(inputs->getHistName(type).c_str());
 
-  array<int, 2> jetBins = getProjectionBins(h3->GetXaxis(), inputs->ptminjet, inputs->ptmaxjet);
+  array<int, 2> jetBins = getProjectionBins(h3->GetXaxis(), inputs->ptjetmin, inputs->ptjetmax);
   array<int, 2> v0Bins = getProjectionBins(h3->GetYaxis(), inputs->ptmin, inputs->ptmax);
   inputs->lowptjet = h3->GetXaxis()->GetBinLowEdge(jetBins[0]);
   inputs->highptjet = h3->GetXaxis()->GetBinUpEdge(jetBins[1]);
@@ -373,9 +553,9 @@ TH1* PerpCone::getMassHist(int type) {
   inputs->highpt = h3->GetYaxis()->GetBinUpEdge(v0Bins[1]);
 
   string name = "m" + inputs->hadron;
-  if (type == MyEnums::kGetPCV0s)
+  if (type == HistogramTypes::kGetPCV0s)
     name += "inPCs";
-  if (type == MyEnums::kGetJetV0s)
+  if (type == HistogramTypes::kGetJetV0s)
     name += "inJets";
   name = inputs->getNameFromJetPt(name);
   name = inputs->getNameFromPt(name);
@@ -384,7 +564,7 @@ TH1* PerpCone::getMassHist(int type) {
   return hist;
 }
 
-TH1* PerpCone::getPtHist(int type) {
+TH1* PerpCone::getPtHist(HistogramTypes::HistType type) {
   TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
   if (!file) {
     inputs->printLog("Could not open file " + inputs->inputFileName, kErrors);
@@ -393,14 +573,14 @@ TH1* PerpCone::getPtHist(int type) {
 
   TH3* h3 = (TH3*)file->Get(inputs->getHistName(type).c_str());
 
-  array<int, 2> jetBins = getProjectionBins(h3->GetXaxis(), inputs->ptminjet, inputs->ptmaxjet);
+  array<int, 2> jetBins = getProjectionBins(h3->GetXaxis(), inputs->ptjetmin, inputs->ptjetmax);
   inputs->lowptjet = h3->GetXaxis()->GetBinLowEdge(jetBins[0]);
   inputs->highptjet = h3->GetXaxis()->GetBinUpEdge(jetBins[1]);
 
   string name = "pt" + inputs->hadron;
-  if (type == MyEnums::kGetPCV0s)
+  if (type == HistogramTypes::kGetPCV0s)
     name += "inPCs";
-  if (type == MyEnums::kGetJetV0s)
+  if (type == HistogramTypes::kGetJetV0s)
     name += "inJets";
   name = inputs->getNameFromJetPt(name);
 
@@ -417,14 +597,13 @@ double PerpCone::getNjets() {
 
   TH3* hJetPtEtaPhi = (TH3*)file->Get(inputs->getHistName(kGetJets).c_str());
   TH1* hJetPt = hJetPtEtaPhi->ProjectionX("jetPt");
-  array<int, 2> jetBins = getProjectionBins(hJetPt->GetXaxis(), inputs->ptminjet, inputs->ptmaxjet);
+  array<int, 2> jetBins = getProjectionBins(hJetPt->GetXaxis(), inputs->ptjetmin, inputs->ptjetmax);
   double nJets = hJetPt->Integral(jetBins[0], jetBins[1]);
   return nJets;
 }
 
 void PerpCone::plotPerpConeMass() {
   plotter->hists.clear();
-  inputs->setInputFileNameFromTrain();
   inputs->outputFileName = inputs->getNameFromPt(inputs->getNameFromJetPt("pcMass"), ".pdf");
 
   plotter->makeLegend(0.65, 0.75, 0.7, 0.8, "");
@@ -433,8 +612,8 @@ void PerpCone::plotPerpConeMass() {
   TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
 
   double nJets = getNjets();
-  if (nJets < 0.) {
-    inputs->printLog("PerpCone::plotPerpConeMass() Error: could not get number of jets", kErrors);
+  if (nJets <= 0.) {
+    inputs->printLog(TString::Format("PerpCone::plotPerpConeMass() Error: could not get number of jets for pt (%.1f, %.1f)", inputs->ptjetmin, inputs->ptjetmax).Data(), kErrors);
     return;
   }
 
@@ -442,7 +621,7 @@ void PerpCone::plotPerpConeMass() {
   setStyle(hJet, 0);
   hJet->Scale(1. / nJets, "width");
   plotter->hists.push_back(hJet);
-  plotter->legend->AddEntry(hJet, "V0s in jets");
+  plotter->legend->AddEntry(hJet, "V0s in jet cone");
 
   TH1* hPC = getMassHist(kGetPCV0s);
   setStyle(hPC, 1);
@@ -451,16 +630,85 @@ void PerpCone::plotPerpConeMass() {
   plotter->legend->AddEntry(hPC, "V0s in UE");
 
   if (inputs->ratioplot) {
-    plotter->makeFrame(0.4, 0.6, 0., 1., plotter->getMassString(), plotter->sRatio);
+    plotter->makeFrame(0.4, 0.6, 0., 1., plotter->getMassString(), sRatio);
   } else {
-    plotter->makeFrame(plotter->getMassString(), TString::Format("#frac{1}{%s} %s", plotter->sNjets.c_str(), plotter->getdNdXString("#it{M}").c_str()).Data());
+    plotter->makeFrame(plotter->getMassString(), TString::Format("#frac{1}{%s} %s", sNjets.c_str(), plotter->getdNdXString("#it{M}").c_str()).Data());
   }
 
-  plotter->addLatex(0.25, 0.8, "This Thesis, ALICE pp data");
-  plotter->addLatex(0.25, 0.70, "#sqrt{s} = 13.6 TeV");
-  plotter->addLatex(0.25, 0.65, TString::Format("Anti-#it{k}_{T} ch+V0 jets").Data());
-  plotter->addLatex(0.25, 0.60, TString::Format("%.0f < #it{p}_{T, jet} < %.0f %s", inputs->lowptjet, inputs->highptjet, plotter->sGevC.c_str()).Data());
-  plotter->addLatex(0.25, 0.55, TString::Format("%.1f < #it{p}_{T, V0} < %.1f %s", inputs->lowpt, inputs->highpt, plotter->sGevC.c_str()).Data());
+  plotter->addLatex(0.25, 0.80, sThisThesis + " " + sAliceData);
+  plotter->addLatex(0.25, 0.75, sSqrtS);
+  plotter->addLatex(0.25, 0.70, sAntikt + " " + sChV0Jets);
+  plotter->addLatex(0.25, 0.65, getVarRangeString(inputs->lowptjet, sPtJet, inputs->highptjet) + " " + sGevC);
+  plotter->addLatex(0.25, 0.60, getVarRangeString(inputs->lowpt, sPtK0S, inputs->highpt) + " " + sGevC);
+
+  plotter->plot();
+}
+
+array<TH1*, 2> PerpCone::getPerpConePtHists(bool rebin = true) {
+  TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
+  double nJets = getNjets();
+  if (nJets <= 0.) {
+    inputs->printLog("PerpCone::plotPerpConeMass() Error: could not get number of jets", kErrors);
+    return {nullptr, nullptr};
+  }
+
+  TH1* hJet = getPtHist(kGetJetV0s);
+  TH1* hPC = getPtHist(kGetPCV0s);
+  if (rebin) {
+    hJet = rebinPtHist(hJet);
+    hPC = rebinPtHist(hPC);
+  }
+
+  hJet->Scale(1. / nJets, "width");
+  hPC->Scale(1. / (inputs->conesPerJet * nJets), "width");
+
+  return {hJet, hPC};
+}
+
+void PerpCone::plotPerpConePt() {
+  plotter->hists.clear();
+  inputs->outputFileName = inputs->getNameFromJetPt("pc");
+  if (inputs->ratioplot)
+    inputs->outputFileName += "ratio";
+  inputs->outputFileName += ".pdf";
+
+  TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
+  double nJets = getNjets();
+  if (nJets <= 0.) {
+    inputs->printLog("PerpCone::plotPerpConeMass() Error: could not get number of jets", kErrors);
+    return;
+  }
+  plotter->makeLegend(0.45, 0.6, 0.3, 0.4, "");
+
+  const bool doRebin = true;
+  array<TH1*, 2> ptHists = getPerpConePtHists(doRebin);
+  // TH1* hJet = getPtHist(HistogramTypes::kGetJetV0s);
+  // hJet = rebinPtHist(hJet);
+  // hJet->Scale(1. / nJets, "width");
+  TH1* hJet = ptHists[0];
+
+  setStyle(hJet, 0);
+  plotter->hists.push_back(hJet);
+  plotter->legend->AddEntry(hJet, "V0s in jet cone");
+
+  TH1* hPC = ptHists[1];
+  setStyle(hPC, 1);
+  plotter->hists.push_back(hPC);
+  plotter->legend->AddEntry(hPC, "V0s in UE");
+
+  if (inputs->ratioplot) {
+    plotter->makeFrame(0., inputs->ptjetmax, 1e-5, 1., sPtK0S, sRatio);
+  } else {
+    string xTitle = sPtK0S;
+    string yTitle = getOneOverString(sNumber + "_{jets, cones}") + getdYdXString(sNK0S, sPtK0S);
+    plotter->makeFrame(0., inputs->ptjetmax, 1e-5, 0.2, xTitle, yTitle);
+  }
+
+  plotter->addLatex(0.47, 0.85, sThisThesis + ", " + sAliceData);
+  plotter->addLatex(0.47, 0.80, sSqrtS);
+  plotter->addLatex(0.47, 0.75, sAntikt + " " + sChV0Jets);
+  plotter->addLatex(0.47, 0.70, sRadius + ", " + sEtaJetRange);
+  plotter->addLatex(0.47, 0.65, getPtJetRangeString(inputs->lowptjet, inputs->highptjet, true));
 
   plotter->plot();
 }
@@ -507,74 +755,103 @@ TH1* PerpCone::rebinPtHist(TH1* hist) {
   return h;
 }
 
+PerpCone setupPerpCone(double ptjetmin, double ptjetmax) {
+  PerpCone p;
+  p.inputs->verbosity = kDebug;
+  p.inputs->hadron = "K0S";
+  p.inputs->train = 436232;
+  p.inputs->setInputFileNameFromTrain();
+  p.inputs->setJetPt(ptjetmin, ptjetmax);
+  p.inputs->setPtBinEdgesFromHadron();
+  return p;
+}
+
 void perpConeMass(bool doRatio) {
-  InputSettings x; x.verbosity = kDebug;
-  x.hadron = "K0S";
-  x.train = 436232;
-  x.ratioplot = doRatio;
+  PerpCone p = setupPerpCone(20., 30.);
+  p.inputs->ratioplot = doRatio;
 
-  // Set jet pt
-  x.setJetPt(20., 30.);
-  x.setPtBinEdgesFromHadron();
+  if (p.inputs->passVerbosityCheck(VerbosityLevels::kDebug)) {
+    string s = TString::Format("Ptjet: (%.f, %.f)\n", p.inputs->ptjetmin, p.inputs->ptjetmax).Data();
+    s += "Pt bin edges: ";
+    for (int ipt = 0; ipt < p.inputs->ptBinEdges.size(); ipt++) {
+      s += TString::Format("(%.1f, %.1f) ", p.inputs->ptBinEdges[ipt][0], p.inputs->ptBinEdges[ipt][1]).Data();
+    }
+    p.inputs->printLog(s, VerbosityLevels::kDebug);
+  }
 
-  for (int ipt = 0; ipt < x.ptBinEdges.size(); ipt++) {
-    x.setPt(x.ptBinEdges[ipt][0], x.ptBinEdges[ipt][1]);
-    PerpCone p(x);
+  for (int ipt = 0; ipt < p.inputs->ptBinEdges.size(); ipt++) {
+    p.inputs->setPt(p.inputs->ptBinEdges[ipt][0], p.inputs->ptBinEdges[ipt][1]);
+    p.inputs->printLog("Pt: " + to_string(p.inputs->ptmin) + " - " + to_string(p.inputs->ptmax), VerbosityLevels::kDebug);
+
+    if (p.greaterThan(p.inputs->ptmin, p.inputs->ptjetmax)) {
+      p.inputs->printLog("Stopping plotting because ptmin >= ptjetmax", VerbosityLevels::kDebug);
+      break;
+    }
+
     p.plotPerpConeMass();
   }
 }
 
-void perpConePt() {
-  InputSettings x; x.verbosity = kDebug;
-  x.hadron = "K0S";
-  x.train = 436232;
-  x.setJetPt(20., 30.);
-  x.logplot = true;
+void perpconept(double ptjetmin, double ptjetmax, bool doRatio) {
+  PerpCone p = setupPerpCone(ptjetmin, ptjetmax);
+  p.inputs->verbosity = VerbosityLevels::kInfo;
+  p.inputs->logplot = true;
+  p.inputs->ratioplot = doRatio;
+  p.inputs->outputFileName = p.inputs->getNameFromJetPt("pc");
+  if (doRatio)
+    p.inputs->outputFileName += "_ratio";
+  p.inputs->outputFileName += ".pdf";
 
-  // plotter->hists.clear();
-  x.setInputFileNameFromTrain();
-  x.outputFileName = x.getNameFromJetPt("pc", ".pdf");
-
-  PerpCone p(x);
-  p.plotter->makeLegend(0.45, 0.6, 0.3, 0.4, "");
-  array<int, 2> jetBins;
-
-  TFile* file = TFile::Open(x.inputFileName.c_str(), "READ");
-  double nJets = p.getNjets();
-  if (nJets < 0.) {
-    x.printLog("PerpCone::plotPerpConeMass() Error: could not get number of jets", kErrors);
-    return;
+  array<TH1*, 2> ptHists = p.getPerpConePtHists(true);
+  if (p.inputs->passVerbosityCheck(VerbosityLevels::kDebug)) {
+    for (auto h : ptHists) {
+      h->Print("all");
+    }
   }
+  p.plotter->makeLegend(0.45, 0.6, 0.3, 0.4, "");
 
-  TH1* hJet = p.getPtHist(kGetJetV0s);
-  hJet = p.rebinPtHist(hJet);
+  TH1* hJet = ptHists[0];
   setStyle(hJet, 0);
-  hJet->Scale(1. / nJets, "width");
-  p.plotter->hists.push_back(hJet);
-  p.plotter->legend->AddEntry(hJet, "V0s in jets");
+  p.plotter->legend->AddEntry(hJet, "V0s in jet cone");
 
-  TH1* hPC = p.getPtHist(kGetPCV0s);
-  hPC = p.rebinPtHist(hPC);
+  TH1* hPC = ptHists[1];
   setStyle(hPC, 1);
-  hPC->Scale(1. / (x.conesPerJet * nJets), "width");
-  p.plotter->hists.push_back(hPC);
   p.plotter->legend->AddEntry(hPC, "V0s in UE");
 
-  if (x.ratioplot) {
-    p.plotter->makeFrame(0.4, 0.6, 0., 1., p.plotter->getMassString(), p.plotter->sRatio);
-  } else {
-    string xTitle = p.plotter->sPtJet;
-    string yTitle = TString::Format("#frac{1}{#it{N}_{jets, cones}} %s", p.plotter->getdNdXString("#it{p}_{T}").c_str()).Data();
-    p.plotter->makeFrame(0., 30., 1e-5, 0.2, xTitle, yTitle);
-    // p.plotter->makeFrame(0., 30., 1e-1, 1e5, xTitle, yTitle);
+  string xTitle = sPtK0S;
+  string yTitle = getOneOverString(sNumber + "_{jets, cones}") + " " + getdYdXString(sNK0S, sPtK0S);
+  double xMinFrame = 0., xMaxFrame = p.inputs->ptjetmax;
+  double yMinFrame = 1e-5;
+  double yMaxFrame = 0.2;
+  if (p.lessThan(p.inputs->ptjetmin, 11.)) {
+    xMaxFrame = 25.;
+    yMinFrame = 1e-8;
+  }
+  p.plotter->makeFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  if (p.inputs->ratioplot)
+    p.plotter->makeFrame(xMinFrame, xMaxFrame, yMinFrame, 1., sPtK0S, sRatio);
+
+  p.plotter->addLatex(0.47, 0.85, sThisThesis + ", " + sAliceData);
+  p.plotter->addLatex(0.47, 0.80, sSqrtS);
+  p.plotter->addLatex(0.47, 0.75, sAntikt + " " + sChV0Jets);
+  p.plotter->addLatex(0.47, 0.70, sRadius + ", " + sEtaJetRange);
+  p.plotter->addLatex(0.47, 0.65, getPtJetRangeString(p.inputs->lowptjet, p.inputs->highptjet, true));
+
+  if (doRatio) {
+    TH1* baseCopy = (TH1*)hJet->Clone("baseCopy");
+    hJet = divideWithProtection(hJet, baseCopy);
+    hPC = divideWithProtection(hPC, baseCopy);
+  }
+  if (p.inputs->passVerbosityCheck(VerbosityLevels::kInfo)) {
+    hJet->Print("all");
+    hPC->Print("all");
   }
 
-  p.plotter->addLatex(0.55, 0.85, "This Thesis");
-  p.plotter->addLatex(0.55, 0.80, "ALICE pp data");
-  p.plotter->addLatex(0.55, 0.75, "#sqrt{s} = 13.6 TeV");
-  p.plotter->addLatex(0.55, 0.70, TString::Format("Anti-#it{k}_{T} ch+V0 jets").Data());
-  p.plotter->addLatex(0.55, 0.65, TString::Format("#it{R} = 0.4, |#eta| < 0.5").Data());
-  p.plotter->addLatex(0.55, 0.60, TString::Format("%.0f < #it{p}_{T, jet} < %.0f %s", x.lowptjet, x.highptjet, p.plotter->sGevC.c_str()).Data());
+  p.plotter->hists.push_back(hJet);
+  p.plotter->hists.push_back(hPC);
+  p.plotter->setDrawOption("p");
+
+  p.inputs->ratioplot = false;
 
   p.plotter->plot();
 }

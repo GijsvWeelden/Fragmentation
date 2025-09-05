@@ -341,6 +341,44 @@ TH1* makeHistSubset(TH1* data, int minBin, int maxBin, string name = "region") {
 
 // -------------------------------------------------------------------------------------------------
 //
+// Divide two histograms with protection against nan/null bin content
+// Assumes uncorrelated errors
+// Take caution: bins must match!
+//
+// -------------------------------------------------------------------------------------------------
+TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
+  // TODO: Check if same binning
+  TH1* result = (TH1*)base->Clone("result");
+  result->Reset();
+
+  for (int i = 0; i <= 1 + base->GetNbinsX(); i++) {
+    double numerator = base->GetBinContent(i);
+    double numError = base->GetBinError(i);
+    double denominator = divideBy->GetBinContent(i);
+    double denError = divideBy->GetBinError(i);
+
+    if (std::isnan(numerator) || std::isnan(denominator))
+      continue;
+    else if (std::abs(numerator) < threshold || std::abs(denominator) < threshold)
+      continue;
+
+    double newBinContent = numerator / denominator;
+
+    if (std::isnan(numError) || std::isnan(denError))
+      continue;
+
+    double numRelError = numError / numerator;
+    double denRelError = denError / denominator;
+    double newBinError = newBinContent * std::sqrt((numRelError * numRelError) + (denRelError * denRelError));
+
+    result->SetBinContent(i, newBinContent);
+    result->SetBinError(i, newBinError);
+  }
+  return result;
+}
+
+// -------------------------------------------------------------------------------------------------
+//
 // Make new rebinned histogram and propagates errors via sum of squares
 // Take caution: bin edges must line up!
 //
@@ -381,6 +419,11 @@ TH1* rebinnedV0PtHist(string hadron, string name) {
     cout << "Hadron not recognised for rebinned V0 pt hist: " << hadron << endl;
     return nullptr;
   }
+}
+TH1* rebinnedV0ZHist(string name) {
+  const int nBins = 10;
+  const double edges[nBins + 1] = {0.001, .101, .201, .301, .401, .501, .601, .701, .801, .901, 1.001};
+  return new TH1D(name.c_str(), name.c_str(), nBins, edges);
 }
 
 // -------------------------------------------------------------------------------------------------

@@ -14,627 +14,375 @@ using std::cout;
 using std::endl;
 using std::string;
 
-void test()
-{
-  double xTmin = -6, xTmax = 6;
-  double yTmin = 0., yTmax = 20;
-  double xMmin = -4, xMmax = 4;
-  double yMmin = 4., yMmax = 10;
+// Using a 2D toy model, this macro illustrates how to perform unfolding with RooUnfold
+// It shows a both trivial and statistically independent closure tests
+// Run the full chain with: toymodel()
+// There is also an official RooUnfold tutorial at the end of this file
 
-  TF1 *fx = new TF1("fx", "gaus(0)", xTmin, xTmax);
-  fx->SetParameters(1., 0., 1.);
-  TF1 *fy = new TF1("fy", "TMath::Landau(x,[0],[1],0)", yTmin, yTmax);
-  fy->SetParameters(0.2, 0.3);
-
-  TF1 *fresx = new TF1("fresx", "gaus(0)", -10., 10.);
-  fresx->SetParameters(1., 1., 0.3);
-  TF1 *fresy = new TF1("fresy", "gaus(0)", -10., 10.);
-  fresy->SetParameters(1., 1., 3.);
-
-  int nBinsxT = 10;
-  int nBinsyT = 10;
-  int nBinsxM = nBinsxT;
-  int nBinsyM = 8;
-  TH2F *h2Truth =
-    new TH2F("h2Truth", "h2Truth", nBinsxT, xTmin, xTmax, nBinsyT, yTmin, yTmax);
-  TH2F *h2Measured =
-    new TH2F("h2Measured", "h2Measured", nBinsxM, xMmin, xMmax, nBinsyM, yMmin, yMmax);
-  TH2F *h2Prior =
-    new TH2F("h2Prior", "h2Prior", nBinsxT, xTmin, xTmax, nBinsyT, yTmin, yTmax);
-  TH2F *h2TInRM =
-    new TH2F("h2TInRM", "h2TInRM", nBinsxT, xTmin, xTmax, nBinsyT, yTmin, yTmax);
-
-  RooUnfoldResponse *fResponse = new RooUnfoldResponse("resp", "resp");
-  fResponse->Setup(h2Measured,h2Truth);
-  const int ntoys = 100000;
-
-  for (int i = 0; i < ntoys; i++) {
-    double xT = fx->GetRandom();
-    double yT = fy->GetRandom();
-    double xM = xT * fresx->GetRandom();
-    double yM = yT * fresy->GetRandom();
-
-    bool isTruth = false;
-    isTruth = (xT >= xTmin) * (xT < xTmax) * (yT >= yTmin) * (yT < yTmax);
-    bool isMeasured = false;
-    isMeasured = (xM >= xMmin) * (xM < xMmax) * (yM >= yMmin) * (yM < yMmax);
-
-    if (isTruth && isMeasured) {
-      h2Truth->Fill(xT, yT);
-      h2Measured->Fill(xM, yM);
-
-      h2TInRM->Fill(xT, yT);
-      fResponse->Fill(xM, yM, xT, yT);
-    }
-    else if (isTruth) {
-      h2Truth->Fill(xT, yT);
-      fResponse->Miss(xT, yT);
-    }
-    else if (isMeasured) {
-      h2Measured->Fill(xM, yM);
-      fResponse->Fake(xM, yM);
-    }
-  } // for ntoys
-
-  int iterDef = 1;//3;
-  int iterMin = 1;//3;
-  int iterMax = 1;//3;
-  int nIterTmp = iterMax - iterMin+1;
-  const int nIter = nIterTmp;
-
-  RooUnfold::ErrorTreatment errorTreatment = RooUnfold::kCovariance;
-  RooUnfoldBayes unfold[nIter];
-  TH2F *hReco[nIter];
-  TH2F *hFolded[nIter];
-  TMatrixD covmat[nIter];
-  TH2D *hCovMat[nIter];
-  for(Int_t iter = iterMin; iter<=iterMax; iter++) {
-    cout << "Unfolding loop " << iter << endl;
-    unfold[iter-iterMin] = RooUnfoldBayes(fResponse, h2Measured, iter);
-    hReco[iter-iterMin] = (TH2F*)unfold[iter-iterMin].Hreco(errorTreatment);
-    hReco[iter-iterMin]->SetName(Form("hReco_Iter%d",iter));
-
-    hFolded[iter-iterMin] = (TH2F*)fResponse->ApplyToTruth(hReco[iter-iterMin],Form("hFolded_Iter%d",iter));
-    //hFolded[iter-iterMin]->SetName(Form("hFolded_Iter%d",iter));
-
-    //Get covariance matrix
-    // cout << "get covariance for iter " << iter << endl;
-    // TH2D htmp(unfold[iter-iterMin].Ereco(errorTreatment));
-    // hCovMat[iter-iterMin] = dynamic_cast<TH2D*>(htmp.Clone(Form("hCovMat_Iter%d",iter)));//TH2D::TH2D(covmat);
-    // hCovMat[iter-iterMin]->SetName(Form("hCovMat_Iter%d",iter));
-  } // Unfolding iterations loop
-
-  cout << "After unfolding loop" << endl;
-
-  TH1D *hRecoP[2];
-  hRecoP[0] = dynamic_cast<TH1D*>(hReco[iterDef-iterMin]->ProjectionX("hRecoP_x"));
-  hRecoP[1] = dynamic_cast<TH1D*>(hReco[iterDef-iterMin]->ProjectionY("hRecoP_y"));
-
-  TH1D *hFoldedP[2];
-  hFoldedP[0] = dynamic_cast<TH1D*>(hFolded[iterDef-iterMin]->ProjectionX("hFoldedP_x"));
-  hFoldedP[1] = dynamic_cast<TH1D*>(hFolded[iterDef-iterMin]->ProjectionY("hFoldedP_y"));
-
-  TH1D *hMeasured[2];
-  hMeasured[0] = dynamic_cast<TH1D*>(h2Measured->ProjectionX("hMeasured_x"));
-  hMeasured[1] = dynamic_cast<TH1D*>(h2Measured->ProjectionY("hMeasured_y"));
-
-  TH1D *hTruth[2];
-  hTruth[0] = dynamic_cast<TH1D*>(h2Truth->ProjectionX("hTruth_x"));
-  hTruth[1] = dynamic_cast<TH1D*>(h2Truth->ProjectionY("hTruth_y"));
-
-  for (int iDim = 0; iDim < 2; iDim++) {
-    hRecoP[iDim]->SetMarkerColor(1);
-    hRecoP[iDim]->SetLineColor(1);
-    hRecoP[iDim]->SetMarkerStyle(2);
-    // hRecoP[iDim]->SetLineStyle();
-    hRecoP[iDim]->SetLineWidth(3);
-    // hRecoP[iDim]->SetOptStat(0);
-
-    hFoldedP[iDim]->SetMarkerColor(1);
-    hFoldedP[iDim]->SetLineColor(1);
-    hFoldedP[iDim]->SetMarkerStyle(2);
-    // hFoldedP[iDim]->SetLineStyle();
-    hFoldedP[iDim]->SetLineWidth(3);
-    // hFoldedP[iDim]->SetOptStat(0);
-
-    hMeasured[iDim]->SetMarkerColor(3);
-    hMeasured[iDim]->SetLineColor(3);
-    hMeasured[iDim]->SetMarkerStyle(5);
-    // hMeasured[iDim]->SetLineStyle();
-    hMeasured[iDim]->SetLineWidth(3);
-    // hMeasured[iDim]->SetOptStat(0);
-
-    hTruth[iDim]->SetMarkerColor(4);
-    hTruth[iDim]->SetLineColor(4);
-    hTruth[iDim]->SetMarkerStyle(25);
-    // hTruth[iDim]->SetLineStyle();
-    hTruth[iDim]->SetLineWidth(3);
-    // hTruth[iDim]->SetOptStat(0);
-  }
-
-  TCanvas* myCanvas = new TCanvas("myCanvas", "myCanvas", 800, 800);
-  myCanvas->Divide(2, 2);
-  gStyle->SetOptStat(0);
-
-  cout << "Plot 1" << endl;
-  myCanvas->cd(1);
-  gPad->SetLogy();
-  TLegend *leg1 = new TLegend(0.15,0.6,0.5,0.9);
-  leg1->AddEntry(hTruth[0], "truth");
-  hTruth[0]->Draw();
-  hTruth[0]->Draw("p same");
-  hTruth[0]->Print();
-  leg1->AddEntry(hRecoP[0], "unfolded");
-  hRecoP[0]->Draw("same hist p");
-  hRecoP[0]->Print();
-  leg1->Draw("same");
-
-  cout << "Plot 2" << endl;
-  myCanvas->cd(2);
-  gPad->SetLogy();
-  TLegend *leg2 = new TLegend(0.15,0.6,0.5,0.9);
-  leg2->AddEntry(hTruth[1], "truth");
-  hTruth[1]->Draw();
-  hTruth[1]->Draw("p same");
-  hTruth[1]->Print();
-  leg2->AddEntry(hRecoP[1], "unfolded");
-  hRecoP[1]->Draw("same hist p");
-  hRecoP[1]->Print();
-  leg2->Draw("same");
-
-  cout << "Plot 3" << endl;
-  myCanvas->cd(3);
-  gPad->SetLogy();
-  TLegend *leg3 = new TLegend(0.15,0.6,0.5,0.9);
-  leg3->AddEntry(hMeasured[0], "measured");
-  hMeasured[0]->Draw();
-  hMeasured[0]->Draw("p same");
-  hMeasured[0]->Print();
-  leg3->AddEntry(hFoldedP[0], "refolded");
-  hFoldedP[0]->Draw("same hist p");
-  hFoldedP[0]->Print();
-  leg3->Draw("same");
-
-  cout << "Plot 4" << endl;
-  myCanvas->cd(4);
-  gPad->SetLogy();
-  TLegend *leg4 = new TLegend(0.15,0.6,0.5,0.9);
-  leg4->AddEntry(hMeasured[0], "measured");
-  leg4->AddEntry(hFoldedP[0], "refolded");
-  hMeasured[1]->Draw();
-  hMeasured[1]->Draw("p same");
-  hMeasured[1]->Print();
-  hFoldedP[1]->Draw("same hist p");
-  hFoldedP[1]->Print();
-  leg4->Draw("same");
-
-  cout << "Saving" << endl;
-  myCanvas->SaveAs("./spectra.pdf");
-
-  // ------------------------------------------------------------------------------------
-
-  TH1D* hTruthOverUnfolded[2];
-  hTruthOverUnfolded[0] = dynamic_cast<TH1D*>(hTruth[0]->Clone("hTruthOverUnfolded_x"));
-  hTruthOverUnfolded[0]->Divide(hRecoP[0]);
-  hTruthOverUnfolded[1] = dynamic_cast<TH1D*>(hTruth[1]->Clone("hTruthOverUnfolded_y"));
-  hTruthOverUnfolded[1]->Divide(hRecoP[1]);
-
-  TH1D* hMeasuredOverRefolded[2];
-  hMeasuredOverRefolded[0] = dynamic_cast<TH1D*>(hMeasured[0]->Clone("hMeasuredOverRefolded_x"));
-  hMeasuredOverRefolded[0]->Divide(hFoldedP[0]);
-  hMeasuredOverRefolded[1] = dynamic_cast<TH1D*>(hMeasured[1]->Clone("hMeasuredOverRefolded_y"));
-  hMeasuredOverRefolded[1]->Divide(hFoldedP[1]);
-
-  TCanvas* ratioCanvas = new TCanvas("ratioCanvas", "ratioCanvas", 800, 800);
-  ratioCanvas->Divide(2, 2);
-  gStyle->SetOptStat(0);
-
-  cout << "Plot 1" << endl;
-  ratioCanvas->cd(1);
-  TLegend *rLeg1 = new TLegend(0.15,0.6,0.5,0.9);
-  rLeg1->AddEntry(hTruthOverUnfolded[0], "truth/unfolded");
-  hTruthOverUnfolded[0]->Draw();
-  hTruthOverUnfolded[0]->Draw("p same");
-  hTruthOverUnfolded[0]->Print("all");
-  rLeg1->Draw("same");
-
-  cout << "Plot 2" << endl;
-  ratioCanvas->cd(2);
-  TLegend *rLeg2 = new TLegend(0.15,0.6,0.5,0.9);
-  rLeg2->AddEntry(hTruthOverUnfolded[1], "truth/unfolded");
-  hTruthOverUnfolded[1]->Draw();
-  hTruthOverUnfolded[1]->Draw("p same");
-  hTruthOverUnfolded[1]->Print("all");
-  rLeg2->Draw("same");
-
-  cout << "Plot 3" << endl;
-  ratioCanvas->cd(3);
-  TLegend *rLeg3 = new TLegend(0.15,0.6,0.5,0.9);
-  rLeg3->AddEntry(hMeasuredOverRefolded[0], "measured/refolded");
-  hMeasuredOverRefolded[0]->Draw();
-  hMeasuredOverRefolded[0]->Draw("p same");
-  hMeasuredOverRefolded[0]->Print("all");
-  rLeg3->Draw("same");
-
-  cout << "Plot 4" << endl;
-  ratioCanvas->cd(4);
-  TLegend *rLeg4 = new TLegend(0.15,0.6,0.5,0.9);
-  rLeg4->AddEntry(hMeasuredOverRefolded[1], "measured/refolded");
-  hMeasuredOverRefolded[1]->Draw();
-  hMeasuredOverRefolded[1]->Draw("p same");
-  hMeasuredOverRefolded[1]->Print("all");
-  rLeg4->Draw("same");
-
-  cout << "Saving" << endl;
-  ratioCanvas->SaveAs("./ratio.pdf");
-}
-
-void CompareHists(TH1* histA, TH1* histB)
-{
-  cout << histA->GetName() << " - " << histB->GetName() << endl;
-  for (int i = 0; i < histA->GetNbinsX(); i++)
-  {
+bool AreHistsEqual(const TH1* histA, const TH1* histB, double tolerance = 1e-10) {
+  vector<int> bins;
+  vector<double> diffs;
+  for (int i = 0; i < histA->GetNbinsX(); i++) {
     double binDiff = histA->GetBinContent(i) - histB->GetBinContent(i);
-    if ( abs(binDiff) > 0.) cout << "Bin " << i << " = " << binDiff << " ";
+    if (abs(binDiff) > tolerance) {
+      bins.push_back(i);
+      diffs.push_back(binDiff);
+    }
   }
-  cout << endl;
+  cout << histA->GetName() << " - " << histB->GetName();
+  if (bins.size() == 0) {
+    cout << ": All bins match within tolerance " << tolerance << "\n";
+    return true;
+  } else {
+    for (int i = 0; i < bins.size(); i++) {
+      cout << " Bin " << bins[i] << " = " << diffs[i] << " ";
+    }
+    cout << "\n";
+    return false;
+  }
 }
-void CompareHists(TH2* histA, TH2* histB)
-{
-  cout << histA->GetName() << " - " << histB->GetName() << endl;
-  for (int i = 0; i < histA->GetNbinsX(); i++)
-  {
+bool AreHistsEqual(const TH2* histA, const TH2* histB, double tolerance = 1e-10) {
+  vector<array<int, 2>> bins;
+  vector<double> diffs;
+  for (int i = 0; i < histA->GetNbinsX(); i++) {
     for (int j = 0; j < histA->GetNbinsY(); j++) {
       double binDiff = histA->GetBinContent(i, j) - histB->GetBinContent(i, j);
-      if ( abs(binDiff) > 0.) cout << "Bin (" << i << ", " << j << ") = " << binDiff << " ";
+      if (abs(binDiff) > tolerance) {
+        bins.push_back(std::array<int, 2>{i, j});
+        diffs.push_back(binDiff);
+      }
     }
   }
-  cout << endl;
+  cout << histA->GetName() << " - " << histB->GetName();
+  if (bins.size() == 0) {
+    cout << ": All bins match within tolerance " << tolerance << "\n";
+    return true;
+  } else {
+    for (int i = 0; i < bins.size(); i++) {
+      cout << " Bin (" << bins[i][0] << ", " << bins[i][1] << ") = " << diffs[i] << " ";
+    }
+    cout << "\n";
+    return false;
+  }
 }
 
-void toyResponse1D(bool trivialClosure = true)
-{
-  double xmin = -2, xmax = 2;
-  double ymin = -1.5, ymax = 1.5;
-  int nbinsx = 20, nbinsy = 40;
-  TF1 *fx = new TF1("fx", "gaus(0)", xmin, xmax);
-  fx->SetParameters(1., 0., 1.);
-  TF1 *gx = new TF1("gx", "gaus(0)", xmin, xmax);
-  gx->SetParameters(1., 1., .3);
-
-  TH1F* hT = new TH1F("hT", "hT", nbinsx, xmin, xmax);
-  hT->Sumw2();
-  TH1F* hM = new TH1F("hM", "hM", nbinsy, ymin, ymax);
-  hM->Sumw2();
-  TH1F* hMiss = new TH1F("hMiss", "hMiss", nbinsx, xmin, xmax);
-  hMiss->Sumw2();
-  RooUnfoldResponse *response = new RooUnfoldResponse("response", "response");
-  response->Setup(hM, hT);
-
-  for (int i = 0; i < 10000; i++)
-  {
-    double x = fx->GetRandom();
-    double y = x * gx->GetRandom();
-    bool xGood = (x >= xmin && x < xmax);
-    bool yGood = (y >= ymin && y < ymax);
-
-    if ( xGood ) {
-      hT->Fill(x);
-    }
-    if ( yGood ) {
-      hM->Fill(y);
-    }
-    if (trivialClosure) {
-      if ( xGood && yGood ) {
-        response->Fill(y, x);
-      }
-      else if ( xGood && !yGood ) {
-        response->Miss(x);
-        hMiss->Fill(x);
-      }
-      else if ( !xGood && yGood ) {
-        response->Fake(y);
-      }
-    }
-  }
-  if (!trivialClosure) {
-    for (int i = 0; i < 10000; i++)
-    {
-      double x = fx->GetRandom();
-      double y = x * gx->GetRandom();
-      bool xGood = (x >= xmin && x < xmax);
-      bool yGood = (y >= ymin && y < ymax);
-      if ( xGood && yGood ) {
-        response->Fill(y, x);
-      }
-      else if ( xGood && !yGood ) {
-        response->Miss(x);
-        hMiss->Fill(x);
-      }
-      else if ( !xGood && yGood ) {
-        response->Fake(y);
-      }
-    }
-  }
-
-  TFile* outFile = new TFile("toy1D.root", "RECREATE");
-  response->Write();
-  hM->Write();
-  hMiss->Write();
-  hT->Write();
-  outFile->Write();
-  outFile->Close();
-}
-
-void toyResponse2D(bool trivialClosure = true)
-{
+// Trivial closure test means we use the same data to build the Truth and Measured distributions as we use to build the response matrix
+void createResponse() {
+  // Truth
   double xmin = -6, xmax = 6;
   double ymin = -3, ymax = 3;
   int nbinsx = 12, nbinsy = 6;
 
+  // Measured
   double amin = -4, amax = 4;
   double bmin = -1, bmax = 3;
   int nbinsa = 16, nbinsb = 8;
 
-  TF1 *fx = new TF1("fx", "gaus(0)", xmin, xmax);
-  fx->SetParameters(1., 0., 1.);
-  TF1 *fy = new TF1("fy","TMath::Landau(x,[0],[1],0)", ymin, ymax);
-  fy->SetParameters(0.2, 0.3);
+  TF1 *fxTruth = new TF1("fxTruth", "gaus(0)", xmin, xmax);
+  fxTruth->SetParameters(1., 0., 1.);
+  TF1 *fyTruth = new TF1("fyTruth","TMath::Landau(x,[0],[1],0)", ymin, ymax);
+  fyTruth->SetParameters(0.2, 0.3);
 
-  TF1 *gx = new TF1("gx", "gaus(0)", -10, 10);
-  gx->SetParameters(1., 0., 1.);
-  TF1 *gy = new TF1("gy", "gaus(0)", -10, 10);
-  gy->SetParameters(1., 0., 1.5);
+  TF1 *resx = new TF1("resx", "gaus(0)", -10, 10);
+  resx->SetParameters(1., 0., 1.);
+  TF1 *resy = new TF1("resy", "gaus(0)", -10, 10);
+  resy->SetParameters(1., 0., 1.5);
 
-  TH2F* hT = new TH2F("hT", "hT", nbinsx, xmin, xmax, nbinsy, ymin, ymax);
-  TH2F* hMiss = new TH2F("hMiss", "hMiss", nbinsx, xmin, xmax, nbinsy, ymin, ymax);
-  TH2F* hM = new TH2F("hM", "hM", nbinsa, amin, amax, nbinsb, bmin, bmax);
-  TH2F* hFake = new TH2F("hFake", "hFake", nbinsa, amin, amax, nbinsb, bmin, bmax);
-  RooUnfoldResponse *response = new RooUnfoldResponse("response", "response");
-  response->Setup(hM, hT);
+  TH2F* hTruth = new TH2F("hTruth", "hTruth", nbinsx, xmin, xmax, nbinsy, ymin, ymax);
+  TH2F* hMeasured = new TH2F("hMeasured", "hMeasured", nbinsa, amin, amax, nbinsb, bmin, bmax);
+  TH2F* hMissTrivial = (TH2F*)hTruth->Clone("hMissTrivial");
+  TH2F* hFakeTrivial = (TH2F*)hMeasured->Clone("hFakeTrivial");
+  TH2F* hMissIndependent = (TH2F*)hTruth->Clone("hMissIndependent");
+  TH2F* hFakeIndependent = (TH2F*)hMeasured->Clone("hFakeIndependent");
+
+  RooUnfoldResponse *responseTrivial = new RooUnfoldResponse("responseTrivial", "responseTrivial");
+  responseTrivial->Setup(hMeasured, hTruth);
+  RooUnfoldResponse *responseIndependent = new RooUnfoldResponse("responseIndependent", "responseIndependent");
+  responseIndependent->Setup(hMeasured, hTruth);
 
   int ntoys = 1e6;
-  for (int i = 0; i < ntoys; i++)
-  {
-    double x = fx->GetRandom();
-    double a = x * gx->GetRandom();
-    double y = fy->GetRandom();
-    double b = y * gy->GetRandom();
+  // Fill truth and measured distributions and response for trivial closure
+  for (int i = 0; i < ntoys; i++) {
+    double x = fxTruth->GetRandom();
+    double a = x * resx->GetRandom();
+    double y = fyTruth->GetRandom();
+    double b = y * resy->GetRandom();
 
     bool isTruth = (x > xmin && x < xmax) * (y > ymin && y < ymax);
     bool isMeasured = (a > amin && a < amax) * (b > bmin && b < bmax);
 
     if ( isTruth ) {
-      hT->Fill(x, y);
+      hTruth->Fill(x, y);
     }
     if ( isMeasured ) {
-      hM->Fill(a, b);
+      hMeasured->Fill(a, b);
     }
 
-    if (trivialClosure) {
-      if ( isTruth && isMeasured ) {
-        response->Fill(a, b, x, y);
-      }
-      else if ( isTruth && !isMeasured ) {
-        response->Miss(x, y);
-        hMiss->Fill(x, y);
-      }
-      else if ( !isTruth && isMeasured ) {
-        response->Fake(a, b);
-        hFake->Fill(a, b);
-      }
+    // Trivial Closure
+    if ( isTruth && isMeasured ) {
+      responseTrivial->Fill(a, b, x, y);
+    }
+    else if ( isTruth && !isMeasured ) {
+      responseTrivial->Miss(x, y);
+      hMissTrivial->Fill(x, y);
+    }
+    else if ( !isTruth && isMeasured ) {
+      responseTrivial->Fake(a, b);
+      hFakeTrivial->Fill(a, b);
     }
   }
-  if (!trivialClosure)
-  {
-    for (int i = 0; i < ntoys; i++)
-    {
-      double x = fx->GetRandom();
-      double a = x * gx->GetRandom();
-      double y = fy->GetRandom();
-      double b = y * gy->GetRandom();
+  // Fill response for statistically independent closure test
+  for (int i = 0; i < ntoys; i++) {
+    double x = fxTruth->GetRandom();
+    double a = x * resx->GetRandom();
+    double y = fyTruth->GetRandom();
+    double b = y * resy->GetRandom();
 
-      bool isTruth = (x > xmin && x < xmax) * (y > ymin && y < ymax);
-      bool isMeasured = (a > amin && a < amax) * (b > bmin && b < bmax);
+    bool isTruth = (x > xmin && x < xmax) * (y > ymin && y < ymax);
+    bool isMeasured = (a > amin && a < amax) * (b > bmin && b < bmax);
 
-      if ( xGood && yGood ) {
-        response->Fill(y, x);
-      }
-      else if ( xGood && !yGood ) {
-        response->Miss(x);
-        hMiss->Fill(x);
-      }
-      else if ( !xGood && yGood ) {
-        response->Fake(y);
-      }
+    if ( isTruth && isMeasured ) {
+      responseIndependent->Fill(a, b, x, y);
+    }
+    else if ( isTruth && !isMeasured ) {
+      responseIndependent->Miss(x, y);
+      hMissIndependent->Fill(x, y);
+    }
+    else if ( !isTruth && isMeasured ) {
+      responseIndependent->Fake(a, b);
+      hFakeIndependent->Fill(a, b);
     }
   }
   TFile* outFile = new TFile("toy2D.root", "RECREATE");
-  response->Write();
-  hM->Write();
-  hT->Write();
-  hMiss->Write();
-  hFake->Write();
+  hMeasured->Write();
+  hTruth->Write();
+
+  responseTrivial->Write();
+  hMissTrivial->Write();
+  hFakeTrivial->Write();
+
+  responseIndependent->Write();
+  hMissIndependent->Write();
+  hFakeIndependent->Write();
+
   outFile->Write();
-  // outFile->Close();
+  outFile->Close();
 }
-
-void toyCompare1D(string inFileName = "toy1D.root")
-{
-  TFile* inFile = TFile::Open(inFileName.c_str(), "READ");
-  RooUnfoldResponse* response = (RooUnfoldResponse*)inFile->Get("response");
-  TH1F* hM = (TH1F*)inFile->Get("hM");
-  TH1F* hT = (TH1F*)inFile->Get("hT");
-
-  TH1F* rM = (TH1F*)response->Hmeasured();
-  rM->SetName("response-measured");
-  TH1F* rT = (TH1F*)response->Htruth();
-  rT->SetName("response-truth");
-  TH1F* rA = (TH1F*)response->ApplyToTruth();
-  rA->SetName("response-applied");
-
-  hM->Print("all");
-  rM->Print("all");
-  rA->Print("all");
-
-  hT->Print("all");
-  rT->Print("all");
-}
-
-void toyCompare2D(string inFileName = "toy2D.root")
-{
-  TFile* inFile = TFile::Open(inFileName.c_str(), "READ");
-
-  RooUnfoldResponse* response = (RooUnfoldResponse*)inFile->Get("response");
-
-  TH2F* hM = (TH2F*)inFile->Get("hM");
-  TH1F* hMx = (TH1F*)hM->ProjectionX("hMx");
-  TH1F* hMy = (TH1F*)hM->ProjectionY("hMy");
-
-  TH2F* hT = (TH2F*)inFile->Get("hT");
-  TH1F* hTx = (TH1F*)hT->ProjectionX("hTx");
-  TH1F* hTy = (TH1F*)hT->ProjectionY("hTy");
-
-  TH2F* rM = (TH2F*)response->Hmeasured();
-  TH1F* rMx = (TH1F*)rM->ProjectionX("rMx");
-  TH1F* rMy = (TH1F*)rM->ProjectionY("rMy");
-
-  TH2F* rT = (TH2F*)response->Htruth();
-  TH1F* rTx = (TH1F*)rT->ProjectionX("rTx");
-  TH1F* rTy = (TH1F*)rT->ProjectionY("rTy");
-
-  TH2F* rA = (TH2F*)response->ApplyToTruth();
-  TH1F* rAx = (TH1F*)rA->ProjectionX("rAx");
-  TH1F* rAy = (TH1F*)rA->ProjectionY("rAy");
-
-  CompareHists(hMx, rMx);
-  CompareHists(hMy, rMy);
-  CompareHists(hTx, rTx);
-  CompareHists(hTy, rTy);
-  CompareHists(hMx, rAx);
-  CompareHists(hMy, rAy);
-}
-
-void toyClosureTest1D(int nIter = 3)
-{
+void doUnfolding(bool trivialClosure, int nIter) {
   int doSmoothing = 0;
-  TFile* inFile = TFile::Open("toy1D.root", "READ");
-  RooUnfoldResponse* response = (RooUnfoldResponse*)inFile->Get("response");
-  TH1F* hM = (TH1F*)inFile->Get("hM"); // measured test
-  TH1F* hT = (TH1F*)inFile->Get("hT"); // truth test
+  string testType = trivialClosure ? "Trivial" : "Independent";
+  TFile* inFile = TFile::Open("toy2D.root", "UPDATE");
+  TH2F* hMeasured = (TH2F*)inFile->Get("hMeasured");
+  TH2F* hTruth = (TH2F*)inFile->Get("hTruth");
 
-  RooUnfoldBayes rub(response, hM, nIter, doSmoothing, "unf", "unf");
-  TH1F* unfolded = (TH1F*)rub.Hreco(RooUnfold::kCovToy);
-  unfolded->SetName("unfolded");
-  TH1F* refolded = (TH1F*)response->ApplyToTruth(unfolded, "refolded");
+  TH2F* hFake = (TH2F*)inFile->Get(("hFake" + testType).c_str());
+  RooUnfoldResponse* response = (RooUnfoldResponse*)inFile->Get(("response" + testType).c_str());
+  RooUnfoldBayes ruBayes(response, hMeasured, nIter, doSmoothing, "unf", "unf");
+  TH2F* hUnfolded = (TH2F*)ruBayes.Hreco(RooUnfold::kCovToy);
+  hUnfolded->SetName(TString::Format("hUnfolded%sIter%d", testType.c_str(), nIter).Data());
+  TH2F* hRefolded = (TH2F*)response->ApplyToTruth(hUnfolded, TString::Format("hRefolded%sIter%d", testType.c_str(), nIter).Data());
+  hRefolded->Add(hFake);
 
-  // cout << "truth - unfolded" << endl;
-  // for (int i = 0; i < hT->GetNbinsX(); i++)
-  // {
-  //   double binDiff = hT->GetBinContent(i) - unfolded->GetBinContent(i);
-  //   double binErr = hT->GetBinError(i);
-  //   if ( abs(binDiff) > binErr) cout << "Bin " << i << " = " << binDiff << " ";
-  // }
-  // cout << endl;
-
-  // cout << "measured - refolded" << endl;
-  // for (int i = 0; i < hM->GetNbinsX(); i++)
-  // {
-  //   double binDiff = hM->GetBinContent(i) - refolded->GetBinContent(i);
-  //   double binErr = hM->GetBinError(i);
-  //   if ( abs(binDiff) > binErr) cout << "Bin " << i << " = " << binDiff << " ";
-  // }
-  // cout << endl;
-
-  TCanvas* myCanvas = new TCanvas("canvas", "canvas", 800, 400);
-  myCanvas->Divide(2,1);
-  myCanvas->cd(1);
-
-  int lowBin = hT->GetXaxis()->FindBin(-0.5);
-  int highBin = hT->GetXaxis()->FindBin(0.5);
-
-  TH1F* truthOverUnfolded = (TH1F*)hT->Clone("truthOverUnfolded");
-  truthOverUnfolded->Divide(unfolded);
-  truthOverUnfolded->GetXaxis()->SetRange(lowBin, highBin);
-  truthOverUnfolded->SetLineWidth(3);
-  truthOverUnfolded->SetLineColor(1);
-  truthOverUnfolded->SetMarkerColor(1);
-  truthOverUnfolded->SetMarkerStyle(4);
-  truthOverUnfolded->Draw();
-  TLine* truthLine = new TLine(truthOverUnfolded->GetXaxis()->GetBinLowEdge(lowBin), 1., truthOverUnfolded->GetXaxis()->GetBinLowEdge(highBin + 1), 1.);
-  truthLine->Draw("same");
-
-  myCanvas->cd(2);
-  lowBin = hM->GetXaxis()->FindBin(-0.5);
-  highBin = hM->GetXaxis()->FindBin(0.5);
-
-  TH1F* measuredOverRefolded = (TH1F*)hM->Clone("measuredOverRefolded");
-  measuredOverRefolded->Divide(refolded);
-  measuredOverRefolded->GetXaxis()->SetRange(lowBin, highBin);
-  measuredOverRefolded->SetLineWidth(3);
-  measuredOverRefolded->SetLineColor(2);
-  measuredOverRefolded->SetMarkerColor(2);
-  measuredOverRefolded->SetMarkerStyle(27);
-  measuredOverRefolded->SetMarkerSize(2);
-  measuredOverRefolded->Draw("p");
-  TLine* measuredLine = new TLine(measuredOverRefolded->GetXaxis()->GetBinLowEdge(lowBin), 1., measuredOverRefolded->GetXaxis()->GetBinLowEdge(highBin + 1), 1.);
-  measuredLine->Draw("same");
-
-  myCanvas->SaveAs(TString::Format("./closureTest1D-%d.pdf", nIter).Data());
+  hUnfolded->Write();
+  hRefolded->Write();
+  inFile->Close();
 }
-void toyClosureTest2D(int nIter = 3)
-{
-  int doSmoothing = 0;
+void plotClosureTest(bool trivialClosure, int nIter, bool saveFigs = false) {
   TFile* inFile = TFile::Open("toy2D.root", "READ");
-  RooUnfoldResponse* response = (RooUnfoldResponse*)inFile->Get("response");
-  TH2F* hM = (TH2F*)inFile->Get("hM"); // measured test
-  // hM->SetName("measured");
-  TH2F* hT = (TH2F*)inFile->Get("hT"); // truth test
-  // hT->SetName("truth");
 
-  RooUnfoldBayes rub(response, hM, nIter, doSmoothing, "unf", "unf");
-  TH2F* unfolded = (TH2F*)rub.Hreco(RooUnfold::kCovToy);
-  unfolded->SetName("unfolded");
-  TH2F* refolded = (TH2F*)response->ApplyToTruth(unfolded, "refolded");
-  TH2F* hFake = (TH2F*)inFile->Get("hFake");
-  refolded->Add(hFake);
+  string testType = trivialClosure ? "Trivial" : "Independent";
+  RooUnfoldResponse* response = (RooUnfoldResponse*)inFile->Get(("response" + testType).c_str());
 
-  cout << "truth - unfolded" << endl;
-  for (int i = 0; i < hT->GetNbinsX(); i++)
-  {
-    for (int j = 0; j < hT->GetNbinsY(); j++) {
-      double binDiff = hT->GetBinContent(i, j) - unfolded->GetBinContent(i, j);
-      if ( abs(binDiff) > 0.) cout << "Bin (" << i << ", " << j << ") = " << binDiff << " ";
-    }
-  }
-  cout << endl;
+  // Measured distribution
+  TH2F* hMeasured  = (TH2F*)inFile->Get("hMeasured"); hMeasured->SetStats(0);
+  TH1F* hMeasuredX = (TH1F*)hMeasured->ProjectionX("hMeasuredX");
+  TH1F* hMeasuredY = (TH1F*)hMeasured->ProjectionY("hMeasuredY");
+  hMeasuredX->SetLineColor(kBlue); hMeasuredX->SetMarkerColor(kBlue);
+  hMeasuredY->SetLineColor(kBlue); hMeasuredY->SetMarkerColor(kBlue);
 
-  cout << "measured - refolded" << endl;
-  for (int i = 0; i < hM->GetNbinsX(); i++)
-  {
-    for (int j = 0; j < hM->GetNbinsY(); j++) {
-      double binDiff = hM->GetBinContent(i, j) - refolded->GetBinContent(i, j);
-      if ( abs(binDiff) > 0.) cout << "Bin (" << i << ", " << j << ") = " << binDiff << " ";
-    }
-  }
-  cout << endl;
+  // Truth distribution
+  TH2F* hTruth  = (TH2F*)inFile->Get("hTruth"); hTruth->SetStats(0);
+  TH1F* hTruthX = (TH1F*)hTruth->ProjectionX("hTruthX");
+  TH1F* hTruthY = (TH1F*)hTruth->ProjectionY("hTruthY");
+  hTruthX->SetLineColor(kBlue); hTruthX->SetMarkerColor(kBlue);
+  hTruthY->SetLineColor(kBlue); hTruthY->SetMarkerColor(kBlue);
 
-  // TH1F* truthOverUnfolded = (TH1F*)hT->Clone("truthOverUnfolded");
-  // truthOverUnfolded->Scale(2);
-  // truthOverUnfolded->Divide(unfolded);
-  // truthOverUnfolded->SetLineWidth(3);
-  // truthOverUnfolded->SetLineColor(1);
-  // truthOverUnfolded->SetMarkerColor(1);
-  // truthOverUnfolded->SetMarkerStyle(4);
+  // Unfolded distribution
+  TH2F* hUnfolded  = (TH2F*)inFile->Get(TString::Format("hUnfolded%sIter%d", testType.c_str(), nIter).Data());
+  TH1F* hUnfoldedX = (TH1F*)hUnfolded->ProjectionX(TString::Format("hUnfoldedX%sIter%d", testType.c_str(), nIter).Data());
+  TH1F* hUnfoldedY = (TH1F*)hUnfolded->ProjectionY(TString::Format("hUnfoldedY%sIter%d", testType.c_str(), nIter).Data());
+  hUnfoldedX->SetLineColor(kRed); hUnfoldedX->SetMarkerColor(kRed);
+  hUnfoldedX->SetMarkerStyle(4);
+  hUnfoldedY->SetLineColor(kRed); hUnfoldedY->SetMarkerColor(kRed);
+  hUnfoldedY->SetMarkerStyle(4);
 
-  // TH1F* measuredOverRefolded = (TH1F*)hM->Clone("measuredOverRefolded");
-  // measuredOverRefolded->Divide(refolded);
-  // measuredOverRefolded->SetLineWidth(3);
-  // measuredOverRefolded->SetLineColor(2);
-  // measuredOverRefolded->SetMarkerColor(2);
-  // measuredOverRefolded->SetMarkerStyle(27);
-  // measuredOverRefolded->SetMarkerSize(2);
+  // Refolded distribution
+  TH2F* hRefolded  = (TH2F*)inFile->Get(TString::Format("hRefolded%sIter%d", testType.c_str(), nIter).Data());
+  TH1F* hRefoldedX = (TH1F*)hRefolded->ProjectionX(TString::Format("hRefoldedX%sIter%d", testType.c_str(), nIter).Data());
+  TH1F* hRefoldedY = (TH1F*)hRefolded->ProjectionY(TString::Format("hRefoldedY%sIter%d", testType.c_str(), nIter).Data());
+  hRefoldedX->SetLineColor(kRed); hRefoldedX->SetMarkerColor(kRed);
+  hRefoldedX->SetMarkerStyle(4);
+  hRefoldedY->SetLineColor(kRed); hRefoldedY->SetMarkerColor(kRed);
+  hRefoldedY->SetMarkerStyle(4);
+
+  // What the response considers measured
+  TH2F* respMeasured  = (TH2F*)response->Hmeasured();
+  TH1F* respMeasuredX = (TH1F*)respMeasured->ProjectionX("respMeasuredX");
+  TH1F* respMeasuredY = (TH1F*)respMeasured->ProjectionY("respMeasuredY");
+  respMeasuredX->SetMarkerColor(kRed); respMeasuredX->SetLineColor(kRed);
+  respMeasuredX->SetMarkerStyle(4);
+  respMeasuredY->SetMarkerColor(kRed); respMeasuredY->SetLineColor(kRed);
+  respMeasuredY->SetMarkerStyle(4);
+
+  // What the response considers truth
+  TH2F* respTruth  = (TH2F*)response->Htruth();
+  TH1F* respTruthX = (TH1F*)respTruth->ProjectionX("respTruthX");
+  TH1F* respTruthY = (TH1F*)respTruth->ProjectionY("respTruthY");
+  respTruthX->SetMarkerColor(kRed); respTruthX->SetLineColor(kRed);
+  respTruthX->SetMarkerStyle(4);
+  respTruthY->SetMarkerColor(kRed); respTruthY->SetLineColor(kRed);
+  respTruthY->SetMarkerStyle(4);
+
+  // Response applied to truth distribution
+  TH2F* respAppliedtoTruth  = (TH2F*)response->ApplyToTruth();
+  TH1F* respAppliedtoTruthX = (TH1F*)respAppliedtoTruth->ProjectionX("respAppliedtoTruthX");
+  TH1F* respAppliedtoTruthY = (TH1F*)respAppliedtoTruth->ProjectionY("respAppliedtoTruthY");
+  respAppliedtoTruthX->SetMarkerColor(kRed); respAppliedtoTruthX->SetLineColor(kRed);
+  respAppliedtoTruthX->SetMarkerStyle(4);
+  respAppliedtoTruthY->SetMarkerColor(kRed); respAppliedtoTruthY->SetLineColor(kRed);
+  respAppliedtoTruthY->SetMarkerStyle(4);
+
+  // Sanity check: do measured/truth distributions match what the response thinks they are?
+  TCanvas* c1 = new TCanvas("c1", "c1", 800, 800);
+  c1->Divide(2,2);
+  c1->cd(1);
+  hTruthX->Draw("hist");
+  respTruthX->Draw("same p");
+  TLegend* l11 = new TLegend(0.15,0.7,0.5,0.9);
+  l11->AddEntry(hTruthX, "Truth");
+  l11->AddEntry(respTruthX, "Response Truth");
+  l11->Draw("same");
+
+  c1->cd(2);
+  hTruthY->Draw("hist");
+  respTruthY->Draw("same p");
+  TLegend* l12 = new TLegend(0.15,0.7,0.5,0.9);
+  l12->AddEntry(hTruthY, "Truth");
+  l12->AddEntry(respTruthY, "Response Truth");
+  l12->Draw("same");
+
+  c1->cd(3);
+  hMeasuredX->Draw("hist");
+  respMeasuredX->Draw("same p");
+  TLegend* l13 = new TLegend(0.15,0.7,0.5,0.9);
+  l13->AddEntry(hMeasuredX, "Measured");
+  l13->AddEntry(respMeasuredX, "Response Measured");
+  l13->Draw("same");
+
+  c1->cd(4);
+  hMeasuredY->Draw("hist");
+  respMeasuredY->Draw("same p");
+  TLegend* l14 = new TLegend(0.15,0.7,0.5,0.9);
+  l14->AddEntry(hMeasuredY, "Measured");
+  l14->AddEntry(respMeasuredY, "Response Measured");
+  l14->Draw("same");
+
+  if (saveFigs)
+    c1->SaveAs(TString::Format("checkResponse%sIter%d.pdf", testType.c_str(), nIter).Data());
+
+  // Compare truth/unfolded and measured/refolded:
+  // Should match exactly for trivial closure, should be close for independent closure
+  TCanvas* c2 = new TCanvas("c2", "c2", 800, 800);
+  c2->Divide(2,2);
+  c2->cd(1);
+  hTruthX->Draw("hist");
+  hUnfoldedX->Draw("same p");
+  TLegend* l21 = new TLegend(0.15,0.7,0.5,0.9);
+  l21->AddEntry(hTruthX, "Truth");
+  l21->AddEntry(hUnfoldedX, "Unfolded");
+  l21->Draw("same");
+
+  c2->cd(2);
+  hTruthY->Draw("hist");
+  hUnfoldedY->Draw("same p");
+  TLegend* l22 = new TLegend(0.15,0.7,0.5,0.9);
+  l22->AddEntry(hTruthY, "Truth");
+  l22->AddEntry(hUnfoldedY, "Unfolded");
+  l22->Draw("same");
+
+  c2->cd(3);
+  hMeasuredX->Draw("hist");
+  hRefoldedX->Draw("same p");
+  TLegend* l23 = new TLegend(0.15,0.7,0.5,0.9);
+  l23->AddEntry(hMeasuredX, "Measured");
+  l23->AddEntry(hRefoldedX, "Refolded");
+  l23->Draw("same");
+
+  c2->cd(4);
+  hMeasuredY->Draw("hist");
+  hRefoldedY->Draw("same p");
+  TLegend* l24 = new TLegend(0.15,0.7,0.5,0.9);
+  l24->AddEntry(hMeasuredY, "Measured");
+  l24->AddEntry(hRefoldedY, "Refolded");
+  l24->Draw("same");
+
+  if (saveFigs)
+    c2->SaveAs(TString::Format("checkClosure%sIter%d.pdf", testType.c_str(), nIter).Data());
+
+  // Compare measured and refolded with response applied to truth
+  // Shows the effect of (not) adding fakes
+  TCanvas* c3 = new TCanvas("c3", "c3", 800, 800);
+  c3->Divide(2,2);
+  c3->cd(1);
+  hMeasuredX->Draw("hist");
+  hRefoldedX->Draw("same p");
+  TLegend* l31 = new TLegend(0.15,0.7,0.5,0.9);
+  l31->AddEntry(hMeasuredX, "Measured");
+  l31->AddEntry(hRefoldedX, "Refolded");
+  l31->Draw("same");
+
+  c3->cd(2);
+  hMeasuredY->Draw("hist");
+  hRefoldedY->Draw("same p");
+  TLegend* l32 = new TLegend(0.15,0.7,0.5,0.9);
+  l32->AddEntry(hMeasuredY, "Measured");
+  l32->AddEntry(hRefoldedY, "Refolded");
+  l32->Draw("same");
+
+  c3->cd(3);
+  hMeasuredX->Draw("hist");
+  respAppliedtoTruthX->Draw("same p");
+  TLegend* l33 = new TLegend(0.15,0.7,0.5,0.9);
+  l33->AddEntry(hMeasuredX, "Measured");
+  l33->AddEntry(respAppliedtoTruthX, "Response Applied to Truth");
+  l33->Draw("same");
+
+  c3->cd(4);
+  hMeasuredY->Draw("hist");
+  respAppliedtoTruthY->Draw("same p");
+  TLegend* l34 = new TLegend(0.15,0.7,0.5,0.9);
+  l34->AddEntry(hMeasuredY, "Measured");
+  l34->AddEntry(respAppliedtoTruthY, "Response Applied to Truth");
+  l34->Draw("same");
+
+  if (saveFigs)
+    c3->SaveAs(TString::Format("checkApplyToTruth%sIter%d.pdf", testType.c_str(), nIter).Data());
 }
+
+void toymodel() {
+  int nIter = 3;
+  const bool doTrivialClosure = true;
+  createResponse();
+  doUnfolding(doTrivialClosure, nIter);
+  plotClosureTest(doTrivialClosure, nIter);
+
+  doUnfolding(!doTrivialClosure, nIter);
+  plotClosureTest(!doTrivialClosure, nIter);
+}
+
+// -----------------------------------------------------------------
+// Official RooUnfold tutorial
+// -----------------------------------------------------------------
 
 const Double_t cutdummy= -99999.0;
 Double_t smear (Double_t xt){
@@ -710,8 +458,6 @@ void tutorial()
   leg2->AddEntry(hReco, "Unfolded distribution");
   leg2->Draw();
   c2->Draw();
-
-  // -----------------------------------------------------------------
 
   RooUnfoldResponse double_response (40, -10.0, 10.0);
   auto *f1 = new TH1F("f1","f1",40,-10,10);

@@ -18,8 +18,8 @@ namespace verbositylvls {
       default:        return "Unknown";
     }
   }
-  bool passVerbosityCheck(Verbosity v, Verbosity threshold) {
-    return (is_valid(v) && v <= threshold);
+  bool passVerbosityCheck(Verbosity level, Verbosity threshold) {
+    return (is_valid(level) && level <= threshold);
   }
 }
 
@@ -114,8 +114,8 @@ string InputSettings::getNameFromZV0(string prefix, double low, double high, str
   return getNameFromVar(prefix, TString::Format("zv0%.3f-%.3f", low, high).Data(), suffix);
 }
 
-bool InputSettings::printLog(string message, verbositylvls::Verbosity verbThreshold) {
-  if (!verbositylvls::passVerbosityCheck(verbosity, verbThreshold))
+bool InputSettings::printLog(string message, verbositylvls::Verbosity messageVerbLevel) {
+  if (!verbositylvls::passVerbosityCheck(messageVerbLevel, verbosity))
     return false;
 
   cout << message << endl;
@@ -223,17 +223,21 @@ bool InputSettings::writeOutputsToFile(vector<T*> obj) {
 // ----------------------------------------------------------
 
 void CreateResponseJets(InputSettings& inputs) {
+  inputs.printLog("Opening input file: " + inputs.inputFileName, verbositylvls::kDebug);
   TFile* file = TFile::Open(inputs.inputFileName.c_str());
   if (!file) {
     inputs.printLog("Error: could not open file " + inputs.inputFileName, verbositylvls::kErrors);
     return;
   }
+  inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbositylvls::kDebug);
   TH2D* responseMatrix = (TH2D*)file->Get(inputs.rmHistName.c_str());
   if (!responseMatrix) {
     inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbositylvls::kErrors);
     return;
   }
   responseMatrix->SetName("responseMatrixJets");
+
+  inputs.printLog("Creating histograms for jets.", verbositylvls::kDebug);
 
   array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetYaxis(), inputs.ptjetminRec, inputs.ptjetmaxRec);
   array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetYaxis(), inputs.ptjetminGen, inputs.ptjetmaxGen);
@@ -253,6 +257,7 @@ void CreateResponseJets(InputSettings& inputs) {
   // Create the RooUnfoldResponse and fill it
   RooUnfoldResponse* response = new RooUnfoldResponse("responseJets", "RMJets");
   response->Setup(hRec, hGen);
+  inputs.printLog("Filling response.", verbositylvls::kDebug);
 
   for (int xBin = 0; xBin <= responseMatrix->GetNbinsX(); xBin++) {
     for (int yBin = 0; yBin <= responseMatrix->GetNbinsY(); yBin++) {
@@ -281,10 +286,12 @@ void CreateResponseJets(InputSettings& inputs) {
     }
   }
 
+  inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbositylvls::kDebug);
+
   hKinEff->Divide(hGen);
-  inputs.writeOutputToFile(response);
-  inputs.writeOutputToFile(responseMatrix);
-  inputs.writeOutputsToFile(std::vector<TH1D*>({hRec, hGen, hMiss, hFake, hKinEff}));
+  // inputs.writeOutputToFile(response);
+  // inputs.writeOutputToFile(responseMatrix);
+  // inputs.writeOutputsToFile(std::vector<TH1D*>({hRec, hGen, hMiss, hFake, hKinEff}));
 }
 
 void Run() {
@@ -295,6 +302,7 @@ void Run() {
   x.binwidthptjet = 5.;
   x.setPtJetRec(10., 100.);
   x.setPtJetGen(10., 100.);
+  cout << "Input file: " << x.inputFileName << endl;
 
   CreateResponseJets(x);
   // Do Closure test

@@ -1,5 +1,4 @@
 
-alias unfold="alienv enter --shellrc O2Physics/latest ninja/latest RooUnfold/latest"
 alias nikhef="ssh -A gweelden@login.nikhef.nl"
 alias stoom="ssh -A stbc-i1"
 alias stoomboot="ssh -A stbc-i2"
@@ -12,8 +11,10 @@ alias o2linter="python3 Scripts/o2_linter.py"
 
 if [[ $SSH_CONNECTION == "" ]]; then
   alias o2="zsh ${FRAGMENTATION_DIR}/scripts/load-o2"
+  alias unfold="alienv enter --shellrc O2Physics/latest ninja/latest RooUnfold/latest"
 elif [[ -n $ZSH_VERSION ]]; then
   alias o2="echo 'You need to be in bash to load O2.'"
+  alias unfold="echo 'You need to be in bash to load O2 environments.'"
 else
   alias o2="bash ${FRAGMENTATION_DIR}/scripts/load-o2"
 fi

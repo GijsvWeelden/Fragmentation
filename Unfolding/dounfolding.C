@@ -85,7 +85,7 @@ struct InputSettings {
     string getNameFromPtV0Rec(string prefix, string suffix) { return getNameFromPtV0(prefix, ptv0minRec, ptv0maxRec, suffix); }
     string getNameFromZV0Gen(string prefix, string suffix) { return getNameFromZV0(prefix, zv0minGen, zv0maxGen, suffix); }
     string getNameFromZV0Rec(string prefix, string suffix) { return getNameFromZV0(prefix, zv0minRec, zv0maxRec, suffix); }
-    string printLog(string message, verbositylvls::Verbosity verbThreshold);
+    bool printLog(string message, verbositylvls::Verbosity verbThreshold);
     string setInputFileNameFromTrain();
     bool setEta(double a, double b);
     bool setPtJetGen(double a, double b);
@@ -114,12 +114,12 @@ string InputSettings::getNameFromZV0(string prefix, double low, double high, str
   return getNameFromVar(prefix, TString::Format("zv0%.3f-%.3f", low, high).Data(), suffix);
 }
 
-string InputSettings::printLog(string message, verbositylvls::Verbosity verbThreshold) {
+bool InputSettings::printLog(string message, verbositylvls::Verbosity verbThreshold) {
   if (!verbositylvls::passVerbosityCheck(verbosity, verbThreshold))
-    return "";
+    return false;
 
   cout << message << endl;
-  return message;
+  return true;
 }
 
 string InputSettings::setInputFileNameFromTrain() {

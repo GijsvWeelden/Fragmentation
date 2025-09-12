@@ -1,3 +1,4 @@
+
 #include "RooUnfoldResponse.h"
 #include "RooUnfoldBayes.h"
 #include "../plotting_macros/histUtils.C"
@@ -5,7 +6,7 @@
 #ifndef DO_UNFOLDING
 #define DO_UNFOLDING
 
-namespace verbositylvls {
+namespace verbosityutilities {
   enum Verbosity {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
   bool is_valid(int v) { return (v >= kErrors && v <= kDebugMax); }
   string to_string(Verbosity v) {
@@ -20,6 +21,13 @@ namespace verbositylvls {
   }
   bool passVerbosityCheck(Verbosity level, Verbosity threshold) {
     return (is_valid(level) && level <= threshold);
+  }
+  bool printLog(string message, Verbosity messageVerbLevel, Verbosity threshold) {
+    if (!passVerbosityCheck(messageVerbLevel, threshold))
+      return false;
+
+    cout << message << endl;
+    return true;
   }
 }
 
@@ -63,7 +71,9 @@ namespace rmutilities {
 
 struct InputSettings {
   private:
-    string getNameFromVar(string prefix, string varstring, string suffix) { return prefix + "_" + varstring + suffix; }
+    string getNameFromVar(string prefix, string varstring, string suffix) {
+      return prefix + "_" + varstring + suffix;
+    }
     string getNameFromPtJet(string prefix, double low, double high, string suffix) {
       return getNameFromVar(prefix, TString::Format("ptjet%.f-%.f", low, high).Data(), suffix);
     }
@@ -81,7 +91,7 @@ struct InputSettings {
 
     // General settings
     int train;
-    verbositylvls::Verbosity verbosity = verbositylvls::kWarnings;
+    verbosityutilities::Verbosity verbosity = verbosityutilities::kWarnings;
     string inputFileName, outputFileName, responseFileName;
     string hadron;
     string rmHistName;
@@ -95,36 +105,63 @@ struct InputSettings {
     bool makeplots = false, logplot = false, ratioplot = false;
 
     // Methods using private methods
-    string getNameFromPtJetGen(string prefix, string suffix) { return getNameFromPtJet(prefix, ptjetminGen, ptjetmaxGen, suffix); }
-    string getNameFromPtJetRec(string prefix, string suffix) { return getNameFromPtJet(prefix, ptjetminRec, ptjetmaxRec, suffix); }
-    string getNameFromPtV0Gen(string prefix, string suffix) { return getNameFromPtV0(prefix, ptv0minGen, ptv0maxGen, suffix); }
-    string getNameFromPtV0Rec(string prefix, string suffix) { return getNameFromPtV0(prefix, ptv0minRec, ptv0maxRec, suffix); }
-    string getNameFromZV0Gen(string prefix, string suffix) { return getNameFromZV0(prefix, zv0minGen, zv0maxGen, suffix); }
-    string getNameFromZV0Rec(string prefix, string suffix) { return getNameFromZV0(prefix, zv0minRec, zv0maxRec, suffix); }
-    bool setEta(double a, double b) { return setVariable(a, b, etamin, etamax); }
-    bool setPtJetGen(double a, double b) { return setVariable(a, b, ptjetminGen, ptjetmaxGen); }
-    bool setPtJetRec(double a, double b) { return setVariable(a, b, ptjetminRec, ptjetmaxRec); }
-    bool setPtV0Gen(double a, double b) { return setVariable(a, b, ptv0minGen, ptv0maxGen); }
-    bool setPtV0Rec(double a, double b) { return setVariable(a, b, ptv0minRec, ptv0maxRec); }
-    bool setV0ZGen(double a, double b) { return setVariable(a, b, zv0minGen, zv0maxGen); }
-    bool setV0ZRec(double a, double b) { return setVariable(a, b, zv0minRec, zv0maxRec); }
+    string getNameFromPtJetGen(string prefix, string suffix) {
+      return getNameFromPtJet(prefix, ptjetminGen, ptjetmaxGen, suffix);
+    }
+    string getNameFromPtJetRec(string prefix, string suffix) {
+      return getNameFromPtJet(prefix, ptjetminRec, ptjetmaxRec, suffix);
+    }
+    string getNameFromPtV0Gen(string prefix, string suffix) {
+      return getNameFromPtV0(prefix, ptv0minGen, ptv0maxGen, suffix);
+    }
+    string getNameFromPtV0Rec(string prefix, string suffix) {
+      return getNameFromPtV0(prefix, ptv0minRec, ptv0maxRec, suffix);
+    }
+    string getNameFromZV0Gen(string prefix, string suffix) {
+      return getNameFromZV0(prefix, zv0minGen, zv0maxGen, suffix);
+    }
+    string getNameFromZV0Rec(string prefix, string suffix) {
+      return getNameFromZV0(prefix, zv0minRec, zv0maxRec, suffix);
+    }
+    bool setEta(double a, double b) {
+      return setVariable(a, b, etamin, etamax);
+    }
+    bool setPtJetGen(double a, double b) {
+      return setVariable(a, b, ptjetminGen, ptjetmaxGen);
+    }
+    bool setPtJetRec(double a, double b) {
+      return setVariable(a, b, ptjetminRec, ptjetmaxRec);
+    }
+    bool setPtV0Gen(double a, double b) {
+      return setVariable(a, b, ptv0minGen, ptv0maxGen);
+    }
+    bool setPtV0Rec(double a, double b) {
+      return setVariable(a, b, ptv0minRec, ptv0maxRec);
+    }
+    bool setV0ZGen(double a, double b) {
+      return setVariable(a, b, zv0minGen, zv0maxGen);
+    }
+    bool setV0ZRec(double a, double b) {
+      return setVariable(a, b, zv0minRec, zv0maxRec);
+    }
 
     // Utilities
-    bool isVarInRange(double var, double min, double max) { return (var >= min && var < max); }
-    bool isVarInRange(double var, array<double, 2> range) { return isVarInRange(var, range[0], range[1]); }
-    bool printLog(string message, verbositylvls::Verbosity verbThreshold);
+    bool isVarInRange(double var, double min, double max) {
+      return (var >= min && var < max);
+    }
+    bool isVarInRange(double var, array<double, 2> range) {
+      return isVarInRange(var, range[0], range[1]);
+    }
+    bool isVarConsistentWithZero(double var, double threshold = 1e-10) {
+      return isVarInRange(var, -threshold, threshold);
+    }
+    bool printLog(string message, verbosityutilities::Verbosity messageVerbLevel) {
+      return verbosityutilities::printLog(message, messageVerbLevel, verbosity);
+    }
     string setInputFileNameFromTrain();
     template <typename T> bool writeOutputToFile(T* obj);
     template <typename T> bool writeOutputsToFile(vector<T*> obj);
 };
-
-bool InputSettings::printLog(string message, verbositylvls::Verbosity messageVerbLevel) {
-  if (!verbositylvls::passVerbosityCheck(messageVerbLevel, verbosity))
-    return false;
-
-  cout << message << endl;
-  return true;
-}
 
 string InputSettings::setInputFileNameFromTrain() {
   string s = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
@@ -134,7 +171,7 @@ string InputSettings::setInputFileNameFromTrain() {
 
 bool InputSettings::setVariable(double a, double b, double &x, double &y) {
   if (a > b) {
-    printLog("InputSettings::setVariable() Error: min > max", verbositylvls::kErrors);
+    printLog("InputSettings::setVariable() Error: min > max", verbosityutilities::kErrors);
     return false;
   }
   x = a;
@@ -167,21 +204,21 @@ bool InputSettings::writeOutputsToFile(vector<T*> obj) {
 // ----------------------------------------------------------
 
 void CreateResponseJets(InputSettings& inputs) {
-  inputs.printLog("Opening input file: " + inputs.inputFileName, verbositylvls::kDebug);
+  inputs.printLog("Opening input file: " + inputs.inputFileName, verbosityutilities::kDebug);
   TFile* file = TFile::Open(inputs.inputFileName.c_str());
   if (!file) {
-    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbositylvls::kErrors);
+    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
     return;
   }
-  inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbositylvls::kDebug);
+  inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbosityutilities::kDebug);
   TH2D* responseMatrix = (TH2D*)file->Get(inputs.rmHistName.c_str());
   if (!responseMatrix) {
-    inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbositylvls::kErrors);
+    inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbosityutilities::kErrors);
     return;
   }
   responseMatrix->SetName("responseMatrixJets");
 
-  inputs.printLog("Creating histograms for jets.", verbositylvls::kDebug);
+  inputs.printLog("Creating histograms for jets.", verbosityutilities::kDebug);
 
   array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetYaxis(), inputs.ptjetminRec, inputs.ptjetmaxRec);
   array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetYaxis(), inputs.ptjetminGen, inputs.ptjetmaxGen);
@@ -201,7 +238,7 @@ void CreateResponseJets(InputSettings& inputs) {
   // Create the RooUnfoldResponse and fill it
   RooUnfoldResponse* response = new RooUnfoldResponse("responseJets", "RMJets");
   response->Setup(hRec, hGen);
-  inputs.printLog("Filling response.", verbositylvls::kDebug);
+  inputs.printLog("Filling response.", verbosityutilities::kDebug);
 
   for (int xBin = 0; xBin <= responseMatrix->GetNbinsX(); xBin++) {
     for (int yBin = 0; yBin <= responseMatrix->GetNbinsY(); yBin++) {
@@ -210,9 +247,7 @@ void CreateResponseJets(InputSettings& inputs) {
       double ptjetGen = responseMatrix->GetYaxis()->GetBinCenter(yBin);
 
       bool isAcceptedRec = inputs.isVarInRange(ptjetRec, ptjetRecBinEdges);
-      //(ptjetRec >= ptjetRecBinEdges[0] && ptjetRec < ptjetRecBinEdges[1]);
       bool isAcceptedGen = inputs.isVarInRange(ptjetGen, ptjetGenBinEdges);
-      //(ptjetGen >= ptjetGenBinEdges[0] && ptjetGen < ptjetGenBinEdges[1]);
 
       if (isAcceptedRec)
         hRec->Fill(ptjetRec, binContent);
@@ -232,7 +267,7 @@ void CreateResponseJets(InputSettings& inputs) {
     }
   }
 
-  inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbositylvls::kDebug);
+  inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbosityutilities::kDebug);
 
   hKinEff->Divide(hGen);
   inputs.writeOutputToFile(response);
@@ -241,21 +276,21 @@ void CreateResponseJets(InputSettings& inputs) {
 }
 
 void CreateResponseV0Pt(InputSettings& inputs) {
-  inputs.printLog("Opening input file: " + inputs.inputFileName, verbositylvls::kDebug);
+  inputs.printLog("Opening input file: " + inputs.inputFileName, verbosityutilities::kDebug);
   TFile* file = TFile::Open(inputs.inputFileName.c_str());
   if (!file) {
-    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbositylvls::kErrors);
+    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
     return;
   }
-  inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbositylvls::kDebug);
+  inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbosityutilities::kDebug);
   THnSparseD* responseMatrix = (THnSparseD*)file->Get(inputs.rmHistName.c_str());
   if (!responseMatrix) {
-    inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbositylvls::kErrors);
+    inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbosityutilities::kErrors);
     return;
   }
   responseMatrix->SetName("responseMatrixV0Pt");
 
-  inputs.printLog("Creating histograms for V0s in jets.", verbositylvls::kDebug);
+  inputs.printLog("Creating histograms for V0s in jets.", verbosityutilities::kDebug);
 
   array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetAxis(rmutilities::axisv0PtRmPtJetRec), inputs.ptjetminRec, inputs.ptjetmaxRec);
   array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetAxis(rmutilities::axisv0PtRmPtJetGen), inputs.ptjetminGen, inputs.ptjetmaxGen);
@@ -281,7 +316,7 @@ void CreateResponseV0Pt(InputSettings& inputs) {
   // Create the RooUnfoldResponse and fill it
   RooUnfoldResponse* response = new RooUnfoldResponse("responseV0Pt", "RMV0Pt");
   response->Setup(hRec, hGen);
-  inputs.printLog("Filling response.", verbositylvls::kDebug);
+  inputs.printLog("Filling response.", verbosityutilities::kDebug);
 
   int* coord = new int[responseMatrix->GetNdimensions()]; //Carries the bin coordinates
   for (int iBin = 0; iBin <= responseMatrix->GetNbins(); iBin++) {
@@ -311,7 +346,7 @@ void CreateResponseV0Pt(InputSettings& inputs) {
     }
   }
 
-  inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbositylvls::kDebug);
+  inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbosityutilities::kDebug);
 
   hKinEff->Divide(hGen);
   inputs.writeOutputToFile(response);
@@ -320,21 +355,21 @@ void CreateResponseV0Pt(InputSettings& inputs) {
 }
 
 // void CreateResponseV0Z(InputSettings& inputs) {
-//   inputs.printLog("Opening input file: " + inputs.inputFileName, verbositylvls::kDebug);
+//   inputs.printLog("Opening input file: " + inputs.inputFileName, verbosityutilities::kDebug);
 //   TFile* file = TFile::Open(inputs.inputFileName.c_str());
 //   if (!file) {
-//     inputs.printLog("Error: could not open file " + inputs.inputFileName, verbositylvls::kErrors);
+//     inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
 //     return;
 //   }
-//   inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbositylvls::kDebug);
+//   inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbosityutilities::kDebug);
 //   THnSparseD* responseMatrix = (THnSparseD*)file->Get(inputs.rmHistName.c_str());
 //   if (!responseMatrix) {
-//     inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbositylvls::kErrors);
+//     inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbosityutilities::kErrors);
 //     return;
 //   }
 //   responseMatrix->SetName("responseMatrixV0Z");
 
-//   inputs.printLog("Creating histograms for V0s in jets.", verbositylvls::kDebug);
+//   inputs.printLog("Creating histograms for V0s in jets.", verbosityutilities::kDebug);
 
 //   array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetAxis(rmutilities::axisv0PtRmPtJetRec), inputs.ptjetminRec, inputs.ptjetmaxRec);
 //   array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetAxis(rmutilities::axisv0PtRmPtJetGen), inputs.ptjetminGen, inputs.ptjetmaxGen);
@@ -360,7 +395,7 @@ void CreateResponseV0Pt(InputSettings& inputs) {
 //   // Create the RooUnfoldResponse and fill it
 //   RooUnfoldResponse* response = new RooUnfoldResponse("responseV0Pt", "RMV0Pt");
 //   response->Setup(hRec, hGen);
-//   inputs.printLog("Filling response.", verbositylvls::kDebug);
+//   inputs.printLog("Filling response.", verbosityutilities::kDebug);
 
 //   int* coord = new int[responseMatrix->GetNdimensions()]; //Carries the bin coordinates
 //   for (int iBin = 0; iBin <= responseMatrix->GetNbins(); iBin++) {
@@ -390,7 +425,7 @@ void CreateResponseV0Pt(InputSettings& inputs) {
 //     }
 //   }
 
-//   inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbositylvls::kDebug);
+//   inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbosityutilities::kDebug);
 
 //   hKinEff->Divide(hGen);
 //   inputs.writeOutputToFile(response);
@@ -400,59 +435,78 @@ void CreateResponseV0Pt(InputSettings& inputs) {
 
 // ----------------------------------------------------------
 
-void UnfoldingJets(InputSettings& inputs) {
+void DoUnfoldingJets(InputSettings& inputs, int nIterations = -1) {
+  inputs.printLog("Getting response from file: " + inputs.responseFileName + "\nGetting test distributions from file: " + inputs.inputFileName, verbosityutilities::kDebug);
+
+  if (nIterations < 0)
+    nIterations = inputs.nIterations;
+
+  inputs.printLog("Doing unfolding with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
+
+  string nameRecJets = "hRecJets";
+  string nameFakeJets = "hFakeJets";
+  string nameResponseJets = "responseJets";
+
   TFile* responseFile = TFile::Open(inputs.responseFileName.c_str(), "READ");
-  TH1D* trainingRec = (TH1D*)responseFile->Get("hRecJets");
-  TH1D* trainingFake = (TH1D*)responseFile->Get("hFakeJets");
-  RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get("responseJets");
-  inputs.printLog("Rec hist is of size " + to_string(trainingRec->GetNbinsX()), verbositylvls::kDebug);
+  TH1D* trainingRec = (TH1D*)responseFile->Get(nameRecJets.c_str());
+  TH1D* trainingFake = (TH1D*)responseFile->Get(nameFakeJets.c_str());
+  RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get(nameResponseJets.c_str());
+  inputs.printLog("Rec hist is of size " + to_string(trainingRec->GetNbinsX()), verbosityutilities::kDebug);
 
-  // TH1D* testFake; // Get this from test file!
+  TFile* testFile = TFile::Open(inputs.inputFileName.c_str(), "READ");
+  TH1D* testFake = (TH1D*)testFile->Get(nameFakeJets.c_str());
 
-  string ruBayesName  = "ruBayes" + to_string(inputs.nIterations);
+  string ruBayesName  = "ruBayes" + to_string(nIterations);
   string ruBayesTitle = ruBayesName;
-  RooUnfoldBayes ruBayes(response, trainingRec, inputs.nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
+  RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
 
-  string unfoldedName = "unfoldedJets" + to_string(inputs.nIterations);
+  string unfoldedName = "unfoldedJets" + to_string(nIterations);
   TH1D* unfolded = (TH1D*)ruBayes.Hreco(inputs.errorTreatment);
   unfolded->SetName(unfoldedName.c_str());
   unfolded->SetTitle(unfoldedName.c_str());
 
-  string refoldedName = "refoldedJets" + to_string(inputs.nIterations);
+  string refoldedName = "refoldedJets" + to_string(nIterations);
   TH1D* refolded = (TH1D*)response->ApplyToTruth(unfolded, refoldedName.c_str());
-  // refolded->Add(testFake);
-  inputs.writeOutputToFile(&ruBayes);
-  inputs.writeOutputsToFile(std::vector<TH1D*>{unfolded, refolded});
+  refolded->Add(testFake);
 
-  // FIXME: Can't get cov matrix to work
   // Covariance matrix
-  // string covMatrixName = "covMatrixJets" + to_string(inputs.nIterations);
-  // TH1D tmp(ruBayes.Ereco(inputs.errorTreatment));
-  // TH1D* covMatrix = (TH1D*)tmp.Clone(covMatrixName.c_str());
-  // inputs.printLog("Covariance matrix is of size " + to_string(covMatrix->GetNbinsX()), verbositylvls::kDebug);
+  string covMatrixName = "covMatrixJets" + to_string(nIterations);
+  TH2D tmp(ruBayes.Ereco(inputs.errorTreatment));
+  TH2D* covMatrix = (TH2D*)tmp.Clone(covMatrixName.c_str());
+  inputs.printLog("Covariance matrix is of size " + to_string(covMatrix->GetNbinsX()) + " x " + to_string(covMatrix->GetNbinsY()), verbosityutilities::kDebug);
+  covMatrix->SetTitle(covMatrixName.c_str());
 
   // Pearson coefficients
-  // string pearsonName = "pearsonJets" + to_string(inputs.nIterations);
-  // TH2D* pearson = (TH2D*)covMatrix->Clone(pearsonName.c_str());
-  // pearson->Reset();
+  string pearsonName = "pearsonJets" + to_string(nIterations);
+  TH2D* pearson = (TH2D*)covMatrix->Clone(pearsonName.c_str());
+  pearson->SetTitle(pearsonName.c_str());
+  pearson->Reset();
 
-  // for (int xCovBin = 1; xCovBin <= covMatrix->GetNbinsX(); xCovBin++) {
-  //   for (int yCovBin = 1; yCovBin <= covMatrix->GetNbinsY(); yCovBin++) {
-  //     double cov = covMatrix->GetBinContent(xCovBin, yCovBin);
-  //     double sigmaX = sqrt(covMatrix->GetBinContent(xCovBin, xCovBin));
-  //     double sigmaY = sqrt(covMatrix->GetBinContent(yCovBin, yCovBin));
-  //     double pearsonCoeff = 0.;
-  //     if (sigmaX > 0. && sigmaY > 0.)
-  //       pearsonCoeff = cov / (sigmaX * sigmaY);
-  //     pearson->SetBinContent(xCovBin, yCovBin, pearsonCoeff);
-  //   }
-  // }
+  for (int xCovBin = 1; xCovBin <= covMatrix->GetNbinsX(); xCovBin++) {
+    for (int yCovBin = 1; yCovBin <= covMatrix->GetNbinsY(); yCovBin++) {
+      double cov = covMatrix->GetBinContent(xCovBin, yCovBin);
+      double sigmaX = sqrt(covMatrix->GetBinContent(xCovBin, xCovBin));
+      double sigmaY = sqrt(covMatrix->GetBinContent(yCovBin, yCovBin));
+      double pearsonCoeff = 0.;
+      if (std::isnan(cov) || std::isnan(sigmaX) || std::isnan(sigmaY))
+        continue;
+      if (inputs.isVarConsistentWithZero(sigmaX) || inputs.isVarConsistentWithZero(sigmaY))
+        continue;
+
+      pearsonCoeff = cov / std::sqrt(sigmaX * sigmaY);
+      pearson->SetBinContent(xCovBin, yCovBin, pearsonCoeff);
+    }
+  }
+
+  inputs.writeOutputToFile(&ruBayes);
+  inputs.writeOutputsToFile(std::vector<TH1D*>{unfolded, refolded});
+  inputs.writeOutputsToFile(std::vector<TH2D*>{covMatrix, pearson});
 }
 
 // void ClosureTestJets(InputSettings& inputs) {
   // TFile* responseFile = TFile::Open(inputs.responseFileName.c_str(), "READ");
   // if (!responseFile) {
-  //   inputs.printLog("Error: could not open file " + inputs.responseFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not open file " + inputs.responseFileName, verbosityutilities::kErrors);
   //   return;
   // }
   // RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get("responseJets");
@@ -463,19 +517,19 @@ void UnfoldingJets(InputSettings& inputs) {
   // TH1D* trainingMiss = (TH1D*)responseFile->Get("hMissJets");
   // TH1D* trainingKinEff = (TH1D*)responseFile->Get("hKinEffJets");
   // if (!response)
-  //   inputs.printLog("Error: could not find responseJets in file " + inputs.responseFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not find responseJets in file " + inputs.responseFileName, verbosityutilities::kErrors);
   // if (!trainingRM)
-  //   inputs.printLog("Error: could not find responseMatrixJets in file " + inputs.responseFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not find responseMatrixJets in file " + inputs.responseFileName, verbosityutilities::kErrors);
   // if (!trainingRec)
-  //   inputs.printLog("Error: could not find hRecJets in file " + inputs.responseFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not find hRecJets in file " + inputs.responseFileName, verbosityutilities::kErrors);
   // if (!trainingGen)
-  //   inputs.printLog("Error: could not find hGenJets in file " + inputs.responseFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not find hGenJets in file " + inputs.responseFileName, verbosityutilities::kErrors);
   // if (!trainingFake)
-  //   inputs.printLog("Error: could not find hFakeJets in file " + inputs.responseFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not find hFakeJets in file " + inputs.responseFileName, verbosityutilities::kErrors);
   // if (!trainingMiss)
-  //   inputs.printLog("Error: could not find hMissJets in file " + inputs.responseFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not find hMissJets in file " + inputs.responseFileName, verbosityutilities::kErrors);
   // if (!trainingKinEff)
-  //   inputs.printLog("Error: could not find hKinEffJets in file " + inputs.responseFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not find hKinEffJets in file " + inputs.responseFileName, verbosityutilities::kErrors);
 
   // if (!response || !trainingRM || !trainingRec || !trainingGen || !trainingFake || !trainingMiss || !trainingKinEff)
   //   return;
@@ -485,12 +539,12 @@ void UnfoldingJets(InputSettings& inputs) {
   // // Data that the response is tested on. For trivial closure testFile = trainingFile
   // TFile* testFile = TFile::Open(inputs.inputFileName.c_str(), "READ");
   // if (!testFile) {
-  //   inputs.printLog("Error: could not open file " + inputs.inputFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
   //   return;
   // }
   // TH2D* testRM = (TH2D*)testFile->Get(inputs.rmHistName.c_str());
   // if (!testRM) {
-  //   inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbositylvls::kErrors);
+  //   inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbosityutilities::kErrors);
   //   return;
   // }
   // TH1D* testRec = (TH1D*)trainingRec->Clone("testRecJets");
@@ -511,7 +565,7 @@ void UnfoldingJets(InputSettings& inputs) {
 // ----------------------------------------------------------
 
 void createresponses() {
-  InputSettings x; x.verbosity = verbositylvls::kDebug;
+  InputSettings x; x.verbosity = verbosityutilities::kDebug;
   x.train = 468659;
   x.inputFileName = to_string(x.train) + ".root";
   x.outputFileName = "RooUnfoldResponse" + to_string(x.train) + ".root";
@@ -530,12 +584,14 @@ void createresponses() {
 }
 
 void doclosuretest() {
-  InputSettings x; x.verbosity = verbositylvls::kDebug;
+  InputSettings x; x.verbosity = verbosityutilities::kDebug;
   x.inputFileName = "468659.root";
   x.responseFileName = "RooUnfoldResponse.root";
   x.outputFileName = "ClosureTest.root";
-  x.nIterations = 3;
-  UnfoldingJets(x);
+  // x.nIterations = 3;
+  DoUnfoldingJets(x, 3);
+  DoUnfoldingJets(x, 4);
+  DoUnfoldingJets(x, 7);
 }
 
 # endif

@@ -17,6 +17,7 @@ elif [[ -n $ZSH_VERSION ]]; then
   alias unfold="echo 'You need to be in bash to load O2 environments.'"
 else
   alias o2="bash ${FRAGMENTATION_DIR}/scripts/load-o2"
+  alias unfold="alienv enter --shellrc O2Physics/latest ninja/latest RooUnfold/latest"
 fi
 alias atag="${FRAGMENTATION_DIR}/scripts/load-alien-tag -a -y"
 alias otag="${FRAGMENTATION_DIR}/scripts/load-alien-tag"

@@ -63,10 +63,16 @@ namespace rmutilities {
 
 struct InputSettings {
   private:
-    string getNameFromVar(string prefix, string varstring, string suffix);
-    string getNameFromPtJet(string prefix, double low, double high, string suffix);
-    string getNameFromPtV0(string prefix, double low, double high, string suffix);
-    string getNameFromZV0(string prefix, double low, double high, string suffix);
+    string getNameFromVar(string prefix, string varstring, string suffix) { return prefix + "_" + varstring + suffix; }
+    string getNameFromPtJet(string prefix, double low, double high, string suffix) {
+      return getNameFromVar(prefix, TString::Format("ptjet%.f-%.f", low, high).Data(), suffix);
+    }
+    string getNameFromPtV0(string prefix, double low, double high, string suffix) {
+      return getNameFromVar(prefix, TString::Format("ptv0%.1f-%.1f", low, high).Data(), suffix);
+    }
+    string getNameFromZV0(string prefix, double low, double high, string suffix) {
+      return getNameFromVar(prefix, TString::Format("zv0%.3f-%.3f", low, high).Data(), suffix);
+    }
     bool setVariable(double a, double b, double &x, double &y);
   public:
     // Unfolding settings
@@ -88,16 +94,13 @@ struct InputSettings {
 
     bool makeplots = false, logplot = false, ratioplot = false;
 
+    // Methods using private methods
     string getNameFromPtJetGen(string prefix, string suffix) { return getNameFromPtJet(prefix, ptjetminGen, ptjetmaxGen, suffix); }
     string getNameFromPtJetRec(string prefix, string suffix) { return getNameFromPtJet(prefix, ptjetminRec, ptjetmaxRec, suffix); }
     string getNameFromPtV0Gen(string prefix, string suffix) { return getNameFromPtV0(prefix, ptv0minGen, ptv0maxGen, suffix); }
     string getNameFromPtV0Rec(string prefix, string suffix) { return getNameFromPtV0(prefix, ptv0minRec, ptv0maxRec, suffix); }
     string getNameFromZV0Gen(string prefix, string suffix) { return getNameFromZV0(prefix, zv0minGen, zv0maxGen, suffix); }
     string getNameFromZV0Rec(string prefix, string suffix) { return getNameFromZV0(prefix, zv0minRec, zv0maxRec, suffix); }
-    bool isVarInRange(double var, double min, double max) { return (var >= min && var < max); }
-    bool isVarInRange(double var, array<double, 2> range) { return isVarInRange(var, range[0], range[1]); }
-    bool printLog(string message, verbositylvls::Verbosity verbThreshold);
-    string setInputFileNameFromTrain();
     bool setEta(double a, double b) { return setVariable(a, b, etamin, etamax); }
     bool setPtJetGen(double a, double b) { return setVariable(a, b, ptjetminGen, ptjetmaxGen); }
     bool setPtJetRec(double a, double b) { return setVariable(a, b, ptjetminRec, ptjetmaxRec); }
@@ -105,25 +108,15 @@ struct InputSettings {
     bool setPtV0Rec(double a, double b) { return setVariable(a, b, ptv0minRec, ptv0maxRec); }
     bool setV0ZGen(double a, double b) { return setVariable(a, b, zv0minGen, zv0maxGen); }
     bool setV0ZRec(double a, double b) { return setVariable(a, b, zv0minRec, zv0maxRec); }
+
+    // Utilities
+    bool isVarInRange(double var, double min, double max) { return (var >= min && var < max); }
+    bool isVarInRange(double var, array<double, 2> range) { return isVarInRange(var, range[0], range[1]); }
+    bool printLog(string message, verbositylvls::Verbosity verbThreshold);
+    string setInputFileNameFromTrain();
     template <typename T> bool writeOutputToFile(T* obj);
     template <typename T> bool writeOutputsToFile(vector<T*> obj);
 };
-
-string InputSettings::getNameFromVar(string prefix, string varstring, string suffix = "") {
-  return prefix + "_" + varstring + suffix;
-}
-
-string InputSettings::getNameFromPtJet(string prefix, double low, double high, string suffix = "") {
-  return getNameFromVar(prefix, TString::Format("ptjet%.f-%.f", low, high).Data(), suffix);
-}
-
-string InputSettings::getNameFromPtV0(string prefix, double low, double high, string suffix = "") {
-  return getNameFromVar(prefix, TString::Format("ptv0%.1f-%.1f", low, high).Data(), suffix);
-}
-
-string InputSettings::getNameFromZV0(string prefix, double low, double high, string suffix = "") {
-  return getNameFromVar(prefix, TString::Format("zv0%.3f-%.3f", low, high).Data(), suffix);
-}
 
 bool InputSettings::printLog(string message, verbositylvls::Verbosity messageVerbLevel) {
   if (!verbositylvls::passVerbosityCheck(messageVerbLevel, verbosity))

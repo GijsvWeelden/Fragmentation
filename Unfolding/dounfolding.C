@@ -198,6 +198,9 @@ struct InputSettings {
       return getNameFromVar(prefix, TString::Format("zv0%.3f-%.3f", low, high).Data(), suffix);
     }
     template <typename T> bool setVariable(T a, T b, T &x, T &y);
+
+    verbosityutilities::Verbosity verbosity = verbosityutilities::kInfo;
+    plotutilities::PlotType plottype;
   public:
     // Unfolding settings
     int doSmoothing = 0, nIterations = 1;
@@ -206,22 +209,20 @@ struct InputSettings {
 
     // General settings
     int train;
-    verbosityutilities::Verbosity verbosity = verbosityutilities::kWarnings;
     string inputFileName, outputFileName, responseFileName;
     string hadron;
-    string rmHistName;
 
     double ptjetminGen, ptjetmaxGen, ptjetminRec, ptjetmaxRec;
     double ptv0minGen, ptv0maxGen, ptv0minRec, ptv0maxRec;
     double zv0minGen, zv0maxGen, zv0minRec, zv0maxRec;
     double etamin, etamax;
     double binwidthptjet, binwidthptv0, binwidthzv0;
-    double petjetminProjection, ptjetmaxProjection;
+    double ptjetminProjection, ptjetmaxProjection;
 
     bool saveFigs = true, drawText = false;
     bool doTrivialClosureTest = true;
 
-    // Methods using private methods
+    // Using private methods
     string getNameFromPtJetGen(string prefix, string suffix) {
       return getNameFromPtJet(prefix, ptjetminGen, ptjetmaxGen, suffix);
     }
@@ -253,7 +254,7 @@ struct InputSettings {
       return setVariable(a, b, ptjetminRec, ptjetmaxRec);
     }
     bool setPtJetProjection(double a, double b) {
-      return setVariable(a, b, petjetminProjection, ptjetmaxProjection);
+      return setVariable(a, b, ptjetminProjection, ptjetmaxProjection);
     }
     bool setPtV0Gen(double a, double b) {
       return setVariable(a, b, ptv0minGen, ptv0maxGen);
@@ -267,6 +268,21 @@ struct InputSettings {
     bool setZV0Rec(double a, double b) {
       return setVariable(a, b, zv0minRec, zv0maxRec);
     }
+
+    // Getters for private variables
+    plotutilities::PlotType getPlotType() { return plottype; }
+    string getRmHistName() {
+      switch (plottype) {
+        case plotutilities::kJet:  return rmutilities::analysis::nameJetRm;
+        case plotutilities::kV0Pt: return rmutilities::analysis::nameV0PtRm;
+        case plotutilities::kV0Z:  return rmutilities::analysis::nameV0ZRm;
+        default: return "";
+      }
+    }
+    verbosityutilities::Verbosity getVerbosity() { return verbosity; }
+    // Setters for private variables
+    bool setPlotType(plotutilities::PlotType p);
+    bool setVerbosity(verbosityutilities::Verbosity v);
 
     // Utilities
     bool isHistInRange(TH1* hist, double min, double max);
@@ -346,6 +362,24 @@ bool InputSettings::writeOutputsToFile(vector<T*> objs) {
   for (auto obj : objs)
     writeOutputToFile(obj);
 
+  return true;
+}
+
+bool InputSettings::setPlotType(plotutilities::PlotType p) {
+  if (!plotutilities::is_valid(p)) {
+    printLog("InputSettings::setPlotType() Error: invalid plot type", verbosityutilities::kErrors);
+    return false;
+  }
+  plottype = p;
+  return true;
+}
+
+bool InputSettings::setVerbosity(verbosityutilities::Verbosity v) {
+  if (!verbosityutilities::is_valid(v)) {
+    printLog("InputSettings::setVerbosity() Error: invalid verbosity level", verbosityutilities::kErrors);
+    return false;
+  }
+  verbosity = v;
   return true;
 }
 
@@ -491,23 +525,8 @@ void FillPearsonFromCovMatrix(InputSettings& inputs, TH2D* covMatrix, TH2D* pear
 
 // ----------------------------------------------------------
 
-void CreateResponseJets(InputSettings& inputs) {
-  inputs.printLog("Opening input file: " + inputs.inputFileName, verbosityutilities::kDebug);
-  TFile* file = TFile::Open(inputs.inputFileName.c_str());
-  if (!file) {
-    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
-    return;
-  }
-  inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbosityutilities::kDebug);
-  TH2D* responseMatrix = (TH2D*)file->Get(inputs.rmHistName.c_str());
-  if (!responseMatrix) {
-    inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbosityutilities::kErrors);
-    return;
-  }
-  responseMatrix->SetName(rmutilities::unfolding::nameRmJets.c_str());
-  responseMatrix->SetTitle(rmutilities::unfolding::nameRmJets.c_str());
-
-  inputs.printLog("Creating histograms for jets.", verbosityutilities::kDebug);
+array<TH1D*, 5> CreateDistributionHistsJet(InputSettings& inputs, TH2D* responseMatrix) {
+  inputs.printLog("Creating distribution histograms for jets.", verbosityutilities::kDebug);
   array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetYaxis(), inputs.ptjetminRec, inputs.ptjetmaxRec);
   array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetYaxis(), inputs.ptjetminGen, inputs.ptjetmaxGen);
   array<double, 2> ptjetRecBinEdges = getProjectionEdges(responseMatrix->GetXaxis(), ptjetRecBins);
@@ -518,10 +537,110 @@ void CreateResponseJets(InputSettings& inputs) {
 
   TH1D* hRec = new TH1D(rmutilities::unfolding::nameRecJets.c_str(), "Rec;p_{T,jet}", nbinsPtRec, ptjetRecBinEdges[0], ptjetRecBinEdges[1]);
   TH1D* hGen = new TH1D(rmutilities::unfolding::nameGenJets.c_str(), "Gen;p_{T,jet}", nbinsPtGen, ptjetGenBinEdges[0], ptjetGenBinEdges[1]);
-
   TH1D* hMiss   = (TH1D*)hGen->Clone(rmutilities::unfolding::nameMissJets.c_str());
   TH1D* hKinEff = (TH1D*)hGen->Clone(rmutilities::unfolding::nameKinEffJets.c_str());
   TH1D* hFake   = (TH1D*)hRec->Clone(rmutilities::unfolding::nameFakeJets.c_str());
+  return std::array<TH1D*, 5>{hRec, hGen, hMiss, hKinEff, hFake};
+}
+
+array<TH2D*, 5> CreateDistributionHistsV0(InputSettings& inputs, THnSparseD* responseMatrix) {
+  inputs.printLog("Creating histograms for V0s.", verbosityutilities::kDebug);
+  int axisPtJetRec, axisPtJetGen, axisV0Rec, axisV0Gen;
+  double v0minRec, v0maxRec, v0minGen, v0maxGen, binwidthv0;
+  string nRec, nGen, nMiss, nKinEff, nFake, nAxes;
+
+  if (inputs.getPlotType() == plotutilities::PlotType::kV0Pt) {
+    axisPtJetRec = rmutilities::analysis::axisv0PtRmPtJetRec;
+    axisPtJetGen = rmutilities::analysis::axisv0PtRmPtJetGen;
+    axisV0Rec    = rmutilities::analysis::axisv0PtRmV0Rec;
+    axisV0Gen    = rmutilities::analysis::axisv0PtRmV0Gen;
+    v0minRec     = inputs.ptv0minRec;
+    v0maxRec     = inputs.ptv0maxRec;
+    v0minGen     = inputs.ptv0minGen;
+    v0maxGen     = inputs.ptv0maxGen;
+    binwidthv0   = inputs.binwidthptv0;
+    nRec         = rmutilities::unfolding::nameRecV0Pt;
+    nGen         = rmutilities::unfolding::nameGenV0Pt;
+    nMiss        = rmutilities::unfolding::nameMissV0Pt;
+    nKinEff      = rmutilities::unfolding::nameKinEffV0Pt;
+    nFake        = rmutilities::unfolding::nameFakeV0Pt;
+    nAxes        = "p_{T,V0},p_{T,jet}";
+  } else if (inputs.getPlotType() == plotutilities::PlotType::kV0Z) {
+    axisPtJetRec = rmutilities::analysis::axisv0ZRmPtJetRec;
+    axisPtJetGen = rmutilities::analysis::axisv0ZRmPtJetGen;
+    axisV0Rec    = rmutilities::analysis::axisv0ZRmV0Rec;
+    axisV0Gen    = rmutilities::analysis::axisv0ZRmV0Gen;
+    v0minRec     = inputs.zv0minRec;
+    v0maxRec     = inputs.zv0maxRec;
+    v0minGen     = inputs.zv0minGen;
+    v0maxGen     = inputs.zv0maxGen;
+    binwidthv0   = inputs.binwidthzv0;
+    nRec         = rmutilities::unfolding::nameRecV0Z;
+    nGen         = rmutilities::unfolding::nameGenV0Z;
+    nMiss        = rmutilities::unfolding::nameMissV0Z;
+    nKinEff      = rmutilities::unfolding::nameKinEffV0Z;
+    nFake        = rmutilities::unfolding::nameFakeV0Z;
+    nAxes        = "z_{T,V0},p_{T,jet}";
+  } else {
+    inputs.printLog("CreateDistributionHistsV0() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
+    return std::array<TH2D*, 5>{nullptr, nullptr, nullptr, nullptr, nullptr};
+  }
+
+  array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetAxis(axisPtJetRec), inputs.ptjetminRec, inputs.ptjetmaxRec);
+  array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetAxis(axisPtJetGen), inputs.ptjetminGen, inputs.ptjetmaxGen);
+  array<int, 2> v0RecBins    = getProjectionBins(responseMatrix->GetAxis(axisV0Rec), v0minRec, v0maxRec);
+  array<int, 2> v0GenBins    = getProjectionBins(responseMatrix->GetAxis(axisV0Gen), v0minGen, v0maxGen);
+
+  array<double, 2> ptjetRecBinEdges = getProjectionEdges(responseMatrix->GetAxis(axisPtJetRec), ptjetRecBins);
+  array<double, 2> ptjetGenBinEdges = getProjectionEdges(responseMatrix->GetAxis(axisPtJetGen), ptjetGenBins);
+  array<double, 2> v0RecBinEdges    = getProjectionEdges(responseMatrix->GetAxis(axisV0Rec), v0RecBins);
+  array<double, 2> v0GenBinEdges    = getProjectionEdges(responseMatrix->GetAxis(axisV0Gen), v0GenBins);
+
+  int nbinsPtJetRec = (int)((ptjetRecBinEdges[1] - ptjetRecBinEdges[0]) / inputs.binwidthptjet);
+  int nbinsPtJetGen = (int)((ptjetGenBinEdges[1] - ptjetGenBinEdges[0]) / inputs.binwidthptjet);
+  int nbinsv0Rec    = (int)((v0RecBinEdges[1] - v0RecBinEdges[0]) / binwidthv0);
+  int nbinsv0Gen    = (int)((v0GenBinEdges[1] - v0GenBinEdges[0]) / binwidthv0);
+
+  TH2D* hRec = new TH2D(nRec.c_str(), ("Rec;" + nAxes).c_str(), nbinsv0Rec, v0RecBinEdges[0], v0RecBinEdges[1], nbinsPtJetRec, ptjetRecBinEdges[0], ptjetRecBinEdges[1]);
+  TH2D* hGen = new TH2D(nGen.c_str(), ("Gen;" + nAxes).c_str(), nbinsv0Gen, v0GenBinEdges[0], v0GenBinEdges[1], nbinsPtJetGen, ptjetGenBinEdges[0], ptjetGenBinEdges[1]);
+
+  TH2D* hMiss   = (TH2D*)hGen->Clone(nMiss.c_str());
+  TH2D* hKinEff = (TH2D*)hGen->Clone(nKinEff.c_str());
+  TH2D* hFake   = (TH2D*)hRec->Clone(nFake.c_str());
+  return std::array<TH2D*, 5>{hRec, hGen, hMiss, hKinEff, hFake};
+}
+
+template <typename T>
+T LoadResponseMatrix(InputSettings& inputs) {
+  inputs.printLog("Opening input file: " + inputs.inputFileName, verbosityutilities::kDebug);
+  TFile* file = TFile::Open(inputs.inputFileName.c_str());
+  if (!file) {
+    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
+    return nullptr;
+  }
+  inputs.printLog("Retrieving histogram: " + inputs.getRmHistName(), verbosityutilities::kDebug);
+  T responseMatrix = (T)file->Get(inputs.getRmHistName().c_str());
+  if (!responseMatrix) {
+    inputs.printLog("Error: could not find " + inputs.getRmHistName() + " in file " + inputs.inputFileName, verbosityutilities::kErrors);
+    return nullptr;
+  }
+  return responseMatrix;
+}
+
+void CreateResponseJets(InputSettings& inputs) {
+  inputs.printLog("Creating response for jets.", verbosityutilities::kInfo);
+  inputs.setPlotType(plotutilities::PlotType::kJet);
+
+  TH2D* responseMatrix = LoadResponseMatrix<TH2D*>(inputs);
+  responseMatrix->SetName(rmutilities::unfolding::nameRmJets.c_str());
+  responseMatrix->SetTitle(rmutilities::unfolding::nameRmJets.c_str());
+
+  array<TH1D*, 5> hists = CreateDistributionHistsJet(inputs, responseMatrix);
+  TH1D* hRec    = hists[0];
+  TH1D* hGen    = hists[1];
+  TH1D* hMiss   = hists[2];
+  TH1D* hKinEff = hists[3];
+  TH1D* hFake   = hists[4];
 
   inputs.printLog("Filling response.", verbosityutilities::kDebug);
   RooUnfoldResponse* response = new RooUnfoldResponse(rmutilities::unfolding::nameResponseJets.c_str(), rmutilities::unfolding::nameResponseJets.c_str());
@@ -532,112 +651,60 @@ void CreateResponseJets(InputSettings& inputs) {
   inputs.writeOutputToFile(response);
   inputs.writeOutputToFile(responseMatrix);
   inputs.writeOutputsToFile(std::vector<TH1D*>({hRec, hGen, hMiss, hFake, hKinEff}));
+  return;
 }
 
-// NB: V0 Pt RM is filled (gen, rec), but the jet RM and V0 Z RM are filled (rec, gen)!
-// NB: The RooUnfoldResponse is filled (rec, gen) always!
+void CreateResponseV0(InputSettings& inputs) {
+  inputs.printLog("Creating response for " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kInfo);
+
+  string nameRm = rmutilities::unfolding::nameRmV0Pt;
+  string nameResponse = rmutilities::unfolding::nameResponseV0Pt;
+  if (inputs.getPlotType() == plotutilities::PlotType::kV0Z) {
+    nameRm = rmutilities::unfolding::nameRmV0Z;
+    nameResponse = rmutilities::unfolding::nameResponseV0Z;
+  }
+
+  THnSparseD* responseMatrix = LoadResponseMatrix<THnSparseD*>(inputs);
+  responseMatrix->SetName(nameRm.c_str());
+  responseMatrix->SetTitle(nameRm.c_str());
+
+  array<TH2D*, 5> hists = CreateDistributionHistsV0(inputs, responseMatrix);
+  TH2D* hRec    = hists[0];
+  TH2D* hGen    = hists[1];
+  TH2D* hMiss   = hists[2];
+  TH2D* hKinEff = hists[3];
+  TH2D* hFake   = hists[4];
+
+  inputs.printLog("Filling response.", verbosityutilities::kDebug);
+  RooUnfoldResponse* response = new RooUnfoldResponse(nameResponse.c_str(), nameResponse.c_str());
+  response->Setup(hRec, hGen);
+  if (inputs.getPlotType() == plotutilities::PlotType::kV0Pt)
+    FillFromRmV0Pt(inputs, responseMatrix, hRec, hGen, hMiss, hKinEff, hFake, response);
+  else if (inputs.getPlotType() == plotutilities::PlotType::kV0Z)
+    FillFromRmV0Z(inputs, responseMatrix, hRec, hGen, hMiss, hKinEff, hFake, response);
+
+  inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbosityutilities::kDebug);
+  inputs.writeOutputToFile(response);
+  inputs.writeOutputToFile(responseMatrix);
+  inputs.writeOutputsToFile(std::vector<TH2D*>({hRec, hGen, hMiss, hKinEff, hFake}));
+}
+
 void CreateResponseV0Pt(InputSettings& inputs) {
-  inputs.printLog("Opening input file: " + inputs.inputFileName, verbosityutilities::kDebug);
-  TFile* file = TFile::Open(inputs.inputFileName.c_str());
-  if (!file) {
-    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
-    return;
-  }
-  inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbosityutilities::kDebug);
-  THnSparseD* responseMatrix = (THnSparseD*)file->Get(inputs.rmHistName.c_str());
-  if (!responseMatrix) {
-    inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbosityutilities::kErrors);
-    return;
-  }
-  responseMatrix->SetName(rmutilities::unfolding::nameRmV0Pt.c_str());
-  responseMatrix->SetTitle(rmutilities::unfolding::nameRmV0Pt.c_str());
-
-  inputs.printLog("Creating histograms for V0 Pt in jets.", verbosityutilities::kDebug);
-  array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmPtJetRec), inputs.ptjetminRec, inputs.ptjetmaxRec);
-  array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmPtJetGen), inputs.ptjetminGen, inputs.ptjetmaxGen);
-  array<int, 2> ptv0RecBins  = getProjectionBins(responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmV0Rec), inputs.ptv0minRec, inputs.ptv0maxRec);
-  array<int, 2> ptv0GenBins  = getProjectionBins(responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmV0Gen), inputs.ptv0minGen, inputs.ptv0maxGen);
-  array<double, 2> ptjetRecBinEdges = getProjectionEdges(responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmPtJetRec), ptjetRecBins);
-  array<double, 2> ptjetGenBinEdges = getProjectionEdges(responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmPtJetGen), ptjetGenBins);
-  array<double, 2> ptv0RecBinEdges  = getProjectionEdges(responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmV0Rec), ptv0RecBins);
-  array<double, 2> ptv0GenBinEdges  = getProjectionEdges(responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmV0Gen), ptv0GenBins);
-
-  int nbinsPtJetRec = (int)((ptjetRecBinEdges[1] - ptjetRecBinEdges[0]) / inputs.binwidthptjet);
-  int nbinsPtJetGen = (int)((ptjetGenBinEdges[1] - ptjetGenBinEdges[0]) / inputs.binwidthptjet);
-  int nbinsPtV0Rec  = (int)((ptv0RecBinEdges[1] - ptv0RecBinEdges[0]) / inputs.binwidthptv0);
-  int nbinsPtV0Gen  = (int)((ptv0GenBinEdges[1] - ptv0GenBinEdges[0]) / inputs.binwidthptv0);
-
-  TH2D* hRec = new TH2D(rmutilities::unfolding::nameRecV0Pt.c_str(), "Rec;p_{T,V0};p_{T,jet}", nbinsPtV0Rec, ptv0RecBinEdges[0], ptv0RecBinEdges[1], nbinsPtJetRec, ptjetRecBinEdges[0], ptjetRecBinEdges[1]);
-  TH2D* hGen = new TH2D(rmutilities::unfolding::nameGenV0Pt.c_str(), "Gen;p_{T,V0};p_{T,jet}", nbinsPtV0Gen, ptv0GenBinEdges[0], ptv0GenBinEdges[1], nbinsPtJetGen, ptjetGenBinEdges[0], ptjetGenBinEdges[1]);
-  TH2D* hMiss   = (TH2D*)hGen->Clone(rmutilities::unfolding::nameMissV0Pt.c_str());
-  TH2D* hKinEff = (TH2D*)hGen->Clone(rmutilities::unfolding::nameKinEffV0Pt.c_str());
-  TH2D* hFake   = (TH2D*)hGen->Clone(rmutilities::unfolding::nameFakeV0Pt.c_str());
-
-  inputs.printLog("Filling response.", verbosityutilities::kDebug);
-  RooUnfoldResponse* response = new RooUnfoldResponse(rmutilities::unfolding::nameResponseV0Pt.c_str(), rmutilities::unfolding::nameResponseV0Pt.c_str());
-  response->Setup(hRec, hGen);
-  FillFromRmV0Pt(inputs, responseMatrix, hRec, hGen, hMiss, hKinEff, hFake, response);
-
-  inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbosityutilities::kDebug);
-  inputs.writeOutputToFile(response);
-  inputs.writeOutputToFile(responseMatrix);
-  inputs.writeOutputsToFile(std::vector<TH2D*>({hRec, hGen, hMiss, hFake, hKinEff}));
+  inputs.setPlotType(plotutilities::PlotType::kV0Pt);
+  CreateResponseV0(inputs);
 }
 
-// NB: V0 Pt RM is filled (gen, rec), but the jet RM and V0 Z RM are filled (rec, gen)!
-// NB: The RooUnfoldResponse is filled (rec, gen) always!
 void CreateResponseV0Z(InputSettings& inputs) {
-  inputs.printLog("Opening input file: " + inputs.inputFileName, verbosityutilities::kDebug);
-  TFile* file = TFile::Open(inputs.inputFileName.c_str());
-  if (!file) {
-    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
-    return;
-  }
-  inputs.printLog("Retrieving histogram: " + inputs.rmHistName, verbosityutilities::kDebug);
-  THnSparseD* responseMatrix = (THnSparseD*)file->Get(inputs.rmHistName.c_str());
-  if (!responseMatrix) {
-    inputs.printLog("Error: could not find " + inputs.rmHistName + " in file " + inputs.inputFileName, verbosityutilities::kErrors);
-    return;
-  }
-  responseMatrix->SetName(rmutilities::unfolding::nameRmV0Z.c_str());
-  responseMatrix->SetTitle(rmutilities::unfolding::nameRmV0Z.c_str());
-
-  inputs.printLog("Creating histograms for V0 Z.", verbosityutilities::kDebug);
-  array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmPtJetRec), inputs.ptjetminRec, inputs.ptjetmaxRec);
-  array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmPtJetGen), inputs.ptjetminGen, inputs.ptjetmaxGen);
-  array<int, 2> zv0RecBins  = getProjectionBins(responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmV0Rec), inputs.zv0minRec, inputs.zv0maxRec);
-  array<int, 2> zv0GenBins  = getProjectionBins(responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmV0Gen), inputs.zv0minGen, inputs.zv0maxGen);
-  array<double, 2> ptjetRecBinEdges = getProjectionEdges(responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmPtJetRec), ptjetRecBins);
-  array<double, 2> ptjetGenBinEdges = getProjectionEdges(responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmPtJetGen), ptjetGenBins);
-  array<double, 2> zv0RecBinEdges  = getProjectionEdges(responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmV0Rec), zv0RecBins);
-  array<double, 2> zv0GenBinEdges  = getProjectionEdges(responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmV0Gen), zv0GenBins);
-
-  int nbinsPtJetRec = (int)((ptjetRecBinEdges[1] - ptjetRecBinEdges[0]) / inputs.binwidthptjet);
-  int nbinsPtJetGen = (int)((ptjetGenBinEdges[1] - ptjetGenBinEdges[0]) / inputs.binwidthptjet);
-  int nbinsZV0Rec  = (int)((zv0RecBinEdges[1] - zv0RecBinEdges[0]) / inputs.binwidthzv0);
-  int nbinsZV0Gen  = (int)((zv0GenBinEdges[1] - zv0GenBinEdges[0]) / inputs.binwidthzv0);
-
-  TH2D* hRec = new TH2D(rmutilities::unfolding::nameRecV0Z.c_str(), "Rec;p_{T,V0};p_{T,jet}", nbinsZV0Rec, zv0RecBinEdges[0], zv0RecBinEdges[1], nbinsPtJetRec, ptjetRecBinEdges[0], ptjetRecBinEdges[1]);
-  TH2D* hGen = new TH2D(rmutilities::unfolding::nameGenV0Z.c_str(), "Gen;p_{T,V0};p_{T,jet}", nbinsZV0Gen, zv0GenBinEdges[0], zv0GenBinEdges[1], nbinsPtJetGen, ptjetGenBinEdges[0], ptjetGenBinEdges[1]);
-  TH2D* hMiss   = (TH2D*)hGen->Clone(rmutilities::unfolding::nameMissV0Z.c_str());
-  TH2D* hKinEff = (TH2D*)hGen->Clone(rmutilities::unfolding::nameKinEffV0Z.c_str());
-  TH2D* hFake   = (TH2D*)hGen->Clone(rmutilities::unfolding::nameFakeV0Z.c_str());
-
-  inputs.printLog("Filling response.", verbosityutilities::kDebug);
-  RooUnfoldResponse* response = new RooUnfoldResponse(rmutilities::unfolding::nameResponseV0Z.c_str(), rmutilities::unfolding::nameResponseV0Z.c_str());
-  response->Setup(hRec, hGen);
-  FillFromRmV0Z(inputs, responseMatrix, hRec, hGen, hMiss, hKinEff, hFake, response);
-
-  inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbosityutilities::kDebug);
-  inputs.writeOutputToFile(response);
-  inputs.writeOutputToFile(responseMatrix);
-  inputs.writeOutputsToFile(std::vector<TH2D*>({hRec, hGen, hMiss, hFake, hKinEff}));
+  inputs.setPlotType(plotutilities::PlotType::kV0Z);
+  CreateResponseV0(inputs);
 }
 
 // ----------------------------------------------------------
 
 void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
-  inputs.printLog("Doing unfolding with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
+  inputs.printLog("Doing unfolding for jets with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
+  inputs.setPlotType(plotutilities::PlotType::kJet);
+
   inputs.printLog("Getting response from file: " + inputs.responseFileName + "\nGetting test distributions from file: " + inputs.inputFileName, verbosityutilities::kDebug);
   TFile* responseFile = TFile::Open(inputs.responseFileName.c_str(), "UPDATE");
   if (!responseFile) {
@@ -674,7 +741,6 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
   trainingMiss->SetName(rmutilities::training::nameMissJets.c_str());
   trainingKinEff->SetName(rmutilities::training::nameKinEffJets.c_str());
 
-  inputs.printLog("Retrieving test histograms from file: " + inputs.inputFileName, verbosityutilities::kDebug);
   // Create the test histograms. These must have the same binning as the training histograms
   // For trivial closure test, they are copies, otherwise they are filled with independent data
   TH1D* testRec = (TH1D*)trainingRec->Clone(rmutilities::testing::nameRecJets.c_str());
@@ -698,7 +764,7 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
       inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
       return;
     }
-    TH2D* testResponseMatrix = (TH2D*)testFile->Get(inputs.rmHistName.c_str());
+    TH2D* testResponseMatrix = (TH2D*)testFile->Get(inputs.getRmHistName().c_str());
     FillFromRmJets(inputs, testResponseMatrix, testRec, testGen, testMiss, testKinEff, testFake);
     testFile->Close();
   }
@@ -737,10 +803,40 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
   inputs.writeOutputsToFile(std::vector<TH2D*>{covMatrix, pearson});
 }
 
-void DoUnfoldingV0Pt(InputSettings& inputs, int nIterations) {
-  inputs.printLog("Doing unfolding with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
-  inputs.printLog("Getting response from file: " + inputs.responseFileName + "\nGetting test distributions from file: " + inputs.inputFileName, verbosityutilities::kDebug);
+void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
+  inputs.printLog("Doing unfolding for " + plotutilities::to_string(inputs.getPlotType()) + " with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
 
+  string nameRec, nameGen, nameFake, nameMiss, nameKinEff, nameResponse, ruBayesName, unfoldedName, refoldedName, covMatrixName, pearsonName;
+  if (inputs.getPlotType() == plotutilities::PlotType::kV0Pt) {
+    nameRec       = rmutilities::unfolding::nameRecV0Pt;
+    nameGen       = rmutilities::unfolding::nameGenV0Pt;
+    nameFake      = rmutilities::unfolding::nameFakeV0Pt;
+    nameMiss      = rmutilities::unfolding::nameMissV0Pt;
+    nameKinEff    = rmutilities::unfolding::nameKinEffV0Pt;
+    nameResponse  = rmutilities::unfolding::nameResponseV0Pt;
+    ruBayesName   = rmutilities::unfolding::nameRooUnfoldBayesV0Pt + to_string(nIterations);
+    unfoldedName  = rmutilities::unfolding::nameUnfoldedV0Pt + to_string(nIterations);
+    refoldedName  = rmutilities::unfolding::nameRefoldedV0Pt + to_string(nIterations);
+    covMatrixName = rmutilities::unfolding::nameCovMatrixV0Pt + to_string(nIterations);
+    pearsonName   = rmutilities::unfolding::namePearsonV0Pt + to_string(nIterations);
+  } else if (inputs.getPlotType() == plotutilities::PlotType::kV0Z) {
+    nameRec       = rmutilities::unfolding::nameRecV0Z;
+    nameGen       = rmutilities::unfolding::nameGenV0Z;
+    nameFake      = rmutilities::unfolding::nameFakeV0Z;
+    nameMiss      = rmutilities::unfolding::nameMissV0Z;
+    nameKinEff    = rmutilities::unfolding::nameKinEffV0Z;
+    nameResponse  = rmutilities::unfolding::nameResponseV0Z;
+    ruBayesName   = rmutilities::unfolding::nameRooUnfoldBayesV0Z + to_string(nIterations);
+    unfoldedName  = rmutilities::unfolding::nameUnfoldedV0Z + to_string(nIterations);
+    refoldedName  = rmutilities::unfolding::nameRefoldedV0Z + to_string(nIterations);
+    covMatrixName = rmutilities::unfolding::nameCovMatrixV0Z + to_string(nIterations);
+    pearsonName   = rmutilities::unfolding::namePearsonV0Z + to_string(nIterations);
+  } else {
+    inputs.printLog("DoUnfoldingV0() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
+    return;
+  }
+
+  inputs.printLog("Getting response from file: " + inputs.responseFileName + "\nGetting test distributions from file: " + inputs.inputFileName, verbosityutilities::kDebug);
   TFile* responseFile = TFile::Open(inputs.responseFileName.c_str(), "READ");
   if (!responseFile) {
     inputs.printLog("Error: could not open file " + inputs.responseFileName, verbosityutilities::kErrors);
@@ -748,43 +844,44 @@ void DoUnfoldingV0Pt(InputSettings& inputs, int nIterations) {
   }
 
   inputs.printLog("Retrieving response and histograms from training.", verbosityutilities::kDebug);
-  TH2D* trainingRec = (TH2D*)responseFile->Get(rmutilities::unfolding::nameRecV0Pt.c_str());
-  TH2D* trainingGen = (TH2D*)responseFile->Get(rmutilities::unfolding::nameGenV0Pt.c_str());
-  TH2D* trainingFake = (TH2D*)responseFile->Get(rmutilities::unfolding::nameFakeV0Pt.c_str());
-  TH2D* trainingMiss = (TH2D*)responseFile->Get(rmutilities::unfolding::nameMissV0Pt.c_str());
-  TH2D* trainingKinEff = (TH2D*)responseFile->Get(rmutilities::unfolding::nameKinEffV0Pt.c_str());
-  RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get(rmutilities::unfolding::nameResponseV0Pt.c_str());
+  TH2D* trainingRec = (TH2D*)responseFile->Get(nameRec.c_str());
+  TH2D* trainingGen = (TH2D*)responseFile->Get(nameGen.c_str());
+  TH2D* trainingFake = (TH2D*)responseFile->Get(nameFake.c_str());
+  TH2D* trainingMiss = (TH2D*)responseFile->Get(nameMiss.c_str());
+  TH2D* trainingKinEff = (TH2D*)responseFile->Get(nameKinEff.c_str());
+  RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get(nameResponse.c_str());
 
   if (!trainingRec)
-  inputs.printLog("Error: could not find " + rmutilities::unfolding::nameRecV0Pt + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
+  inputs.printLog("Error: could not find " + nameRec + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingGen)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameGenV0Pt + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
+    inputs.printLog("Error: could not find " + nameGen + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingFake)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameFakeV0Pt + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
+    inputs.printLog("Error: could not find " + nameFake + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingMiss)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameMissV0Pt + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
+    inputs.printLog("Error: could not find " + nameMiss + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingKinEff)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameKinEffV0Pt + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
+    inputs.printLog("Error: could not find " + nameKinEff + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!response)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameResponseV0Pt + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
+    inputs.printLog("Error: could not find " + nameResponse + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingRec || !trainingGen || !trainingFake || !trainingMiss || !trainingKinEff || !response)
     return;
 
   // Change the names to distinguish these from the test histograms when writing to file
-  trainingRec->SetName(rmutilities::training::nameRecV0Pt.c_str());
-  trainingGen->SetName(rmutilities::training::nameGenV0Pt.c_str());
-  trainingFake->SetName(rmutilities::training::nameFakeV0Pt.c_str());
-  trainingMiss->SetName(rmutilities::training::nameMissV0Pt.c_str());
-  trainingKinEff->SetName(rmutilities::training::nameKinEffV0Pt.c_str());
+  string prefTraining = rmutilities::unfolding::prefixTraining;
+  trainingRec->SetName((prefTraining + nameRec).c_str());
+  trainingGen->SetName((prefTraining + nameGen).c_str());
+  trainingFake->SetName((prefTraining + nameFake).c_str());
+  trainingMiss->SetName((prefTraining + nameMiss).c_str());
+  trainingKinEff->SetName((prefTraining + nameKinEff).c_str());
 
-  inputs.printLog("Retrieving test histograms from file: " + inputs.inputFileName, verbosityutilities::kDebug);
   // Create the test histograms. These must have the same binning as the training histograms
   // For trivial closure test, they are copies, otherwise they are filled with independent data
-  TH2D* testRec = (TH2D*)trainingRec->Clone(rmutilities::testing::nameRecV0Pt.c_str());
-  TH2D* testGen = (TH2D*)trainingGen->Clone(rmutilities::testing::nameGenV0Pt.c_str());
-  TH2D* testFake = (TH2D*)trainingFake->Clone(rmutilities::testing::nameFakeV0Pt.c_str());
-  TH2D* testMiss = (TH2D*)trainingMiss->Clone(rmutilities::testing::nameMissV0Pt.c_str());
-  TH2D* testKinEff = (TH2D*)trainingKinEff->Clone(rmutilities::testing::nameKinEffV0Pt.c_str());
+  string prefTest = rmutilities::unfolding::prefixTest;
+  TH2D* testRec = (TH2D*)trainingRec->Clone((prefTest + nameRec).c_str());
+  TH2D* testGen = (TH2D*)trainingGen->Clone((prefTest + nameGen).c_str());
+  TH2D* testFake = (TH2D*)trainingFake->Clone((prefTest + nameFake).c_str());
+  TH2D* testMiss = (TH2D*)trainingMiss->Clone((prefTest + nameMiss).c_str());
+  TH2D* testKinEff = (TH2D*)trainingKinEff->Clone((prefTest + nameKinEff).c_str());
 
   if (inputs.doTrivialClosureTest) {
     inputs.printLog("Trivial closure test: using training histograms as test histograms.", verbosityutilities::kInfo);
@@ -801,34 +898,30 @@ void DoUnfoldingV0Pt(InputSettings& inputs, int nIterations) {
       inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
       return;
     }
-    THnSparseD* testResponseMatrix = (THnSparseD*)testFile->Get(inputs.rmHistName.c_str());
-    FillFromRmV0Pt(inputs, testResponseMatrix, testRec, testGen, testMiss, testKinEff, testFake);
+    THnSparseD* testResponseMatrix = LoadResponseMatrix<THnSparseD*>(inputs);
+    if (inputs.getPlotType() == plotutilities::PlotType::kV0Pt)
+      FillFromRmV0Pt(inputs, testResponseMatrix, testRec, testGen, testMiss, testKinEff, testFake);
+    else if (inputs.getPlotType() == plotutilities::PlotType::kV0Z)
+      FillFromRmV0Z(inputs, testResponseMatrix, testRec, testGen, testMiss, testKinEff, testFake);
     testFile->Close();
   }
 
-  string ruBayesName  = rmutilities::unfolding::nameRooUnfoldBayesV0Pt + to_string(nIterations);
   string ruBayesTitle = ruBayesName;
   RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
 
-  string unfoldedName = rmutilities::unfolding::nameUnfoldedV0Pt + to_string(nIterations);
   TH2D* unfolded = (TH2D*)ruBayes.Hreco(inputs.errorTreatment);
   unfolded->SetName(unfoldedName.c_str());
   unfolded->SetTitle(unfoldedName.c_str());
 
-  string refoldedName = rmutilities::unfolding::nameRefoldedV0Pt + to_string(nIterations);
   TH2D* refolded = (TH2D*)response->ApplyToTruth(unfolded, refoldedName.c_str());
   refolded->Add(testFake);
 
-  // Covariance matrix
-  string covMatrixName = rmutilities::unfolding::nameCovMatrixV0Pt + to_string(nIterations);
   TH2D tmp(ruBayes.Ereco(inputs.errorTreatment));
   TH2D* covMatrix = (TH2D*)tmp.Clone(covMatrixName.c_str());
   covMatrix->SetTitle(covMatrixName.c_str());
 
   inputs.printLog("Rec hist is of size " + to_string(trainingRec->GetNbinsX()) + " x " + to_string(trainingRec->GetNbinsY()) + ", covariance matrix is of size " + to_string(covMatrix->GetNbinsX()) + " x " + to_string(covMatrix->GetNbinsY()), verbosityutilities::kDebug);
 
-  // Pearson coefficients
-  string pearsonName = rmutilities::unfolding::namePearsonV0Pt + to_string(nIterations);
   TH2D* pearson = (TH2D*)covMatrix->Clone(pearsonName.c_str());
   pearson->SetTitle(pearsonName.c_str());
   FillPearsonFromCovMatrix(inputs, covMatrix, pearson);
@@ -841,115 +934,52 @@ void DoUnfoldingV0Pt(InputSettings& inputs, int nIterations) {
   inputs.writeOutputsToFile(std::vector<TH2D*>{covMatrix, pearson});
 }
 
+void DoUnfoldingV0Pt(InputSettings& inputs, int nIterations) {
+  inputs.setPlotType(plotutilities::PlotType::kV0Pt);
+  DoUnfoldingV0(inputs, nIterations);
+}
+
 void DoUnfoldingV0Z(InputSettings& inputs, int nIterations) {
-  inputs.printLog("Doing unfolding with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
-  inputs.printLog("Getting response from file: " + inputs.responseFileName + "\nGetting test distributions from file: " + inputs.inputFileName, verbosityutilities::kDebug);
-  TFile* responseFile = TFile::Open(inputs.responseFileName.c_str(), "READ");
-  if (!responseFile) {
-    inputs.printLog("Error: could not open file " + inputs.responseFileName, verbosityutilities::kErrors);
-    return;
-  }
-
-  inputs.printLog("Retrieving response and histograms from training.", verbosityutilities::kDebug);
-  TH2D* trainingRec = (TH2D*)responseFile->Get(rmutilities::unfolding::nameRecV0Z.c_str());
-  TH2D* trainingGen = (TH2D*)responseFile->Get(rmutilities::unfolding::nameGenV0Z.c_str());
-  TH2D* trainingFake = (TH2D*)responseFile->Get(rmutilities::unfolding::nameFakeV0Z.c_str());
-  TH2D* trainingMiss = (TH2D*)responseFile->Get(rmutilities::unfolding::nameMissV0Z.c_str());
-  TH2D* trainingKinEff = (TH2D*)responseFile->Get(rmutilities::unfolding::nameKinEffV0Z.c_str());
-  RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get(rmutilities::unfolding::nameResponseV0Z.c_str());
-
-  if (!trainingRec)
-  inputs.printLog("Error: could not find " + rmutilities::unfolding::nameRecV0Z + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
-  if (!trainingGen)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameGenV0Z + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
-  if (!trainingFake)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameFakeV0Z + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
-  if (!trainingMiss)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameMissV0Z + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
-  if (!trainingKinEff)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameKinEffV0Z + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
-  if (!response)
-    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameResponseV0Z + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
-  if (!trainingRec || !trainingGen || !trainingFake || !trainingMiss || !trainingKinEff || !response)
-    return;
-
-  // Change the names to distinguish these from the test histograms when writing to file
-  trainingRec->SetName(rmutilities::training::nameRecV0Z.c_str());
-  trainingGen->SetName(rmutilities::training::nameGenV0Z.c_str());
-  trainingFake->SetName(rmutilities::training::nameFakeV0Z.c_str());
-  trainingMiss->SetName(rmutilities::training::nameMissV0Z.c_str());
-  trainingKinEff->SetName(rmutilities::training::nameKinEffV0Z.c_str());
-
-  inputs.printLog("Retrieving test histograms from file: " + inputs.inputFileName, verbosityutilities::kDebug);
-  // Create the test histograms. These must have the same binning as the training histograms
-  // For trivial closure test, they are copies, otherwise they are filled with independent data
-  TH2D* testRec = (TH2D*)trainingRec->Clone(rmutilities::testing::nameRecV0Z.c_str());
-  TH2D* testGen = (TH2D*)trainingGen->Clone(rmutilities::testing::nameGenV0Z.c_str());
-  TH2D* testFake = (TH2D*)trainingFake->Clone(rmutilities::testing::nameFakeV0Z.c_str());
-  TH2D* testMiss = (TH2D*)trainingMiss->Clone(rmutilities::testing::nameMissV0Z.c_str());
-  TH2D* testKinEff = (TH2D*)trainingKinEff->Clone(rmutilities::testing::nameKinEffV0Z.c_str());
-
-  if (inputs.doTrivialClosureTest) {
-    inputs.printLog("Trivial closure test: using training histograms as test histograms.", verbosityutilities::kInfo);
-  } else {
-    inputs.printLog("Statistically independent closure test: getting test histograms from test response matrix.", verbosityutilities::kInfo);
-    testRec->Reset();
-    testGen->Reset();
-    testFake->Reset();
-    testMiss->Reset();
-    testKinEff->Reset();
-
-    TFile* testFile = TFile::Open(inputs.inputFileName.c_str(), "READ");
-    if (!testFile) {
-      inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
-      return;
-    }
-    THnSparseD* testResponseMatrix = (THnSparseD*)testFile->Get(inputs.rmHistName.c_str());
-    FillFromRmV0Z(inputs, testResponseMatrix, testRec, testGen, testMiss, testKinEff, testFake);
-    testFile->Close();
-  }
-
-  string ruBayesName  = rmutilities::unfolding::nameRooUnfoldBayesV0Z + to_string(nIterations);
-  string ruBayesTitle = ruBayesName;
-  RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
-
-  string unfoldedName = rmutilities::unfolding::nameUnfoldedV0Z + to_string(nIterations);
-  TH2D* unfolded = (TH2D*)ruBayes.Hreco(inputs.errorTreatment);
-  unfolded->SetName(unfoldedName.c_str());
-  unfolded->SetTitle(unfoldedName.c_str());
-
-  string refoldedName = rmutilities::unfolding::nameRefoldedV0Z + to_string(nIterations);
-  TH2D* refolded = (TH2D*)response->ApplyToTruth(unfolded, refoldedName.c_str());
-  refolded->Add(testFake);
-
-  // Covariance matrix
-  string covMatrixName = rmutilities::unfolding::nameCovMatrixV0Z + to_string(nIterations);
-  TH2D tmp(ruBayes.Ereco(inputs.errorTreatment));
-  TH2D* covMatrix = (TH2D*)tmp.Clone(covMatrixName.c_str());
-  covMatrix->SetTitle(covMatrixName.c_str());
-
-  inputs.printLog("Rec hist is of size " + to_string(trainingRec->GetNbinsX()) + " x " + to_string(trainingRec->GetNbinsY()) + ", covariance matrix is of size " + to_string(covMatrix->GetNbinsX()) + " x " + to_string(covMatrix->GetNbinsY()), verbosityutilities::kDebug);
-
-  // Pearson coefficients
-  string pearsonName = rmutilities::unfolding::namePearsonV0Z + to_string(nIterations);
-  TH2D* pearson = (TH2D*)covMatrix->Clone(pearsonName.c_str());
-  pearson->SetTitle(pearsonName.c_str());
-  FillPearsonFromCovMatrix(inputs, covMatrix, pearson);
-
-  inputs.writeOutputToFile(response);
-  inputs.writeOutputsToFile(std::vector<TH2D*>{trainingRec, trainingGen, trainingFake, trainingMiss, trainingKinEff});
-  inputs.writeOutputToFile(&ruBayes);
-  inputs.writeOutputsToFile(std::vector<TH2D*>{unfolded, refolded});
-  inputs.writeOutputsToFile(std::vector<TH2D*>{testRec, testGen, testFake, testMiss, testKinEff});
-  inputs.writeOutputsToFile(std::vector<TH2D*>{covMatrix, pearson});
+  inputs.setPlotType(plotutilities::PlotType::kV0Z);
+  DoUnfoldingV0(inputs, nIterations);
 }
 
 // ----------------------------------------------------------
 
-void MakeClosureTestPlots(InputSettings& inputs, array<TH1D*, 3> hists, int nIteration, bool isUnfolded, plotutilities::PlotType plotType) {
+string TrivialClosureTestSummary(InputSettings& inputs, array<TH1D*, 3> hists, bool isUnfolded) {
+  bool tctFailed = false;
+  string s;
+  if (!inputs.isHistConsistentWithZero(hists[0])) {
+    tctFailed = true;
+    s.append("\n"); s.append(hists[0]->GetTitle()); s.append(" distribution is NOT consistent with zero! (within 1e-10)");
+  }
+  if (!inputs.isHistConsistentWithZero(hists[1])) {
+    tctFailed = true;
+    s.append("\n"); s.append(hists[1]->GetTitle()); s.append(" distribution is NOT consistent with zero! (within 1e-10)");
+  }
+  if (!inputs.isHistConsistentWithOne(hists[2])) {
+    tctFailed = true;
+    s.append("\n"); s.append(hists[2]->GetTitle()); s.append(" distribution is NOT consistent with one! (within 1e-10)");
+  }
+
+  string result = "Trivial closure test: ";
+  if (tctFailed) {
+    result += "failed!" + s;
+  } else {
+    if (isUnfolded)
+      result += "success! Unfolded distribution is consistent with generated distribution. (within 1e-10)";
+    else
+      result += "success! Refolded distribution is consistent with reconstructed distribution. (within 1e-10)";
+  }
+  return result;
+}
+
+void MakeClosureTestPlots(InputSettings& inputs, array<TH1D*, 3> hists, int nIteration, bool isUnfolded) {
+  inputs.printLog(TString::Format("Making plots for %s closure test for iteration = %d, ptjet = %.f-%.f", plotutilities::to_string(inputs.getPlotType()).c_str(), nIteration, inputs.ptjetminProjection, inputs.ptjetmaxProjection).Data(), verbosityutilities::kInfo);
+
   string drawOption = inputs.drawText ? "hist text" : "";
   string canvasName = isUnfolded ? "unfolded" : "refolded";
-  canvasName += plotutilities::to_string(plotType) + "-iteration" + to_string(nIteration) + ".pdf";
+  canvasName += plotutilities::to_string(inputs.getPlotType()) + "-iteration" + to_string(nIteration) + ".pdf";
   TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), 800, 600);
   canvas->Divide(hists.size(), 1);
   for (int iPad = 1; iPad <= hists.size(); iPad++) {
@@ -960,35 +990,64 @@ void MakeClosureTestPlots(InputSettings& inputs, array<TH1D*, 3> hists, int nIte
     canvas->SaveAs(canvas->GetName());
 }
 
-string TrivialClosureTestSummary(InputSettings& inputs, array<TH1D*, 3> hists, bool isUnfolded) {
-  bool tctFailed = false;
-  string s;
-  if (!inputs.isHistConsistentWithZero(hists[0])) {
-    tctFailed = true;
-    s.append("\n"); s.append(hists[0]->GetTitle()); s.append(" distribution is NOT consistent with zero!");
-  }
-  if (!inputs.isHistConsistentWithZero(hists[1])) {
-    tctFailed = true;
-    s.append("\n"); s.append(hists[1]->GetTitle()); s.append(" distribution is NOT consistent with zero!");
-  }
-  if (!inputs.isHistConsistentWithOne(hists[2])) {
-    tctFailed = true;
-    s.append("\n"); s.append(hists[2]->GetTitle()); s.append(" distribution is NOT consistent with one!");
+template <typename T>
+array<TH1D*, 3> MakeClosureTestHists(const T* hRooUnfold, const T* hAnalysis, double ptjetmin, double ptjetmax, bool isUnfolded, plotutilities::PlotType plot) {
+  string nRooUnfold = isUnfolded ? "Unfolded" : "Refolded";
+  string nAnalysis = isUnfolded ? "Generated" : "Reconstructed";
+  string nObservable;
+  TH1D* hRoo;
+  TH1D* hAna;
+  array<int, 2> ptjetBins;
+
+  switch (plot) {
+    case plotutilities::PlotType::kJet:
+      nObservable = "#it{p}_{T,jet} (GeV/c)";
+      hRoo = (TH1D*)hRooUnfold->Clone("hRoo");
+      hAna = (TH1D*)hAnalysis->Clone("hAna");
+      ptjetBins = getProjectionBins(hRooUnfold->GetXaxis(), ptjetmin, ptjetmax);
+      hRoo->GetXaxis()->SetRange(ptjetBins[0], ptjetBins[1]);
+      hAna->GetXaxis()->SetRange(ptjetBins[0], ptjetBins[1]);
+      break;
+    case plotutilities::PlotType::kV0Pt:
+      nObservable = "#it{p}_{T,V0} (GeV/c)";
+      ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
+      hRoo = (TH1D*)hRooUnfold->ProjectionX("hRoo", ptjetBins[0], ptjetBins[1]);
+      hAna = (TH1D*)hAnalysis->ProjectionX("hAna", ptjetBins[0], ptjetBins[1]);
+      break;
+    case plotutilities::PlotType::kV0Z:
+      nObservable = "#it{z}_{V0}";
+      ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
+      hRoo = (TH1D*)hRooUnfold->ProjectionX("hDiff", ptjetBins[0], ptjetBins[1]);
+      hAna = (TH1D*)hAnalysis->ProjectionX("hAnalysisProj", ptjetBins[0], ptjetBins[1]);
+      break;
+    default:
+      verbosityutilities::printLog("MakeClosureTestHists: Unknown plot type!", verbosityutilities::kErrors, verbosityutilities::kErrors);
+      break;
   }
 
-  string result = "Trivial closure test: ";
-  if (tctFailed) {
-    result += "failed!" + s;
-  } else {
-    if (isUnfolded)
-      result += "success! Unfolded distribution is consistent with generated distribution.";
-    else
-      result += "success! Refolded distribution is consistent with reconstructed distribution.";
-  }
-  return result;
+  TH1D* hDiff = (TH1D*)hRoo->Clone("hDiff");
+  hDiff->Add(hAna, -1);
+  hDiff->GetXaxis()->SetTitle(nObservable.c_str());
+  hDiff->SetName((nRooUnfold + " - " + nAnalysis).c_str());
+
+  TH1D* hRelDiff = (TH1D*)hRoo->Clone("hRelDiff");
+  hRelDiff->Add(hAna, -1);
+  hRelDiff->Divide(hAna);
+  hRelDiff->GetXaxis()->SetTitle(nObservable.c_str());
+  hRelDiff->SetTitle(("#frac{" + nRooUnfold + " - " + nAnalysis + "}{" + nAnalysis + "}").c_str());
+
+  TH1D* hRatio = (TH1D*)hRoo->Clone("hRatio");
+  hRatio->Divide(hAna);
+  hRatio->GetXaxis()->SetTitle(nObservable.c_str());
+  hRatio->SetTitle(("#frac{" + nRooUnfold + "}{" + nAnalysis + "}").c_str());
+
+  return {hDiff, hRelDiff, hRatio};
 }
 
-array<TH1D*, 3> MakeHistsClosureTestsJet(const TH1D* hRooUnfold, const TH1D* hAnalysis, string nRooUnfold, string nAnalysis) {
+array<TH1D*, 3> MakeClosureTestHistsJet(const TH1D* hRooUnfold, const TH1D* hAnalysis, bool isUnfolded) {
+  string nRooUnfold = isUnfolded ? "Unfolded" : "Refolded";
+  string nAnalysis = isUnfolded ? "Generated" : "Reconstructed";
+
   TH1D* hDiff = (TH1D*)hRooUnfold->Clone("hDiff");
   hDiff->Add(hAnalysis, -1);
   hDiff->GetXaxis()->SetTitle("#it{p}_{T,jet} (GeV/c)");
@@ -1007,15 +1066,17 @@ array<TH1D*, 3> MakeHistsClosureTestsJet(const TH1D* hRooUnfold, const TH1D* hAn
 
   return {hDiff, hRelDiff, hRatio};
 }
-array<TH1D*, 3> MakeHistsClosureTestsV0(const TH2D* hRooUnfold, const TH2D* hAnalysis, double ptjetmin, double ptjetmax, bool isUnfolded, plotutilities::PlotType plotType) {
+
+array<TH1D*, 3> MakeClosureTestHistsV0(InputSettings& inputs, const TH2D* hRooUnfold, const TH2D* hAnalysis, bool isUnfolded) {
   string nRooUnfold = isUnfolded ? "Unfolded" : "Refolded";
   string nAnalysis = isUnfolded ? "Generated" : "Reconstructed";
+
   string nObservable = "#it{p}_{T,V0} (GeV/c)";
-  if (plotType == plotutilities::PlotType::kV0Z)
+  if (inputs.getPlotType() == plotutilities::PlotType::kV0Z)
     nObservable = "#it{z}_{V0}";
 
   // The binning of the two histograms is the same by construction
-  array<int, 2> ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
+  array<int, 2> ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1D* hRooUnfoldProj = (TH1D*)hRooUnfold->ProjectionX("hRooUnfoldProj", ptjetBins[0], ptjetBins[1]);
   TH1D* hAnalysisProj  = (TH1D*)hAnalysis->ProjectionX("hAnalysisProj", ptjetBins[0], ptjetBins[1]);
 
@@ -1039,7 +1100,8 @@ array<TH1D*, 3> MakeHistsClosureTestsV0(const TH2D* hRooUnfold, const TH2D* hAna
 }
 
 void DoClosureTestJets(InputSettings& inputs, int nIteration) {
-  inputs.printLog("Making plots for closure test for iteration = " + to_string(nIteration), verbosityutilities::kInfo);
+  inputs.setPlotType(plotutilities::PlotType::kJet);
+
   TFile* file = TFile::Open(inputs.inputFileName.c_str(), "READ");
   if (!file) {
     inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
@@ -1051,39 +1113,39 @@ void DoClosureTestJets(InputSettings& inputs, int nIteration) {
   TH1D* testGen  = (TH1D*)file->Get(rmutilities::testing::nameGenJets.c_str());
   TH1D* testRec  = (TH1D*)file->Get(rmutilities::testing::nameRecJets.c_str());
 
-  array<TH1D*, 3> hUnfGen = MakeHistsClosureTestsJet(unfolded, testGen, "Unfolded", "Generated");
-  array<TH1D*, 3> hRefRec = MakeHistsClosureTestsJet(refolded, testRec, "Refolded", "Reconstructed");
   const bool isUnfolded = true;
-  MakeClosureTestPlots(inputs, hUnfGen, nIteration, isUnfolded, plotutilities::PlotType::kJet);
-  MakeClosureTestPlots(inputs, hRefRec, nIteration, !isUnfolded, plotutilities::PlotType::kJet);
+  array<TH1D*, 3> hUnfGen = MakeClosureTestHistsJet(unfolded, testGen, isUnfolded);
+  array<TH1D*, 3> hRefRec = MakeClosureTestHistsJet(refolded, testRec, !isUnfolded);
+  MakeClosureTestPlots(inputs, hUnfGen, nIteration, isUnfolded);
+  MakeClosureTestPlots(inputs, hRefRec, nIteration, !isUnfolded);
   if (inputs.doTrivialClosureTest) {
-    const bool isUnfolded = true;
     inputs.printLog(TrivialClosureTestSummary(inputs, hUnfGen, isUnfolded), verbosityutilities::kInfo);
     inputs.printLog(TrivialClosureTestSummary(inputs, hRefRec, !isUnfolded), verbosityutilities::kInfo);
   }
 }
 
-void DoClosureTestV0(InputSettings& inputs, int nIteration, double ptjetmin, double ptjetmax, plotutilities::PlotType plotType) {
-  inputs.printLog(TString::Format("Making plots for closure test for iteration = %d, ptjet = %.f-%.f", nIteration, ptjetmin, ptjetmax).Data(), verbosityutilities::kInfo);
+void DoClosureTestV0(InputSettings& inputs, int nIteration) {
   TFile* file = TFile::Open(inputs.inputFileName.c_str(), "READ");
   if (!file) {
     inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
     return;
   }
   string nameUnfolded, nameRefolded, nameGen, nameRec;
-  if (plotType == plotutilities::PlotType::kV0Pt) {
-    nameUnfolded = rmutilities::unfolding::nameUnfoldedV0Pt + to_string(nIteration);
-    nameRefolded = rmutilities::unfolding::nameRefoldedV0Pt + to_string(nIteration);
-    nameGen      = rmutilities::testing::nameGenV0Pt;
-    nameRec      = rmutilities::testing::nameRecV0Pt;
-  } else if (plotType == plotutilities::PlotType::kV0Z) {
-    nameUnfolded = rmutilities::unfolding::nameUnfoldedV0Z + to_string(nIteration);
-    nameRefolded = rmutilities::unfolding::nameRefoldedV0Z + to_string(nIteration);
-    nameGen      = rmutilities::testing::nameGenV0Z;
-    nameRec      = rmutilities::testing::nameRecV0Z;
-  } else {
-    inputs.printLog("DoClosureTestV0() Error: invalid plot type " + plotutilities::to_string(plotType), verbosityutilities::kErrors);
-    return;
+  switch (inputs.getPlotType()) {
+    case plotutilities::PlotType::kV0Pt:
+      nameUnfolded = rmutilities::unfolding::nameUnfoldedV0Pt + to_string(nIteration);
+      nameRefolded = rmutilities::unfolding::nameRefoldedV0Pt + to_string(nIteration);
+      nameGen      = rmutilities::testing::nameGenV0Pt;
+      nameRec      = rmutilities::testing::nameRecV0Pt;
+    case plotutilities::PlotType::kV0Z:
+      nameUnfolded = rmutilities::unfolding::nameUnfoldedV0Z + to_string(nIteration);
+      nameRefolded = rmutilities::unfolding::nameRefoldedV0Z + to_string(nIteration);
+      nameGen      = rmutilities::testing::nameGenV0Z;
+      nameRec      = rmutilities::testing::nameRecV0Z;
+      break;
+    default:
+      inputs.printLog("DoClosureTestV0() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
+      return;
   }
   TH2D* unfolded = (TH2D*)file->Get(nameUnfolded.c_str());
   TH2D* refolded = (TH2D*)file->Get(nameRefolded.c_str());
@@ -1101,14 +1163,24 @@ void DoClosureTestV0(InputSettings& inputs, int nIteration, double ptjetmin, dou
     return;
 
   const bool isUnfolded = true;
-  array<TH1D*, 3> hUnfGen = MakeHistsClosureTestsV0(unfolded, testGen, ptjetmin, ptjetmax, isUnfolded, plotType);
-  array<TH1D*, 3> hRefRec = MakeHistsClosureTestsV0(refolded, testRec, ptjetmin, ptjetmax, !isUnfolded, plotType);
-  MakeClosureTestPlots(inputs, hUnfGen, nIteration, isUnfolded, plotType);
-  MakeClosureTestPlots(inputs, hRefRec, nIteration, !isUnfolded, plotType);
+  array<TH1D*, 3> hUnfGen = MakeClosureTestHistsV0(inputs, unfolded, testGen, isUnfolded);
+  array<TH1D*, 3> hRefRec = MakeClosureTestHistsV0(inputs, refolded, testRec, !isUnfolded);
+  MakeClosureTestPlots(inputs, hUnfGen, nIteration, isUnfolded);
+  MakeClosureTestPlots(inputs, hRefRec, nIteration, !isUnfolded);
   if (inputs.doTrivialClosureTest) {
     inputs.printLog(TrivialClosureTestSummary(inputs, hUnfGen, isUnfolded), verbosityutilities::kInfo);
     inputs.printLog(TrivialClosureTestSummary(inputs, hRefRec, !isUnfolded), verbosityutilities::kInfo);
   }
+}
+
+void DoClosureTestV0Pt(InputSettings& inputs, int nIteration) {
+  inputs.setPlotType(plotutilities::PlotType::kV0Pt);
+  DoClosureTestV0(inputs, nIteration);
+}
+
+void DoClosureTestV0Z(InputSettings& inputs, int nIteration) {
+  inputs.setPlotType(plotutilities::PlotType::kV0Z);
+  DoClosureTestV0(inputs, nIteration);
 }
 
 // ----------------------------------------------------------
@@ -1118,10 +1190,10 @@ void DoClosureTestV0(InputSettings& inputs, int nIteration, double ptjetmin, dou
 // ----------------------------------------------------------
 
 InputSettings setup() {
-  InputSettings x; x.verbosity = verbosityutilities::kDebug;
+  InputSettings x; x.setVerbosity(verbosityutilities::kDebug);
   x.train = 468659;
   x.inputFileName = to_string(x.train) + ".root";
-  x.outputFileName = "RooUnfoldResponse-new_" + to_string(x.train) + ".root";
+  x.outputFileName = "RooUnfoldResponse_" + to_string(x.train) + ".root";
   x.responseFileName = x.outputFileName;
   return x;
 }
@@ -1145,20 +1217,18 @@ void createresponses() {
   x.setZV0Rec(zv0RecRangeForUnfolding[0], zv0RecRangeForUnfolding[1]);
   x.setZV0Gen(zv0GenRangeForUnfolding[0], zv0GenRangeForUnfolding[1]);
 
-  x.rmHistName = rmutilities::analysis::nameJetRm;
+  x.setPlotType(plotutilities::PlotType::kJet);
   CreateResponseJets(x);
-  // x.rmHistName = rmutilities::analysis::nameV0PtRm;
-  // CreateResponseV0Pt(x);
-  // x.rmHistName = rmutilities::analysis::nameV0ZRm;
-  // CreateResponseV0Z(x);
+  CreateResponseV0Pt(x);
+  CreateResponseV0Z(x);
 }
 
-void dounfolding(string inputFileName = "") {
+void unfolding(string inputFileName = "") {
   InputSettings x = setup();
   x.minIteration = 3;
   x.maxIteration = 5;
   x.inputFileName = x.responseFileName;
-  x.outputFileName = "ClosureTest-new.root";
+  x.outputFileName = "ClosureTest.root";
 
   if (inputFileName.empty())
     x.doTrivialClosureTest = true;
@@ -1167,8 +1237,8 @@ void dounfolding(string inputFileName = "") {
 
   for (int iIteration = x.minIteration; iIteration <= x.maxIteration; iIteration++) {
     DoUnfoldingJets(x, iIteration);
-    // DoUnfoldingV0Pt(x, iIteration);
-    // DoUnfoldingV0Z(x, iIteration);
+    DoUnfoldingV0Pt(x, iIteration);
+    DoUnfoldingV0Z(x, iIteration);
   }
 }
 
@@ -1178,72 +1248,23 @@ void checkclosure() {
   x.doTrivialClosureTest = true;
   x.minIteration = 3;
   x.maxIteration = 5;
-  x.inputFileName = "ClosureTest-new.root";
+  x.inputFileName = "ClosureTest.root";
 
   for (int iIteration = x.minIteration; iIteration <= x.maxIteration; iIteration++) {
     DoClosureTestJets(x, iIteration);
-    // DoClosureTestV0(x, iIteration, 10., 20., plotutilities::PlotType::kV0Pt);
-    // DoClosureTestV0(x, iIteration, 20., 30., plotutilities::PlotType::kV0Pt);
-    // DoClosureTestV0(x, iIteration, 10., 20., plotutilities::PlotType::kV0Z);
-    // DoClosureTestV0(x, iIteration, 20., 30., plotutilities::PlotType::kV0Z);
+    x.setPtJetProjection(10., 20.);
+    DoClosureTestV0Pt(x, iIteration);
+    DoClosureTestV0Z(x, iIteration);
+    x.setPtJetProjection(20., 30.);
+    DoClosureTestV0Pt(x, iIteration);
+    DoClosureTestV0Z(x, iIteration);
   }
 }
 // Trivial Closure Test
 void doclosuretest() {
   createresponses();
-  dounfolding();
+  unfolding();
   checkclosure();
-  // gROOT->SetBatch(kTRUE);
-  // InputSettings x; x.verbosity = verbosityutilities::kDebug;
-  // x.train = 468659;
-  // x.inputFileName = to_string(x.train) + ".root";
-  // x.outputFileName = "RooUnfoldResponse_" + to_string(x.train) + ".root";
-  // x.responseFileName = x.outputFileName;
-  // x.doTrivialClosureTest = true;
-  // x.minIteration = 3;
-  // x.maxIteration = 5;
-
-  // // Create the response from the input file name
-  // x.binwidthptjet = 5.;
-  // array<double, 2> ptjetRecRangeForUnfolding = {10., 100.};
-  // array<double, 2> ptjetGenRangeForUnfolding = {10., 100.};
-  // x.setPtJetRec(ptjetRecRangeForUnfolding[0], ptjetRecRangeForUnfolding[1]);
-  // x.setPtJetGen(ptjetGenRangeForUnfolding[0], ptjetGenRangeForUnfolding[1]);
-  // // x.rmHistName = rmutilities::analysis::nameJetRm;
-  // // CreateResponseJets(x);
-  // x.binwidthptv0 = 1.;
-  // x.setPtV0Rec(1., 40.);
-  // x.setPtV0Gen(1., 40.);
-  // x.rmHistName = rmutilities::analysis::nameV0PtRm;
-  // CreateResponseV0Pt(x);
-
-  // x.binwidthzv0 = 0.1;
-  // x.setZV0Rec(0., 1.);
-  // x.setZV0Gen(0., 1.);
-  // x.rmHistName = rmutilities::analysis::nameV0ZRm;
-  // CreateResponseV0Z(x);
-
-  // // Do unfolding with the given response, save the results to the output file
-  // // For trivial closure test, input = training. Otherwise, specify a different input file
-  // if (!x.doTrivialClosureTest)
-  //   x.inputFileName = to_string(x.train) + ".root";
-
-  // x.outputFileName = "ClosureTest.root";
-  // for (int iIteration = x.minIteration; iIteration <= x.maxIteration; iIteration++) {
-  //   DoUnfoldingJets(x, iIteration);
-  //   DoUnfoldingV0Pt(x, iIteration);
-  //   DoUnfoldingV0Z(x, iIteration);
-  // }
-
-  // // Get the unfolded and refolded distributions and compare them to the generated and reconstructed ones from the test file
-  // x.inputFileName = x.outputFileName;
-  // for (int iIteration = x.minIteration; iIteration <= x.maxIteration; iIteration++) {
-  //   DoClosureTestJets(x, iIteration);
-  //   DoClosureTestV0(x, iIteration, 10., 20., plotutilities::PlotType::kV0Pt);
-  //   DoClosureTestV0(x, iIteration, 20., 30., plotutilities::PlotType::kV0Pt);
-  //   DoClosureTestV0(x, iIteration, 10., 20., plotutilities::PlotType::kV0Z);
-  //   DoClosureTestV0(x, iIteration, 20., 30., plotutilities::PlotType::kV0Z);
-  // }
 }
 
 # endif

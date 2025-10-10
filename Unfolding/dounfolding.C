@@ -32,14 +32,14 @@ namespace verbosityutilities {
 } // namespace verbosityutilities
 
 namespace plotutilities {
-  enum PlotType {kJet, kV0Pt, kV0Z};
-  bool is_valid(int x) { return (x >= kJet && x <= kV0Z); }
+  enum PlotType {kJet, kK0SPt, kK0SZ};
+  bool is_valid(int x) { return (x >= kJet && x <= kK0SZ); }
   string to_string(PlotType x) {
     switch (x) {
-      case kJet:  return "jet";
-      case kV0Pt: return "v0Pt";
-      case kV0Z:  return "v0Z";
-      default:    return "Unknown";
+      case kJet:   return "jet";
+      case kK0SPt: return "K0Spt";
+      case kK0SZ:  return "K0Sz";
+      default:     return "Unknown";
     }
   }
 } // namespace plotutilities
@@ -51,17 +51,11 @@ namespace rmutilities {
     const int axisJetRmPtJetGen = 1;
     const int ndimJetRm         = 2;
 
-    const int axisv0PtRmPtJetGen = 0;
-    const int axisv0PtRmV0Gen    = 1;
-    const int axisv0PtRmPtJetRec = 2;
-    const int axisv0PtRmV0Rec    = 3;
-    const int nDimV0PtRm         = 4;
-
-    const int axisv0ZRmPtJetRec  = 0;
-    const int axisv0ZRmV0Rec     = 1;
-    const int axisv0ZRmPtJetGen  = 2;
-    const int axisv0ZRmV0Gen     = 3;
-    const int nDimV0ZRm          = 4;
+    const int axisK0SRmPtJetRec = 0;
+    const int axisK0SRmK0SRec   = 1;
+    const int axisK0SRmPtJetGen = 2;
+    const int axisK0SRmK0SGen   = 3;
+    const int nDimK0SRm         = 4;
 
     const string nameDirJetRm  = "jet-fragmentation/matching/jets/";
     const string nameJetRm     = nameDirJetRm + "matchDetJetPtPartJetPt";
@@ -69,17 +63,10 @@ namespace rmutilities {
     const string nameJetMiss   = nameDirJetRm + "missJetPtEtaPhi";
 
     const string nameDirV0Rm   = nameDirJetRm + "V0/";
-    const string nameV0PtRm    = nameDirV0Rm + "partJetPtV0PtDetJetPtV0Pt";
-    const string nameV0PtFake  = nameDirV0Rm + "fakeJetPtV0PtEtaPhi";
-    const string nameV0PtMiss  = nameDirV0Rm + "missJetPtV0PtEtaPhi";
-    const string nameV0ZRm     = nameDirV0Rm + "matchDetJetPtV0TrackProjPartJetPtV0TrackProj";
-    const string nameV0ZFake   = nameDirV0Rm + "fakeJetPtV0TrackProj";
-    const string nameV0ZMiss   = nameDirV0Rm + "missJetPtV0TrackProj";
-
-    const string nameK0SPtRm   = nameDirV0Rm + "partJetPtK0SPtDetJetPtK0SPt";
+    const string nameK0SPtRm   = nameDirV0Rm + "partJetPtK0SPtDetJetPtK0SPtRightCollision";
     const string nameK0SPtFake = nameDirV0Rm + "fakeJetPtK0SPtEtaPhi";
     const string nameK0SPtMiss = nameDirV0Rm + "missJetPtK0SPtEtaPhi";
-    const string nameK0SZRm    = nameDirV0Rm + "matchDetJetPtK0STrackProjPartJetPtK0STrackProj";
+    const string nameK0SZRm    = nameDirV0Rm + "partJetPtK0STrackProjDetJetPtK0STrackProjRightCollision";
     const string nameK0SZFake  = nameDirV0Rm + "fakeJetPtK0STrackProj";
     const string nameK0SZMiss  = nameDirV0Rm + "missJetPtK0STrackProj";
   }
@@ -92,17 +79,17 @@ namespace rmutilities {
     const string nameCovMatrixJets      = "covMatrixJets";
     const string namePearsonJets        = "pearsonJets";
 
-    const string nameRooUnfoldBayesV0Pt = "ruBayesV0Pt";
-    const string nameUnfoldedV0Pt       = "unfoldedV0Pt";
-    const string nameRefoldedV0Pt       = "refoldedV0Pt";
-    const string nameCovMatrixV0Pt      = "covMatrixV0Pt";
-    const string namePearsonV0Pt        = "pearsonV0Pt";
+    const string nameRooUnfoldBayesK0SPt = "ruBayesK0SPt";
+    const string nameUnfoldedK0SPt       = "unfoldedK0SPt";
+    const string nameRefoldedK0SPt       = "refoldedK0SPt";
+    const string nameCovMatrixK0SPt      = "covMatrixK0SPt";
+    const string namePearsonK0SPt        = "pearsonK0SPt";
 
-    const string nameRooUnfoldBayesV0Z  = "ruBayesV0Z";
-    const string nameUnfoldedV0Z        = "unfoldedV0Z";
-    const string nameRefoldedV0Z        = "refoldedV0Z";
-    const string nameCovMatrixV0Z       = "covMatrixV0Z";
-    const string namePearsonV0Z         = "pearsonV0Z";
+    const string nameRooUnfoldBayesK0SZ  = "ruBayesK0SZ";
+    const string nameUnfoldedK0SZ        = "unfoldedK0SZ";
+    const string nameRefoldedK0SZ        = "refoldedK0SZ";
+    const string nameCovMatrixK0SZ       = "covMatrixK0SZ";
+    const string namePearsonK0SZ         = "pearsonK0SZ";
 
     // For setting up training and testing namespaces
     const string prefixTraining   = "training";
@@ -115,21 +102,21 @@ namespace rmutilities {
     const string nameFakeJets     = "FakeJets";
     const string nameKinEffJets   = "KinEffJets";
 
-    const string nameResponseV0Pt = "responseV0Pt";
-    const string nameRmV0Pt       = "responseMatrixV0Pt";
-    const string nameRecV0Pt      = "RecV0Pt";
-    const string nameGenV0Pt      = "GenV0Pt";
-    const string nameMissV0Pt     = "MissV0Pt";
-    const string nameFakeV0Pt     = "FakeV0Pt";
-    const string nameKinEffV0Pt   = "KinEffV0Pt";
+    const string nameResponseK0SPt = "responseK0SPt";
+    const string nameRmK0SPt       = "responseMatrixK0SPt";
+    const string nameRecK0SPt      = "RecK0SPt";
+    const string nameGenK0SPt      = "GenK0SPt";
+    const string nameMissK0SPt     = "MissK0SPt";
+    const string nameFakeK0SPt     = "FakeK0SPt";
+    const string nameKinEffK0SPt   = "KinEffK0SPt";
 
-    const string nameResponseV0Z  = "responseV0Z";
-    const string nameRmV0Z        = "responseMatrixV0Z";
-    const string nameRecV0Z       = "RecV0Z";
-    const string nameGenV0Z       = "GenV0Z";
-    const string nameMissV0Z      = "MissV0Z";
-    const string nameFakeV0Z      = "FakeV0Z";
-    const string nameKinEffV0Z    = "KinEffV0Z";
+    const string nameResponseK0SZ  = "responseK0SZ";
+    const string nameRmK0SZ        = "responseMatrixK0SZ";
+    const string nameRecK0SZ       = "RecK0SZ";
+    const string nameGenK0SZ       = "GenK0SZ";
+    const string nameMissK0SZ      = "MissK0SZ";
+    const string nameFakeK0SZ      = "FakeK0SZ";
+    const string nameKinEffK0SZ    = "KinEffK0SZ";
   }
   namespace training {
     const string nameResponseJets = unfolding::nameResponseJets;
@@ -140,21 +127,21 @@ namespace rmutilities {
     const string nameFakeJets     = unfolding::prefixTraining + unfolding::nameFakeJets;
     const string nameKinEffJets   = unfolding::prefixTraining + unfolding::nameKinEffJets;
 
-    const string nameResponseV0Pt = unfolding::nameResponseV0Pt;
-    const string nameRmV0Pt       = unfolding::nameRmV0Pt;
-    const string nameRecV0Pt      = unfolding::prefixTraining + unfolding::nameRecV0Pt;
-    const string nameGenV0Pt      = unfolding::prefixTraining + unfolding::nameGenV0Pt;
-    const string nameMissV0Pt     = unfolding::prefixTraining + unfolding::nameMissV0Pt;
-    const string nameFakeV0Pt     = unfolding::prefixTraining + unfolding::nameFakeV0Pt;
-    const string nameKinEffV0Pt   = unfolding::prefixTraining + unfolding::nameKinEffV0Pt;
+    const string nameResponseK0SPt = unfolding::nameResponseK0SPt;
+    const string nameRmK0SPt       = unfolding::nameRmK0SPt;
+    const string nameRecK0SPt      = unfolding::prefixTraining + unfolding::nameRecK0SPt;
+    const string nameGenK0SPt      = unfolding::prefixTraining + unfolding::nameGenK0SPt;
+    const string nameMissK0SPt     = unfolding::prefixTraining + unfolding::nameMissK0SPt;
+    const string nameFakeK0SPt     = unfolding::prefixTraining + unfolding::nameFakeK0SPt;
+    const string nameKinEffK0SPt   = unfolding::prefixTraining + unfolding::nameKinEffK0SPt;
 
-    const string nameResponseV0Z  = unfolding::nameResponseV0Z;
-    const string nameRmV0Z        = unfolding::nameRmV0Z;
-    const string nameRecV0Z       = unfolding::prefixTraining + unfolding::nameRecV0Z;
-    const string nameGenV0Z       = unfolding::prefixTraining + unfolding::nameGenV0Z;
-    const string nameMissV0Z      = unfolding::prefixTraining + unfolding::nameMissV0Z;
-    const string nameFakeV0Z      = unfolding::prefixTraining + unfolding::nameFakeV0Z;
-    const string nameKinEffV0Z    = unfolding::prefixTraining + unfolding::nameKinEffV0Z;
+    const string nameResponseK0SZ  = unfolding::nameResponseK0SZ;
+    const string nameRmK0SZ        = unfolding::nameRmK0SZ;
+    const string nameRecK0SZ       = unfolding::prefixTraining + unfolding::nameRecK0SZ;
+    const string nameGenK0SZ       = unfolding::prefixTraining + unfolding::nameGenK0SZ;
+    const string nameMissK0SZ      = unfolding::prefixTraining + unfolding::nameMissK0SZ;
+    const string nameFakeK0SZ      = unfolding::prefixTraining + unfolding::nameFakeK0SZ;
+    const string nameKinEffK0SZ    = unfolding::prefixTraining + unfolding::nameKinEffK0SZ;
   }
   namespace testing {
     const string nameResponseJets = unfolding::nameResponseJets;
@@ -165,21 +152,21 @@ namespace rmutilities {
     const string nameFakeJets     = unfolding::prefixTest + unfolding::nameFakeJets;
     const string nameKinEffJets   = unfolding::prefixTest + unfolding::nameKinEffJets;
 
-    const string nameResponseV0Pt = unfolding::nameResponseV0Pt;
-    const string nameRmV0Pt       = unfolding::nameRmV0Pt;
-    const string nameRecV0Pt      = unfolding::prefixTest + unfolding::nameRecV0Pt;
-    const string nameGenV0Pt      = unfolding::prefixTest + unfolding::nameGenV0Pt;
-    const string nameMissV0Pt     = unfolding::prefixTest + unfolding::nameMissV0Pt;
-    const string nameFakeV0Pt     = unfolding::prefixTest + unfolding::nameFakeV0Pt;
-    const string nameKinEffV0Pt   = unfolding::prefixTest + unfolding::nameKinEffV0Pt;
+    const string nameResponseK0SPt = unfolding::nameResponseK0SPt;
+    const string nameRmK0SPt       = unfolding::nameRmK0SPt;
+    const string nameRecK0SPt      = unfolding::prefixTest + unfolding::nameRecK0SPt;
+    const string nameGenK0SPt      = unfolding::prefixTest + unfolding::nameGenK0SPt;
+    const string nameMissK0SPt     = unfolding::prefixTest + unfolding::nameMissK0SPt;
+    const string nameFakeK0SPt     = unfolding::prefixTest + unfolding::nameFakeK0SPt;
+    const string nameKinEffK0SPt   = unfolding::prefixTest + unfolding::nameKinEffK0SPt;
 
-    const string nameResponseV0Z  = unfolding::nameResponseV0Z;
-    const string nameRmV0Z        = unfolding::nameRmV0Z;
-    const string nameRecV0Z       = unfolding::prefixTest + unfolding::nameRecV0Z;
-    const string nameGenV0Z       = unfolding::prefixTest + unfolding::nameGenV0Z;
-    const string nameMissV0Z      = unfolding::prefixTest + unfolding::nameMissV0Z;
-    const string nameFakeV0Z      = unfolding::prefixTest + unfolding::nameFakeV0Z;
-    const string nameKinEffV0Z    = unfolding::prefixTest + unfolding::nameKinEffV0Z;
+    const string nameResponseK0SZ  = unfolding::nameResponseK0SZ;
+    const string nameRmK0SZ        = unfolding::nameRmK0SZ;
+    const string nameRecK0SZ       = unfolding::prefixTest + unfolding::nameRecK0SZ;
+    const string nameGenK0SZ       = unfolding::prefixTest + unfolding::nameGenK0SZ;
+    const string nameMissK0SZ      = unfolding::prefixTest + unfolding::nameMissK0SZ;
+    const string nameFakeK0SZ      = unfolding::prefixTest + unfolding::nameFakeK0SZ;
+    const string nameKinEffK0SZ    = unfolding::prefixTest + unfolding::nameKinEffK0SZ;
   }
 } // namespace rmutilities
 
@@ -197,10 +184,24 @@ struct InputSettings {
     string getNameFromZV0(string prefix, double low, double high, string suffix) {
       return getNameFromVar(prefix, TString::Format("zv0%.3f-%.3f", low, high).Data(), suffix);
     }
+    template <typename T> void setTemplateHist(T* tmplt, T* hist);
+    void setTemplateHistJet(const int nbins, const double* binedges, const bool generatorLevel);
+    void setTemplateHistJet(const double min, const double max, const double binwidth, const bool generatorLevel);
+    void setTemplateHistV0Pt(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy, const bool generatorLevel);
+    void setTemplateHistV0Pt(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy, const bool generatorLevel);
+    void setTemplateHistV0Z(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy, const bool generatorLevel);
+    void setTemplateHistV0Z(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy, const bool generatorLevel);
     template <typename T> bool setVariable(T a, T b, T &x, T &y);
 
     verbosityutilities::Verbosity verbosity = verbosityutilities::kInfo;
     plotutilities::PlotType plottype;
+
+    TH1D* templatePtJetGen = nullptr;
+    TH1D* templatePtJetRec = nullptr;
+    TH2D* templatePtV0Gen  = nullptr;
+    TH2D* templatePtV0Rec  = nullptr;
+    TH2D* templateZV0Gen   = nullptr;
+    TH2D* templateZV0Rec   = nullptr;
   public:
     // Unfolding settings
     int doSmoothing = 0, nIterations = 1;
@@ -212,12 +213,12 @@ struct InputSettings {
     string inputFileName, outputFileName, responseFileName;
     string hadron;
 
-    double ptjetminGen, ptjetmaxGen, ptjetminRec, ptjetmaxRec;
-    double ptv0minGen, ptv0maxGen, ptv0minRec, ptv0maxRec;
-    double zv0minGen, zv0maxGen, zv0minRec, zv0maxRec;
-    double etamin, etamax;
-    double binwidthptjet, binwidthptv0, binwidthzv0;
-    double ptjetminProjection, ptjetmaxProjection;
+    double ptjetminGen = -1., ptjetmaxGen = -1., ptjetminRec = -1., ptjetmaxRec = -1.;
+    double ptv0minGen = -1., ptv0maxGen = -1., ptv0minRec = -1., ptv0maxRec = -1.;
+    double zv0minGen = -1., zv0maxGen = -1., zv0minRec = -1., zv0maxRec = -1.;
+    double etamin = -1., etamax = -1.;
+    double binwidthptjet = -1., binwidthptv0 = -1., binwidthzv0 = -1.;
+    double ptjetminProjection = -1., ptjetmaxProjection = -1.;
 
     bool saveFigs = true, drawText = false;
     bool doTrivialClosureTest = true;
@@ -273,23 +274,68 @@ struct InputSettings {
     plotutilities::PlotType getPlotType() { return plottype; }
     string getRmHistName() {
       switch (plottype) {
-        case plotutilities::kJet:  return rmutilities::analysis::nameJetRm;
-        case plotutilities::kV0Pt: return rmutilities::analysis::nameV0PtRm;
-        case plotutilities::kV0Z:  return rmutilities::analysis::nameV0ZRm;
+        case plotutilities::kJet:   return rmutilities::analysis::nameJetRm;
+        case plotutilities::kK0SPt: return rmutilities::analysis::nameK0SPtRm;
+        case plotutilities::kK0SZ:  return rmutilities::analysis::nameK0SZRm;
         default: return "";
       }
     }
     verbosityutilities::Verbosity getVerbosity() { return verbosity; }
+    TH1D* getTemplateHistJetGen()  { return templatePtJetGen; }
+    TH1D* getTemplateHistJetRec()  { return templatePtJetRec; }
+    TH2D* getTemplateHistV0PtGen() { return templatePtV0Gen; }
+    TH2D* getTemplateHistV0PtRec() { return templatePtV0Rec; }
+    TH2D* getTemplateHistV0ZGen()  { return templateZV0Gen; }
+    TH2D* getTemplateHistV0ZRec()  { return templateZV0Rec; }
+    TH2D* getTemplateHistV0Gen()   {
+      if (plottype == plotutilities::kK0SPt)
+        return getTemplateHistV0PtGen();
+      else if (plottype == plotutilities::kK0SZ)
+        return getTemplateHistV0ZGen();
+      else
+        return nullptr;
+    }
+    TH2D* getTemplateHistV0Rec()   {
+      if (plottype == plotutilities::kK0SPt)
+        return getTemplateHistV0PtRec();
+      else if (plottype == plotutilities::kK0SZ)
+        return getTemplateHistV0ZRec();
+      else
+        return nullptr;
+    }
+
     // Setters for private variables
     bool setPlotType(plotutilities::PlotType p);
     bool setVerbosity(verbosityutilities::Verbosity v);
+    void setTemplateHistJetGen(TH1D* hist)  { setTemplateHist(templatePtJetGen, hist); }
+    void setTemplateHistJetRec(TH1D* hist)  { setTemplateHist(templatePtJetRec, hist); }
+    void setTemplateHistV0PtGen(TH2D* hist) { setTemplateHist(templatePtV0Gen, hist); }
+    void setTemplateHistV0PtRec(TH2D* hist) { setTemplateHist(templatePtV0Rec, hist); }
+    void setTemplateHistV0ZGen(TH2D* hist)  { setTemplateHist(templateZV0Gen, hist); }
+    void setTemplateHistV0ZRec(TH2D* hist)  { setTemplateHist(templateZV0Rec, hist); }
+
+    void setTemplateHistJetGen(const int nbinsx, const double* binedges);
+    void setTemplateHistJetRec(const int nbinsx, const double* binedges);
+    void setTemplateHistJetGen(const double min, const double max, const double binwidth);
+    void setTemplateHistJetRec(const double min, const double max, const double binwidth);
+
+    void setTemplateHistV0PtGen(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy) { setTemplateHistV0Pt(nbinsx, binedgesx, nbinsy, binedgesy, true); }
+    void setTemplateHistV0PtRec(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy) { setTemplateHistV0Pt(nbinsx, binedgesx, nbinsy, binedgesy, false); }
+    void setTemplateHistV0PtGen(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy) { setTemplateHistV0Pt(minx, maxx, binwidthx, miny, maxy, binwidthy, true); }
+    void setTemplateHistV0PtRec(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy) { setTemplateHistV0Pt(minx, maxx, binwidthx, miny, maxy, binwidthy, false); }
+
+    void setTemplateHistV0ZGen(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy) { setTemplateHistV0Z(nbinsx, binedgesx, nbinsy, binedgesy, true); }
+    void setTemplateHistV0ZRec(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy) { setTemplateHistV0Z(nbinsx, binedgesx, nbinsy, binedgesy, false); }
+    void setTemplateHistV0ZGen(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy) { setTemplateHistV0Z(minx, maxx, binwidthx, miny, maxy, binwidthy, true); }
+    void setTemplateHistV0ZRec(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy) { setTemplateHistV0Z(minx, maxx, binwidthx, miny, maxy, binwidthy, false); }
 
     // Utilities
-    bool isHistInRange(TH1* hist, double min, double max);
-    bool isHistConsistentWithZero(TH1* hist, double threshold = 1e-10) {
+    void autoTemplateHists();
+    bool isHistInRange(TH1D* hist, double min, double max);
+    bool isHistConsistentWithZero(TH1D* hist, double threshold = 1e-10) {
       return isHistInRange(hist, -threshold, threshold);
     }
-    bool isHistConsistentWithOne(TH1* hist, double threshold = 1e-10) {
+    bool isHistConsistentWithOne(TH1D* hist, double threshold = 1e-10) {
       return isHistInRange(hist, 1. - threshold, 1. + threshold);
     }
     template <typename T> bool isVarInRange(T var, T min, T max, double epsilon = 1e-5) {
@@ -312,7 +358,51 @@ struct InputSettings {
     template <typename T> bool writeOutputsToFile(vector<T*> obj);
 };
 
-bool InputSettings::isHistInRange(TH1* hist, double min, double max) {
+void InputSettings::autoTemplateHists() {
+  if (ptjetminGen < 0. || ptjetmaxGen < 0. || ptjetminRec < 0. || ptjetmaxRec < 0. || binwidthptjet < 0.) {
+    ptjetminGen = 5.;
+    ptjetmaxGen = 80.;
+    ptjetminRec = 10.;
+    ptjetmaxRec = 60.;
+    binwidthptjet = 5.;
+  }
+  const int nbinsPtJetGen = (int)((ptjetmaxGen - ptjetminGen) / binwidthptjet);
+  const int nbinsPtJetRec = (int)((ptjetmaxRec - ptjetminRec) / binwidthptjet);
+  templatePtJetGen = new TH1D("templateJetPtGen", ";#it{p}_{T,jet} (GeV/c)", nbinsPtJetGen, ptjetminGen, ptjetmaxGen);
+  templatePtJetRec = new TH1D("templateJetPtRec", ";#it{p}_{T,jet} (GeV/c)", nbinsPtJetRec, ptjetminRec, ptjetmaxRec);
+
+  if (zv0minGen < 0. || zv0maxGen < 0. || zv0minRec < 0. || zv0maxRec < 0. || binwidthzv0 < 0.) {
+    zv0minGen = 1e-3;
+    zv0maxGen = 1. + 1e-3;
+    zv0minRec = 1e-3;
+    zv0maxRec = 1. + 1e-3;
+    binwidthzv0 = 0.1;
+  }
+  const int nbinszv0Gen   = (int)((zv0maxGen - zv0minGen) / binwidthzv0);
+  const int nbinszv0Rec   = (int)((zv0maxRec - zv0minRec) / binwidthzv0);
+  templateZV0Gen   = new TH2D("templateV0ZGen", ";#it{z}_{V0};#it{p}_{T,jet} (GeV/c)", nbinszv0Gen, zv0minGen, zv0maxGen, nbinsPtJetGen, ptjetminGen, ptjetmaxGen);
+  templateZV0Rec   = new TH2D("templateV0ZRec", ";#it{z}_{V0};#it{p}_{T,jet} (GeV/c)", nbinszv0Rec, zv0minRec, zv0maxRec, nbinsPtJetRec, ptjetminRec, ptjetmaxRec);
+
+  if (ptv0minGen < 0. || ptv0maxGen < 0. || binwidthptv0 < 0.) {
+    ptv0minGen = 1.;
+    ptv0maxGen = 50.;
+    binwidthptv0 = 1.;
+  }
+  const int nbinsptv0Gen  = (int)((ptv0maxGen - ptv0minGen) / binwidthptv0);
+  templatePtV0Gen  = new TH2D("templateV0PtGen", ";#it{p}_{T,V0} (GeV/c);#it{p}_{T,jet} (GeV/c)", nbinsptv0Gen, ptv0minGen, ptv0maxGen, nbinsPtJetGen, ptjetminGen, ptjetmaxGen);
+
+  if (ptv0minRec < 0. || ptv0maxRec < 0.) {
+    const int nbinsptv0Rec  = 10;
+    double ptv0RecBinEdges[nbinsptv0Rec + 1] = {1., 2., 3., 4., 5., 10., 15., 20., 25., 30., 40.};
+    templatePtV0Rec  = new TH2D("templateV0PtRec", ";#it{p}_{T,V0} (GeV/c);#it{p}_{T,jet} (GeV/c)", nbinsptv0Rec, ptv0RecBinEdges, nbinsPtJetRec, ptjetminRec, ptjetmaxRec);
+  } else {
+    const int nbinsptv0Rec  = (int)((ptv0maxRec - ptv0minRec) / binwidthptv0);
+    templatePtV0Rec  = new TH2D("templateV0PtRec", ";#it{p}_{T,V0} (GeV/c);#it{p}_{T,jet} (GeV/c)", nbinsptv0Rec, ptv0minRec, ptv0maxRec, nbinsPtJetRec, ptjetminRec, ptjetmaxRec);
+  }
+
+}
+
+bool InputSettings::isHistInRange(TH1D* hist, double min, double max) {
   if (!hist) {
     printLog("InputSettings::isHistInRange() Error: histogram is null", verbosityutilities::kErrors);
     return false;
@@ -330,6 +420,85 @@ string InputSettings::setInputFileNameFromTrain() {
   string s = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
   inputFileName = s;
   return s;
+}
+
+template <typename T>
+void InputSettings::setTemplateHist(T* tmplt, T* hist) {
+  if (!hist) {
+    printLog("InputSettings::setTemplateHist: input histogram is null!", verbosityutilities::kErrors);
+    return;
+  }
+  string name = hist->GetName();
+  hist->SetName(TString::Format("%s_copy", name.c_str()).Data());
+  printLog(TString::Format("%s: %d", name.c_str(), hist->GetNbinsX()).Data(), verbosityutilities::kDebug);
+  tmplt = (T*)hist->Clone(name.c_str());
+}
+
+void InputSettings::setTemplateHistJet(const int nbins, const double* binedges, const bool generatorLevel) {
+  if (generatorLevel) {
+    TH1D* hist = new TH1D("templateJetPtGen", ";#it{p}_{T,jet} (GeV/c)", nbins, binedges);
+    setTemplateHistJetGen(hist);
+  } else {
+    TH1D* hist = new TH1D("templateJetPtRec", ";#it{p}_{T,jet} (GeV/c)", nbins, binedges);
+    setTemplateHistJetRec(hist);
+  }
+}
+
+void InputSettings::setTemplateHistJet(const double min, const double max, const double binwidth, const bool generatorLevel) {
+  int nbins = (int)((max - min) / binwidth);
+  double edges[nbins + 1];
+  for (int i = 0; i <= nbins; i++)
+    edges[i] = min + i * binwidth;
+
+  setTemplateHistJet(nbins, edges, generatorLevel);
+}
+
+void InputSettings::setTemplateHistV0Pt(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy, const bool generatorLevel) {
+  if (generatorLevel) {
+    TH2D* hist = new TH2D("templateV0PtGen", ";#it{p}_{T,V0} (GeV/c);#it{p}_{T,jet} (GeV/c)", nbinsx, binedgesx, nbinsy, binedgesy);
+    setTemplateHistV0PtGen(hist);
+  } else {
+    TH2D* hist = new TH2D("templateV0PtRec", ";#it{p}_{T,V0} (GeV/c);#it{p}_{T,jet} (GeV/c)", nbinsx, binedgesx, nbinsy, binedgesy);
+    setTemplateHistV0PtRec(hist);
+  }
+}
+
+void InputSettings::setTemplateHistV0Pt(const double xmin, const double xmax, const double binwidthx, const double ymin, const double ymax, const double binwidthy, const bool generatorLevel) {
+  int nbinsx = (int)((xmax - xmin) / binwidthx);
+  double edgesx[nbinsx + 1];
+  for (int i = 0; i <= nbinsx; i++)
+    edgesx[i] = xmin + i * binwidthx;
+
+  int nbinsy = (int)((ymax - ymin) / binwidthy);
+  double edgesy[nbinsy + 1];
+  for (int i = 0; i <= nbinsy; i++)
+    edgesy[i] = ymin + i * binwidthy;
+
+  setTemplateHistV0Pt(nbinsx, edgesx, nbinsy, edgesy, generatorLevel);
+}
+
+void InputSettings::setTemplateHistV0Z(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy, const bool generatorLevel) {
+  if (generatorLevel) {
+    TH2D* hist = new TH2D("templateV0ZGen", ";#it{z}_{V0};#it{p}_{T,jet} (GeV/c)", nbinsx, binedgesx, nbinsy, binedgesy);
+    setTemplateHistV0ZGen(hist);
+  } else {
+    TH2D* hist = new TH2D("templateV0ZRec", ";#it{z}_{V0};#it{p}_{T,jet} (GeV/c)", nbinsx, binedgesx, nbinsy, binedgesy);
+    setTemplateHistV0ZRec(hist);
+  }
+}
+
+void InputSettings::setTemplateHistV0Z(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy, const bool generatorLevel) {
+  int nbinsx = (int)((maxx - minx) / binwidthx);
+  double edgesx[nbinsx + 1];
+  for (int i = 0; i <= nbinsx; i++)
+    edgesx[i] = minx + i * binwidthx;
+
+  int nbinsy = (int)((maxy - miny) / binwidthy);
+  double edgesy[nbinsy + 1];
+  for (int i = 0; i <= nbinsy; i++)
+    edgesy[i] = miny + i * binwidthy;
+
+  setTemplateHistV0Z(nbinsx, edgesx, nbinsy, edgesy, generatorLevel);
 }
 
 template <typename T>
@@ -385,7 +554,7 @@ bool InputSettings::setVerbosity(verbosityutilities::Verbosity v) {
 
 // ----------------------------------------------------------
 
-// NB: V0 Pt RM is filled (gen, rec), but the jet RM and V0 Z RM are filled (rec, gen)!
+// NB: K0S RM is filled (gen, rec), but the jet RM (rec, gen)!
 // NB: The RooUnfoldResponse is filled (rec, gen) always!
 void FillFromRmJets(InputSettings& inputs, TH2D* responseMatrix, TH1D* hRec, TH1D* hGen, TH1D* hMiss, TH1D* hKinEff, TH1D* hFake, RooUnfoldResponse* response = nullptr) {
   // Fill the distributions from the response matrix
@@ -393,8 +562,8 @@ void FillFromRmJets(InputSettings& inputs, TH2D* responseMatrix, TH1D* hRec, TH1
   array<double, 2> ptjetRecBinEdges = {hRec->GetXaxis()->GetXmin(), hRec->GetXaxis()->GetXmax()};
   array<double, 2> ptjetGenBinEdges = {hGen->GetXaxis()->GetXmin(), hGen->GetXaxis()->GetXmax()};
 
-  for (int xBin = 0; xBin <= responseMatrix->GetNbinsX(); xBin++) {
-    for (int yBin = 0; yBin <= responseMatrix->GetNbinsY(); yBin++) {
+  for (int xBin = 0; xBin <= 1 + responseMatrix->GetNbinsX(); xBin++) {
+    for (int yBin = 0; yBin <= 1 + responseMatrix->GetNbinsY(); yBin++) {
       double binContent = responseMatrix->GetBinContent(xBin, yBin);
       double ptjetRec = responseMatrix->GetXaxis()->GetBinCenter(xBin);
       double ptjetGen = responseMatrix->GetYaxis()->GetBinCenter(yBin);
@@ -422,81 +591,39 @@ void FillFromRmJets(InputSettings& inputs, TH2D* responseMatrix, TH1D* hRec, TH1
   hKinEff->Divide(hGen);
 }
 
-// NB: V0 Pt RM is filled (gen, rec), but the jet RM and V0 Z RM are filled (rec, gen)!
-// NB: The RooUnfoldResponse is filled (rec, gen) always!
-void FillFromRmV0Pt(InputSettings& inputs, THnSparseD* responseMatrix, TH2D* hRec, TH2D* hGen, TH2D* hMiss, TH2D* hKinEff, TH2D* hFake, RooUnfoldResponse* response = nullptr) {
+void FillFromRmK0S(InputSettings& inputs, THnSparseD* responseMatrix, TH2D* hRec, TH2D* hGen, TH2D* hMiss, TH2D* hKinEff, TH2D* hFake, RooUnfoldResponse* response = nullptr) {
   // Fill the distributions from the response matrix
   // If the RooUnfoldResponse is given, fill it as well
-  array<double, 2> ptv0GenBinEdges  = {hGen->GetXaxis()->GetXmin(), hGen->GetXaxis()->GetXmax()};
+  array<double, 2> k0sGenBinEdges   = {hGen->GetXaxis()->GetXmin(), hGen->GetXaxis()->GetXmax()};
   array<double, 2> ptjetGenBinEdges = {hGen->GetYaxis()->GetXmin(), hGen->GetYaxis()->GetXmax()};
-  array<double, 2> ptv0RecBinEdges  = {hRec->GetXaxis()->GetXmin(), hRec->GetXaxis()->GetXmax()};
+  array<double, 2> k0sRecBinEdges   = {hRec->GetXaxis()->GetXmin(), hRec->GetXaxis()->GetXmax()};
   array<double, 2> ptjetRecBinEdges = {hRec->GetYaxis()->GetXmin(), hRec->GetYaxis()->GetXmax()};
 
   int* coord = new int[responseMatrix->GetNdimensions()]; //Carries the bin coordinates
-  for (int iBin = 0; iBin <= responseMatrix->GetNbins(); iBin++) {
+  for (int iBin = 0; iBin <= responseMatrix->GetNbins(); iBin++) { // FIXME: How to get all overflow bins?
     double binContent = responseMatrix->GetBinContent(iBin, coord);
-    double ptjetGen  = responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmPtJetGen)->GetBinCenter(coord[rmutilities::analysis::axisv0PtRmPtJetGen]);
-    double ptv0Gen   = responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmV0Gen)->GetBinCenter(coord[rmutilities::analysis::axisv0PtRmV0Gen]);
-    double ptjetRec  = responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmPtJetRec)->GetBinCenter(coord[rmutilities::analysis::axisv0PtRmPtJetRec]);
-    double ptv0Rec   = responseMatrix->GetAxis(rmutilities::analysis::axisv0PtRmV0Rec)->GetBinCenter(coord[rmutilities::analysis::axisv0PtRmV0Rec]);
+    double ptjetGen   = responseMatrix->GetAxis(rmutilities::analysis::axisK0SRmPtJetGen)->GetBinCenter(coord[rmutilities::analysis::axisK0SRmPtJetGen]);
+    double ptK0SGen   = responseMatrix->GetAxis(rmutilities::analysis::axisK0SRmK0SGen)->GetBinCenter(coord[rmutilities::analysis::axisK0SRmK0SGen]);
+    double ptjetRec   = responseMatrix->GetAxis(rmutilities::analysis::axisK0SRmPtJetRec)->GetBinCenter(coord[rmutilities::analysis::axisK0SRmPtJetRec]);
+    double ptK0SRec   = responseMatrix->GetAxis(rmutilities::analysis::axisK0SRmK0SRec)->GetBinCenter(coord[rmutilities::analysis::axisK0SRmK0SRec]);
 
-    bool isAcceptedGen = inputs.isVarInRange(ptjetGen, ptjetGenBinEdges) && inputs.isVarInRange(ptv0Gen, ptv0GenBinEdges);
-    bool isAcceptedRec = inputs.isVarInRange(ptjetRec, ptjetRecBinEdges) && inputs.isVarInRange(ptv0Rec, ptv0RecBinEdges);
+    bool isAcceptedGen = inputs.isVarInRange(ptjetGen, ptjetGenBinEdges) && inputs.isVarInRange(ptK0SGen, k0sGenBinEdges);
+    bool isAcceptedRec = inputs.isVarInRange(ptjetRec, ptjetRecBinEdges) && inputs.isVarInRange(ptK0SRec, k0sRecBinEdges);
 
     if (isAcceptedRec)
-      hRec->Fill(ptv0Rec, ptjetRec, binContent);
+      hRec->Fill(ptK0SRec, ptjetRec, binContent);
     if (isAcceptedGen)
-      hGen->Fill(ptv0Gen, ptjetGen, binContent);
+      hGen->Fill(ptK0SGen, ptjetGen, binContent);
 
     if (isAcceptedRec && isAcceptedGen) {
-      response->Fill(ptv0Rec, ptjetRec, ptv0Gen, ptjetGen, binContent);
-      hKinEff->Fill(ptv0Gen, ptjetGen, binContent);
+      hKinEff->Fill(ptK0SGen, ptjetGen, binContent);
+      if (response) response->Fill(ptK0SRec, ptjetRec, ptK0SGen, ptjetGen, binContent);
     } else if (!isAcceptedRec && isAcceptedGen) {
-      response->Miss(ptv0Gen, ptjetGen, binContent);
-      hMiss->Fill(ptv0Gen, ptjetGen, binContent);
+      hMiss->Fill(ptK0SGen, ptjetGen, binContent);
+      if (response) response->Miss(ptK0SGen, ptjetGen, binContent);
     } else if (isAcceptedRec && !isAcceptedGen) {
-      response->Fake(ptv0Rec, ptjetRec, binContent);
-      hFake->Fill(ptv0Rec, ptjetRec, binContent);
-    }
-  }
-  hKinEff->Divide(hGen);
-}
-
-// NB: V0 Pt RM is filled (gen, rec), but the jet RM and V0 Z RM are filled (rec, gen)!
-// NB: The RooUnfoldResponse is filled (rec, gen) always!
-void FillFromRmV0Z(InputSettings& inputs, THnSparseD* responseMatrix, TH2D* hRec, TH2D* hGen, TH2D* hMiss, TH2D* hKinEff, TH2D* hFake, RooUnfoldResponse* response = nullptr) {
-  // Fill the distributions from the response matrix
-  // If the RooUnfoldResponse is given, fill it as well
-  array<double, 2> zv0GenBinEdges  = {hGen->GetXaxis()->GetXmin(), hGen->GetXaxis()->GetXmax()};
-  array<double, 2> ptjetGenBinEdges = {hGen->GetYaxis()->GetXmin(), hGen->GetYaxis()->GetXmax()};
-  array<double, 2> zv0RecBinEdges  = {hRec->GetXaxis()->GetXmin(), hRec->GetXaxis()->GetXmax()};
-  array<double, 2> ptjetRecBinEdges = {hRec->GetYaxis()->GetXmin(), hRec->GetYaxis()->GetXmax()};
-
-  int* coord = new int[responseMatrix->GetNdimensions()]; //Carries the bin coordinates
-  for (int iBin = 0; iBin <= responseMatrix->GetNbins(); iBin++) {
-    double binContent = responseMatrix->GetBinContent(iBin, coord);
-    double ptjetGen  = responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmPtJetGen)->GetBinCenter(coord[rmutilities::analysis::axisv0ZRmPtJetGen]);
-    double zv0Gen   = responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmV0Gen)->GetBinCenter(coord[rmutilities::analysis::axisv0ZRmV0Gen]);
-    double ptjetRec  = responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmPtJetRec)->GetBinCenter(coord[rmutilities::analysis::axisv0ZRmPtJetRec]);
-    double zv0Rec   = responseMatrix->GetAxis(rmutilities::analysis::axisv0ZRmV0Rec)->GetBinCenter(coord[rmutilities::analysis::axisv0ZRmV0Rec]);
-
-    bool isAcceptedGen = inputs.isVarInRange(ptjetGen, ptjetGenBinEdges) && inputs.isVarInRange(zv0Gen, zv0GenBinEdges);
-    bool isAcceptedRec = inputs.isVarInRange(ptjetRec, ptjetRecBinEdges) && inputs.isVarInRange(zv0Rec, zv0RecBinEdges);
-
-    if (isAcceptedRec)
-      hRec->Fill(zv0Rec, ptjetRec, binContent);
-    if (isAcceptedGen)
-      hGen->Fill(zv0Gen, ptjetGen, binContent);
-
-    if (isAcceptedRec && isAcceptedGen) {
-      response->Fill(zv0Rec, ptjetRec, zv0Gen, ptjetGen, binContent);
-      hKinEff->Fill(zv0Gen, ptjetGen, binContent);
-    } else if (!isAcceptedRec && isAcceptedGen) {
-      response->Miss(zv0Gen, ptjetGen, binContent);
-      hMiss->Fill(zv0Gen, ptjetGen, binContent);
-    } else if (isAcceptedRec && !isAcceptedGen) {
-      response->Fake(zv0Rec, ptjetRec, binContent);
-      hFake->Fill(zv0Rec, ptjetRec, binContent);
+      hFake->Fill(ptK0SRec, ptjetRec, binContent);
+      if (response) response->Fake(ptK0SRec, ptjetRec, binContent);
     }
   }
   hKinEff->Divide(hGen);
@@ -527,83 +654,43 @@ void FillPearsonFromCovMatrix(InputSettings& inputs, TH2D* covMatrix, TH2D* pear
 
 array<TH1D*, 5> CreateDistributionHistsJet(InputSettings& inputs, TH2D* responseMatrix) {
   inputs.printLog("Creating distribution histograms for jets.", verbosityutilities::kDebug);
-  array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetYaxis(), inputs.ptjetminRec, inputs.ptjetmaxRec);
-  array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetYaxis(), inputs.ptjetminGen, inputs.ptjetmaxGen);
-  array<double, 2> ptjetRecBinEdges = getProjectionEdges(responseMatrix->GetXaxis(), ptjetRecBins);
-  array<double, 2> ptjetGenBinEdges = getProjectionEdges(responseMatrix->GetYaxis(), ptjetGenBins);
-
-  int nbinsPtRec = (int)((ptjetRecBinEdges[1] - ptjetRecBinEdges[0]) / inputs.binwidthptjet);
-  int nbinsPtGen = (int)((ptjetGenBinEdges[1] - ptjetGenBinEdges[0]) / inputs.binwidthptjet);
-
-  TH1D* hRec = new TH1D(rmutilities::unfolding::nameRecJets.c_str(), "Rec;p_{T,jet}", nbinsPtRec, ptjetRecBinEdges[0], ptjetRecBinEdges[1]);
-  TH1D* hGen = new TH1D(rmutilities::unfolding::nameGenJets.c_str(), "Gen;p_{T,jet}", nbinsPtGen, ptjetGenBinEdges[0], ptjetGenBinEdges[1]);
+  TH1D* hRec = (TH1D*)inputs.getTemplateHistJetRec()->Clone(rmutilities::unfolding::nameRecJets.c_str());
+  hRec->SetTitle("Rec");
+  TH1D* hGen = (TH1D*)inputs.getTemplateHistJetGen()->Clone(rmutilities::unfolding::nameGenJets.c_str());
+  hGen->SetTitle("Gen");
   TH1D* hMiss   = (TH1D*)hGen->Clone(rmutilities::unfolding::nameMissJets.c_str());
   TH1D* hKinEff = (TH1D*)hGen->Clone(rmutilities::unfolding::nameKinEffJets.c_str());
   TH1D* hFake   = (TH1D*)hRec->Clone(rmutilities::unfolding::nameFakeJets.c_str());
   return std::array<TH1D*, 5>{hRec, hGen, hMiss, hKinEff, hFake};
 }
 
-array<TH2D*, 5> CreateDistributionHistsV0(InputSettings& inputs, THnSparseD* responseMatrix) {
-  inputs.printLog("Creating histograms for V0s.", verbosityutilities::kDebug);
-  int axisPtJetRec, axisPtJetGen, axisV0Rec, axisV0Gen;
-  double v0minRec, v0maxRec, v0minGen, v0maxGen, binwidthv0;
+array<TH2D*, 5> CreateDistributionHistsK0S(InputSettings& inputs, THnSparseD* responseMatrix) {
+  inputs.printLog("Creating histograms for K0S.", verbosityutilities::kDebug);
   string nRec, nGen, nMiss, nKinEff, nFake, nAxes;
 
-  if (inputs.getPlotType() == plotutilities::PlotType::kV0Pt) {
-    axisPtJetRec = rmutilities::analysis::axisv0PtRmPtJetRec;
-    axisPtJetGen = rmutilities::analysis::axisv0PtRmPtJetGen;
-    axisV0Rec    = rmutilities::analysis::axisv0PtRmV0Rec;
-    axisV0Gen    = rmutilities::analysis::axisv0PtRmV0Gen;
-    v0minRec     = inputs.ptv0minRec;
-    v0maxRec     = inputs.ptv0maxRec;
-    v0minGen     = inputs.ptv0minGen;
-    v0maxGen     = inputs.ptv0maxGen;
-    binwidthv0   = inputs.binwidthptv0;
-    nRec         = rmutilities::unfolding::nameRecV0Pt;
-    nGen         = rmutilities::unfolding::nameGenV0Pt;
-    nMiss        = rmutilities::unfolding::nameMissV0Pt;
-    nKinEff      = rmutilities::unfolding::nameKinEffV0Pt;
-    nFake        = rmutilities::unfolding::nameFakeV0Pt;
-    nAxes        = "p_{T,V0},p_{T,jet}";
-  } else if (inputs.getPlotType() == plotutilities::PlotType::kV0Z) {
-    axisPtJetRec = rmutilities::analysis::axisv0ZRmPtJetRec;
-    axisPtJetGen = rmutilities::analysis::axisv0ZRmPtJetGen;
-    axisV0Rec    = rmutilities::analysis::axisv0ZRmV0Rec;
-    axisV0Gen    = rmutilities::analysis::axisv0ZRmV0Gen;
-    v0minRec     = inputs.zv0minRec;
-    v0maxRec     = inputs.zv0maxRec;
-    v0minGen     = inputs.zv0minGen;
-    v0maxGen     = inputs.zv0maxGen;
-    binwidthv0   = inputs.binwidthzv0;
-    nRec         = rmutilities::unfolding::nameRecV0Z;
-    nGen         = rmutilities::unfolding::nameGenV0Z;
-    nMiss        = rmutilities::unfolding::nameMissV0Z;
-    nKinEff      = rmutilities::unfolding::nameKinEffV0Z;
-    nFake        = rmutilities::unfolding::nameFakeV0Z;
-    nAxes        = "z_{T,V0},p_{T,jet}";
+  if (inputs.getPlotType() == plotutilities::PlotType::kK0SPt) {
+    nRec        = rmutilities::unfolding::nameRecK0SPt;
+    nGen        = rmutilities::unfolding::nameGenK0SPt;
+    nMiss       = rmutilities::unfolding::nameMissK0SPt;
+    nKinEff     = rmutilities::unfolding::nameKinEffK0SPt;
+    nFake       = rmutilities::unfolding::nameFakeK0SPt;
+    nAxes       = "p_{T,K^{0}_{S}},p_{T,jet}";
+  } else if (inputs.getPlotType() == plotutilities::PlotType::kK0SZ) {
+    nRec        = rmutilities::unfolding::nameRecK0SZ;
+    nGen        = rmutilities::unfolding::nameGenK0SZ;
+    nMiss       = rmutilities::unfolding::nameMissK0SZ;
+    nKinEff     = rmutilities::unfolding::nameKinEffK0SZ;
+    nFake       = rmutilities::unfolding::nameFakeK0SZ;
+    nAxes       = "z_{K^{0}_{S}},p_{T,jet}";
   } else {
-    inputs.printLog("CreateDistributionHistsV0() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
+    inputs.printLog("CreateDistributionHistsK0S() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
     return std::array<TH2D*, 5>{nullptr, nullptr, nullptr, nullptr, nullptr};
   }
 
-  array<int, 2> ptjetRecBins = getProjectionBins(responseMatrix->GetAxis(axisPtJetRec), inputs.ptjetminRec, inputs.ptjetmaxRec);
-  array<int, 2> ptjetGenBins = getProjectionBins(responseMatrix->GetAxis(axisPtJetGen), inputs.ptjetminGen, inputs.ptjetmaxGen);
-  array<int, 2> v0RecBins    = getProjectionBins(responseMatrix->GetAxis(axisV0Rec), v0minRec, v0maxRec);
-  array<int, 2> v0GenBins    = getProjectionBins(responseMatrix->GetAxis(axisV0Gen), v0minGen, v0maxGen);
-
-  array<double, 2> ptjetRecBinEdges = getProjectionEdges(responseMatrix->GetAxis(axisPtJetRec), ptjetRecBins);
-  array<double, 2> ptjetGenBinEdges = getProjectionEdges(responseMatrix->GetAxis(axisPtJetGen), ptjetGenBins);
-  array<double, 2> v0RecBinEdges    = getProjectionEdges(responseMatrix->GetAxis(axisV0Rec), v0RecBins);
-  array<double, 2> v0GenBinEdges    = getProjectionEdges(responseMatrix->GetAxis(axisV0Gen), v0GenBins);
-
-  int nbinsPtJetRec = (int)((ptjetRecBinEdges[1] - ptjetRecBinEdges[0]) / inputs.binwidthptjet);
-  int nbinsPtJetGen = (int)((ptjetGenBinEdges[1] - ptjetGenBinEdges[0]) / inputs.binwidthptjet);
-  int nbinsv0Rec    = (int)((v0RecBinEdges[1] - v0RecBinEdges[0]) / binwidthv0);
-  int nbinsv0Gen    = (int)((v0GenBinEdges[1] - v0GenBinEdges[0]) / binwidthv0);
-
-  TH2D* hRec = new TH2D(nRec.c_str(), ("Rec;" + nAxes).c_str(), nbinsv0Rec, v0RecBinEdges[0], v0RecBinEdges[1], nbinsPtJetRec, ptjetRecBinEdges[0], ptjetRecBinEdges[1]);
-  TH2D* hGen = new TH2D(nGen.c_str(), ("Gen;" + nAxes).c_str(), nbinsv0Gen, v0GenBinEdges[0], v0GenBinEdges[1], nbinsPtJetGen, ptjetGenBinEdges[0], ptjetGenBinEdges[1]);
-
+  TH2D* hRec = (TH2D*)inputs.getTemplateHistV0Rec()->Clone(nRec.c_str());
+  hRec->SetTitle(("Rec;" + nAxes).c_str());
+  TH2D* hGen = (TH2D*)inputs.getTemplateHistV0Gen()->Clone(nGen.c_str());
+  hGen->SetTitle(("Gen;" + nAxes).c_str());
   TH2D* hMiss   = (TH2D*)hGen->Clone(nMiss.c_str());
   TH2D* hKinEff = (TH2D*)hGen->Clone(nKinEff.c_str());
   TH2D* hFake   = (TH2D*)hRec->Clone(nFake.c_str());
@@ -657,18 +744,18 @@ void CreateResponseJets(InputSettings& inputs) {
 void CreateResponseV0(InputSettings& inputs) {
   inputs.printLog("Creating response for " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kInfo);
 
-  string nameRm = rmutilities::unfolding::nameRmV0Pt;
-  string nameResponse = rmutilities::unfolding::nameResponseV0Pt;
-  if (inputs.getPlotType() == plotutilities::PlotType::kV0Z) {
-    nameRm = rmutilities::unfolding::nameRmV0Z;
-    nameResponse = rmutilities::unfolding::nameResponseV0Z;
+  string nameRm = rmutilities::unfolding::nameRmK0SPt;
+  string nameResponse = rmutilities::unfolding::nameResponseK0SPt;
+  if (inputs.getPlotType() == plotutilities::PlotType::kK0SZ) {
+    nameRm = rmutilities::unfolding::nameRmK0SZ;
+    nameResponse = rmutilities::unfolding::nameResponseK0SZ;
   }
 
   THnSparseD* responseMatrix = LoadResponseMatrix<THnSparseD*>(inputs);
   responseMatrix->SetName(nameRm.c_str());
   responseMatrix->SetTitle(nameRm.c_str());
 
-  array<TH2D*, 5> hists = CreateDistributionHistsV0(inputs, responseMatrix);
+  array<TH2D*, 5> hists = CreateDistributionHistsK0S(inputs, responseMatrix);
   TH2D* hRec    = hists[0];
   TH2D* hGen    = hists[1];
   TH2D* hMiss   = hists[2];
@@ -678,10 +765,7 @@ void CreateResponseV0(InputSettings& inputs) {
   inputs.printLog("Filling response.", verbosityutilities::kDebug);
   RooUnfoldResponse* response = new RooUnfoldResponse(nameResponse.c_str(), nameResponse.c_str());
   response->Setup(hRec, hGen);
-  if (inputs.getPlotType() == plotutilities::PlotType::kV0Pt)
-    FillFromRmV0Pt(inputs, responseMatrix, hRec, hGen, hMiss, hKinEff, hFake, response);
-  else if (inputs.getPlotType() == plotutilities::PlotType::kV0Z)
-    FillFromRmV0Z(inputs, responseMatrix, hRec, hGen, hMiss, hKinEff, hFake, response);
+  FillFromRmK0S(inputs, responseMatrix, hRec, hGen, hMiss, hKinEff, hFake, response);
 
   inputs.printLog("Saving objects to output file: " + inputs.outputFileName, verbosityutilities::kDebug);
   inputs.writeOutputToFile(response);
@@ -690,12 +774,12 @@ void CreateResponseV0(InputSettings& inputs) {
 }
 
 void CreateResponseV0Pt(InputSettings& inputs) {
-  inputs.setPlotType(plotutilities::PlotType::kV0Pt);
+  inputs.setPlotType(plotutilities::PlotType::kK0SPt);
   CreateResponseV0(inputs);
 }
 
 void CreateResponseV0Z(InputSettings& inputs) {
-  inputs.setPlotType(plotutilities::PlotType::kV0Z);
+  inputs.setPlotType(plotutilities::PlotType::kK0SZ);
   CreateResponseV0(inputs);
 }
 
@@ -807,30 +891,30 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
   inputs.printLog("Doing unfolding for " + plotutilities::to_string(inputs.getPlotType()) + " with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
 
   string nameRec, nameGen, nameFake, nameMiss, nameKinEff, nameResponse, ruBayesName, unfoldedName, refoldedName, covMatrixName, pearsonName;
-  if (inputs.getPlotType() == plotutilities::PlotType::kV0Pt) {
-    nameRec       = rmutilities::unfolding::nameRecV0Pt;
-    nameGen       = rmutilities::unfolding::nameGenV0Pt;
-    nameFake      = rmutilities::unfolding::nameFakeV0Pt;
-    nameMiss      = rmutilities::unfolding::nameMissV0Pt;
-    nameKinEff    = rmutilities::unfolding::nameKinEffV0Pt;
-    nameResponse  = rmutilities::unfolding::nameResponseV0Pt;
-    ruBayesName   = rmutilities::unfolding::nameRooUnfoldBayesV0Pt + to_string(nIterations);
-    unfoldedName  = rmutilities::unfolding::nameUnfoldedV0Pt + to_string(nIterations);
-    refoldedName  = rmutilities::unfolding::nameRefoldedV0Pt + to_string(nIterations);
-    covMatrixName = rmutilities::unfolding::nameCovMatrixV0Pt + to_string(nIterations);
-    pearsonName   = rmutilities::unfolding::namePearsonV0Pt + to_string(nIterations);
-  } else if (inputs.getPlotType() == plotutilities::PlotType::kV0Z) {
-    nameRec       = rmutilities::unfolding::nameRecV0Z;
-    nameGen       = rmutilities::unfolding::nameGenV0Z;
-    nameFake      = rmutilities::unfolding::nameFakeV0Z;
-    nameMiss      = rmutilities::unfolding::nameMissV0Z;
-    nameKinEff    = rmutilities::unfolding::nameKinEffV0Z;
-    nameResponse  = rmutilities::unfolding::nameResponseV0Z;
-    ruBayesName   = rmutilities::unfolding::nameRooUnfoldBayesV0Z + to_string(nIterations);
-    unfoldedName  = rmutilities::unfolding::nameUnfoldedV0Z + to_string(nIterations);
-    refoldedName  = rmutilities::unfolding::nameRefoldedV0Z + to_string(nIterations);
-    covMatrixName = rmutilities::unfolding::nameCovMatrixV0Z + to_string(nIterations);
-    pearsonName   = rmutilities::unfolding::namePearsonV0Z + to_string(nIterations);
+  if (inputs.getPlotType() == plotutilities::PlotType::kK0SPt) {
+    nameRec       = rmutilities::unfolding::nameRecK0SPt;
+    nameGen       = rmutilities::unfolding::nameGenK0SPt;
+    nameFake      = rmutilities::unfolding::nameFakeK0SPt;
+    nameMiss      = rmutilities::unfolding::nameMissK0SPt;
+    nameKinEff    = rmutilities::unfolding::nameKinEffK0SPt;
+    nameResponse  = rmutilities::unfolding::nameResponseK0SPt;
+    ruBayesName   = rmutilities::unfolding::nameRooUnfoldBayesK0SPt + to_string(nIterations);
+    unfoldedName  = rmutilities::unfolding::nameUnfoldedK0SPt + to_string(nIterations);
+    refoldedName  = rmutilities::unfolding::nameRefoldedK0SPt + to_string(nIterations);
+    covMatrixName = rmutilities::unfolding::nameCovMatrixK0SPt + to_string(nIterations);
+    pearsonName   = rmutilities::unfolding::namePearsonK0SPt + to_string(nIterations);
+  } else if (inputs.getPlotType() == plotutilities::PlotType::kK0SZ) {
+    nameRec       = rmutilities::unfolding::nameRecK0SZ;
+    nameGen       = rmutilities::unfolding::nameGenK0SZ;
+    nameFake      = rmutilities::unfolding::nameFakeK0SZ;
+    nameMiss      = rmutilities::unfolding::nameMissK0SZ;
+    nameKinEff    = rmutilities::unfolding::nameKinEffK0SZ;
+    nameResponse  = rmutilities::unfolding::nameResponseK0SZ;
+    ruBayesName   = rmutilities::unfolding::nameRooUnfoldBayesK0SZ + to_string(nIterations);
+    unfoldedName  = rmutilities::unfolding::nameUnfoldedK0SZ + to_string(nIterations);
+    refoldedName  = rmutilities::unfolding::nameRefoldedK0SZ + to_string(nIterations);
+    covMatrixName = rmutilities::unfolding::nameCovMatrixK0SZ + to_string(nIterations);
+    pearsonName   = rmutilities::unfolding::namePearsonK0SZ + to_string(nIterations);
   } else {
     inputs.printLog("DoUnfoldingV0() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
     return;
@@ -852,7 +936,7 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
   RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get(nameResponse.c_str());
 
   if (!trainingRec)
-  inputs.printLog("Error: could not find " + nameRec + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
+    inputs.printLog("Error: could not find " + nameRec + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingGen)
     inputs.printLog("Error: could not find " + nameGen + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingFake)
@@ -899,10 +983,7 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
       return;
     }
     THnSparseD* testResponseMatrix = LoadResponseMatrix<THnSparseD*>(inputs);
-    if (inputs.getPlotType() == plotutilities::PlotType::kV0Pt)
-      FillFromRmV0Pt(inputs, testResponseMatrix, testRec, testGen, testMiss, testKinEff, testFake);
-    else if (inputs.getPlotType() == plotutilities::PlotType::kV0Z)
-      FillFromRmV0Z(inputs, testResponseMatrix, testRec, testGen, testMiss, testKinEff, testFake);
+    FillFromRmK0S(inputs, testResponseMatrix, testRec, testGen, testMiss, testKinEff, testFake);
     testFile->Close();
   }
 
@@ -935,12 +1016,12 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
 }
 
 void DoUnfoldingV0Pt(InputSettings& inputs, int nIterations) {
-  inputs.setPlotType(plotutilities::PlotType::kV0Pt);
+  inputs.setPlotType(plotutilities::PlotType::kK0SPt);
   DoUnfoldingV0(inputs, nIterations);
 }
 
 void DoUnfoldingV0Z(InputSettings& inputs, int nIterations) {
-  inputs.setPlotType(plotutilities::PlotType::kV0Z);
+  inputs.setPlotType(plotutilities::PlotType::kK0SZ);
   DoUnfoldingV0(inputs, nIterations);
 }
 
@@ -1008,17 +1089,17 @@ array<TH1D*, 3> MakeClosureTestHists(const T* hRooUnfold, const T* hAnalysis, do
       hRoo->GetXaxis()->SetRange(ptjetBins[0], ptjetBins[1]);
       hAna->GetXaxis()->SetRange(ptjetBins[0], ptjetBins[1]);
       break;
-    case plotutilities::PlotType::kV0Pt:
-      nObservable = "#it{p}_{T,V0} (GeV/c)";
+    case plotutilities::PlotType::kK0SPt:
+      nObservable = "#it{p}_{T,K^{0}_{S}} (GeV/c)";
       ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
       hRoo = (TH1D*)hRooUnfold->ProjectionX("hRoo", ptjetBins[0], ptjetBins[1]);
       hAna = (TH1D*)hAnalysis->ProjectionX("hAna", ptjetBins[0], ptjetBins[1]);
       break;
-    case plotutilities::PlotType::kV0Z:
-      nObservable = "#it{z}_{V0}";
+    case plotutilities::PlotType::kK0SZ:
+      nObservable = "#it{z}_{K^{0}_{S}}";
       ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
-      hRoo = (TH1D*)hRooUnfold->ProjectionX("hDiff", ptjetBins[0], ptjetBins[1]);
-      hAna = (TH1D*)hAnalysis->ProjectionX("hAnalysisProj", ptjetBins[0], ptjetBins[1]);
+      hRoo = (TH1D*)hRooUnfold->ProjectionX("hRoo", ptjetBins[0], ptjetBins[1]);
+      hAna = (TH1D*)hAnalysis->ProjectionX("hAna", ptjetBins[0], ptjetBins[1]);
       break;
     default:
       verbosityutilities::printLog("MakeClosureTestHists: Unknown plot type!", verbosityutilities::kErrors, verbosityutilities::kErrors);
@@ -1071,9 +1152,9 @@ array<TH1D*, 3> MakeClosureTestHistsV0(InputSettings& inputs, const TH2D* hRooUn
   string nRooUnfold = isUnfolded ? "Unfolded" : "Refolded";
   string nAnalysis = isUnfolded ? "Generated" : "Reconstructed";
 
-  string nObservable = "#it{p}_{T,V0} (GeV/c)";
-  if (inputs.getPlotType() == plotutilities::PlotType::kV0Z)
-    nObservable = "#it{z}_{V0}";
+  string nObservable = "#it{p}_{T,K^{0}_{S}} (GeV/c)";
+  if (inputs.getPlotType() == plotutilities::PlotType::kK0SZ)
+    nObservable = "#it{z}_{K^{0}_{S}}";
 
   // The binning of the two histograms is the same by construction
   array<int, 2> ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
@@ -1132,21 +1213,26 @@ void DoClosureTestV0(InputSettings& inputs, int nIteration) {
   }
   string nameUnfolded, nameRefolded, nameGen, nameRec;
   switch (inputs.getPlotType()) {
-    case plotutilities::PlotType::kV0Pt:
-      nameUnfolded = rmutilities::unfolding::nameUnfoldedV0Pt + to_string(nIteration);
-      nameRefolded = rmutilities::unfolding::nameRefoldedV0Pt + to_string(nIteration);
-      nameGen      = rmutilities::testing::nameGenV0Pt;
-      nameRec      = rmutilities::testing::nameRecV0Pt;
-    case plotutilities::PlotType::kV0Z:
-      nameUnfolded = rmutilities::unfolding::nameUnfoldedV0Z + to_string(nIteration);
-      nameRefolded = rmutilities::unfolding::nameRefoldedV0Z + to_string(nIteration);
-      nameGen      = rmutilities::testing::nameGenV0Z;
-      nameRec      = rmutilities::testing::nameRecV0Z;
+    case plotutilities::PlotType::kK0SPt:
+      inputs.printLog("Doing closure test for K0S pt.", verbosityutilities::kInfo);
+      nameUnfolded = rmutilities::unfolding::nameUnfoldedK0SPt + to_string(nIteration);
+      nameRefolded = rmutilities::unfolding::nameRefoldedK0SPt + to_string(nIteration);
+      nameGen      = rmutilities::testing::nameGenK0SPt;
+      nameRec      = rmutilities::testing::nameRecK0SPt;
+      break;
+      case plotutilities::PlotType::kK0SZ:
+      inputs.printLog("Doing closure test for K0S z.", verbosityutilities::kInfo);
+      nameUnfolded = rmutilities::unfolding::nameUnfoldedK0SZ + to_string(nIteration);
+      nameRefolded = rmutilities::unfolding::nameRefoldedK0SZ + to_string(nIteration);
+      nameGen      = rmutilities::testing::nameGenK0SZ;
+      nameRec      = rmutilities::testing::nameRecK0SZ;
       break;
     default:
       inputs.printLog("DoClosureTestV0() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
       return;
   }
+
+  inputs.printLog("Retrieving histograms " + nameUnfolded + ", " + nameRefolded + ", " + nameGen + ", " + nameRec + " from file: " + inputs.inputFileName, verbosityutilities::kDebug);
   TH2D* unfolded = (TH2D*)file->Get(nameUnfolded.c_str());
   TH2D* refolded = (TH2D*)file->Get(nameRefolded.c_str());
   TH2D* testGen  = (TH2D*)file->Get(nameGen.c_str());
@@ -1165,6 +1251,17 @@ void DoClosureTestV0(InputSettings& inputs, int nIteration) {
   const bool isUnfolded = true;
   array<TH1D*, 3> hUnfGen = MakeClosureTestHistsV0(inputs, unfolded, testGen, isUnfolded);
   array<TH1D*, 3> hRefRec = MakeClosureTestHistsV0(inputs, refolded, testRec, !isUnfolded);
+  if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
+    inputs.printLog("Unfolded: (nx, ny) = (" + to_string(unfolded->GetNbinsX()) + ", " + to_string(unfolded->GetNbinsY()) + ")", verbosityutilities::kDebug);
+    inputs.printLog("Refolded: (nx, ny) = (" + to_string(refolded->GetNbinsX()) + ", " + to_string(refolded->GetNbinsY()) + ")", verbosityutilities::kDebug);
+    inputs.printLog("Gen: (nx, ny) = (" + to_string(testGen->GetNbinsX()) + ", " + to_string(testGen->GetNbinsY()) + ")", verbosityutilities::kDebug);
+    inputs.printLog("Rec: (nx, ny) = (" + to_string(testRec->GetNbinsX()) + ", " + to_string(testRec->GetNbinsY()) + ")", verbosityutilities::kDebug);
+
+    for (const auto& h : hUnfGen)
+      inputs.printLog(TString::Format("%s: nx = %d", h->GetName(), h->GetNbinsX()).Data(), verbosityutilities::kDebug);
+    for (const auto& h : hRefRec)
+      inputs.printLog(TString::Format("%s: nx = %d", h->GetName(), h->GetNbinsX()).Data(), verbosityutilities::kDebug);
+  }
   MakeClosureTestPlots(inputs, hUnfGen, nIteration, isUnfolded);
   MakeClosureTestPlots(inputs, hRefRec, nIteration, !isUnfolded);
   if (inputs.doTrivialClosureTest) {
@@ -1174,13 +1271,91 @@ void DoClosureTestV0(InputSettings& inputs, int nIteration) {
 }
 
 void DoClosureTestV0Pt(InputSettings& inputs, int nIteration) {
-  inputs.setPlotType(plotutilities::PlotType::kV0Pt);
+  inputs.setPlotType(plotutilities::PlotType::kK0SPt);
   DoClosureTestV0(inputs, nIteration);
 }
 
 void DoClosureTestV0Z(InputSettings& inputs, int nIteration) {
-  inputs.setPlotType(plotutilities::PlotType::kV0Z);
+  inputs.setPlotType(plotutilities::PlotType::kK0SZ);
   DoClosureTestV0(inputs, nIteration);
+}
+
+// ----------------------------------------------------------
+
+void CompareTrainingAndTestJets(InputSettings& inputs) {
+  inputs.setPlotType(plotutilities::PlotType::kJet);
+  inputs.printLog("Comparing training and test distributions for jets.", verbosityutilities::kInfo);
+  // Plot comparison of ptjet distributions in training and test samples
+
+  TFile* file = TFile::Open(inputs.inputFileName.c_str(), "READ");
+  if (!file) {
+    inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
+    return;
+  }
+
+  string canvasName = "distComparison_" + plotutilities::to_string(inputs.getPlotType()) + ".pdf";
+  TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1600, 600);
+
+  vector<TH1D*> trainingHists;
+  vector<TH1D*> testHists;
+  vector<string> trainingNames = {
+    rmutilities::training::nameGenJets,
+    rmutilities::training::nameRecJets,
+    rmutilities::training::nameFakeJets,
+    rmutilities::training::nameMissJets,
+    rmutilities::training::nameKinEffJets
+  };
+  vector<string> testNames = {
+    rmutilities::testing::nameGenJets,
+    rmutilities::testing::nameRecJets,
+    rmutilities::testing::nameFakeJets,
+    rmutilities::testing::nameMissJets,
+    rmutilities::testing::nameKinEffJets
+  };
+  vector<string> titles = {
+    "Gen", "Rec", "Fake", "Miss", "KinEff"
+  };
+
+  for (const auto& name : trainingNames) {
+    TH1D* h = (TH1D*)file->Get(name.c_str());
+    if (!h) {
+      inputs.printLog("CompareTrainingAndTestJets() Warning: could not find " + name + " in file " + inputs.inputFileName, verbosityutilities::kWarnings);
+      continue;
+    }
+    trainingHists.push_back(h);
+  }
+  for (const auto& name : testNames) {
+    TH1D* h = (TH1D*)file->Get(name.c_str());
+    if (!h) {
+      inputs.printLog("CompareTrainingAndTestJets() Warning: could not find " + name + " in file " + inputs.inputFileName, verbosityutilities::kWarnings);
+      continue;
+    }
+    testHists.push_back(h);
+  }
+  if (trainingHists.size() != testHists.size()) {
+    inputs.printLog("CompareTrainingAndTestJets() Error: loaded different number of test and training histograms", verbosityutilities::kErrors);
+    return;
+  }
+
+  int nPadsX = 5, nPadsY = 1;
+  canvas->Divide(nPadsX, nPadsY);
+  for (int iPad = 1; iPad <= nPadsX * nPadsY; iPad++) {
+    canvas->cd(iPad);
+    if (iPad != 5) gPad->SetLogy();
+    TH1D* training = trainingHists[iPad - 1];
+    TH1D* test     = testHists[iPad - 1];
+    setStyle(training, 0);
+    setStyle(test, 1);
+    // TH1D* frame = (TH1D*)training->Clone("frame");
+    // frame->Reset();
+    // frame->SetOptStat(0);
+    // frame->SetTitle(titles[iPad - 1].c_str());
+    // frame->Draw();
+    training->Draw();
+    test->Draw("same");
+  }
+  if (inputs.saveFigs)
+    canvas->SaveAs(canvas->GetName());
 }
 
 // ----------------------------------------------------------
@@ -1189,52 +1364,13 @@ void DoClosureTestV0Z(InputSettings& inputs, int nIteration) {
 //
 // ----------------------------------------------------------
 
-InputSettings setup() {
-  InputSettings x; x.setVerbosity(verbosityutilities::kDebug);
-  x.train = 468659;
-  x.inputFileName = to_string(x.train) + ".root";
-  x.outputFileName = "RooUnfoldResponse_" + to_string(x.train) + ".root";
-  x.responseFileName = x.outputFileName;
-  return x;
-}
-
-void createresponses() {
-  InputSettings x = setup();
-  x.binwidthptjet = 5.;
-  x.binwidthptv0 = 1.;
-  x.binwidthzv0 = 0.1;
-  array<double, 2> ptjetRecRangeForUnfolding = {10., 100.};
-  array<double, 2> ptjetGenRangeForUnfolding = {10., 100.};
-  array<double, 2> ptv0RecRangeForUnfolding = {1., 40.};
-  array<double, 2> ptv0GenRangeForUnfolding = {1., 40.};
-  array<double, 2> zv0RecRangeForUnfolding = {0., 1.};
-  array<double, 2> zv0GenRangeForUnfolding = {0., 1.};
-
-  x.setPtJetRec(ptjetRecRangeForUnfolding[0], ptjetRecRangeForUnfolding[1]);
-  x.setPtJetGen(ptjetGenRangeForUnfolding[0], ptjetGenRangeForUnfolding[1]);
-  x.setPtV0Rec(ptv0RecRangeForUnfolding[0], ptv0RecRangeForUnfolding[1]);
-  x.setPtV0Gen(ptv0GenRangeForUnfolding[0], ptv0GenRangeForUnfolding[1]);
-  x.setZV0Rec(zv0RecRangeForUnfolding[0], zv0RecRangeForUnfolding[1]);
-  x.setZV0Gen(zv0GenRangeForUnfolding[0], zv0GenRangeForUnfolding[1]);
-
-  x.setPlotType(plotutilities::PlotType::kJet);
+void createresponses(InputSettings& x) {
   CreateResponseJets(x);
   CreateResponseV0Pt(x);
   CreateResponseV0Z(x);
 }
 
-void unfolding(string inputFileName = "") {
-  InputSettings x = setup();
-  x.minIteration = 3;
-  x.maxIteration = 5;
-  x.inputFileName = x.responseFileName;
-  x.outputFileName = "ClosureTest.root";
-
-  if (inputFileName.empty())
-    x.doTrivialClosureTest = true;
-  if (!x.doTrivialClosureTest)
-    x.inputFileName = inputFileName;
-
+void unfolding(InputSettings& x) {
   for (int iIteration = x.minIteration; iIteration <= x.maxIteration; iIteration++) {
     DoUnfoldingJets(x, iIteration);
     DoUnfoldingV0Pt(x, iIteration);
@@ -1242,14 +1378,8 @@ void unfolding(string inputFileName = "") {
   }
 }
 
-void checkclosure() {
+void checkclosure(InputSettings& x) {
   gROOT->SetBatch(kTRUE);
-  InputSettings x = setup();
-  x.doTrivialClosureTest = true;
-  x.minIteration = 3;
-  x.maxIteration = 5;
-  x.inputFileName = "ClosureTest.root";
-
   for (int iIteration = x.minIteration; iIteration <= x.maxIteration; iIteration++) {
     DoClosureTestJets(x, iIteration);
     x.setPtJetProjection(10., 20.);
@@ -1260,11 +1390,71 @@ void checkclosure() {
     DoClosureTestV0Z(x, iIteration);
   }
 }
-// Trivial Closure Test
-void doclosuretest() {
-  createresponses();
-  unfolding();
-  checkclosure();
+
+void checktrainingtest(InputSettings& x) {
+  CompareTrainingAndTestJets(x);
+  // x.setPtJetProjection(10., 20.);
+  // CompareTrainingAndTestV0Pt(x);
+  // CompareTrainingAndTestV0Z(x);
+  // x.setPtJetProjection(20., 30.);
+  // CompareTrainingAndTestV0Pt(x);
+  // CompareTrainingAndTestV0Z(x);
+}
+
+enum ActionType { kCreateResponses, kDoUnfolding, kCheckClosure, kCompareDists, kDoAll };
+void doclosuretest(ActionType action, InputSettings& inputs, array<string, 4> fileNames) {
+  string trainingFileName = fileNames[0];
+  string testFileName     = fileNames[1];
+  string responseFileName = fileNames[2];
+  string closureFileName  = fileNames[3];
+
+  if (inputs.minIteration < 0 || inputs.maxIteration < 0) {
+    if (action == kDoUnfolding || action == kCheckClosure || action == kDoAll) {
+      inputs.printLog("doclosuretest(): minIteration and maxIteration must be set to do unfolding or check closure", verbosityutilities::kErrors);
+      return;
+    }
+  }
+
+  if (action == kCreateResponses || action == kDoAll) {
+    inputs.inputFileName  = trainingFileName;
+    inputs.outputFileName = responseFileName;
+    createresponses(inputs);
+  }
+  if (action == kDoUnfolding || action == kDoAll) {
+    inputs.inputFileName    = testFileName;
+    inputs.responseFileName = responseFileName;
+    inputs.outputFileName   = closureFileName;
+    unfolding(inputs);
+  }
+  if (action == kCheckClosure || action == kDoAll) {
+    inputs.inputFileName = closureFileName;
+    checkclosure(inputs);
+  }
+  if (action == kCompareDists || action == kDoAll) {
+    inputs.inputFileName = closureFileName;
+    checktrainingtest(inputs);
+  }
+}
+
+void closuretest520161(ActionType action, bool doTrivialClosureTest, int minIteration = -1, int maxIteration = -1) {
+  int train = 520161;
+  string trainingFileName, testFileName, responseFileName, closureFileName;
+  if (doTrivialClosureTest) {
+    trainingFileName = to_string(train) + ".root";
+    testFileName     = trainingFileName;
+  } else {
+    trainingFileName = to_string(train) + "_60.root";
+    testFileName     = to_string(train) + "_40.root";
+  }
+  responseFileName = "RooUnfoldResponse_" + trainingFileName;
+  closureFileName  = "ClosureTest_" + trainingFileName;
+
+  InputSettings x; x.setVerbosity(verbosityutilities::kDebug);
+  x.autoTemplateHists();
+  x.doTrivialClosureTest = doTrivialClosureTest;
+  x.minIteration = minIteration;
+  x.maxIteration = maxIteration;
+  doclosuretest(action, x, array<string, 4>{trainingFileName, testFileName, responseFileName, closureFileName});
 }
 
 # endif

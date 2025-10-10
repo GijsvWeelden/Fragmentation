@@ -2,6 +2,7 @@
 #include "RooUnfoldResponse.h"
 #include "RooUnfoldBayes.h"
 #include "../plotting_macros/histUtils.C"
+#include "../plotting_macros/plotUtils.C"
 
 #ifndef DO_UNFOLDING
 #define DO_UNFOLDING
@@ -1085,19 +1086,19 @@ array<TH1D*, 3> MakeClosureTestHists(const T* hRooUnfold, const T* hAnalysis, do
       nObservable = "#it{p}_{T,jet} (GeV/c)";
       hRoo = (TH1D*)hRooUnfold->Clone("hRoo");
       hAna = (TH1D*)hAnalysis->Clone("hAna");
-      ptjetBins = getProjectionBins(hRooUnfold->GetXaxis(), ptjetmin, ptjetmax);
+      ptjetBins = histutils::getProjectionBins(hRooUnfold->GetXaxis(), ptjetmin, ptjetmax);
       hRoo->GetXaxis()->SetRange(ptjetBins[0], ptjetBins[1]);
       hAna->GetXaxis()->SetRange(ptjetBins[0], ptjetBins[1]);
       break;
     case unfoldingutilities::VariableType::kK0SPt:
       nObservable = "#it{p}_{T,K^{0}_{S}} (GeV/c)";
-      ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
+      ptjetBins = histutils::getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
       hRoo = (TH1D*)hRooUnfold->ProjectionX("hRoo", ptjetBins[0], ptjetBins[1]);
       hAna = (TH1D*)hAnalysis->ProjectionX("hAna", ptjetBins[0], ptjetBins[1]);
       break;
     case unfoldingutilities::VariableType::kK0SZ:
       nObservable = "#it{z}_{K^{0}_{S}}";
-      ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
+      ptjetBins = histutils::getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
       hRoo = (TH1D*)hRooUnfold->ProjectionX("hRoo", ptjetBins[0], ptjetBins[1]);
       hAna = (TH1D*)hAnalysis->ProjectionX("hAna", ptjetBins[0], ptjetBins[1]);
       break;
@@ -1157,7 +1158,7 @@ array<TH1D*, 3> MakeClosureTestHistsV0(InputSettings& inputs, const TH2D* hRooUn
     nObservable = "#it{z}_{K^{0}_{S}}";
 
   // The binning of the two histograms is the same by construction
-  array<int, 2> ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
+  array<int, 2> ptjetBins = histutils::getProjectionBins(hRooUnfold->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1D* hRooUnfoldProj = (TH1D*)hRooUnfold->ProjectionX("hRooUnfoldProj", ptjetBins[0], ptjetBins[1]);
   TH1D* hAnalysisProj  = (TH1D*)hAnalysis->ProjectionX("hAnalysisProj", ptjetBins[0], ptjetBins[1]);
 
@@ -1344,8 +1345,8 @@ void CompareTrainingAndTestJets(InputSettings& inputs) {
     if (iPad != 5) gPad->SetLogy();
     TH1D* training = trainingHists[iPad - 1];
     TH1D* test     = testHists[iPad - 1];
-    setStyle(training, 0);
-    setStyle(test, 1);
+    plotutils::setStyle(training, 0);
+    plotutils::setStyle(test, 1);
     // TH1D* frame = (TH1D*)training->Clone("frame");
     // frame->Reset();
     // frame->SetOptStat(0);

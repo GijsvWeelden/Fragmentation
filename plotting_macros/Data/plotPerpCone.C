@@ -14,6 +14,7 @@
 #include "TLegend.h"
 
 #include "../histUtils.C"
+#include "../plotUtils.C"
 
 #ifndef __PLOTPERPCONE_H__
 #define __PLOTPERPCONE_H__
@@ -26,32 +27,32 @@
 
 // Divide two histograms with protection against nan/null bin content
 // Assumes uncorrelated errors
-TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
-  // TODO: Check if same binning
-  TH1* result = (TH1*)base->Clone("result");
-  result->Reset();
-  for (int i = 0; i <= 1 + base->GetNbinsX(); i++) {
-    double numerator = base->GetBinContent(i);
-    double numError = base->GetBinError(i);
-    double denominator = divideBy->GetBinContent(i);
-    double denError = divideBy->GetBinError(i);
+// TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
+//   // TODO: Check if same binning
+//   TH1* result = (TH1*)base->Clone("result");
+//   result->Reset();
+//   for (int i = 0; i <= 1 + base->GetNbinsX(); i++) {
+//     double numerator = base->GetBinContent(i);
+//     double numError = base->GetBinError(i);
+//     double denominator = divideBy->GetBinContent(i);
+//     double denError = divideBy->GetBinError(i);
 
-    if (std::isnan(numerator) || std::isnan(denominator))
-      continue;
-    else if (std::abs(numerator) < threshold || std::abs(denominator) < threshold)
-      continue;
+//     if (std::isnan(numerator) || std::isnan(denominator))
+//       continue;
+//     else if (std::abs(numerator) < threshold || std::abs(denominator) < threshold)
+//       continue;
 
-    double numRelError = numError / numerator;
-    double denRelError = denError / denominator;
+//     double numRelError = numError / numerator;
+//     double denRelError = denError / denominator;
 
-    double newBinContent = numerator / denominator;
-    double newBinError = newBinContent * std::sqrt((numRelError * numRelError) + (denRelError * denRelError));
+//     double newBinContent = numerator / denominator;
+//     double newBinError = newBinContent * std::sqrt((numRelError * numRelError) + (denRelError * denRelError));
 
-    result->SetBinContent(i, newBinContent);
-    result->SetBinError(i, newBinError);
-  }
-  return result;
-}
+//     result->SetBinContent(i, newBinContent);
+//     result->SetBinError(i, newBinError);
+//   }
+//   return result;
+// }
 
 namespace MyStrings {
   string getPtString(string subscript);
@@ -105,7 +106,7 @@ namespace MyStrings {
   const string sEtaV0       = sEta + "_{" + sV0 + "}";
   const string sEtaK0S      = sEta + "_{" + sK0S + "}";
 
-  const string sEtaJetRange = "|" + sEtaJet + "| < 0.5";
+  const string sEtaJetRange = "|" + sEtaJet + "| < 0.35";
   const string sEtaV0Range  = "|" + sEtaV0 + "| < 0.9";
   const string sEtaK0SRange = "|" + sEtaK0S + "| < 0.9";
 
@@ -408,12 +409,12 @@ struct Plotter {
 };
 
 void Plotter::addLatex(double x, double y, string s) {
-  TLatex* l = CreateLatex(x, y, s.c_str(), textSize);
+  TLatex* l = plotutils::CreateLatex(x, y, s.c_str(), textSize);
   objects.push_back(l);
 }
 void Plotter::addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
   TLine* l = new TLine(x0, y0, x1, y1);
-  setStyle(l, styleNumber, lineStyle, lineWidth);
+  plotutils::setStyle(l, styleNumber, lineStyle, lineWidth);
   objects.push_back(l);
 }
 void Plotter::makeCanvas(string s = "canvas", double x = 800, double y = 600) {
@@ -448,10 +449,10 @@ void Plotter::makeFrame(string sx, string sy) {
 }
 void Plotter::makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
   if (!canvas) makeCanvas();
-  frame = DrawFrame(x0, x1, y0, y1, sx, sy);
+  frame = plotutils::DrawFrame(x0, x1, y0, y1, sx, sy);
 }
 void Plotter::makeLegend(double x0, double x1, double y0, double y1, string s) {
-  legend = CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
+  legend = plotutils::CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
 }
 
 void Plotter::plot() {
@@ -492,7 +493,7 @@ void Plotter::reset() {
 
 void Plotter::setHistStyles() {
   for (unsigned int i = 0; i < hists.size(); i++)
-    setStyle(hists[i], i);
+    plotutils::setStyle(hists[i], i);
 }
 
 string Plotter::getMassString() {
@@ -618,13 +619,13 @@ void PerpCone::plotPerpConeMass() {
   }
 
   TH1* hJet = getMassHist(kGetJetV0s);
-  setStyle(hJet, 0);
+  plotutils::setStyle(hJet, 0);
   hJet->Scale(1. / nJets, "width");
   plotter->hists.push_back(hJet);
   plotter->legend->AddEntry(hJet, "V0s in jet cone");
 
   TH1* hPC = getMassHist(kGetPCV0s);
-  setStyle(hPC, 1);
+  plotutils::setStyle(hPC, 1);
   hPC->Scale(1. / (inputs->conesPerJet * nJets), "width");
   plotter->hists.push_back(hPC);
   plotter->legend->AddEntry(hPC, "V0s in UE");
@@ -687,12 +688,12 @@ void PerpCone::plotPerpConePt() {
   // hJet->Scale(1. / nJets, "width");
   TH1* hJet = ptHists[0];
 
-  setStyle(hJet, 0);
+  plotutils::setStyle(hJet, 0);
   plotter->hists.push_back(hJet);
   plotter->legend->AddEntry(hJet, "V0s in jet cone");
 
   TH1* hPC = ptHists[1];
-  setStyle(hPC, 1);
+  plotutils::setStyle(hPC, 1);
   plotter->hists.push_back(hPC);
   plotter->legend->AddEntry(hPC, "V0s in UE");
 
@@ -794,7 +795,7 @@ void perpConeMass(bool doRatio) {
 
 void perpconept(double ptjetmin, double ptjetmax, bool doRatio) {
   PerpCone p = setupPerpCone(ptjetmin, ptjetmax);
-  p.inputs->verbosity = VerbosityLevels::kInfo;
+  p.inputs->verbosity = VerbosityLevels::kErrors;
   p.inputs->logplot = true;
   p.inputs->ratioplot = doRatio;
   p.inputs->outputFileName = p.inputs->getNameFromJetPt("pc");
@@ -811,11 +812,11 @@ void perpconept(double ptjetmin, double ptjetmax, bool doRatio) {
   p.plotter->makeLegend(0.45, 0.6, 0.3, 0.4, "");
 
   TH1* hJet = ptHists[0];
-  setStyle(hJet, 0);
+  plotutils::setStyle(hJet, 0);
   p.plotter->legend->AddEntry(hJet, "V0s in jet cone");
 
   TH1* hPC = ptHists[1];
-  setStyle(hPC, 1);
+  plotutils::setStyle(hPC, 1);
   p.plotter->legend->AddEntry(hPC, "V0s in UE");
 
   string xTitle = sPtK0S;
@@ -841,6 +842,12 @@ void perpconept(double ptjetmin, double ptjetmax, bool doRatio) {
     TH1* baseCopy = (TH1*)hJet->Clone("baseCopy");
     hJet = divideWithProtection(hJet, baseCopy);
     hPC = divideWithProtection(hPC, baseCopy);
+    for (int i = 1; i <= hPC->GetNbinsX(); i++) {
+      double xlow = hPC->GetXaxis()->GetBinLowEdge(i);
+      double xup = hPC->GetXaxis()->GetBinUpEdge(i);
+      double bc = hPC->GetBinContent(i);
+      cout << xlow << " - " << xup << ": " << 1 - bc << " (" << bc << ")" << endl;
+    }
   }
   if (p.inputs->passVerbosityCheck(VerbosityLevels::kInfo)) {
     hJet->Print("all");
@@ -854,6 +861,67 @@ void perpconept(double ptjetmin, double ptjetmax, bool doRatio) {
   p.inputs->ratioplot = false;
 
   p.plotter->plot();
+}
+
+void perpconept(PerpCone& pc) {
+  array<TH1*, 2> ptHists = pc.getPerpConePtHists(true);
+  if (pc.inputs->passVerbosityCheck(VerbosityLevels::kDebug)) {
+    for (auto h : ptHists) {
+      h->Print("all");
+    }
+  }
+  TH1* hJet = ptHists[0];
+  plotutils::setStyle(hJet, 0);
+  pc.plotter->legend->AddEntry(hJet, "V0s in jet cone");
+
+  TH1* hPC = ptHists[1];
+  plotutils::setStyle(hPC, 1);
+  pc.plotter->legend->AddEntry(hPC, "V0s in UE");
+
+  if (pc.inputs->ratioplot) {
+    TH1* baseCopy = (TH1*)hJet->Clone("baseCopy");
+    hJet = divideWithProtection(hJet, baseCopy);
+    hPC = divideWithProtection(hPC, baseCopy);
+  }
+  if (pc.inputs->passVerbosityCheck(VerbosityLevels::kInfo)) {
+    hJet->Print("all");
+    hPC->Print("all");
+  }
+  pc.plotter->hists.push_back(hJet);
+  pc.plotter->hists.push_back(hPC);
+  pc.plotter->setDrawOption("p");
+  pc.plotter->plot();
+}
+
+void perpconept10_20(bool doRatio = false) {
+  double ptjetmin = 10., ptjetmax = 20.;
+  PerpCone p = setupPerpCone(ptjetmin, ptjetmax);
+  p.inputs->logplot = true;
+
+  p.inputs->ratioplot = doRatio;
+  if (doRatio) {
+    p.inputs->outputFileName = p.inputs->getNameFromJetPt("pc", "_ratio.pdf");
+    p.plotter->makeLegend(0.45, 0.6, 0.3, 0.4, "");
+
+    p.plotter->addLatex(0.47, 0.85, sThisThesis + ", " + sAliceData);
+    p.plotter->addLatex(0.47, 0.80, sSqrtS);
+    p.plotter->addLatex(0.47, 0.75, sAntikt + " " + sChV0Jets);
+    p.plotter->addLatex(0.47, 0.70, sRadius + ", " + sEtaJetRange);
+    p.plotter->addLatex(0.47, 0.65, getPtJetRangeString(ptjetmin, ptjetmax, true));
+
+    p.plotter->makeFrame(0., p.inputs->ptjetmax, 1e-4, 1., sPtK0S, sRatio);
+  } else {
+    p.inputs->outputFileName = p.inputs->getNameFromJetPt("pc", ".pdf");
+    p.plotter->makeLegend(0.25, 0.40, 0.25, 0.35, "");
+    p.plotter->addLatex(0.25, 0.83, sThisThesis + ", " + sAliceData + ", " + sSqrtS);
+    p.plotter->addLatex(0.25, 0.78, sAntikt + " " + sChV0Jets + ", " + sRadius + ", " + sEtaJetRange);
+    p.plotter->addLatex(0.25, 0.73, getPtJetRangeString(ptjetmin, ptjetmax, true));
+
+    string xTitle = sPtK0S;
+    string yTitle = getOneOverString(sNumber + "_{jets, cones}") + " " + getdYdXString(sNK0S, sPtK0S);
+    p.plotter->makeFrame(0., p.inputs->ptjetmax, 1e-7, 10., xTitle, yTitle);
+  }
+  perpconept(p);
 }
 
 #endif

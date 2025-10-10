@@ -3,21 +3,25 @@
 #include "TPad.h"
 #include "TLatex.h"
 #include "TLegend.h"
+#include "histUtils.C"
 
 #ifndef PLOTUTILS_H
 #define PLOTUTILS_H
+
+namespace plotutils {
 
 static  int      myDarkRed     = TColor::GetColor(128,0,0);
 static  int      myDarkGreen   = TColor::GetColor(0,128,0);
 static  int      myDarkBlue    = TColor::GetColor(0,0,128);
 
-TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString xTitle = "", TString yTitle = "", double a = 0.1, bool setMargins = true) {
-
+TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString xTitle = "", TString yTitle = "", bool setMargins = true) {
   if(setMargins) {
-  gPad->SetLeftMargin(0.22);
-  gPad->SetBottomMargin(0.15);
-  gPad->SetRightMargin(0.15);//0.05);
-  gPad->SetTopMargin(0.1);//0.05);
+    gPad->SetLeftMargin(0.22);
+    gPad->SetBottomMargin(0.15);
+    gPad->SetRightMargin(0.05);
+    gPad->SetTopMargin(0.05);
+    // gPad->SetRightMargin(0.15);
+    // gPad->SetTopMargin(0.1);
   }
 
   TH1F *frame = gPad->DrawFrame(xmin,ymin,xmax,ymax);
@@ -28,24 +32,21 @@ TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TStr
   frame->GetXaxis()->SetTitleSize(0.06);
   frame->GetYaxis()->SetTitleSize(0.06);
   frame->GetXaxis()->SetTitleOffset(1.0);
-  frame->GetYaxis()->SetTitleOffset(1.6);//1.3);
+  frame->GetYaxis()->SetTitleOffset(1.6);
   frame->GetXaxis()->CenterTitle(true);
   frame->GetYaxis()->CenterTitle(true);
 
   gPad->SetTicks(1,1);
-
   return frame;
 }
 
 TLegend *CreateLegend(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString title = "", Double_t textSize = 0.06) {
-
   TLegend *leg = new TLegend(xmin,ymin,xmax,ymax,title.Data());
   leg->SetFillColor(10);
   leg->SetBorderSize(0);
   leg->SetFillStyle(0);
   leg->SetTextSize(textSize);
   leg->SetTextFont(42);
-
   return leg;
 }
 
@@ -90,5 +91,141 @@ Int_t GetMarker(Int_t i) {
   if(i<nc) return markerStyle[i];
   else     return 20+i;
 }
+
+// Set histogram colours and markers
+void setStyle(TH1* hist, int styleNumber, double alpha = -1, int lineWidth = 3) {
+  hist->SetLineWidth(lineWidth);
+  hist->SetLineColor(GetColor(styleNumber));
+  hist->SetMarkerStyle(GetMarker(styleNumber));
+  hist->SetMarkerColor(GetColor(styleNumber));
+  if (alpha > 0.) {
+    hist->SetFillColorAlpha(GetColor(styleNumber), alpha);
+  }
+}
+
+void setStyle(TLine* line, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
+  line->SetLineWidth(lineWidth);
+  line->SetLineColor(GetColor(styleNumber));
+  line->SetLineStyle(lineStyle);
+}
+
+void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3) {
+  f->SetLineWidth(lineWidth);
+  f->SetLineColor(GetColor(styleNumber));
+  f->SetLineStyle(lineStyle);
+}
+
+struct Plotter {
+  private:
+    string _drawOption; // Private because it requires caution with spaces
+    bool   _logPlot;
+    string _outputFileName;
+    double _textSize;
+
+    TH1F*            _frame   = nullptr;
+    TCanvas*         _canvas  = nullptr;
+    TLegend*         _legend  = nullptr;
+    vector<TH1*>     _hists   = {};
+    vector<TObject*> _objects = {};
+
+    bool isHistVectorEmpty(string origin) {
+      if (_hists.empty()) {
+        std::cout << "Plotter::" << origin << "(): Hist vector is empty!" << std::endl;
+        return true;
+      }
+      return false;
+    }
+  public:
+    Plotter() { Plotter::reset(); }
+    Plotter(string ofn, bool lp = false, double ts = 0.04) : _outputFileName(ofn), _logPlot(lp), _textSize(ts) { Plotter::reset(); }
+
+    string getDrawOption() { return _drawOption; }
+    bool   getLogPlot() { return _logPlot; }
+    string getOutputFileName() { return _outputFileName; }
+    double getTextSize() { return _textSize; }
+
+    void setDrawOption(string s) {
+      // If the user already added a space at the start, don't add another one
+      if (s.at(0) == ' ') { // Single quotes, because checking for a char
+        _drawOption = s;
+      } else {
+        _drawOption = " " + s;
+      }
+    }
+    void setLogPlot(bool x = true) { _logPlot = x; }
+    void setOutputFileName(string s) { _outputFileName = s; }
+    void setTextSize(double x) { _textSize = x; }
+
+    // Utilities
+    void addLatex(double x, double y, string s) {
+      _objects.push_back(CreateLatex(x, y, s.c_str(), _textSize));
+    }
+    void addHistogram(TH1* h) {
+      _hists.push_back(h);
+    }
+    void addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
+      TLine* l = new TLine(x0, y0, x1, y1);
+      setStyle(l, styleNumber, lineStyle, lineWidth);
+      _objects.push_back(l);
+    }
+    void makeCanvas(string s = "c", double x = 800, double y = 600) {
+      _canvas = new TCanvas(s.c_str(), s.c_str(), x, y);
+      _canvas->SetLogy(_logPlot);
+    }
+    void makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
+      if (!_canvas) makeCanvas();
+      _frame = DrawFrame(x0, x1, y0, y1, sx, sy);
+    }
+    void makeFrame(string sx, string sy) {
+      // Automatically determine frame ranges from hists vector
+      if (isHistVectorEmpty("makeFrame"))
+        return;
+
+      if (!_canvas) makeCanvas();
+      double xMinFrame = _hists[0]->GetXaxis()->GetXmin();
+      double xMaxFrame = _hists[0]->GetXaxis()->GetXmax();
+      double yMinFrame = getLowerBound(_hists, 0, 0) * 0.9;
+      double yMaxFrame = getUpperBound(_hists, 0, 0) * 1.2;
+      makeFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, sx, sy);
+    }
+    void makeLegend(double x0, double x1, double y0, double y1, string s) {
+      _legend = CreateLegend(x0, x1, y0, y1, s.c_str(), _textSize);
+    }
+    void makeRatios(int baseIndex = 0) {
+      if (isHistVectorEmpty("makeRatios"))
+        return;
+
+      TH1* baseCopy = (TH1*)_hists[baseIndex]->Clone("baseCopy");
+      for (auto& h : _hists) h = divideWithProtection(h, baseCopy);
+    }
+    void plot() {
+      if (!_canvas) makeCanvas();
+      if (!_frame) makeFrame("x", "y");
+
+      _frame->Draw();
+      if (_legend) _legend->Draw("same");
+      for (auto o : _objects)
+        o->Draw("same");
+
+      for (auto h : _hists)
+        h->Draw(("same" + _drawOption).c_str());
+
+      if (_outputFileName != "")
+        _canvas->SaveAs(_outputFileName.c_str());
+    }
+    void reset() {
+      _canvas = nullptr;
+      _frame = nullptr;
+      _legend = nullptr;
+      _objects.clear();
+      _hists.clear();
+    }
+    void setHistStyles() {
+      for (unsigned int i = 0; i < _hists.size(); i++)
+        setStyle(_hists[i], i);
+    }
+}; // struct Plotter
+
+} // namespace plotutils
 
 #endif // PLOTUTILS_H

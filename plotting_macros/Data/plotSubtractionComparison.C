@@ -15,6 +15,7 @@
 #include "TLegend.h"
 
 #include "../histUtils.C"
+#include "../plotUtils.C"
 
 #ifndef SUBTRACTION_COMPARISON_C
 #define SUBTRACTION_COMPARISON_C
@@ -70,7 +71,7 @@ namespace MyStrings {
   const string sEtaV0       = sEta + "_{" + sV0 + "}";
   const string sEtaK0S      = sEta + "_{" + sK0S + "}";
 
-  const string sEtaJetRange = "|" + sEtaJet + "| < 0.5";
+  const string sEtaJetRange = "|" + sEtaJet + "| < 0.35";
   const string sEtaV0Range  = "|" + sEtaV0 + "| < 0.9";
   const string sEtaK0SRange = "|" + sEtaK0S + "| < 0.9";
 
@@ -267,7 +268,7 @@ struct Plotter {
     Plotter(InputSettings* x) { inputs = x; }
 
     void addLatex(double x, double y, string s);
-    void addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle, int lineWidth);
+    void addLine(double x0, double x1, double y0, double y1, int styleNumber, int lineStyle, int lineWidth);
     void makeCanvas(string s, double x, double y);
     void makeFrame(string sx, string sy);
     void makeFrame(double x0, double x1, double y0, double y1, string sx, string sy);
@@ -277,12 +278,12 @@ struct Plotter {
 };
 
 void Plotter::addLatex(double x, double y, string s) {
-  TLatex* l = CreateLatex(x, y, s.c_str(), textSize);
+  TLatex* l = plotutils::CreateLatex(x, y, s.c_str(), textSize);
   objects.push_back(l);
 }
-void Plotter::addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
+void Plotter::addLine(double x0, double x1, double y0, double y1, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
   TLine* l = new TLine(x0, y0, x1, y1);
-  setStyle(l, styleNumber, lineStyle, lineWidth);
+  plotutils::setStyle(l, styleNumber, lineStyle, lineWidth);
   objects.push_back(l);
 }
 void Plotter::makeCanvas(string s = "canvas", double x = 800, double y = 600) {
@@ -316,10 +317,11 @@ void Plotter::makeFrame(string sx, string sy) {
   makeFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, sx, sy);
 }
 void Plotter::makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
-  frame = DrawFrame(x0, x1, y0, y1, sx, sy);
+  if (!canvas) makeCanvas();
+  frame = plotutils::DrawFrame(x0, x1, y0, y1, sx, sy);
 }
 void Plotter::makeLegend(double x0, double x1, double y0, double y1, string s) {
-  legend = CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
+  legend = plotutils::CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
 }
 void Plotter::plotHists() {
   if (hists.empty()) {
@@ -347,7 +349,7 @@ void Plotter::plotHists() {
 
   int iStyle = 0;
   for (auto h : hists) {
-    setStyle(h, iStyle++);
+    plotutils::setStyle(h, iStyle++);
     h->Draw(("same" + drawOption).c_str());
     if (inputs->verbosity >= kDebug) h->Print();
   }
@@ -369,6 +371,7 @@ string Plotter::setDrawOption(string s) {
 // ---------------------------------------------------------------
 
 struct SubtractionComparison {
+  string getHistDirFromTrain(int train, int x);
   string getFragHistNameFromTrain(int train, int x);
   string getJetHistName(int train, int x);
 
@@ -378,72 +381,73 @@ struct SubtractionComparison {
   void plotV0InJetZ();
 };
 
-string SubtractionComparison::getFragHistNameFromTrain(int train, int x) {
+string SubtractionComparison::getHistDirFromTrain(int train, int x) {
   string s = "jet-fragmentation";
   if (train == 436232) {
     if (x == SubtractionTypes::kNone || x == kSubtract)
       s += "_id30952";
     else
       s += "_id24580";
-
-    s += "/data/jets/";
-
-    if (x == kSubtract || x == kAddTracks)
-      s += "weighted/";
-
-    s += "V0/jetPtV0TrackProjMass";
+  } else if (train == 509721) {
+    if (x == SubtractionTypes::kNone || x == kSubtract)
+      s += "_id37960";
+    else
+      s += "_id31543";
   }
+  s += "/data/jets/";
+  return s;
+}
+string SubtractionComparison::getFragHistNameFromTrain(int train, int x) {
+  string s = getHistDirFromTrain(train, x);
+  if (x == kSubtract || x == kAddTracks)
+    s += "weighted/";
+
+  s += "V0/jetPtV0TrackProjMass";
   return s;
 }
 string SubtractionComparison::getJetHistName(int train, int x) {
-  string s = "jet-fragmentation";
-  if (train == 436232) {
-    if (x == SubtractionTypes::kNone || x == kSubtract)
-      s += "_id30952";
-    else
-      s += "_id24580";
+  string s = getHistDirFromTrain(train, x);
+  if (x == kSubtract || x == kAddTracks)
+    s += "weighted/";
 
-    s += "/data/jets/";
-
-    if (x == kSubtract || x == kAddTracks)
-      s += "weighted/";
-
-    s += "jetPtEtaPhi";
-  }
+  s += "jetPtEtaPhi";
   return s;
 }
 
 // Plot jet spectrum
 void SubtractionComparison::plotJetPt(bool doBase, bool doRatio) {
-  InputSettings x; //x.verbosity = kDebug;
-  x.train = 436232;
+  InputSettings x;
+  x.train = 509721;
 
   x.setInputFileNameFromTrain();
   x.ratioplot = false;
   x.logplot = true;
 
   Plotter p(x);
-  if (!doBase && doRatio) {
-    p.setDrawOption("hist");
-    p.makeFrame(0., 200., 0.8, 1.2, sPtJet, sRatio);
-  }
-
-  // Spectrum - Base vs V0 Sub vs Track-Adding
-  x.outputFileName = "subcomp-";
-  x.outputFileName += "jetspectrum";
   if (doRatio) {
     x.ratioplot = true;
     x.logplot = false;
-    x.outputFileName = "jetratio";
-  }
-  if (doBase) x.outputFileName += "-all";
-  x.outputFileName += ".pdf";
-  p.legend = CreateLegend(0.25, 0.45, 0.17, 0.37, "", 0.04);
+    if (doBase)
+      x.outputFileName = "subcomp-jetratio-all.pdf";
+    else
+      x.outputFileName = "subcomp-jetratio.pdf";
 
-  if (doRatio) {
-    p.addLatex(0.25, 0.8, "This Thesis");
+    p.legend = plotutils::CreateLegend(0.3, 0.4, 0.2, 0.35, "", 0.04);
+    p.makeFrame(0., 60., 0.5, 1.1, sPtJet, sRatio);
+    p.addLatex(0.3, 0.55, "This Thesis, ALICE pp data, #sqrt{s} = 13.6 TeV");
+    p.addLatex(0.3, 0.50, "Anti-#it{k}_{T} ch+V0 jets, #it{R} = 0.4, |#eta_{jet}| < 0.35");
+    p.addLatex(0.3, 0.45, "V0 signal probability: 90\%");
   } else {
-    p.addLatex(0.6, 0.8, "This Thesis");
+    x.ratioplot = false;
+    x.logplot = true;
+    if (doBase)
+      x.outputFileName = "subcomp-jetspectrum-all.pdf";
+    else
+      x.outputFileName = "subcomp-jetspectrum.pdf";
+
+    p.makeFrame(0., 60., 1e2, 1e6, sPtJet, "Njets");
+    p.addLatex(0.6, 0.80, "This Thesis");
+    p.legend = plotutils::CreateLegend(0.3, 0.45, 0.17, 0.37, "", 0.04);
   }
 
   TFile* file = TFile::Open(x.inputFileName.c_str(), "READ");
@@ -455,6 +459,7 @@ void SubtractionComparison::plotJetPt(bool doBase, bool doRatio) {
 
   TH3* h3Base = (TH3*)file->Get(getJetHistName(x.train, SubtractionTypes::kNone).c_str());
   TH1* base = (TH1*)h3Base->ProjectionX("base");
+  base->Sumw2();
   if (doBase) {
     p.hists.push_back(base);
     p.legend->AddEntry(base, "No subtraction");
@@ -498,25 +503,56 @@ void SubtractionComparison::plotJetPt() {
 
 // Plot V0 fragmentation spectrum (currently not per-jet normalised)
 void SubtractionComparison::plotV0InJetZ(bool doBase, bool doRatio) {
+  TH1* zTemplate = new TH1D("zTemplate", "", 10, 1e-3, 1.+1e-3);
   InputSettings x;
   x.hadron = "K0S";
-  x.train = 436232;
+  x.train = 509721;
 
   x.setInputFileNameFromTrain();
-  x.ratioplot = false;
-  x.logplot = true;
-  x.setJetPt(20., 30.);
+  // x.setJetPt(10., 20.);
+  // x.setJetPt(20., 30.);
+  x.setJetPt(30., 40.);
   const int projectionAxis = 1;
 
-  x.outputFileName = "subcomp-";
-  x.outputFileName += "v0z";
+  Plotter p(x);
+  p.makeCanvas();
   if (doRatio) {
     x.ratioplot = true;
     x.logplot = false;
-    x.outputFileName += "ratio";
+    if (doBase)
+      x.outputFileName = x.getSaveNameFromJetPt("subcomp-v0zratio-all", ".pdf");
+    else
+      x.outputFileName = x.getSaveNameFromJetPt("subcomp-v0zratio", ".pdf");
+
+    p.makeLegend(0.3, 0.45, 0.20, 0.35, "");
+    if (doBase) {
+      p.makeFrame(1e-3, 1+1e-3, 0., 1.2, sZK0S, sRatio);
+      p.addLatex(0.3, 0.60, "This Thesis, ALICE pp data");
+      p.addLatex(0.3, 0.55, "#sqrt{s} = 13.6 TeV");
+      p.addLatex(0.3, 0.50, "Anti-#it{k}_{T} ch+V0 jets, #it{R} = 0.4, |#eta_{jet}| < 0.35");
+      p.addLatex(0.3, 0.45, TString::Format("%.0f < #it{p}_{T, jet} < %.0f GeV/#it{c}", x.jetptlow, x.jetpthigh).Data());
+      p.addLatex(0.3, 0.40, "V0 signal probability: 90\%");
+      p.addLine(1e-3, 1.+1e-3, 0.9, 0.9, 0);
+    } else {
+      p.makeFrame(1e-3, 1+1e-3, 0.5, 1.7, sZK0S, sRatio);
+      p.addLatex(0.25, 0.80, "This Thesis");
+      p.addLatex(0.25, 0.75, "Anti-#it{k}_{T} ch+V0 jets, R = 0.4");
+      p.addLatex(0.25, 0.70, TString::Format("%.0f < #it{p}_{T, jet} < %.0f GeV/#it{c}", x.jetptlow, x.jetpthigh).Data());
+    }
+  } else {
+    x.ratioplot = false;
+    x.logplot = true;
+    if (doBase)
+      x.outputFileName = "subcomp-v0zspectrum-all.pdf";
+    else
+      x.outputFileName = "subcomp-v0zspectrum.pdf";
+
+    p.makeLegend(0.25, 0.45, 0.17, 0.37, "");
+    p.makeFrame(1e-3, 1+1e-3, 10, 2e4, sZK0S, "\"Counts\"");
+    p.addLatex(0.5, 0.80, "This Thesis");
+    p.addLatex(0.5, 0.75, "Anti-#it{k}_{T} ch+V0 jets, R = 0.4");
+    p.addLatex(0.5, 0.70, TString::Format("%.0f < #it{p}_{T, jet} < %.0f GeV/#it{c}", x.jetptlow, x.jetpthigh).Data());
   }
-  if (doBase) x.outputFileName += "-all";
-  x.outputFileName += ".pdf";
 
   if (x.verbosity >= VerbosityLevels::kDebug) {
     cout << "in: " << x.inputFileName << "\nout: " << x.outputFileName
@@ -524,27 +560,6 @@ void SubtractionComparison::plotV0InJetZ(bool doBase, bool doRatio) {
     << "\nSub: " << getFragHistNameFromTrain(x.train, SubtractionTypes::kSubtract)
     << "\nAdd: " << getFragHistNameFromTrain(x.train, SubtractionTypes::kAddTracks)
     << endl;
-  }
-
-  Plotter p(x);
-  p.makeCanvas();
-  p.makeLegend(0.25, 0.45, 0.17, 0.37, "");
-
-  if (doRatio && doBase) {
-    p.makeFrame(1e-3, 1+1e-3, 0.2, 1.1, sZK0S, sRatio);
-    p.addLatex(0.4, 0.70, "This Thesis");
-    p.addLatex(0.4, 0.65, "Anti-#it{k}_{T} ch+V0 jets, R = 0.4");
-    p.addLatex(0.4, 0.60, TString::Format("%.0f < #it{p}_{T, jet} < %.0f GeV/#it{c}", x.jetptlow, x.jetpthigh).Data());
-  } else if (doRatio) {
-    p.makeFrame(1e-3, 1+1e-3, 0.5, 1.7, sZK0S, sRatio);
-    p.addLatex(0.25, 0.80, "This Thesis");
-    p.addLatex(0.25, 0.75, "Anti-#it{k}_{T} ch+V0 jets, R = 0.4");
-    p.addLatex(0.25, 0.70, TString::Format("%.0f < #it{p}_{T, jet} < %.0f GeV/#it{c}", x.jetptlow, x.jetpthigh).Data());
-  } else {
-    p.makeFrame(1e-3, 1+1e-3, 10, 2e4, sZK0S, "\"Counts\"");
-    p.addLatex(0.5, 0.80, "This Thesis");
-    p.addLatex(0.5, 0.75, "Anti-#it{k}_{T} ch+V0 jets, R = 0.4");
-    p.addLatex(0.5, 0.70, TString::Format("%.0f < #it{p}_{T, jet} < %.0f GeV/#it{c}", x.jetptlow, x.jetpthigh).Data());
   }
 
   TFile* file = TFile::Open(x.inputFileName.c_str(), "READ");
@@ -560,7 +575,10 @@ void SubtractionComparison::plotV0InJetZ(bool doBase, bool doRatio) {
   x.jetpthigh = hnBase->GetAxis(0)->GetBinUpEdge(jetptbins[1]);
 
   hnBase->GetAxis(0)->SetRange(jetptbins[0], jetptbins[1]);
-  TH1* base = (TH1*)hnBase->Projection(projectionAxis);
+  TH1* tmp = (TH1*)hnBase->Projection(projectionAxis);
+  tmp->Sumw2();
+  TH1* base = rebinHist(tmp, zTemplate);
+  // base->Sumw2();
   base->SetName(TString::Format("base_%s_jetpt%.0f-%.0f", x.hadron.c_str(), x.jetptlow, x.jetpthigh).Data());
   if (x.verbosity >= VerbosityLevels::kDebug) base->Print();
 
@@ -572,7 +590,9 @@ void SubtractionComparison::plotV0InJetZ(bool doBase, bool doRatio) {
   THnSparse* hnSub = (THnSparse*)file->Get(getFragHistNameFromTrain(x.train, SubtractionTypes::kSubtract).c_str());
   jetptbins = getProjectionBins(hnSub->GetAxis(0), x.jetptmin, x.jetptmax);
   hnSub->GetAxis(0)->SetRange(jetptbins[0], jetptbins[1]);
-  TH1* sub = (TH1*)hnSub->Projection(projectionAxis);
+  tmp = (TH1*)hnSub->Projection(projectionAxis);
+  tmp->Sumw2();
+  TH1* sub = rebinHist(tmp, zTemplate);
   sub->SetName(TString::Format("sub_%s_jetpt%.0f-%.0f", x.hadron.c_str(), x.jetptlow, x.jetpthigh).Data());
   if (x.verbosity >= VerbosityLevels::kDebug) sub->Print();
   p.hists.push_back(sub);
@@ -581,15 +601,15 @@ void SubtractionComparison::plotV0InJetZ(bool doBase, bool doRatio) {
   THnSparse* hnAdd = (THnSparse*)file->Get(getFragHistNameFromTrain(x.train, SubtractionTypes::kAddTracks).c_str());
   jetptbins = getProjectionBins(hnAdd->GetAxis(0), x.jetptmin, x.jetptmax);
   hnAdd->GetAxis(0)->SetRange(jetptbins[0], jetptbins[1]);
-  TH1* add = (TH1*)hnAdd->Projection(projectionAxis);
+  tmp = (TH1*)hnAdd->Projection(projectionAxis);
+  TH1* add = rebinHist(tmp, zTemplate);
   add->SetName(TString::Format("add_%s_jetpt%.0f-%.0f", x.hadron.c_str(), x.jetptlow, x.jetpthigh).Data());
   if (x.verbosity >= VerbosityLevels::kDebug) add->Print();
   p.hists.push_back(add);
   p.legend->AddEntry(add, "Subtract V0s, add tracks");
 
-  if (doRatio && doBase)
-    p.addLine(p.hists[0]->GetXaxis()->GetXmin(), 0.5, p.hists[0]->GetXaxis()->GetXmax(), 0.5, 6);
-
+  // if (doRatio && doBase)
+  //   p.addLine(p.hists[0]->GetXaxis()->GetXmin(), 0.5, p.hists[0]->GetXaxis()->GetXmax(), 0.5, 6);
   p.plotHists();
 }
 void SubtractionComparison::plotV0InJetZ() {
@@ -754,12 +774,12 @@ void JetFinderComparison::plotJetFinderJetPt(bool doBase, bool doRatio, bool add
   if (doRatio) {
     p.setDrawOption("hist");
     p.makeFrame(0., 50., 0.6, 1.15, getPtString(sJet), sRatio);
-    p.legend = CreateLegend(0.30, 0.45, 0.20, 0.40, "", 0.04);
+    p.legend = plotutils::CreateLegend(0.30, 0.45, 0.20, 0.40, "", 0.04);
     p.addLatex(0.30, 0.83, sThisThesis + ", " + sAliceData + ", " + sSqrtS);
     p.addLatex(0.30, 0.78, sAntikt + " " + sChV0Jets + ", " + sRadius);
   } else {
     p.makeFrame(0., 50., 1e-8, 1e-2, getPtString(sJet), sJetsPerEvent);
-    p.legend = CreateLegend(0.30, 0.50, 0.17, 0.37, "", 0.04);
+    p.legend = plotutils::CreateLegend(0.30, 0.50, 0.17, 0.37, "", 0.04);
     p.addLatex(0.40, 0.80, sThisThesis + ", " + sAliceData);
     p.addLatex(0.40, 0.75, sSqrtS);
     p.addLatex(0.40, 0.70, sAntikt + " " + sChV0Jets + ", " + sRadius);
@@ -899,12 +919,12 @@ void JetFinderComparison::plotJetPt(bool doBase, bool doRatio) {
   if (doRatio) {
     p.setDrawOption("hist");
     p.makeFrame(0., 50., 0.6, 1.15, getPtString(sJet), sRatio);
-    p.legend = CreateLegend(0.30, 0.45, 0.20, 0.40, "", 0.04);
+    p.legend = plotutils::CreateLegend(0.30, 0.45, 0.20, 0.40, "", 0.04);
     p.addLatex(0.30, 0.83, sThisThesis + ", " + sAliceData + ", " + sSqrtS);
     p.addLatex(0.30, 0.78, sAntikt + " " + sChV0Jets + ", " + sRadius);
   } else {
     p.makeFrame(0., 50., 1e-8, 1e-2, getPtString(sJet), sJetsPerEvent);
-    p.legend = CreateLegend(0.30, 0.50, 0.17, 0.37, "", 0.04);
+    p.legend = plotutils::CreateLegend(0.30, 0.50, 0.17, 0.37, "", 0.04);
     p.addLatex(0.40, 0.80, sThisThesis + ", " + sAliceData);
     p.addLatex(0.40, 0.75, sSqrtS);
     p.addLatex(0.40, 0.70, sAntikt + " " + sChV0Jets + ", " + sRadius);
@@ -1224,6 +1244,7 @@ void JetFinderComparison::plotV0InJetPt(bool doBase, bool doRatio) {
 }
 
 void JetFinderComparison::plotV0InJetZ(bool doBase, bool doRatio) {
+  TH1* zTemplate = new TH1D("zTemplate", "", 10, 1e-3, 1.+1e-3);
   InputSettings inputSubtract;
   inputSubtract.train = trainSub;
   InputSettings inputFlags;
@@ -1248,18 +1269,20 @@ void JetFinderComparison::plotV0InJetZ(bool doBase, bool doRatio) {
   p.makeLegend(0.25, 0.45, 0.17, 0.37, "");
 
   if (doRatio) {
-    p.setDrawOption("hist");
-    string yTitle = sK0SZPerEvt + "(#varepsilon_{" + sV0 + "}=80%)/" + sK0SZPerEvt;
-    if (inputs->normalisePerJet)
-      yTitle = sK0SZPerJet + "(#varepsilon_{" + sV0 + "}=80%)/" + sK0SZPerJet;
+    string yTitle = "Ratio";
+    // p.setDrawOption("hist");
+    // string yTitle = sK0SZPerEvt + "(#varepsilon_{" + sV0 + "}=80%)/" + sK0SZPerEvt;
+    // if (inputs->normalisePerJet)
+    //   yTitle = sK0SZPerJet + "(#varepsilon_{" + sV0 + "}=80%)/" + sK0SZPerJet;
 
-    p.makeFrame(0., 1., 0., 2., sZK0S, yTitle);
+    p.makeFrame(1e-3, 1.+1e-3, 0.5, 1.3, sZK0S, yTitle);
+    // p.makeFrame(0., 1., 0., 2., sZK0S, yTitle);
 
-    p.addLatex(0.25, 0.80, sThisThesis + ", " + sAliceData);
-    p.addLatex(0.25, 0.75, sSqrtS);
-    p.addLatex(0.25, 0.70, sAntikt + " " + sChV0Jets);
-    p.addLatex(0.25, 0.65, sRadius + ", " + TString::Format("|%s| < %.1f", sEtaJet.c_str(), inputs->etaMax).Data());
-    p.addLatex(0.25, 0.60, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax).c_str());
+    p.addLatex(0.30, 0.85, sThisThesis + ", " + sAliceData + ", " + sSqrtS);
+    p.addLatex(0.30, 0.80, sAntikt + " " + sChV0Jets + ", " + sRadius + ", " + TString::Format("|%s| < %.2f", sEtaJet.c_str(), inputs->etaMax).Data());
+    p.addLatex(0.30, 0.75, getPtJetRangeString(inputs->jetptmin, inputs->jetptmax) + " " + sGevC);
+    p.addLatex(0.30, 0.70, "V0 signal probability: 80\%");
+    p.addLine(1e-3, 1.+1e-3, 0.8, 0.8, 0, 9);
   } else {
     string yTitle = inputs->normalisePerJet ? sK0SZPerJet : sK0SZPerEvt;
     if (inputs->logplot) {
@@ -1300,7 +1323,9 @@ void JetFinderComparison::plotV0InJetZ(bool doBase, bool doRatio) {
   double nJetsBase = getNjets(inputs->jetptmin, inputs->jetptmax, SubtractionTypes::kNone);
   double nEvtsBase = getNevts(SubtractionTypes::kNone);
   TH3* h3Base = (TH3*)fileX->Get(getHistName(SubtractionTypes::kNone, HistogramTypes::kV0InJetZ, inputs->hadron).c_str());
-  TH1* base = (TH1*)h3Base->ProjectionZ("base");
+  TH1* tmp = (TH1*)h3Base->ProjectionZ("tmp");
+  TH1* base = rebinHist(tmp, zTemplate);
+  base->SetName("base");
   if (inputs->normalisePerJet)
     base->Scale(1.0 / nJetsBase, "width");
   else
@@ -1314,7 +1339,9 @@ void JetFinderComparison::plotV0InJetZ(bool doBase, bool doRatio) {
   double nJetsSub = getNjets(inputs->jetptmin, inputs->jetptmax, SubtractionTypes::kSubtract);
   double nEvtsSub = getNevts(SubtractionTypes::kSubtract);
   TH3* h3Sub = (TH3*)fileX->Get(getHistName(SubtractionTypes::kSubtract, HistogramTypes::kV0InJetZ, inputs->hadron).c_str());
-  TH1* sub = (TH1*)h3Sub->ProjectionZ("sub");
+  tmp = (TH1*)h3Sub->ProjectionZ("tmp");
+  TH1* sub = rebinHist(tmp, zTemplate);
+  sub->SetName("sub");
   if (inputs->normalisePerJet)
     sub->Scale(1.0 / nJetsSub, "width");
   else
@@ -1327,7 +1354,9 @@ void JetFinderComparison::plotV0InJetZ(bool doBase, bool doRatio) {
   double nJetsFlags = getNjets(inputs->jetptmin, inputs->jetptmax, SubtractionTypes::kUseFlags);
   double nEvtsFlags = getNevts(SubtractionTypes::kUseFlags);
   TH3* h3Flags = (TH3*)fileY->Get(getHistName(SubtractionTypes::kUseFlags, HistogramTypes::kV0InJetZ, inputs->hadron).c_str());
-  TH1* flags = (TH1*)h3Flags->ProjectionZ("flags");
+  tmp = (TH1*)h3Flags->ProjectionZ("tmp");
+  TH1* flags = rebinHist(tmp, zTemplate);
+  flags->SetName("flags");
   if (inputs->normalisePerJet)
     flags->Scale(1.0 / nJetsFlags, "width");
   else
@@ -1370,7 +1399,7 @@ JetFinderComparison setupJFC(double jetptmin = 10., double jetptmax = 20., bool 
 
 void plotjetpt() {
   JetFinderComparison jfc = setupJFC();
-  jfc.inputs->setEta(-0.5, 0.5);
+  jfc.inputs->setEta(-0.35, 0.35);
   bool doBase = true, doRatio = true;
 
   jfc.inputs->logplot = true;
@@ -1380,7 +1409,7 @@ void plotjetpt() {
 }
 void plotv0pt() {
   JetFinderComparison jfc = setupJFC();
-  jfc.inputs->setEta(-0.9, 0.9);
+  jfc.inputs->setEta(-0.75, 0.75);
   bool doBase = true, doRatio = true;
 
   jfc.inputs->logplot = true;
@@ -1391,7 +1420,7 @@ void plotv0pt() {
 void plotv0injet(bool normalisePerJet = true) {
   gROOT->SetBatch();
   JetFinderComparison jfc = setupJFC(10., 20., normalisePerJet);
-  jfc.inputs->setEta(-0.5, 0.5);
+  jfc.inputs->setEta(-0.35, 0.35);
   bool doBase = true, doRatio = true;
 
   jfc.inputs->logplot = true;
@@ -1408,11 +1437,19 @@ void plotv0injet(bool normalisePerJet = true) {
   jfc.inputs->logplot = false;
   jfc.plotV0InJetZ(doBase, doRatio);
   jfc.plotV0InJetPt(doBase, doRatio);
+
+  jfc.inputs->setJetPt(30., 40.);
+  jfc.inputs->logplot = true;
+  jfc.plotV0InJetZ(doBase, !doRatio);
+  jfc.plotV0InJetPt(doBase, !doRatio);
+  jfc.inputs->logplot = false;
+  jfc.plotV0InJetZ(doBase, doRatio);
+  jfc.plotV0InJetPt(doBase, doRatio);
 }
 
 void plotjetfinder(bool rebinHists = true) {
   JetFinderComparison jfc = setupJFC();
-  jfc.inputs->setEta(-0.5, 0.5);
+  jfc.inputs->setEta(-0.35, 0.35);
   bool doBase = true, doRatio = true;
   bool addChJets = true;
 

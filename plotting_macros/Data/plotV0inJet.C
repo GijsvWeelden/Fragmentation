@@ -15,8 +15,8 @@
 
 #include "../histUtils.C"
 
-const double MassK0S = 0.497611;
-const double MassLambda0 = 1.115683;
+// const double MassK0S = 0.497611;
+// const double MassLambda0 = 1.115683;
 
 double getNjets(TFile* inFile, double jetptmin, double jetptmax)
 {
@@ -785,7 +785,7 @@ void plotMass(vector<string> inputStrings, double jetptmin, double jetptmax, dou
   string yTitle = "counts";
   if (normalise) yTitle = "#frac{1}{#it{N}_{V0}} #frac{d#it{N}}{d#it{M}}";
   double xMinFrame = mass->GetXaxis()->GetXmin(), xMaxFrame = mass->GetXaxis()->GetXmax();
-  double yMinFrame = 0., yMaxFrame = 2.0 * getHistScale(mass, true);
+  double yMinFrame = 0., yMaxFrame = 2.0 * getUpperBound(mass, true); //getHistScale(mass, true);
   TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
   frame->SetTitle((dataSet + latexSuffix).c_str());
 

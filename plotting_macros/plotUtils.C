@@ -184,8 +184,8 @@ struct Plotter {
       if (!_canvas) makeCanvas();
       double xMinFrame = _hists[0]->GetXaxis()->GetXmin();
       double xMaxFrame = _hists[0]->GetXaxis()->GetXmax();
-      double yMinFrame = getLowerBound(_hists, 0, 0) * 0.9;
-      double yMaxFrame = getUpperBound(_hists, 0, 0) * 1.2;
+      double yMinFrame = histutils::getLowerBound(_hists, 0, 0) * 0.9;
+      double yMaxFrame = histutils::getUpperBound(_hists, 0, 0) * 1.2;
       makeFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, sx, sy);
     }
     void makeLegend(double x0, double x1, double y0, double y1, string s) {
@@ -196,7 +196,7 @@ struct Plotter {
         return;
 
       TH1* baseCopy = (TH1*)_hists[baseIndex]->Clone("baseCopy");
-      for (auto& h : _hists) h = divideWithProtection(h, baseCopy);
+      for (auto& h : _hists) h = histutils::divideWithProtection(h, baseCopy);
     }
     void plot() {
       if (!_canvas) makeCanvas();

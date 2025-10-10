@@ -31,10 +31,10 @@ namespace verbosityutilities {
   }
 } // namespace verbosityutilities
 
-namespace plotutilities {
-  enum PlotType {kJet, kK0SPt, kK0SZ};
+namespace unfoldingutilities {
+  enum VariableType {kJet, kK0SPt, kK0SZ};
   bool is_valid(int x) { return (x >= kJet && x <= kK0SZ); }
-  string to_string(PlotType x) {
+  string to_string(VariableType x) {
     switch (x) {
       case kJet:   return "jet";
       case kK0SPt: return "K0Spt";
@@ -42,7 +42,7 @@ namespace plotutilities {
       default:     return "Unknown";
     }
   }
-} // namespace plotutilities
+} // namespace unfoldingutilities
 
 namespace rmutilities {
   // Strings for loading from train output
@@ -194,7 +194,7 @@ struct InputSettings {
     template <typename T> bool setVariable(T a, T b, T &x, T &y);
 
     verbosityutilities::Verbosity verbosity = verbosityutilities::kInfo;
-    plotutilities::PlotType plottype;
+    unfoldingutilities::VariableType vartype;
 
     TH1D* templatePtJetGen = nullptr;
     TH1D* templatePtJetRec = nullptr;
@@ -271,12 +271,12 @@ struct InputSettings {
     }
 
     // Getters for private variables
-    plotutilities::PlotType getPlotType() { return plottype; }
+    unfoldingutilities::VariableType getVariableType() { return vartype; }
     string getRmHistName() {
-      switch (plottype) {
-        case plotutilities::kJet:   return rmutilities::analysis::nameJetRm;
-        case plotutilities::kK0SPt: return rmutilities::analysis::nameK0SPtRm;
-        case plotutilities::kK0SZ:  return rmutilities::analysis::nameK0SZRm;
+      switch (vartype) {
+        case unfoldingutilities::kJet:   return rmutilities::analysis::nameJetRm;
+        case unfoldingutilities::kK0SPt: return rmutilities::analysis::nameK0SPtRm;
+        case unfoldingutilities::kK0SZ:  return rmutilities::analysis::nameK0SZRm;
         default: return "";
       }
     }
@@ -288,24 +288,24 @@ struct InputSettings {
     TH2D* getTemplateHistV0ZGen()  { return templateZV0Gen; }
     TH2D* getTemplateHistV0ZRec()  { return templateZV0Rec; }
     TH2D* getTemplateHistV0Gen()   {
-      if (plottype == plotutilities::kK0SPt)
+      if (vartype == unfoldingutilities::kK0SPt)
         return getTemplateHistV0PtGen();
-      else if (plottype == plotutilities::kK0SZ)
+      else if (vartype == unfoldingutilities::kK0SZ)
         return getTemplateHistV0ZGen();
       else
         return nullptr;
     }
     TH2D* getTemplateHistV0Rec()   {
-      if (plottype == plotutilities::kK0SPt)
+      if (vartype == unfoldingutilities::kK0SPt)
         return getTemplateHistV0PtRec();
-      else if (plottype == plotutilities::kK0SZ)
+      else if (vartype == unfoldingutilities::kK0SZ)
         return getTemplateHistV0ZRec();
       else
         return nullptr;
     }
 
     // Setters for private variables
-    bool setPlotType(plotutilities::PlotType p);
+    bool setVariableType(unfoldingutilities::VariableType p);
     bool setVerbosity(verbosityutilities::Verbosity v);
     void setTemplateHistJetGen(TH1D* hist)  { setTemplateHist(templatePtJetGen, hist); }
     void setTemplateHistJetRec(TH1D* hist)  { setTemplateHist(templatePtJetRec, hist); }
@@ -534,12 +534,12 @@ bool InputSettings::writeOutputsToFile(vector<T*> objs) {
   return true;
 }
 
-bool InputSettings::setPlotType(plotutilities::PlotType p) {
-  if (!plotutilities::is_valid(p)) {
-    printLog("InputSettings::setPlotType() Error: invalid plot type", verbosityutilities::kErrors);
+bool InputSettings::setVariableType(unfoldingutilities::VariableType p) {
+  if (!unfoldingutilities::is_valid(p)) {
+    printLog("InputSettings::setVariableType() Error: invalid plot type", verbosityutilities::kErrors);
     return false;
   }
-  plottype = p;
+  vartype = p;
   return true;
 }
 
@@ -668,14 +668,14 @@ array<TH2D*, 5> CreateDistributionHistsK0S(InputSettings& inputs, THnSparseD* re
   inputs.printLog("Creating histograms for K0S.", verbosityutilities::kDebug);
   string nRec, nGen, nMiss, nKinEff, nFake, nAxes;
 
-  if (inputs.getPlotType() == plotutilities::PlotType::kK0SPt) {
+  if (inputs.getVariableType() == unfoldingutilities::VariableType::kK0SPt) {
     nRec        = rmutilities::unfolding::nameRecK0SPt;
     nGen        = rmutilities::unfolding::nameGenK0SPt;
     nMiss       = rmutilities::unfolding::nameMissK0SPt;
     nKinEff     = rmutilities::unfolding::nameKinEffK0SPt;
     nFake       = rmutilities::unfolding::nameFakeK0SPt;
     nAxes       = "p_{T,K^{0}_{S}},p_{T,jet}";
-  } else if (inputs.getPlotType() == plotutilities::PlotType::kK0SZ) {
+  } else if (inputs.getVariableType() == unfoldingutilities::VariableType::kK0SZ) {
     nRec        = rmutilities::unfolding::nameRecK0SZ;
     nGen        = rmutilities::unfolding::nameGenK0SZ;
     nMiss       = rmutilities::unfolding::nameMissK0SZ;
@@ -683,7 +683,7 @@ array<TH2D*, 5> CreateDistributionHistsK0S(InputSettings& inputs, THnSparseD* re
     nFake       = rmutilities::unfolding::nameFakeK0SZ;
     nAxes       = "z_{K^{0}_{S}},p_{T,jet}";
   } else {
-    inputs.printLog("CreateDistributionHistsK0S() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
+    inputs.printLog("CreateDistributionHistsK0S() Error: invalid plot type " + unfoldingutilities::to_string(inputs.getVariableType()), verbosityutilities::kErrors);
     return std::array<TH2D*, 5>{nullptr, nullptr, nullptr, nullptr, nullptr};
   }
 
@@ -716,7 +716,7 @@ T LoadResponseMatrix(InputSettings& inputs) {
 
 void CreateResponseJets(InputSettings& inputs) {
   inputs.printLog("Creating response for jets.", verbosityutilities::kInfo);
-  inputs.setPlotType(plotutilities::PlotType::kJet);
+  inputs.setVariableType(unfoldingutilities::VariableType::kJet);
 
   TH2D* responseMatrix = LoadResponseMatrix<TH2D*>(inputs);
   responseMatrix->SetName(rmutilities::unfolding::nameRmJets.c_str());
@@ -742,11 +742,11 @@ void CreateResponseJets(InputSettings& inputs) {
 }
 
 void CreateResponseV0(InputSettings& inputs) {
-  inputs.printLog("Creating response for " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kInfo);
+  inputs.printLog("Creating response for " + unfoldingutilities::to_string(inputs.getVariableType()), verbosityutilities::kInfo);
 
   string nameRm = rmutilities::unfolding::nameRmK0SPt;
   string nameResponse = rmutilities::unfolding::nameResponseK0SPt;
-  if (inputs.getPlotType() == plotutilities::PlotType::kK0SZ) {
+  if (inputs.getVariableType() == unfoldingutilities::VariableType::kK0SZ) {
     nameRm = rmutilities::unfolding::nameRmK0SZ;
     nameResponse = rmutilities::unfolding::nameResponseK0SZ;
   }
@@ -774,12 +774,12 @@ void CreateResponseV0(InputSettings& inputs) {
 }
 
 void CreateResponseV0Pt(InputSettings& inputs) {
-  inputs.setPlotType(plotutilities::PlotType::kK0SPt);
+  inputs.setVariableType(unfoldingutilities::VariableType::kK0SPt);
   CreateResponseV0(inputs);
 }
 
 void CreateResponseV0Z(InputSettings& inputs) {
-  inputs.setPlotType(plotutilities::PlotType::kK0SZ);
+  inputs.setVariableType(unfoldingutilities::VariableType::kK0SZ);
   CreateResponseV0(inputs);
 }
 
@@ -787,7 +787,7 @@ void CreateResponseV0Z(InputSettings& inputs) {
 
 void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
   inputs.printLog("Doing unfolding for jets with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
-  inputs.setPlotType(plotutilities::PlotType::kJet);
+  inputs.setVariableType(unfoldingutilities::VariableType::kJet);
 
   inputs.printLog("Getting response from file: " + inputs.responseFileName + "\nGetting test distributions from file: " + inputs.inputFileName, verbosityutilities::kDebug);
   TFile* responseFile = TFile::Open(inputs.responseFileName.c_str(), "UPDATE");
@@ -888,10 +888,10 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
 }
 
 void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
-  inputs.printLog("Doing unfolding for " + plotutilities::to_string(inputs.getPlotType()) + " with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
+  inputs.printLog("Doing unfolding for " + unfoldingutilities::to_string(inputs.getVariableType()) + " with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
 
   string nameRec, nameGen, nameFake, nameMiss, nameKinEff, nameResponse, ruBayesName, unfoldedName, refoldedName, covMatrixName, pearsonName;
-  if (inputs.getPlotType() == plotutilities::PlotType::kK0SPt) {
+  if (inputs.getVariableType() == unfoldingutilities::VariableType::kK0SPt) {
     nameRec       = rmutilities::unfolding::nameRecK0SPt;
     nameGen       = rmutilities::unfolding::nameGenK0SPt;
     nameFake      = rmutilities::unfolding::nameFakeK0SPt;
@@ -903,7 +903,7 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
     refoldedName  = rmutilities::unfolding::nameRefoldedK0SPt + to_string(nIterations);
     covMatrixName = rmutilities::unfolding::nameCovMatrixK0SPt + to_string(nIterations);
     pearsonName   = rmutilities::unfolding::namePearsonK0SPt + to_string(nIterations);
-  } else if (inputs.getPlotType() == plotutilities::PlotType::kK0SZ) {
+  } else if (inputs.getVariableType() == unfoldingutilities::VariableType::kK0SZ) {
     nameRec       = rmutilities::unfolding::nameRecK0SZ;
     nameGen       = rmutilities::unfolding::nameGenK0SZ;
     nameFake      = rmutilities::unfolding::nameFakeK0SZ;
@@ -916,7 +916,7 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
     covMatrixName = rmutilities::unfolding::nameCovMatrixK0SZ + to_string(nIterations);
     pearsonName   = rmutilities::unfolding::namePearsonK0SZ + to_string(nIterations);
   } else {
-    inputs.printLog("DoUnfoldingV0() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
+    inputs.printLog("DoUnfoldingV0() Error: invalid plot type " + unfoldingutilities::to_string(inputs.getVariableType()), verbosityutilities::kErrors);
     return;
   }
 
@@ -1016,12 +1016,12 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
 }
 
 void DoUnfoldingV0Pt(InputSettings& inputs, int nIterations) {
-  inputs.setPlotType(plotutilities::PlotType::kK0SPt);
+  inputs.setVariableType(unfoldingutilities::VariableType::kK0SPt);
   DoUnfoldingV0(inputs, nIterations);
 }
 
 void DoUnfoldingV0Z(InputSettings& inputs, int nIterations) {
-  inputs.setPlotType(plotutilities::PlotType::kK0SZ);
+  inputs.setVariableType(unfoldingutilities::VariableType::kK0SZ);
   DoUnfoldingV0(inputs, nIterations);
 }
 
@@ -1056,11 +1056,11 @@ string TrivialClosureTestSummary(InputSettings& inputs, array<TH1D*, 3> hists, b
 }
 
 void MakeClosureTestPlots(InputSettings& inputs, array<TH1D*, 3> hists, int nIteration, bool isUnfolded) {
-  inputs.printLog(TString::Format("Making plots for %s closure test for iteration = %d, ptjet = %.f-%.f", plotutilities::to_string(inputs.getPlotType()).c_str(), nIteration, inputs.ptjetminProjection, inputs.ptjetmaxProjection).Data(), verbosityutilities::kInfo);
+  inputs.printLog(TString::Format("Making plots for %s closure test for iteration = %d, ptjet = %.f-%.f", unfoldingutilities::to_string(inputs.getVariableType()).c_str(), nIteration, inputs.ptjetminProjection, inputs.ptjetmaxProjection).Data(), verbosityutilities::kInfo);
 
   string drawOption = inputs.drawText ? "hist text" : "";
   string canvasName = isUnfolded ? "unfolded" : "refolded";
-  canvasName += plotutilities::to_string(inputs.getPlotType()) + "-iteration" + to_string(nIteration) + ".pdf";
+  canvasName += unfoldingutilities::to_string(inputs.getVariableType()) + "-iteration" + to_string(nIteration) + ".pdf";
   TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), 800, 600);
   canvas->Divide(hists.size(), 1);
   for (int iPad = 1; iPad <= hists.size(); iPad++) {
@@ -1072,7 +1072,7 @@ void MakeClosureTestPlots(InputSettings& inputs, array<TH1D*, 3> hists, int nIte
 }
 
 template <typename T>
-array<TH1D*, 3> MakeClosureTestHists(const T* hRooUnfold, const T* hAnalysis, double ptjetmin, double ptjetmax, bool isUnfolded, plotutilities::PlotType plot) {
+array<TH1D*, 3> MakeClosureTestHists(const T* hRooUnfold, const T* hAnalysis, double ptjetmin, double ptjetmax, bool isUnfolded, unfoldingutilities::VariableType plot) {
   string nRooUnfold = isUnfolded ? "Unfolded" : "Refolded";
   string nAnalysis = isUnfolded ? "Generated" : "Reconstructed";
   string nObservable;
@@ -1081,7 +1081,7 @@ array<TH1D*, 3> MakeClosureTestHists(const T* hRooUnfold, const T* hAnalysis, do
   array<int, 2> ptjetBins;
 
   switch (plot) {
-    case plotutilities::PlotType::kJet:
+    case unfoldingutilities::VariableType::kJet:
       nObservable = "#it{p}_{T,jet} (GeV/c)";
       hRoo = (TH1D*)hRooUnfold->Clone("hRoo");
       hAna = (TH1D*)hAnalysis->Clone("hAna");
@@ -1089,13 +1089,13 @@ array<TH1D*, 3> MakeClosureTestHists(const T* hRooUnfold, const T* hAnalysis, do
       hRoo->GetXaxis()->SetRange(ptjetBins[0], ptjetBins[1]);
       hAna->GetXaxis()->SetRange(ptjetBins[0], ptjetBins[1]);
       break;
-    case plotutilities::PlotType::kK0SPt:
+    case unfoldingutilities::VariableType::kK0SPt:
       nObservable = "#it{p}_{T,K^{0}_{S}} (GeV/c)";
       ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
       hRoo = (TH1D*)hRooUnfold->ProjectionX("hRoo", ptjetBins[0], ptjetBins[1]);
       hAna = (TH1D*)hAnalysis->ProjectionX("hAna", ptjetBins[0], ptjetBins[1]);
       break;
-    case plotutilities::PlotType::kK0SZ:
+    case unfoldingutilities::VariableType::kK0SZ:
       nObservable = "#it{z}_{K^{0}_{S}}";
       ptjetBins = getProjectionBins(hRooUnfold->GetYaxis(), ptjetmin, ptjetmax);
       hRoo = (TH1D*)hRooUnfold->ProjectionX("hRoo", ptjetBins[0], ptjetBins[1]);
@@ -1153,7 +1153,7 @@ array<TH1D*, 3> MakeClosureTestHistsV0(InputSettings& inputs, const TH2D* hRooUn
   string nAnalysis = isUnfolded ? "Generated" : "Reconstructed";
 
   string nObservable = "#it{p}_{T,K^{0}_{S}} (GeV/c)";
-  if (inputs.getPlotType() == plotutilities::PlotType::kK0SZ)
+  if (inputs.getVariableType() == unfoldingutilities::VariableType::kK0SZ)
     nObservable = "#it{z}_{K^{0}_{S}}";
 
   // The binning of the two histograms is the same by construction
@@ -1181,7 +1181,7 @@ array<TH1D*, 3> MakeClosureTestHistsV0(InputSettings& inputs, const TH2D* hRooUn
 }
 
 void DoClosureTestJets(InputSettings& inputs, int nIteration) {
-  inputs.setPlotType(plotutilities::PlotType::kJet);
+  inputs.setVariableType(unfoldingutilities::VariableType::kJet);
 
   TFile* file = TFile::Open(inputs.inputFileName.c_str(), "READ");
   if (!file) {
@@ -1212,15 +1212,15 @@ void DoClosureTestV0(InputSettings& inputs, int nIteration) {
     return;
   }
   string nameUnfolded, nameRefolded, nameGen, nameRec;
-  switch (inputs.getPlotType()) {
-    case plotutilities::PlotType::kK0SPt:
+  switch (inputs.getVariableType()) {
+    case unfoldingutilities::VariableType::kK0SPt:
       inputs.printLog("Doing closure test for K0S pt.", verbosityutilities::kInfo);
       nameUnfolded = rmutilities::unfolding::nameUnfoldedK0SPt + to_string(nIteration);
       nameRefolded = rmutilities::unfolding::nameRefoldedK0SPt + to_string(nIteration);
       nameGen      = rmutilities::testing::nameGenK0SPt;
       nameRec      = rmutilities::testing::nameRecK0SPt;
       break;
-      case plotutilities::PlotType::kK0SZ:
+      case unfoldingutilities::VariableType::kK0SZ:
       inputs.printLog("Doing closure test for K0S z.", verbosityutilities::kInfo);
       nameUnfolded = rmutilities::unfolding::nameUnfoldedK0SZ + to_string(nIteration);
       nameRefolded = rmutilities::unfolding::nameRefoldedK0SZ + to_string(nIteration);
@@ -1228,7 +1228,7 @@ void DoClosureTestV0(InputSettings& inputs, int nIteration) {
       nameRec      = rmutilities::testing::nameRecK0SZ;
       break;
     default:
-      inputs.printLog("DoClosureTestV0() Error: invalid plot type " + plotutilities::to_string(inputs.getPlotType()), verbosityutilities::kErrors);
+      inputs.printLog("DoClosureTestV0() Error: invalid plot type " + unfoldingutilities::to_string(inputs.getVariableType()), verbosityutilities::kErrors);
       return;
   }
 
@@ -1271,19 +1271,19 @@ void DoClosureTestV0(InputSettings& inputs, int nIteration) {
 }
 
 void DoClosureTestV0Pt(InputSettings& inputs, int nIteration) {
-  inputs.setPlotType(plotutilities::PlotType::kK0SPt);
+  inputs.setVariableType(unfoldingutilities::VariableType::kK0SPt);
   DoClosureTestV0(inputs, nIteration);
 }
 
 void DoClosureTestV0Z(InputSettings& inputs, int nIteration) {
-  inputs.setPlotType(plotutilities::PlotType::kK0SZ);
+  inputs.setVariableType(unfoldingutilities::VariableType::kK0SZ);
   DoClosureTestV0(inputs, nIteration);
 }
 
 // ----------------------------------------------------------
 
 void CompareTrainingAndTestJets(InputSettings& inputs) {
-  inputs.setPlotType(plotutilities::PlotType::kJet);
+  inputs.setVariableType(unfoldingutilities::VariableType::kJet);
   inputs.printLog("Comparing training and test distributions for jets.", verbosityutilities::kInfo);
   // Plot comparison of ptjet distributions in training and test samples
 
@@ -1293,7 +1293,7 @@ void CompareTrainingAndTestJets(InputSettings& inputs) {
     return;
   }
 
-  string canvasName = "distComparison_" + plotutilities::to_string(inputs.getPlotType()) + ".pdf";
+  string canvasName = "distComparison_" + unfoldingutilities::to_string(inputs.getVariableType()) + ".pdf";
   TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), 1600, 600);
 
   vector<TH1D*> trainingHists;

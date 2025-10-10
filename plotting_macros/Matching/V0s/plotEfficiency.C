@@ -14,6 +14,8 @@
 #include "TLegend.h"
 
 #include "../../histUtils.C"
+#include "../../plotUtils.C"
+#include "../../myStrings.C"
 
 #ifndef __PLOTEFFICIENCY_H__
 #define __PLOTEFFICIENCY_H__
@@ -297,12 +299,12 @@ struct Plotter {
 };
 
 void Plotter::addLatex(double x, double y, string s) {
-  TLatex* l = CreateLatex(x, y, s.c_str(), textSize);
+  TLatex* l = plotutils::CreateLatex(x, y, s.c_str(), textSize);
   objects.push_back(l);
 }
 void Plotter::addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
   TLine* l = new TLine(x0, y0, x1, y1);
-  setStyle(l, styleNumber, lineStyle, lineWidth);
+  plotutils::setStyle(l, styleNumber, lineStyle, lineWidth);
   objects.push_back(l);
 }
 void Plotter::makeCanvas(string s = "canvas", double x = 800, double y = 600) {
@@ -337,10 +339,10 @@ void Plotter::makeFrame(string sx, string sy) {
 }
 void Plotter::makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
   if (!canvas) makeCanvas();
-  frame = DrawFrame(x0, x1, y0, y1, sx, sy);
+  frame = plotutils::DrawFrame(x0, x1, y0, y1, sx, sy);
 }
 void Plotter::makeLegend(double x0, double x1, double y0, double y1, string s) {
-  legend = CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
+  legend = plotutils::CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
 }
 
 void Plotter::plot() {
@@ -366,7 +368,7 @@ void Plotter::plot() {
 
 void Plotter::setHistStyles() {
   for (unsigned int i = 0; i < hists.size(); i++)
-    setStyle(hists[i], i);
+    plotutils::setStyle(hists[i], i);
 }
 
 string Plotter::addUnits(string s, string unit) {
@@ -543,19 +545,21 @@ void EfficiencyFinder::plotIncl(bool plotSpectra, bool subPileUp, bool rebinHist
     plotter->addLatex(0.45, 0.78, plotter->sSqrtS.c_str());
     plotter->addLatex(0.45, 0.73, TString::Format("|#eta| < %.1f", inputs->etamax).Data());
   } else { // Efficiency
-    TH1* hEff = (TH1*)hRec->Clone("hEff");
-    hEff->Divide(hGen);
+    TH1* hEff = divideWithProtection(hRec, hGen);
+    hEff->SetName("hEff");
+    // TH1* hEff = (TH1*)hRec->Clone("hEff");
+    // hEff->Divide(hGen);
     plotter->hists.push_back(hEff);
     plotter->setHistStyles();
 
-    string xTitle = plotter->getPtString(plotter->sV0);
+    string xTitle = plotter->getPtString(mystrings::formatHadronName(inputs->hadron));
     string yTitle = "Efficiency";
 
-    plotter->makeFrame(0., 40., 0., 1.1, xTitle, yTitle);
-    plotter->addLatex(0.63, 0.80, plotter->sThisThesis.c_str());
-    plotter->addLatex(0.63, 0.75, plotter->sPythia.c_str());
+    plotter->makeFrame(0., 40., 0., 0.30, xTitle, yTitle);
+    plotter->addLatex(0.63, 0.80, "This Thesis");
+    plotter->addLatex(0.63, 0.75, "ALICE Simulation pp");
     plotter->addLatex(0.63, 0.70, plotter->sSqrtS.c_str());
-    plotter->addLatex(0.63, 0.65, TString::Format("|#eta| < %.1f", inputs->etamax).Data());
+    plotter->addLatex(0.63, 0.65, TString::Format("|#eta_{%s}| < %.2f", mystrings::formatHadronName(inputs->hadron).c_str(), inputs->etamax).Data());
   }
 
   plotter->plot();
@@ -610,11 +614,12 @@ void EfficiencyFinder::plotJets(double ptmin, double ptmax, bool plotSpectra, bo
 
     plotter->addLatex(0.45, 0.83, TString::Format("%s, %s", plotter->sThisThesis.c_str(), plotter->sPythia.c_str()).Data());
     plotter->addLatex(0.45, 0.78, plotter->sSqrtS.c_str());
-    plotter->addLatex(0.45, 0.73, TString::Format("%s, %s, |#eta| < %.1f", plotter->sAntiktJets.c_str(), plotter->sRadius.c_str(), inputs->etamax).Data());
-    plotter->addLatex(0.45, 0.68, TString::Format("%.1f < %s < %.1f %s", inputs->ptminjet, plotter->getPtString("jet").c_str(), inputs->ptmaxjet, plotter->sGevC.c_str()).Data());
+    plotter->addLatex(0.45, 0.73, TString::Format("%s, %s, |#eta_{jet}| < %.1f", plotter->sAntiktJets.c_str(), plotter->sRadius.c_str(), inputs->etamax).Data());
+    plotter->addLatex(0.45, 0.68, TString::Format("%.f < %s < %.f %s", inputs->ptminjet, plotter->getPtString("jet").c_str(), inputs->ptmaxjet, plotter->sGevC.c_str()).Data());
   } else { // Efficiency
-    TH1* hEff = (TH1*)hRec->Clone("hEff");
-    hEff->Divide(hGen);
+    // TH1* hEff = (TH1*)hRec->Clone("hEff");
+    // hEff->Divide(hGen);
+    TH1* hEff = divideWithProtection(hRec, hGen);
     plotter->hists.push_back(hEff);
     plotter->setHistStyles();
 
@@ -622,11 +627,11 @@ void EfficiencyFinder::plotJets(double ptmin, double ptmax, bool plotSpectra, bo
     string yTitle = "Efficiency";
     plotter->makeFrame(0., ptmax, 0., 1.1, xTitle, yTitle);
 
-    plotter->addLatex(0.63, 0.80, plotter->sThisThesis.c_str());
-    plotter->addLatex(0.63, 0.75, plotter->sPythia.c_str());
+    plotter->addLatex(0.63, 0.80, "This Thesis");
+    plotter->addLatex(0.63, 0.75, "ALICE Simulation pp, " + mystrings::sSqrtS);
     plotter->addLatex(0.63, 0.70, plotter->sSqrtS.c_str());
-    plotter->addLatex(0.63, 0.65, TString::Format("%s, %s, |#eta| < %.1f", plotter->sAntiktJets.c_str(), plotter->sRadius.c_str(), inputs->etamax).Data());
-    plotter->addLatex(0.63, 0.60, TString::Format("%.1f < %s < %.1f %s", inputs->ptminjet, plotter->getPtString("jet").c_str(), inputs->ptmaxjet, plotter->sGevC.c_str()).Data());
+    plotter->addLatex(0.63, 0.65, TString::Format("%s, %s, |#eta_{jet}| < %.2f", mystrings::sChV0Jets.c_str(), plotter->sRadius.c_str(), inputs->etamax).Data());
+    plotter->addLatex(0.63, 0.60, TString::Format("%.f < %s < %.f %s", inputs->ptminjet, plotter->getPtString("jet").c_str(), inputs->ptmaxjet, plotter->sGevC.c_str()).Data());
   }
   plotter->plot();
 }
@@ -657,9 +662,7 @@ void EfficiencyFinder::plotEffJetsMatched(double ptmin, double ptmax, bool subPi
 void doPlotting(PlotType mode, bool subPileUp, bool rebinHists, double ptmin = -1., double ptmax = -1.) {
   InputSettings x; x.verbosity = kDebug;
   x.hadron = "K0S";
-  x.train = 476307;
-  // 476306: MB
-  // 475816: Jet-Jet
+  x.train = 514400;
 
   x.setJetPt(ptmin, ptmax);
   x.setInputFileNameFromTrain();
@@ -668,32 +671,32 @@ void doPlotting(PlotType mode, bool subPileUp, bool rebinHists, double ptmin = -
   switch (mode) {
     case kPlotPt:
       x.outputFileName = x.hadron + "_pt" + (subPileUp ? "_subPU" : "") + ".pdf";
-      x.setEta(-0.9, 0.9);
+      x.setEta(-0.75, 0.75);
       ef.plotPtIncl(subPileUp, rebinHists);
       break;
     case kPlotEff:
       x.outputFileName = x.hadron + "_eff" + (subPileUp ? "_subPU" : "") + ".pdf";
-      x.setEta(-0.9, 0.9);
+      x.setEta(-0.75, 0.75);
       ef.plotEffIncl(subPileUp, rebinHists);
       break;
     case kPlotPtJets:
       x.outputFileName = x.getNameFromJetPt(x.hadron + "_pt", (subPileUp ? "_subPU" : "")) + ".pdf";
-      x.setEta(-0.5, 0.5);
+      x.setEta(-0.35, 0.35);
       ef.plotPtJets(ptmin, ptmax, subPileUp, rebinHists);
       break;
     case kPlotEffJets:
       x.outputFileName = x.getNameFromJetPt(x.hadron + "_eff", (subPileUp ? "_subPU" : "")) + ".pdf";
-      x.setEta(-0.5, 0.5);
+      x.setEta(-0.35, 0.35);
       ef.plotEffJets(ptmin, ptmax, subPileUp, rebinHists);
       break;
     case kPlotPtJetsMatched:
       x.outputFileName = x.getNameFromJetPt(x.hadron + "_pt", "_matched") + (subPileUp ? "_subPU" : "") + ".pdf";
-      x.setEta(-0.5, 0.5);
+      x.setEta(-0.35, 0.35);
       ef.plotPtJetsMatched(ptmin, ptmax, subPileUp, rebinHists);
       break;
     case kPlotEffJetsMatched:
       x.outputFileName = x.getNameFromJetPt(x.hadron + "_eff", "_matched") + (subPileUp ? "_subPU" : "") + ".pdf";
-      x.setEta(-0.5, 0.5);
+      x.setEta(-0.35, 0.35);
       ef.plotEffJetsMatched(ptmin, ptmax, subPileUp, rebinHists);
       break;
     default:

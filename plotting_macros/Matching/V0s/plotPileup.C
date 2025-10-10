@@ -14,6 +14,7 @@
 #include "TLegend.h"
 
 #include "../../histUtils.C"
+#include "../../plotUtils.C"
 
 #ifndef __PLOTPERPCONE_H__
 #define __PLOTPERPCONE_H__
@@ -436,12 +437,12 @@ struct Plotter {
 };
 
 void Plotter::addLatex(double x, double y, string s) {
-  TLatex* l = CreateLatex(x, y, s.c_str(), textSize);
+  TLatex* l = plotutils::CreateLatex(x, y, s.c_str(), textSize);
   objects.push_back(l);
 }
 void Plotter::addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
   TLine* l = new TLine(x0, y0, x1, y1);
-  setStyle(l, styleNumber, lineStyle, lineWidth);
+  plotutils::setStyle(l, styleNumber, lineStyle, lineWidth);
   objects.push_back(l);
 }
 void Plotter::makeCanvas(string s = "canvas", double x = 800, double y = 600) {
@@ -476,10 +477,10 @@ void Plotter::makeFrame(string sx, string sy) {
 }
 void Plotter::makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
   if (!canvas) makeCanvas();
-  frame = DrawFrame(x0, x1, y0, y1, sx, sy);
+  frame = plotutils::DrawFrame(x0, x1, y0, y1, sx, sy);
 }
 void Plotter::makeLegend(double x0, double x1, double y0, double y1, string s) {
-  legend = CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
+  legend = plotutils::CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
 }
 
 void Plotter::plot() {
@@ -519,7 +520,7 @@ void Plotter::reset() {
 
 void Plotter::setHistStyles() {
   for (unsigned int i = 0; i < hists.size(); i++)
-    setStyle(hists[i], i);
+    plotutils::setStyle(hists[i], i);
 }
 
 string Plotter::getMassString() {
@@ -923,25 +924,34 @@ void printOptions() {
 }
 printOptions();
 
+void printHistContents(TH1* h, string s) {
+  cout << s << "\n";
+  for (int i = 1; i <= h->GetNbinsX(); i++) {
+    cout << TString::Format("%.1f - %.1f: %f (%f)\n", h->GetXaxis()->GetBinLowEdge(i), h->GetXaxis()->GetBinUpEdge(i), 1 - h->GetBinContent(i), h->GetBinContent(i)).Data();
+  }
+}
+
 void plotpileup() {
   const bool doRatio = true;
   const bool doZ = true;
 
   PileUp pu = setuppu();
-  pu.inputs->verbosity = VerbosityLevels::kDebugMax;
-  // pu.plotter->makeFrame(0., 40., 1e-12, 1e-1, sPtV0, sV0PtPerEvt);
-  // pu.plotInclusivePt(!doRatio);
-  // pu.plotter->reset();
-  // pu.plotInclusivePt(doRatio);
-  // pu.plotter->reset();
+  pu.inputs->verbosity = VerbosityLevels::kErrors;
+  pu.plotter->makeFrame(0., 40., 1e-12, 1e-1, sPtV0, sV0PtPerEvt);
+  pu.plotInclusivePt(!doRatio);
+  pu.plotter->reset();
+  pu.plotInclusivePt(doRatio);
+  printHistContents(pu.plotter->hists[1], "Pile-up inclusive");
+  pu.plotter->reset();
 
-  // pu.inputs->setJetPt(10., 20.);
+  pu.inputs->setJetPt(10., 20.);
   // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-7, 10, sPtV0, sV0PtPerJet);
   // pu.plotInJet(!doRatio, !doZ);
   // pu.plotter->reset();
-  // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
-  // pu.plotInJet(doRatio, !doZ);
-  // pu.plotter->reset();
+  pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
+  pu.plotInJet(doRatio, !doZ);
+  printHistContents(pu.plotter->hists[1], "Pile-up in jets 10-20 GeV/c");
+  pu.plotter->reset();
   // pu.plotter->makeFrame(0., 1., 1e-5, 10, sZV0, sV0ZPerJet);
   // pu.plotInJet(!doRatio, doZ);
   // pu.plotter->reset();
@@ -949,13 +959,14 @@ void plotpileup() {
   // pu.plotInJet(doRatio, doZ);
   // pu.plotter->reset();
 
-  // pu.inputs->setJetPt(20., 30.);
+  pu.inputs->setJetPt(20., 30.);
   // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-7, 10, sPtV0, sV0PtPerJet);
   // pu.plotInJet(!doRatio, !doZ);
   // pu.plotter->reset();
-  // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
-  // pu.plotInJet(doRatio, !doZ);
-  // pu.plotter->reset();
+  pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
+  pu.plotInJet(doRatio, !doZ);
+  printHistContents(pu.plotter->hists[1], "Pile-up in jets 20-30 GeV/c");
+  pu.plotter->reset();
   // pu.plotter->makeFrame(0., 1., 1e-5, 10, sZV0, sV0ZPerJet);
   // pu.plotInJet(!doRatio, doZ);
   // pu.plotter->reset();
@@ -963,14 +974,15 @@ void plotpileup() {
   // pu.plotter->reset();
 
   pu.inputs->setJetPt(30., 40.);
-  pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-7, 10, sPtV0, sV0PtPerJet);
-  pu.plotInJet(!doRatio, !doZ);
+  // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-7, 10, sPtV0, sV0PtPerJet);
+  // pu.plotInJet(!doRatio, !doZ);
   // pu.plotter->reset();
-  // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
-  // pu.plotInJet(doRatio, !doZ);
+  pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
+  pu.plotInJet(doRatio, !doZ);
+  printHistContents(pu.plotter->hists[1], "Pile-up in jets 30-40 GeV/c");
   pu.plotter->reset();
-  pu.plotter->makeFrame(0., 1., 1e-5, 10, sZV0, sV0ZPerJet);
-  pu.plotInJet(!doRatio, doZ);
+  // pu.plotter->makeFrame(0., 1., 1e-5, 10, sZV0, sV0ZPerJet);
+  // pu.plotInJet(!doRatio, doZ);
   // pu.plotter->reset();
   // pu.plotter->makeFrame(0., 1., 1e-3, 1., sZV0, sRatio);
   // pu.plotInJet(doRatio, doZ);

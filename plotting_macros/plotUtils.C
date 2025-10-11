@@ -125,6 +125,13 @@ void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3) {
   f->SetLineStyle(lineStyle);
 }
 
+void SetPadMargins(double left, double right, double bottom, double top) {
+  gPad->SetLeftMargin(left);
+  gPad->SetRightMargin(right);
+  gPad->SetBottomMargin(bottom);
+  gPad->SetTopMargin(top);
+}
+
 struct Plotter {
   private:
     string _drawOption; // Private because it requires caution with spaces
@@ -146,8 +153,7 @@ struct Plotter {
       return false;
     }
   public:
-    Plotter() { Plotter::reset(); }
-    Plotter(string ofn, bool lp = false, double ts = 0.04) : _outputFileName(ofn), _logPlot(lp), _textSize(ts) { Plotter::reset(); }
+    Plotter(string ofn = "", bool lp = false, double ts = 0.04) : _outputFileName(ofn), _logPlot(lp), _textSize(ts) { Plotter::reset(); }
 
     string getDrawOption() { return _drawOption; }
     bool   getLogPlot() { return _logPlot; }
@@ -169,6 +175,13 @@ struct Plotter {
     // Utilities
     void addLatex(double x, double y, string s) {
       _objects.push_back(CreateLatex(x, y, s.c_str(), _textSize));
+    }
+    template <typename T>
+    void addLegendEntry(T* h, string s, string option = "lp") {
+      if (_legend)
+        _legend->AddEntry(h, s.c_str(), option.c_str());
+      else
+        std::cout << "Plotter::addLegendEntry(): Legend does not exist!" << std::endl;
     }
     void addHistogram(TH1* h) {
       _hists.push_back(h);
@@ -201,12 +214,16 @@ struct Plotter {
     void makeLegend(double x0, double x1, double y0, double y1, string s) {
       _legend = CreateLegend(x0, x1, y0, y1, s.c_str(), _textSize);
     }
+    void makeRatios(TH1* baseHist) {
+      TH1* baseCopy = (TH1*)baseHist->Clone("baseCopy");
+      for (auto& h : _hists) h = histutils::divideWithProtection(h, baseCopy);
+    }
     void makeRatios(int baseIndex = 0) {
       if (isHistVectorEmpty("makeRatios"))
         return;
 
       TH1* baseCopy = (TH1*)_hists[baseIndex]->Clone("baseCopy");
-      for (auto& h : _hists) h = histutils::divideWithProtection(h, baseCopy);
+      makeRatios(baseCopy);
     }
     void plot() {
       if (!_canvas) makeCanvas();
@@ -223,12 +240,20 @@ struct Plotter {
       if (_outputFileName != "")
         _canvas->SaveAs(_outputFileName.c_str());
     }
+    void resetCanvas()  { _canvas = nullptr; }
+    void resetFrame()   { _frame = nullptr; }
+    void resetLegend()  { _legend = nullptr; }
+    void resetObjects() { _objects.clear(); }
+    void resetHists()   { _hists.clear(); }
     void reset() {
-      _canvas = nullptr;
-      _frame = nullptr;
-      _legend = nullptr;
-      _objects.clear();
-      _hists.clear();
+      resetCanvas();
+      resetFrame();
+      resetLegend();
+      resetObjects();
+      resetHists();
+    }
+    void setHists(vector<TH1*> h) {
+      _hists = h;
     }
     void setHistStyles() {
       for (unsigned int i = 0; i < _hists.size(); i++)

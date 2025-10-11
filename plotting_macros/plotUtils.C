@@ -40,6 +40,16 @@ TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TStr
   return frame;
 }
 
+TH1F* DrawFrame(TH1* hist, bool setMargins = true) {
+  double xMinFrame = hist->GetXaxis()->GetXmin();
+  double xMaxFrame = hist->GetXaxis()->GetXmax();
+  double yMinFrame = histutils::getLowerBound(hist, 0) * 0.9;
+  double yMaxFrame = histutils::getUpperBound(hist, 0) * 1.2;
+  string xTitle = hist->GetXaxis()->GetTitle();
+  string yTitle = hist->GetYaxis()->GetTitle();
+  return DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle, setMargins);
+}
+
 TLegend *CreateLegend(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString title = "", Double_t textSize = 0.06) {
   TLegend *leg = new TLegend(xmin,ymin,xmax,ymax,title.Data());
   leg->SetFillColor(10);

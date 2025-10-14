@@ -155,8 +155,13 @@ struct Plotter {
   public:
     Plotter(string ofn = "", bool lp = false, double ts = 0.04) : _outputFileName(ofn), _logPlot(lp), _textSize(ts) { Plotter::reset(); }
 
+    TCanvas* getCanvas() { return _canvas; }
     string getDrawOption() { return _drawOption; }
-    bool   getLogPlot() { return _logPlot; }
+    TH1F* getFrame() { return _frame; }
+    vector<TH1*> getHists() { return _hists; }
+    TLegend* getLegend() { return _legend; }
+    bool getLogPlot() { return _logPlot; }
+    vector<TObject*> getObjects() { return _objects; }
     string getOutputFileName() { return _outputFileName; }
     double getTextSize() { return _textSize; }
 

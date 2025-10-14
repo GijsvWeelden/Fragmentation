@@ -379,7 +379,7 @@ void plotinjet1020() {
   plRatio.plot();
 }
 
-array<TH1D*, 2> gethistsjet(InputSettings& inputs) {
+array<TH1D*, 3> gethistsjet(InputSettings& inputs) {
   inputs.printLog("gethistjet()", TString::Format("Getting histograms for jet pT in [%.f, %.f] GeV/c and eta in [%.2f, %.2f]", inputs.getPtJetMin(), inputs.getPtJetMax(), inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
 
   TH3D* h3All     = inputs.GetHist<TH3D>(histutils::kJetIncl); // All jets
@@ -399,7 +399,7 @@ array<TH1D*, 2> gethistsjet(InputSettings& inputs) {
   hAllwV0s->Scale(1. / inputs.GetNevts(), "width");
   hShared->Scale(1. / inputs.GetNevts(), "width");
 
-  return array<TH1D*, 2>{hAll, hAllwV0s, hShared};
+  return array<TH1D*, 3>{hAll, hAllwV0s, hShared};
 }
 
 void plotjet() {
@@ -408,7 +408,7 @@ void plotjet() {
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
 
-  array<TH1D*, 2> hists = gethistsjet(inputs);
+  array<TH1D*, 3> hists = gethistsjet(inputs);
   TH1D* hAll = hists[0];
   TH1D* hAllwV0s = hists[1];
   TH1D* hShared = hists[2];
@@ -445,7 +445,7 @@ void plotjet() {
   plSpectra.addLegendEntry(hAllwV0s, "Jets with V0s");
   plSpectra.addLegendEntry(hShared, "Jets with V0s that share daughters");
 
-  double xLatex = 0.25, yLatex = 0.55;
+  xLatex = 0.25, yLatex = 0.55;
   plSpectra.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
   plSpectra.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
   plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");

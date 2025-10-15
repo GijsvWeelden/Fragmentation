@@ -47,6 +47,7 @@ struct InputSettings{
     double etamin = -0.9, etamax = 0.9, loweta = etamin, higheta = etamax;
     bool logplot = false;
     bool ratioplot = false;
+    bool subPileUp = true, rebinHists = true;
     vector<vector<double>> ptBinEdges = {};
 
     Verb verbosity = kWarnings;
@@ -739,51 +740,117 @@ void allmyplots(bool subPileUp = true, bool rebinHists = true) {
   ploteffjetsmatched(20., 30., subPileUp, rebinHists);
 }
 
-// void plotEffComparison(Level plotLevel, bool subPileUp = true, bool rebinHists = true) {
-//   vector<int> trains = {476306, 475816};
-//   vector<vector<double>> jetptbins = { {10., 20.}, {20., 30.} };
-//   // Plot eff for both trains or both pt bins
-//   InputSettings x; x.verbosity = kDebug;
-//   x.train = trains[0];
-//   x.setInputFileNameFromTrain();
-//   x.setJetPt(jetptbins[0]);
+// -------------------------------------------------------------------------------------------------
+//
+// Interface 2
+//
+// -------------------------------------------------------------------------------------------------
 
-//   Level lRec =
-//   TH1* hRec = getPtHist(kReconstructed, "hRec");
-//   TH1* hGen = getPtHist(kGenerator, "hGen");
-// }
+array<TH1*, 2> gethistsincl(EfficiencyFinder& ef) {
+  TH1* hRec = getPtHist(kReconstructed, "hRec");
+  TH1* hGen = getPtHist(kGenerator, "hGen");
 
+  if (ef.inputs->subPileUp) {
+    TH1* hRecPileUp = getPtHist(kReconstructedPileUpOnly, "hRecPileUp");
+    hRec->Add(hRecPileUp, -1);
+  }
+  if (ef.inputs->rebinHists) {
+    TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(ef.inputs->hadron, "hRecRebinned"));
+    hRec = (TH1*)tmp->Clone();
+    tmp = rebinHist(hGen, rebinnedV0PtHist(ef.inputs->hadron, "hGenRebinned"));
+    hGen = (TH1*)tmp->Clone();
+  }
 
+  return array<TH1*, 2>{hRec, hGen};
+}
 
-//   if (subPileUp) {
-//     TH1* hRecPileUp = getPtHist(kReconstructedPileUpOnly, "hRecPileUp");
-//     hRec->Add(hRecPileUp, -1);
-//   }
+void plotincl(bool subPileUp, bool rebinHists) {
+  InputSettings inputs; inputs.verbosity = kDebug;
+  inputs.subPileUp = subPileUp;
+  inputs.rebinHists = rebinHists;
+  inputs.hadron = "K0S";
+  inputs.train = 514400;
+  inputs.setInputFileNameFromTrain();
+  inputs.setEta(-0.75, 0.75);
 
-//   if (rebinHists) {
-//     TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(inputs->hadron, "hRecRebinned"));
-//     hRec = (TH1*)tmp->Clone();
-//     tmp = rebinHist(hGen, rebinnedV0PtHist(inputs->hadron, "hGenRebinned"));
-//     hGen = (TH1*)tmp->Clone();
-//   }
+  EfficiencyFinder ef(x);
+  array<TH1*, 2> hists = gethistsincl(ef);
+  TH1* hRec = hists[0];
+  TH1* hGen = hists[1];
 
-//   int jetType = plotMatched ? kReconstructedJetMatched : kReconstructedJet;
-//   TH1* hRec = getPtHist(jetType, "hRec");
-//   jetType = plotMatched ? kGeneratorJetMatched : kGeneratorJet;
-//   TH1* hGen = getPtHist(jetType, "hGen");
+  double xSec = hGen->Integral(1, hGen->GetNbinsX(), "width");
+  hGen->Scale(1. / xSec, "width");
+  hRec->Scale(1. / xSec, "width");
 
-//   if (subPileUp) {
-//     jetType = plotMatched ? kReconstructedJetMatchedPileUpOnly : kReconstructedJetPileUpOnly;
-//     TH1* hRecPileUp = getPtHist(jetType, "hRecPileUp");
-//     hRec->Add(hRecPileUp, -1);
-//   }
+  TH1* hEff = histutils::divideWithProtection(hRec, hGen);
 
-//   if (rebinHists) {
-//     TH1* tmp = rebinHist(hRec, rebinnedV0PtHist(inputs->hadron, "hRecRebinned"));
-//     hRec = (TH1*)tmp->Clone();
-//     tmp = rebinHist(hGen, rebinnedV0PtHist(inputs->hadron, "hGenRebinned"));
-//     hGen = (TH1*)tmp->Clone();
-//   }
+  // Spectrum
+  inputs.outputFileName = inputs.hadron + "_pt" + (subPileUp ? "_subPU" : "") + ".pdf";
+  plotutils::Plotter plSpectra(inputs.outputFileName, true, 0.04);
+  plSpectra.makeFrame(0., 40., 1e-9, 10., mystrings::sPtV0, mystrings::sV0PtPerXsec);
+  plSpectra.hists.setHists({hRec, hGen});
+  plSpectra.setHistStyles();
 
+  plSpectra.makeLegend(0.25, 0.45, 0.25, 0.35, "");
+  plSpectra.addLegendEntry(hGen, "Generated");
+  plSpectra.addLegendEntry(hRec, "Reconstructed");
+
+  double xLatex = 0.45, yLatex = 0.83;
+  plSpectra.addLatex(xLatex, yLatex, "This Thesis, ALICE Simulation pp");
+  plSpectra.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  plSpectra.addLatex(xLatex, yLatex - 0.10, TString::Format("|#eta_{%s}| < %.2f", mystrings::formatHadronName(inputs.hadron).c_str(), inputs.etamax).Data());
+
+  plSpectra.plot();
+
+  inputs.outputFileName = inputs.hadron + "_eff" + (subPileUp ? "_subPU" : "") + ".pdf";
+  plotutils::Plotter plEff(inputs.outputFileName, false, 0.04);
+  plEff.makeFrame(0., 40., 0., 0.30, mystrings::sPtV0, "Efficiency");
+  plEff.hists.setHists({hEff});
+  plEff.setHistStyles();
+
+  xLatex = 0.63; yLatex = 0.80;
+  plEff.addLatex(xLatex, yLatex, "This Thesis");
+  plEff.addLatex(xLatex, yLatex - 0.05, "ALICE Simulation pp");
+  plEff.addLatex(xLatex, yLatex - 0.10, mystrings::sSqrtS);
+  plEff.addLatex(xLatex, yLatex - 0.15, TString::Format("|#eta_{%s}| < %.2f", mystrings::formatHadronName(inputs.hadron).c_str(), inputs.etamax).Data());
+
+  plEff.plot();
+}
+
+array<TH3*, 2> gethistsjets(EfficiencyFinder& ef, bool isMatched) {
+  // Need to get hists directly, because getPtHist() applies a pt cut, which we might not want
+  TFile* file = TFile::Open(ef.inputs->inputFileName.c_str(), "READ");
+  if (!file) {
+    ef.inputs->printLog("gethistsjets() Error: could not open file " + ef.inputs->inputFileName, kErrors);
+    return array<TH1*, 2>{nullptr, nullptr};
+  }
+
+  Level jetTypeGen = isMatched ? kGeneratorJetMatched : kGeneratorJet;
+  TH3* h3Gen = (TH3*)file->Get(ef.inputs->getHistName(jetTypeGen).c_str());
+
+  Level jetTypeRec = isMatched ? kReconstructedJetMatched : kReconstructedJet;
+  TH3* h3Rec = (TH3*)file->Get(ef.inputs->getHistName(jetTypeRec).c_str());
+
+  return array<TH3*, 2>{h3Rec, h3Gen};
+}
+
+void plotjets(double ptmin, double ptmax, bool subPileUp, bool rebinHists) {
+  InputSettings inputs; inputs.verbosity = kDebug;
+  inputs.setJetPt(ptmin, ptmax);
+  inputs.subPileUp = subPileUp;
+  inputs.rebinHists = rebinHists;
+  inputs.hadron = "K0S";
+  inputs.train = 514400;
+  inputs.setInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+
+  EfficiencyFinder ef(inputs);
+  array<TH3*, 2> h3s = gethistsjets(ef, false);
+  TH3* h3Rec = h3s[0];
+  TH3* h3Gen = h3s[1];
+
+  array<int, 2> jetptbins = getProjectionBins(h3Rec->GetXaxis(), inputs.ptminjet, inputs.ptmaxjet);
+  array<int, 2> etabins = getProjectionBins(h3Rec->GetYaxis(), inputs.etamin, inputs.etamax);
+}
 
 #endif

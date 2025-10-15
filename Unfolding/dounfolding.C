@@ -123,8 +123,8 @@ namespace rmutilities {
     const string nameGenAndRecK0SZ = "GenAndRecK0SZ";
   }
   namespace training {
-    const string nameResponseJets  = unfolding::nameResponseJets;
-    const string nameRmJets        = unfolding::nameRmJets;
+    const string nameResponseJets  = unfolding::prefixTraining + unfolding::nameResponseJets;
+    const string nameRmJets        = unfolding::prefixTraining + unfolding::nameRmJets;
     const string nameRecJets       = unfolding::prefixTraining + unfolding::nameRecJets;
     const string nameGenJets       = unfolding::prefixTraining + unfolding::nameGenJets;
     const string nameMissJets      = unfolding::prefixTraining + unfolding::nameMissJets;
@@ -132,8 +132,8 @@ namespace rmutilities {
     const string nameKinEffJets    = unfolding::prefixTraining + unfolding::nameKinEffJets;
     const string nameGenAndRecJets = unfolding::prefixTraining + unfolding::nameGenAndRecJets;
 
-    const string nameResponseK0SPt  = unfolding::nameResponseK0SPt;
-    const string nameRmK0SPt        = unfolding::nameRmK0SPt;
+    const string nameResponseK0SPt  = unfolding::prefixTraining + unfolding::nameResponseK0SPt;
+    const string nameRmK0SPt        = unfolding::prefixTraining + unfolding::nameRmK0SPt;
     const string nameRecK0SPt       = unfolding::prefixTraining + unfolding::nameRecK0SPt;
     const string nameGenK0SPt       = unfolding::prefixTraining + unfolding::nameGenK0SPt;
     const string nameMissK0SPt      = unfolding::prefixTraining + unfolding::nameMissK0SPt;
@@ -141,8 +141,8 @@ namespace rmutilities {
     const string nameKinEffK0SPt    = unfolding::prefixTraining + unfolding::nameKinEffK0SPt;
     const string nameGenAndRecK0SPt = unfolding::prefixTraining + unfolding::nameGenAndRecK0SPt;
 
-    const string nameResponseK0SZ  = unfolding::nameResponseK0SZ;
-    const string nameRmK0SZ        = unfolding::nameRmK0SZ;
+    const string nameResponseK0SZ  = unfolding::prefixTraining + unfolding::nameResponseK0SZ;
+    const string nameRmK0SZ        = unfolding::prefixTraining + unfolding::nameRmK0SZ;
     const string nameRecK0SZ       = unfolding::prefixTraining + unfolding::nameRecK0SZ;
     const string nameGenK0SZ       = unfolding::prefixTraining + unfolding::nameGenK0SZ;
     const string nameMissK0SZ      = unfolding::prefixTraining + unfolding::nameMissK0SZ;
@@ -151,8 +151,8 @@ namespace rmutilities {
     const string nameGenAndRecK0SZ = unfolding::prefixTraining + unfolding::nameGenAndRecK0SZ;
   }
   namespace testing {
-    const string nameResponseJets  = unfolding::nameResponseJets;
-    const string nameRmJets        = unfolding::nameRmJets;
+    const string nameResponseJets  = unfolding::prefixTest + unfolding::nameResponseJets;
+    const string nameRmJets        = unfolding::prefixTest + unfolding::nameRmJets;
     const string nameRecJets       = unfolding::prefixTest + unfolding::nameRecJets;
     const string nameGenJets       = unfolding::prefixTest + unfolding::nameGenJets;
     const string nameMissJets      = unfolding::prefixTest + unfolding::nameMissJets;
@@ -160,8 +160,8 @@ namespace rmutilities {
     const string nameKinEffJets    = unfolding::prefixTest + unfolding::nameKinEffJets;
     const string nameGenAndRecJets = unfolding::prefixTest + unfolding::nameGenAndRecJets;
 
-    const string nameResponseK0SPt  = unfolding::nameResponseK0SPt;
-    const string nameRmK0SPt        = unfolding::nameRmK0SPt;
+    const string nameResponseK0SPt  = unfolding::prefixTest + unfolding::nameResponseK0SPt;
+    const string nameRmK0SPt        = unfolding::prefixTest + unfolding::nameRmK0SPt;
     const string nameRecK0SPt       = unfolding::prefixTest + unfolding::nameRecK0SPt;
     const string nameGenK0SPt       = unfolding::prefixTest + unfolding::nameGenK0SPt;
     const string nameMissK0SPt      = unfolding::prefixTest + unfolding::nameMissK0SPt;
@@ -169,8 +169,8 @@ namespace rmutilities {
     const string nameKinEffK0SPt    = unfolding::prefixTest + unfolding::nameKinEffK0SPt;
     const string nameGenAndRecK0SPt = unfolding::prefixTest + unfolding::nameGenAndRecK0SPt;
 
-    const string nameResponseK0SZ  = unfolding::nameResponseK0SZ;
-    const string nameRmK0SZ        = unfolding::nameRmK0SZ;
+    const string nameResponseK0SZ  = unfolding::prefixTest + unfolding::nameResponseK0SZ;
+    const string nameRmK0SZ        = unfolding::prefixTest + unfolding::nameRmK0SZ;
     const string nameRecK0SZ       = unfolding::prefixTest + unfolding::nameRecK0SZ;
     const string nameGenK0SZ       = unfolding::prefixTest + unfolding::nameGenK0SZ;
     const string nameMissK0SZ      = unfolding::prefixTest + unfolding::nameMissK0SZ;
@@ -816,6 +816,7 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
   }
 
   inputs.printLog("Retrieving response and histograms from training.", verbosityutilities::kDebug);
+  TH2D* trainingRm = (TH2D*)responseFile->Get(rmutilities::unfolding::nameRmJets.c_str());
   TH1D* trainingRec = (TH1D*)responseFile->Get(rmutilities::unfolding::nameRecJets.c_str());
   TH1D* trainingGen = (TH1D*)responseFile->Get(rmutilities::unfolding::nameGenJets.c_str());
   TH1D* trainingFake = (TH1D*)responseFile->Get(rmutilities::unfolding::nameFakeJets.c_str());
@@ -823,8 +824,10 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
   TH1D* trainingKinEff = (TH1D*)responseFile->Get(rmutilities::unfolding::nameKinEffJets.c_str());
   TH1D* trainingGenAndRec = (TH1D*)responseFile->Get(rmutilities::unfolding::nameGenAndRecJets.c_str());
   RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get(rmutilities::unfolding::nameResponseJets.c_str());
+  if (!trainingRm)
+    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameRmJets + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingRec)
-  inputs.printLog("Error: could not find " + rmutilities::unfolding::nameRecJets + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
+    inputs.printLog("Error: could not find " + rmutilities::unfolding::nameRecJets + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingGen)
     inputs.printLog("Error: could not find " + rmutilities::unfolding::nameGenJets + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingFake)
@@ -837,10 +840,11 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
     inputs.printLog("Error: could not find " + rmutilities::unfolding::nameGenAndRecJets + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!response)
     inputs.printLog("Error: could not find " + rmutilities::unfolding::nameResponseJets + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
-  if (!trainingRec || !trainingGen || !trainingFake || !trainingMiss || !trainingKinEff || !trainingGenAndRec || !response)
+  if (!trainingRm || !trainingRec || !trainingGen || !trainingFake || !trainingMiss || !trainingKinEff || !trainingGenAndRec || !response)
     return;
 
   // Change the names to distinguish these from the test histograms when writing to file
+  trainingRm->SetName(rmutilities::training::nameRmJets.c_str());
   trainingRec->SetName(rmutilities::training::nameRecJets.c_str());
   trainingGen->SetName(rmutilities::training::nameGenJets.c_str());
   trainingFake->SetName(rmutilities::training::nameFakeJets.c_str());
@@ -850,6 +854,7 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
 
   // Create the test histograms. These must have the same binning as the training histograms
   // For trivial closure test, they are copies, otherwise they are filled with independent data
+  TH2D* testRm = (TH2D*)trainingRm->Clone(rmutilities::testing::nameRmJets.c_str());
   TH1D* testRec = (TH1D*)trainingRec->Clone(rmutilities::testing::nameRecJets.c_str());
   TH1D* testGen = (TH1D*)trainingGen->Clone(rmutilities::testing::nameGenJets.c_str());
   TH1D* testFake = (TH1D*)trainingFake->Clone(rmutilities::testing::nameFakeJets.c_str());
@@ -871,8 +876,8 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
       inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
       return;
     }
-    TH2D* testResponseMatrix = (TH2D*)testFile->Get(inputs.getRmHistName().c_str());
-    FillFromRmJets(inputs, testResponseMatrix, testRec, testGen, testMiss, testGenAndRec, testFake);
+    testRm = (TH2D*)testFile->Get(inputs.getRmHistName().c_str());
+    FillFromRmJets(inputs, testRm, testRec, testGen, testMiss, testGenAndRec, testFake);
     testFile->Close();
   }
 
@@ -904,11 +909,13 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
 
   inputs.printLog("Unfolding done. Writing outputs to file " + inputs.outputFileName, verbosityutilities::kInfo);
   inputs.writeOutputToFile(response);
+  inputs.writeOutputToFile(trainingRm);
   inputs.writeOutputsToFile(std::vector<TH1D*>{trainingRec, trainingGen, trainingFake, trainingMiss, trainingGenAndRec, trainingKinEff});
   inputs.writeOutputToFile(&ruBayes);
 
   TH1D* testKinEff = (TH1D*)testGenAndRec->Clone(rmutilities::testing::nameKinEffJets.c_str());
   testKinEff->Divide(testGen);
+  inputs.writeOutputToFile(testRm);
   inputs.writeOutputsToFile(std::vector<TH1D*>{testRec, testGen, testFake, testMiss, testGenAndRec, testKinEff, unfolded, refolded});
   inputs.writeOutputsToFile(std::vector<TH2D*>{covMatrix, pearson});
 }
@@ -916,8 +923,9 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
 void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
   inputs.printLog("Doing unfolding for " + unfoldingutilities::to_string(inputs.getVariableType()) + " with " + to_string(nIterations) + " iterations.", verbosityutilities::kInfo);
 
-  string nameRec, nameGen, nameFake, nameMiss, nameGenAndRec, nameKinEff, nameResponse, ruBayesName, unfoldedName, refoldedName, covMatrixName, pearsonName;
+  string nameRm, nameRec, nameGen, nameFake, nameMiss, nameGenAndRec, nameKinEff, nameResponse, ruBayesName, unfoldedName, refoldedName, covMatrixName, pearsonName;
   if (inputs.getVariableType() == unfoldingutilities::VariableType::kK0SPt) {
+    nameRm        = rmutilities::unfolding::nameRmK0SPt;
     nameRec       = rmutilities::unfolding::nameRecK0SPt;
     nameGen       = rmutilities::unfolding::nameGenK0SPt;
     nameFake      = rmutilities::unfolding::nameFakeK0SPt;
@@ -931,6 +939,7 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
     covMatrixName = rmutilities::unfolding::nameCovMatrixK0SPt + to_string(nIterations);
     pearsonName   = rmutilities::unfolding::namePearsonK0SPt + to_string(nIterations);
   } else if (inputs.getVariableType() == unfoldingutilities::VariableType::kK0SZ) {
+    nameRm        = rmutilities::unfolding::nameRmK0SZ;
     nameRec       = rmutilities::unfolding::nameRecK0SZ;
     nameGen       = rmutilities::unfolding::nameGenK0SZ;
     nameFake      = rmutilities::unfolding::nameFakeK0SZ;
@@ -956,6 +965,7 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
   }
 
   inputs.printLog("Retrieving response and histograms from training.", verbosityutilities::kDebug);
+  THnSparseD* trainingRm = (THnSparseD*)responseFile->Get(nameRm.c_str());
   TH2D* trainingRec = (TH2D*)responseFile->Get(nameRec.c_str());
   TH2D* trainingGen = (TH2D*)responseFile->Get(nameGen.c_str());
   TH2D* trainingFake = (TH2D*)responseFile->Get(nameFake.c_str());
@@ -964,6 +974,8 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
   TH2D* trainingGenAndRec = (TH2D*)responseFile->Get(nameGenAndRec.c_str());
   RooUnfoldResponse* response = (RooUnfoldResponse*)responseFile->Get(nameResponse.c_str());
 
+  if (!trainingRm)
+    inputs.printLog("Error: could not find " + nameRm + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingRec)
     inputs.printLog("Error: could not find " + nameRec + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!trainingGen)
@@ -978,11 +990,12 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
     inputs.printLog("Error: could not find " + nameGenAndRec + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
   if (!response)
     inputs.printLog("Error: could not find " + nameResponse + " in file " + inputs.responseFileName, verbosityutilities::kErrors);
-  if (!trainingRec || !trainingGen || !trainingFake || !trainingMiss || !trainingKinEff || !trainingGenAndRec || !response)
+  if (!trainingRm || !trainingRec || !trainingGen || !trainingFake || !trainingMiss || !trainingKinEff || !trainingGenAndRec || !response)
     return;
 
   // Change the names to distinguish these from the test histograms when writing to file
   string prefTraining = rmutilities::unfolding::prefixTraining;
+  trainingRm->SetName((prefTraining + nameRm).c_str());
   trainingRec->SetName((prefTraining + nameRec).c_str());
   trainingGen->SetName((prefTraining + nameGen).c_str());
   trainingFake->SetName((prefTraining + nameFake).c_str());
@@ -993,6 +1006,7 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
   // Create the test histograms. These must have the same binning as the training histograms
   // For trivial closure test, they are copies, otherwise they are filled with independent data
   string prefTest = rmutilities::unfolding::prefixTest;
+  THnSparseD* testRm = (THnSparseD*)trainingRm->Clone((prefTest + nameRm).c_str());
   TH2D* testRec = (TH2D*)trainingRec->Clone((prefTest + nameRec).c_str());
   TH2D* testGen = (TH2D*)trainingGen->Clone((prefTest + nameGen).c_str());
   TH2D* testFake = (TH2D*)trainingFake->Clone((prefTest + nameFake).c_str());
@@ -1014,8 +1028,8 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
       inputs.printLog("Error: could not open file " + inputs.inputFileName, verbosityutilities::kErrors);
       return;
     }
-    THnSparseD* testResponseMatrix = LoadResponseMatrix<THnSparseD*>(inputs);
-    FillFromRmK0S(inputs, testResponseMatrix, testRec, testGen, testMiss, testGenAndRec, testFake);
+    testRm = LoadResponseMatrix<THnSparseD*>(inputs);
+    FillFromRmK0S(inputs, testRm, testRec, testGen, testMiss, testGenAndRec, testFake);
     testFile->Close();
   }
 
@@ -1043,9 +1057,11 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
   testKinEff->Divide(testGen);
 
   inputs.writeOutputToFile(response);
+  inputs.writeOutputToFile(trainingRm);
   inputs.writeOutputsToFile(std::vector<TH2D*>{trainingRec, trainingGen, trainingFake, trainingMiss, trainingKinEff, trainingGenAndRec});
   inputs.writeOutputToFile(&ruBayes);
   inputs.writeOutputsToFile(std::vector<TH2D*>{unfolded, refolded});
+  inputs.writeOutputToFile(testRm);
   inputs.writeOutputsToFile(std::vector<TH2D*>{testRec, testGen, testFake, testMiss, testKinEff, testGenAndRec});
   inputs.writeOutputsToFile(std::vector<TH2D*>{covMatrix, pearson});
 }

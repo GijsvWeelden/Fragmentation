@@ -90,7 +90,11 @@ namespace mystrings {
 
   // Simulations
   const string sJetXsec = sSigma + "_{" + sJets + "}";
+  const string sV0Xsec = sSigma + "_{" + sV0 + "}";
+  const string sK0SXsec = sSigma + "_{" + sK0S + "}";
   const string sJetsPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sJetXsec, sPtJet);
+  const string sV0PtPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sV0Xsec, sPtV0);
+  const string sK0SPtPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sK0SXsec, sPtK0S);
 }
 
 string mystrings::addSubscript(string base, string subscript) {

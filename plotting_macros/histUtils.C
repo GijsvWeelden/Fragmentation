@@ -334,6 +334,7 @@ TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
       continue;
 
     double newBinContent = numerator / denominator;
+    result->SetBinContent(i, newBinContent);
 
     if (std::isnan(numError) || std::isnan(denError))
       continue;
@@ -341,8 +342,6 @@ TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
     double numRelError = numError / numerator;
     double denRelError = denError / denominator;
     double newBinError = newBinContent * std::sqrt((numRelError * numRelError) + (denRelError * denRelError));
-
-    result->SetBinContent(i, newBinContent);
     result->SetBinError(i, newBinError);
   }
   return result;

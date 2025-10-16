@@ -231,11 +231,15 @@ struct Plotter {
       makeRatios(baseCopy);
     }
     void plot() {
-      if (!_canvas) makeCanvas();
-      if (!_frame) makeFrame("x", "y");
+      if (!_canvas)
+        makeCanvas();
+      if (!_frame)
+        makeFrame("x", "y");
 
       _frame->Draw();
-      if (_legend) _legend->Draw("same");
+      if (_legend)
+        _legend->Draw("same");
+
       for (auto o : _objects)
         o->Draw("same");
 

@@ -1109,7 +1109,7 @@ string TrivialClosureTestSummary(InputSettings& inputs, array<TH1D*, 3> hists, b
 void MakeClosureTestPlots(InputSettings& inputs, array<TH1D*, 3> hists, int nIteration, bool isUnfolded) {
   inputs.printLog(TString::Format("Making plots for %s closure test for iteration = %d, ptjet = %.f-%.f", unfoldingutilities::to_string(inputs.getVariableType()).c_str(), nIteration, inputs.ptjetminProjection, inputs.ptjetmaxProjection).Data(), verbosityutilities::kInfo);
 
-  string drawOption = inputs.drawText ? "hist text" : "";
+  string drawOption = inputs.drawText ? "hist text" : "hist";
   string canvasName = isUnfolded ? "unfolded" : "refolded";
   canvasName += unfoldingutilities::to_string(inputs.getVariableType()) + "-iteration" + to_string(nIteration) + ".pdf";
   TCanvas* canvas = new TCanvas(canvasName.c_str(), canvasName.c_str(), 800, 600);
@@ -1180,19 +1180,27 @@ array<TH1D*, 3> MakeClosureTestHistsJet(const TH1D* hRooUnfold, const TH1D* hAna
   string nRooUnfold = isUnfolded ? "Unfolded" : "Refolded";
   string nAnalysis = isUnfolded ? "Generated" : "Reconstructed";
 
-  TH1D* hDiff = (TH1D*)hRooUnfold->Clone("hDiff");
-  hDiff->Add(hAnalysis, -1);
+  // Self-normalise the distributions, as the training and test distributions may have different integrals
+  // RooUnfold does not change the total integral of the distribution
+  TH1D* hRoo = (TH1D*)hRooUnfold->Clone("hRoo");
+  TH1D* hAna = (TH1D*)hAnalysis->Clone("hAna");
+
+  hRoo->Scale(1. / hRoo->Integral(), "width");
+  hAna->Scale(1. / hAna->Integral(), "width");
+
+  TH1D* hDiff = (TH1D*)hRoo->Clone("hDiff");
+  hDiff->Add(hAna, -1);
   hDiff->GetXaxis()->SetTitle("#it{p}_{T,jet} (GeV/c)");
   hDiff->SetTitle((nRooUnfold + " - " + nAnalysis).c_str());
 
-  TH1D* hRelDiff = (TH1D*)hRooUnfold->Clone("hRelDiff");
-  hRelDiff->Add(hAnalysis, -1);
-  hRelDiff->Divide(hAnalysis);
+  TH1D* hRelDiff = (TH1D*)hRoo->Clone("hRelDiff");
+  hRelDiff->Add(hAna, -1);
+  hRelDiff->Divide(hAna);
   hRelDiff->GetXaxis()->SetTitle("#it{p}_{T,jet} (GeV/c)");
   hRelDiff->SetTitle(("#frac{" + nRooUnfold + " - " + nAnalysis + "}{" + nAnalysis + "}").c_str());
 
-  TH1D* hRatio = (TH1D*)hRooUnfold->Clone("hRatio");
-  hRatio->Divide(hAnalysis);
+  TH1D* hRatio = (TH1D*)hRoo->Clone("hRatio");
+  hRatio->Divide(hAna);
   hRatio->GetXaxis()->SetTitle("#it{p}_{T,jet} (GeV/c)");
   hRatio->SetTitle(("#frac{" + nRooUnfold + "}{" + nAnalysis + "}").c_str());
 
@@ -1211,6 +1219,11 @@ array<TH1D*, 3> MakeClosureTestHistsV0(InputSettings& inputs, const TH2D* hRooUn
   array<int, 2> ptjetBins = histutils::getProjectionBins(hRooUnfold->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1D* hRooUnfoldProj = (TH1D*)hRooUnfold->ProjectionX("hRooUnfoldProj", ptjetBins[0], ptjetBins[1]);
   TH1D* hAnalysisProj  = (TH1D*)hAnalysis->ProjectionX("hAnalysisProj", ptjetBins[0], ptjetBins[1]);
+
+  // Self-normalise the distributions, as the training and test distributions may have different integrals
+  // RooUnfold does not change the total integral of the distribution
+  hRooUnfoldProj->Scale(1. / hRooUnfoldProj->Integral(), "width");
+  hAnalysisProj->Scale(1. / hAnalysisProj->Integral(), "width");
 
   TH1D* hDiff = (TH1D*)hRooUnfoldProj->Clone("hDiff");
   hDiff->Add(hAnalysisProj, -1);

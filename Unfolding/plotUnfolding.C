@@ -54,18 +54,14 @@ void plotjetsgen(int minIteration, int maxIteration) {
 
     h->Scale(1. / h->Integral(), "width");
     plotutils::setStyle(h, i);
-    // h = (TH1*)histutils::divideWithProtection(h, hGen);
-    unfHists.push_back(h);
-
     p.addLegendEntry(h, to_string(i));
     p.addHistogram(h);
-    h->Print("all");
+    if (inputs.passVerbosityCheck(verbosityutilities::kDebug))
+      h->Print("all");
   }
-  // unfHists[0]->Draw("hist");
-  // p.setHists(unfHists);
   p.makeRatios(hGen);
 
-  // p.makeFrame(5., 80., 0.8, 1.2, mystrings::sPtJet, "Unfolded / Generated");
+  p.makeFrame(5., 80., 0.8, 1.2, mystrings::sPtJet, "Unfolded / Generated");
   p.setDrawOption("hist");
   p.plot();
 }

@@ -30,39 +30,58 @@ T* GetHist(InputSettings& inputs, string histName) {
 // Want:
 // * Proper plotter for closure tests
 // * Plot multiple iterations on one canvas
+void FillJetPlotter(InputSettings& inputs, plotutils::Plotter& plotter, bool isUnfolded) {
+  if (inputs.maxIteration < inputs.minIteration) {
+    inputs.printLog("FillJetPlotter() Error: invalid iteration range " + to_string(inputs.minIteration) + " to " + to_string(inputs.maxIteration), verbosityutilities::kErrors);
+    return;
+  }
+  if (!plotter.getLegend()) {
+    inputs.printLog("FillJetPlotter() Error: plotter does not have a legend!", verbosityutilities::kErrors);
+    return;
+  }
 
-void plotjetsrec() {}
+  string baseName = isUnfolded ? rmutilities::testing::nameGenJets : rmutilities::testing::nameRecJets;
+  string histName = isUnfolded ? "unfoldedJets" : "refoldedJets";
 
-void plotjetsgen(int minIteration, int maxIteration) {
-  InputSettings inputs; inputs.setVerbosity(verbosityutilities::kDebug);
-  inputs.setIterations(minIteration, maxIteration);
+  TH1* hBase = GetHist<TH1>(inputs, baseName);
+  hBase->Scale(1. / hBase->Integral(), "width");
 
-  inputs.inputFileName = "ClosureTest_520161_40.root";
-  inputs.outputFileName = TString::Format("unfoldedJets_iter%d-%d.pdf", minIteration, maxIteration).Data();
-
-  TH1* hGen = GetHist<TH1>(inputs, rmutilities::testing::nameGenJets);
-  hGen->Scale(1. / hGen->Integral(), "width");
-
-  vector<TH1*> unfHists;
-  plotutils::Plotter p(inputs.outputFileName);
-  p.makeLegend(0.6, 0.9, 0.7, 0.9, "");
-
-  for (int i = minIteration; i <= maxIteration; i++) {
-    TH1* h = GetHist<TH1>(inputs, "unfoldedJets" + to_string(i));
-    if (!h)
+  for (int i = inputs.minIteration; i <= inputs.maxIteration; i++) {
+    TH1* hist = GetHist<TH1>(inputs, histName + to_string(i));
+    if (!hist)
       continue;
 
-    h->Scale(1. / h->Integral(), "width");
-    plotutils::setStyle(h, i);
-    p.addLegendEntry(h, to_string(i));
-    p.addHistogram(h);
+    hist->Scale(1. / hist->Integral(), "width");
+    plotutils::setStyle(hist, i);
+    plotter.addLegendEntry(hist, to_string(i));
+    plotter.addHistogram(hist);
     if (inputs.passVerbosityCheck(verbosityutilities::kDebug))
-      h->Print("all");
+      hist->Print("all");
   }
-  p.makeRatios(hGen);
+  plotter.makeRatios(hBase);
+}
 
-  p.makeFrame(5., 80., 0.8, 1.2, mystrings::sPtJet, "Unfolded / Generated");
+void plotjets(int minIteration, int maxIteration, bool isUnfolded) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutilities::kDebug);
+  inputs.setIterations(minIteration, maxIteration);
+  inputs.inputFileName = "ClosureTest_520161_40.root";
+
+  string outputPrefix = "refoldedJets";
+  double xMinFrame = 10., xMaxFrame = 60.;
+  string yTitle = "#frac{Refolded}{Reconstructed}";
+  if (isUnfolded) {
+    xMinFrame = 5.;
+    xMaxFrame = 80.;
+    yTitle = "#frac{Unfolded}{Generated}";
+    outputPrefix = "unfoldedJets";
+  }
+
+  inputs.outputFileName = outputPrefix + "_iter" + to_string(minIteration) + "-" + to_string(maxIteration) + ".pdf";
+  plotutils::Plotter p(inputs.outputFileName, false, 0.04);
+  p.makeFrame(xMinFrame, xMaxFrame, 0.8, 1.2, mystrings::sPtJet, yTitle);
   p.setDrawOption("hist");
+  p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
+  FillJetPlotter(inputs, p, isUnfolded);
   p.plot();
 }
 

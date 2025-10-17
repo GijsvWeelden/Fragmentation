@@ -1784,8 +1784,28 @@ void closuretest520161(ActionType action, bool doTrivialClosureTest, int minIter
   x.setPtV0Rec(1., 40);
   x.autoTemplateHists();
   x.doTrivialClosureTest = doTrivialClosureTest;
-  x.minIteration = minIteration;
-  x.maxIteration = maxIteration;
+  x.setIterations(minIteration, maxIteration);
+  doclosuretest(action, x, array<string, 4>{trainingFileName, testFileName, responseFileName, closureFileName});
+}
+
+void closuretest527899(ActionType action, bool doTrivialClosureTest, int minIteration = -1, int maxIteration = -1) {
+  int train = 527899;
+  string trainingFileName, testFileName, responseFileName, closureFileName;
+  if (doTrivialClosureTest) {
+    trainingFileName = to_string(train) + ".root";
+    testFileName     = trainingFileName;
+  } else {
+    trainingFileName = to_string(train) + "_80.root";
+    testFileName     = to_string(train) + "_20.root";
+  }
+  responseFileName = "RooUnfoldResponse_" + trainingFileName;
+  closureFileName  = "ClosureTest_" + trainingFileName;
+
+  InputSettings x; x.setVerbosity(verbosityutilities::kDebug);
+  x.setPtV0Rec(1., 40);
+  x.autoTemplateHists();
+  x.doTrivialClosureTest = doTrivialClosureTest;
+  x.setIterations(minIteration, maxIteration);
   doclosuretest(action, x, array<string, 4>{trainingFileName, testFileName, responseFileName, closureFileName});
 }
 

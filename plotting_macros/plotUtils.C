@@ -83,7 +83,8 @@ void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize =
 Int_t GetColor(Int_t i) {
   const Int_t nc = 11;
   // Int_t color[nc] = {1,kRed+1,4,kGreen+2,kAzure-2,kOrange+7,kGray+2,myDarkRed,kAzure+10,kGreen+4,kYellow+2};
-  Int_t color[nc] = {1,kRed+1,4,kGreen+2,kCyan+4,kOrange+7,kGray+2,myDarkRed,kAzure+10,kGreen+4,kYellow+2};
+  // Int_t color[nc] = {1,kRed+1,4,kGreen+2,kCyan+4,kOrange+7,kGray+2,myDarkRed,kAzure+10,kGreen+4,kYellow+2};
+  Int_t color[nc] = {1,kRed+1,4,kGreen+2,kMagenta+2,kOrange+7,kGray+2,myDarkRed,kAzure+10,kGreen+4,kYellow+2};
   if(i<nc) return color[i];
   else     return i;
 }
@@ -196,6 +197,9 @@ struct Plotter {
       setStyle(l, styleNumber, lineStyle, lineWidth);
       _objects.push_back(l);
     }
+    void addObject(TObject* obj) {
+      _objects.push_back(obj);
+    }
     void makeCanvas(string s = "c", double x = 800, double y = 600) {
       _canvas = new TCanvas(s.c_str(), s.c_str(), x, y);
       _canvas->SetLogy(_logPlot);
@@ -283,6 +287,47 @@ struct Plotter {
         setStyle(_hists[i], i);
     }
 }; // struct Plotter
+
+void ColorTester() {
+  double x0 = 0., x1 = 1., y0 = 0., y1 = 1.;
+  TCanvas* c = new TCanvas("c", "c", 800, 600);
+
+  TLine* l1 = new TLine(x0, y0, x1, y1);
+  TLine* l2 = new TLine(x0, 0.2*y1, x1, 0.8*y1);
+  TLine* l3 = new TLine(x0, 0.4*y1, x1, 0.6*y1);
+  TLine* l4 = new TLine(x0, 0.6*y1, x1, 0.4*y1);
+  TLine* l5 = new TLine(x0, 0.8*y1, x1, 0.2*y1);
+  TLine* l6 = new TLine(x0, y1, x1, y0);
+
+  l1->SetLineColor(kBlack);
+  l2->SetLineColor(kRed+1);
+  l3->SetLineColor(4);
+  l4->SetLineColor(kGreen+2);
+  l5->SetLineColor(kMagenta);
+  l6->SetLineColor(kMagenta+2);
+
+  l1->SetLineWidth(3);
+  l2->SetLineWidth(3);
+  l3->SetLineWidth(3);
+  l4->SetLineWidth(3);
+  l5->SetLineWidth(3);
+  l6->SetLineWidth(3);
+
+  TH1* h = new TH1F("h", "", 1, x0, x1);
+  h->SetStats(0);
+  vector<TLine*> lines = {l1, l2, l3, l4, l5, l6};
+
+  h->Draw();
+  for (auto& line : lines)
+    line->Draw("same");
+
+  gPad->SetLeftMargin(0);
+  gPad->SetRightMargin(0);
+  gPad->SetBottomMargin(0);
+  gPad->SetTopMargin(0);
+
+  c->SaveAs("colortest.pdf");
+}
 
 } // namespace plotutils
 

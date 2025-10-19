@@ -24,7 +24,7 @@ namespace mystrings {
   const string sAntikt     = "Anti-#it{k}_{T}";
   const string sCharged    = "ch";
   const string sCounts     = "Counts";
-  const string sEta        = "#eta";
+  const string sEta        = "#it{#eta}";
   const string sGevC       = "GeV/#it{c}";
   const string sGevCC      = "GeV/#it{c}^{2}";
   const string sJet        = "jet";
@@ -34,7 +34,7 @@ namespace mystrings {
   const string sRadius     = "#it{R} = 0.4";
   const string sRatio      = "Ratio";
   const string sSigma      = "#sigma";
-  const string sSqrtS      = "#sqrt{s} = 13.6 TeV";
+  const string sSqrtS      = "#sqrt{#it{s}} = 13.6 TeV";
   const string sPpData     = "pp data";
   const string sPythia     = "PYTHIA";
   const string sThisThesis = "This Thesis";
@@ -45,6 +45,12 @@ namespace mystrings {
   const string sAntiLambda = formatHadronName("AntiLambda");
 
   // Strings derived from the ones above
+  const string sAlicePpData = sALICE + " " + sPpData;
+  const string sPythiaSim   = sPythia + " simulation pp";
+  const string sThisThesisAliceData = sThisThesis + ", " + sAlicePpData;
+  const string sThisThesisAliceSim  = sThisThesis + ", " + sALICE + " ";
+  const string sThisThesisPythiaSim = sThisThesis + ", " + sPythiaSim;
+
   const string sChJets      = sCharged + " " + sJets;
   const string sChV0Jets    = sCharged + "+" + sV0 + " " + sJets;
   const string sAliceData   = sALICE + " " + sPpData;
@@ -60,9 +66,10 @@ namespace mystrings {
   const string sEtaK0S      = sEta + "_{" + sK0S + "}";
 
   const string sEtaJetRange035 = "|" + sEtaJet + "| < 0.35";
-  const string sEtaJetRange05 = "|" + sEtaJet + "| < 0.5";
-  const string sEtaV0Range09  = "|" + sEtaV0 + "| < 0.9";
-  const string sEtaK0SRange09 = "|" + sEtaK0S + "| < 0.9";
+  const string sEtaJetRange05  = "|" + sEtaJet + "| < 0.5";
+  const string sEtaV0Range075  = "|" + sEtaV0 + "| < 0.75";
+  const string sEtaV0Range09   = "|" + sEtaV0 + "| < 0.9";
+  const string sEtaK0SRange09  = "|" + sEtaK0S + "| < 0.9";
 
   const string sPtJet        = getPtString(sJet);
   const string sPtV0         = getPtString(sV0);

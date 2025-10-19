@@ -261,6 +261,20 @@ struct Plotter {
       resetObjects();
       resetHists();
     }
+    void selfNormaliseHists() {
+      if (isHistVectorEmpty("selfNormaliseHists"))
+        return;
+
+      for (auto& h : _hists) {
+        double integral = h->Integral("width");
+        if (std::isnan(integral))
+          cout << "Integral is nan! Skipping hist " << h->GetName() << endl;
+        else if (std::abs(integral) < 1e-25)
+          cout << "Integral is < 1e-25! Skipping hist " << h->GetName() << endl;
+        else
+          h->Scale(1. / integral);
+      }
+    }
     void setHists(vector<TH1*> h) {
       _hists = h;
     }

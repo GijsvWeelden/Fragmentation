@@ -14,6 +14,7 @@
 #include "TLegend.h"
 
 #include "../histUtils.C"
+#include "../plotUtils.C"
 
 #ifndef __PLOTMASSFITS_H__
 #define __PLOTMASSFITS_H__
@@ -34,7 +35,7 @@ double chisqInRange(TH1* hist, TF1* fit, int minBin, int maxBin) {
 }
 
 double chisqInRange(TH1* hist, TF1* fit, double xmin, double xmax) {
-  array<int, 2> bins = getProjectionBins(hist->GetXaxis(), xmin, xmax);
+  array<int, 2> bins = histutils::getProjectionBins(hist->GetXaxis(), xmin, xmax);
   return chisqInRange(hist, fit, bins[0], bins[1]);
 }
 
@@ -43,7 +44,7 @@ double ndfInRange(TF1* fit, int minBin, int maxBin) {
 }
 
 double ndfInRange(TH1* data, TF1* fit, double xmin, double xmax) {
-  array<int, 2> bins = getProjectionBins(data->GetXaxis(), xmin, xmax);
+  array<int, 2> bins = histutils::getProjectionBins(data->GetXaxis(), xmin, xmax);
   return ndfInRange(fit, bins[0], bins[1]);
 }
 
@@ -211,9 +212,13 @@ struct InputSettings{
     string outputFileName = "";
     double ptmin = -1e3, ptmax = -1e3, lowpt = -1e3, highpt = -1e3;
     double fitmin = -1e3, fitmax = -1e3; // Fit range
+    double textSize = 0.04;
     bool logplot = false;
     bool normaliseData = false;
     bool fixMu = false;
+    bool printDataSet = false;
+    bool drawLegend = true;
+    bool drawLatex = true;
     vector<vector<double>> ptBinEdges = {};
 
     double massWindowMin = -1., massWindowMax = -1.;
@@ -252,9 +257,9 @@ struct InputSettings{
 
 double InputSettings::getMass() {
   if (this->hadron == "K0S")
-    return MassK0S;
+    return histutils::MassK0S;
   if (this->hadron == "Lambda" || this->hadron == "AntiLambda")
-    return MassLambda;
+    return histutils::MassLambda;
 
   return -1.;
 }
@@ -713,7 +718,7 @@ void MassFitter::calcSigBkg() {
   }
 
   // Calculate signal and background with data hist and bkg fit function
-  array<int, 2> sigBins = getProjectionBins(this->data->GetXaxis(), this->inputs->signalRegionMin, this->inputs->signalRegionMax);
+  array<int, 2> sigBins = histutils::getProjectionBins(this->data->GetXaxis(), this->inputs->signalRegionMin, this->inputs->signalRegionMax);
   double xmin = this->data->GetXaxis()->GetBinLowEdge(sigBins[0]);
   double xmax = this->data->GetXaxis()->GetBinUpEdge(sigBins[1]);
 
@@ -871,7 +876,7 @@ TH1* MassFitter::loadMassHist() {
   if (this->inputs->hadron == "AntiLambda")
     projectionAxis = 3;
 
-  array<int, 2> bins = getProjectionBins(hist->GetAxis(0), this->inputs->ptmin, this->inputs->ptmax);
+  array<int, 2> bins = histutils::getProjectionBins(hist->GetAxis(0), this->inputs->ptmin, this->inputs->ptmax);
   int minBin = bins[0], maxBin = bins[1];
   this->inputs->lowpt = hist->GetAxis(0)->GetBinLowEdge(minBin);
   this->inputs->highpt = hist->GetAxis(0)->GetBinUpEdge(maxBin);
@@ -886,9 +891,11 @@ TH1* MassFitter::loadMassHist() {
     h->Rebin(this->inputs->rebinNumber);
 
   if (this->inputs->normaliseData) {
-    bins = getProjectionBins(h->GetXaxis(), this->inputs->massWindowMin, this->inputs->massWindowMax);
+    bins = histutils::getProjectionBins(h->GetXaxis(), this->inputs->massWindowMin, this->inputs->massWindowMax);
     minBin = bins[0], maxBin = bins[1];
-    h->Scale(1./getScaleInRange(h, minBin, maxBin, false, false));
+    // h->Scale(1./getScaleInRange(h, minBin, maxBin, false, false));
+    double histScalse = histutils::getUpperBoundInRange(h, minBin, maxBin, false);
+    h->Scale(1./histScalse);
   }
 
   string hName = this->inputs->getSaveNameFromPt("data");
@@ -901,9 +908,10 @@ TH1* MassFitter::loadMassHist() {
 }
 
 void MassFitter::setFitInitialValues() {
-  array<int, 2> massBins = getProjectionBins(this->data->GetXaxis(), this->inputs->massWindowMin, this->inputs->massWindowMax);
+  array<int, 2> massBins = histutils::getProjectionBins(this->data->GetXaxis(), this->inputs->massWindowMin, this->inputs->massWindowMax);
   int minBin = massBins[0], maxBin = massBins[1];
-  int extremeBin = getExtremeBinInRange(this->data, minBin, maxBin, false, false);
+  int extremeBin = histutils::getUpperBoundBinInRange(this->data, minBin, maxBin, false);
+  // int extremeBin = getExtremeBinInRange(this->data, minBin, maxBin, false, false);
 
   int b0 = this->data->GetXaxis()->FindBin(this->inputs->polInitx0);
   int b1 = this->data->GetXaxis()->FindBin(this->inputs->polInitx1);
@@ -1883,7 +1891,7 @@ void SignalFinder::calcSigBkg() {
     mf->loadSavedFitParts();
   }
 
-  array<int, 2> sigBins = getProjectionBins(mf->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax);
+  array<int, 2> sigBins = histutils::getProjectionBins(mf->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax);
   double xmin = mf->data->GetXaxis()->GetBinLowEdge(sigBins[0]);
   double xmax = mf->data->GetXaxis()->GetBinUpEdge(sigBins[1]);
 
@@ -2411,8 +2419,8 @@ TH1* SignalFinder::EGE_loadSigFracHist(bool leftSide = false) {
 }
 
 TH1* SignalFinder::makeSigRegionHist() {
-  array<int, 2> signalRegionBins = getProjectionBins(mf->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax);
-  return makeHistSubset(mf->data, signalRegionBins[0], signalRegionBins[1], this->inputs->getSaveNameFromPt("signalRegion"));
+  array<int, 2> signalRegionBins = histutils::getProjectionBins(mf->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax);
+  return histutils::makeHistSubset(mf->data, signalRegionBins[0], signalRegionBins[1], this->inputs->getSaveNameFromPt("signalRegion"));
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -2430,6 +2438,7 @@ struct FitPlotter {
     TCanvas* canvas = nullptr;
     TH1F* frame = nullptr;
     TLegend* legend = nullptr;
+    vector<TObject*> plottingObjects = {};
 
     double expectedSignalFraction = -1;
     double expectedSigFracLeft = -1;
@@ -2439,6 +2448,9 @@ struct FitPlotter {
     FitPlotter(InputSettings& x) { inputs = &x; mf = new MassFitter(x); }
     FitPlotter(MassFitter& x) { mf = &x; inputs = x.inputs; }
 
+    void addLatex(double x, double y, string text, double textSize = 0.04);
+    void createLegend(double x1, double x2, double y1, double y2, string title);
+    void fillLegendWithFitParts();
     TH1* loadSignalRegionHist();
     void plotFitInfo();
     int plotFitInfo(int infoToPlot);
@@ -2449,9 +2461,52 @@ struct FitPlotter {
     void autoFrame();
 };
 
+void FitPlotter::addLatex(double x, double y, string text, double textSize) {
+  TLatex* latex = plotutils::CreateLatex(x, y, text, textSize);
+  this->plottingObjects.push_back(latex);
+}
+
+void FitPlotter::createLegend(double x1, double x2, double y1, double y2, string title = "") {
+  this->legend = plotutils::CreateLegend(x1, x2, y1, y2, title, inputs->textSize);
+}
+
+void FitPlotter::fillLegendWithFitParts() {
+  if (!this->legend) {
+    this->inputs->printLog("FitPlotter::fillLegendWithFitParts() Error: Legend not set. Aborting", InputSettings::kErrors);
+    return;
+  }
+
+  if (this->mf->fitParts.empty()) {
+    this->inputs->printLog("FitPlotter::fillLegendWithFitParts() Error: fit parts not set. Aborting", InputSettings::kErrors);
+    return;
+  }
+
+  legend->AddEntry(this->mf->fit, "Total Fit", "l");
+
+  vector<string> partNames;
+  switch (this->inputs->fitType) {
+    case InputSettings::kPol1GausGaus:
+      partNames = {"Signal (Narrow Gaussian)", "Signal (Wide Gaussian)", "Background"};
+      break;
+    case InputSettings::kPol1GausGausExp:
+      partNames = {"Signal (Narrow Gaussian)", "Signal (Wide Gaussian)", "Signal (Exp tail)", "Background"};
+      break;
+    case InputSettings::kPol1ExpGausExp:
+      partNames = {"Signal (Gaussian)", "Signal (Exp tail)", "Signal (Exp tail)", "Background"};
+      break;
+    default:
+      this->inputs->printLog("FitPlotter::fillLegendWithFitParts() Error: fit type " + to_string(this->inputs->fitType) + " not supported. Aborting", InputSettings::kErrors);
+      return;
+  }
+
+  for (size_t i = 0; i < this->mf->fitParts.size(); i++) {
+    this->legend->AddEntry(mf->fitParts[i], partNames[i].c_str(), "l");
+  }
+}
+
 TH1* FitPlotter::loadSignalRegionHist() {
-  array<int, 2> signalRegionBins = getProjectionBins(this->mf->data->GetXaxis(), this->mf->inputs->signalRegionMin, this->mf->inputs->signalRegionMax);
-  TH1* hist = makeHistSubset(this->mf->data, signalRegionBins[0], signalRegionBins[1], this->inputs->getSaveNameFromPt("signalRegion"));
+  array<int, 2> signalRegionBins = histutils::getProjectionBins(this->mf->data->GetXaxis(), this->mf->inputs->signalRegionMin, this->mf->inputs->signalRegionMax);
+  TH1* hist = histutils::makeHistSubset(this->mf->data, signalRegionBins[0], signalRegionBins[1], this->inputs->getSaveNameFromPt("signalRegion"));
   return hist;
 }
 
@@ -2464,6 +2519,8 @@ void FitPlotter::plotFitInfo() {
 }
 
 int FitPlotter::plotFitInfo(int infoToPlot) {
+  inputs->printLog("FitPlotter::plotFitInfo(): plotting info " + to_string(infoToPlot) + " from histogram " + this->inputs->histName, InputSettings::kInfo);
+
   TFile* file = TFile::Open(this->inputs->inputFileName.c_str(), "READ");
 
   TH2* fitInfo = (TH2*)file->Get(this->inputs->histName.c_str());
@@ -2480,7 +2537,7 @@ int FitPlotter::plotFitInfo(int infoToPlot) {
   }
 
   TH1* hist = (TH1*)fitInfo->ProjectionX("hist", infoToPlot+1, infoToPlot+1);
-  setStyle(hist, 0);
+  plotutils::setStyle(hist, 0);
   if (!this->canvas) {
     string s = "FitPlotter::plotFitIfo(): Canvas not set, creating automatically";
     this->inputs->printLog(s, InputSettings::kInfo);
@@ -2497,15 +2554,15 @@ int FitPlotter::plotFitInfo(int infoToPlot) {
     yMinFrame = this->frame->GetMinimum();
     yMaxFrame = this->frame->GetMaximum();
   } else {
-    histTitle = TString::Format("%s, %s, ", getDataSet(this->inputs->train).c_str(), this->inputs->fitName.c_str()).Data();
+    histTitle = TString::Format("%s, %s, ", histutils::getDataSet(this->inputs->train).c_str(), this->inputs->fitName.c_str()).Data();
     if (this->inputs->histName == "fitParams")
       histTitle += "par " + to_string(infoToPlot);
     if (this->inputs->histName == "fitResults")
       histTitle += fitInfo->GetYaxis()->GetBinLabel(infoToPlot + 1);
 
-    yMinFrame = getLowerBound(hist, false);
+    yMinFrame = histutils::getLowerBound(hist, false);
     yMinFrame *= (yMinFrame < 0) ? 1.1 : 0.9;
-    yMaxFrame = 1.1 * getUpperBound(hist, false);
+    yMaxFrame = 1.1 * histutils::getUpperBound(hist, false);
   }
 
   hist->SetTitle(histTitle.c_str());
@@ -2550,17 +2607,23 @@ void FitPlotter::plotFitParts() {
 
   for (int i = 0; i < this->mf->fitParts.size(); i++) {
     TF1* f = this->mf->fitParts[i];
-    setStyle(f, i + 2);
+    plotutils::setStyle(f, i + 2);
     f->SetRange(this->mf->data->GetXaxis()->GetXmin(), this->mf->data->GetXaxis()->GetXmax());
-    f->Draw("same");
+    f->Draw("same c");
   }
   // Only do this if auto setup is requested
-  setStyle(this->mf->data, 0);
-  setStyle(this->mf->fit, 1);
+  plotutils::setStyle(this->mf->data, 0);
+  plotutils::setStyle(this->mf->fit, 1);
   this->mf->fit->SetRange(this->mf->data->GetXaxis()->GetXmin(), this->mf->data->GetXaxis()->GetXmax());
 
   this->mf->data->Draw("same");
-  this->mf->fit->Draw("same");
+  this->mf->fit->Draw("same c");
+
+  if (this->legend)
+    legend->Draw();
+  for (auto obj : this->plottingObjects) {
+    obj->Draw("same");
+  }
   this->canvas->SaveAs(this->inputs->outputFileName.c_str());
 }
 
@@ -2584,7 +2647,7 @@ void FitPlotter::plotSignalRegion() {
     this->autoFrame();
   }
 
-  setStyle(this->mf->data, 0);
+  plotutils::setStyle(this->mf->data, 0);
   TH1* hSR = this->loadSignalRegionHist();
   hSR->SetFillColorAlpha(kGreen, 0.3);
   hSR->Print();
@@ -2613,16 +2676,21 @@ void FitPlotter::autoCanvas() {
 }
 
 void FitPlotter::autoFrame() {
+  inputs->printLog("FitPlotter::autoFrame(): Creating frame automatically", InputSettings::kInfo);
+
   double xMinFrame = this->mf->data->GetXaxis()->GetXmin();
   double xMaxFrame = this->mf->data->GetXaxis()->GetXmax();
   double yMinFrame = 0.;
-  double yMaxFrame = 1.1 * getUpperBound(this->mf->data, false);
-  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", formatHadronDaughters(this->inputs->hadron).c_str()).Data();
-  string yTitle = "";
-  string histTitle = TString::Format("%s, (%.1f < #it{p}_{T, V0} < %.1f)", getDataSet(this->inputs->train).c_str(), this->inputs->lowpt, this->inputs->highpt).Data();
+  double yMaxFrame = 1.1 * histutils::getUpperBound(this->mf->data, false);
+  string xTitle = TString::Format("#it{M}(%s) (GeV/#it{c}^{2})", histutils::formatHadronDaughters(this->inputs->hadron).c_str()).Data();
+  string yTitle = "#it{N}_{V0} (a. u.)";
+  // string histTitle = TString::Format("%s, (%.1f < #it{p}_{T, V0} < %.1f)", histutils::getDataSet(this->inputs->train).c_str(), this->inputs->lowpt, this->inputs->highpt).Data();
 
-  TH1F* frame = DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
-  frame->SetTitle(histTitle.c_str());
+  TH1F* frame = plotutils::DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+  frame->SetTitle("");
+  frame->GetYaxis()->SetTitleOffset(1.);
+
+  plotutils::SetPadMargins(0.15, 0.05, 0.15, 0.05);
   this->frame = frame;
 }
 
@@ -2775,9 +2843,9 @@ void fitMassAndPlotPartsAllBins(InputSettings& x) {
 void fitMassAndPlotPartsAllBins() {
   gROOT->SetBatch();
   InputSettings x;
-  x.train = 426828;
+  x.train = 529130;
   x.hadron = "K0S";
-  x.setFitType("pol1ExpGausExp");
+  x.setFitType("pol1GausGaus");
   x.normaliseData = true;
   x.nSigma = 3.;
   x.fixMu = true;
@@ -2793,14 +2861,16 @@ void fitMassAndPlotPartsAllBins() {
 
 // Perform fit in a single pt bin
 void fitMassAndPlotPartsSingleBin() {
-  InputSettings x;
+  InputSettings x; x.verbosity = InputSettings::kInfo;
   x.setPt(9., 10.);
-  x.train = 426828;
+  // x.setPt(30., 40.);
+  x.train = 529130;
   x.hadron = "K0S";
   x.setFitType("pol1GausGaus");
   x.normaliseData = true;
   x.nSigma = 3.;
   x.fixMu = true;
+  x.drawLegend = true;
 
   // x.setFitX(1.1, 1.13);
   x.setFitX(0.42, 0.55);
@@ -2813,10 +2883,10 @@ void fitMassAndPlotPartsSingleBin() {
   m.loadMassHist();
   m.loadFitFunction();
   m.setFitInitialValues();
-  printParLimits(m.fit);
+  histutils::printParLimits(m.fit);
 
   m.data->Fit(m.fit, "R");
-  printParLimits(m.fit);
+  histutils::printParLimits(m.fit);
   // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
   m.loadFitParts();
   m.loadFitParams();
@@ -2827,6 +2897,15 @@ void fitMassAndPlotPartsSingleBin() {
   // m.writeOutputsToFile();
 
   FitPlotter p(m);
+  if (p.inputs->drawLegend) {
+    p.createLegend(0.55, 0.75, 0.7, 0.9);
+    p.fillLegendWithFitParts();
+  }
+  if (p.inputs->drawLatex) {
+    string lTitle = TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data();
+    // Do Latex Stuff
+  }
+
   // p.inputs->outputFileName = p.inputs->getSaveNameFromPt(p.inputs->hadron + "_" + p.inputs->fitName, ".pdf");
   p.plotFitParts();
 }

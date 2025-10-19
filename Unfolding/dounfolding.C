@@ -234,6 +234,9 @@ struct InputSettings {
     bool doTrivialClosureTest = true;
 
     // Using private methods
+    string getNameFromIterations(string prefix, string suffix) {
+      return getNameFromVar(prefix, TString::Format("iter%d-%d", minIteration, maxIteration).Data(), suffix);
+    }
     string getNameFromPtJetGen(string prefix, string suffix) {
       return getNameFromPtJet(prefix, ptjetminGen, ptjetmaxGen, suffix);
     }
@@ -878,7 +881,7 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
     }
     testRm = (TH2D*)testFile->Get(inputs.getRmHistName().c_str());
     FillFromRmJets(inputs, testRm, testRec, testGen, testMiss, testGenAndRec, testFake);
-    testFile->Close();
+    // testFile->Close();
   }
 
   inputs.printLog("Creating RooUnfoldBayes object and unfolding.", verbosityutilities::kDebug);

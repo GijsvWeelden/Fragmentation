@@ -887,7 +887,8 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
   inputs.printLog("Creating RooUnfoldBayes object and unfolding.", verbosityutilities::kDebug);
   string ruBayesName  = rmutilities::unfolding::nameRooUnfoldBayesJets + to_string(nIterations);
   string ruBayesTitle = ruBayesName;
-  RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
+  // RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
+  RooUnfoldBayes ruBayes(response, testRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
 
   string unfoldedName = rmutilities::unfolding::nameUnfoldedJets + to_string(nIterations);
   TH1D* unfolded = (TH1D*)ruBayes.Hreco(inputs.errorTreatment);
@@ -1037,7 +1038,8 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
   }
 
   string ruBayesTitle = ruBayesName;
-  RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
+  RooUnfoldBayes ruBayes(response, testRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
+  // RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
 
   TH2D* unfolded = (TH2D*)ruBayes.Hreco(inputs.errorTreatment);
   unfolded->SetName(unfoldedName.c_str());
@@ -1770,7 +1772,7 @@ void doclosuretest(ActionType action, InputSettings& inputs, array<string, 4> fi
   }
 }
 
-void closuretest520161(ActionType action, bool doTrivialClosureTest, int minIteration = -1, int maxIteration = -1) {
+void closuretest520161(ActionType action, bool doTrivialClosureTest, int minIteration = -1, int maxIteration = -1, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   int train = 520161;
   string trainingFileName, testFileName, responseFileName, closureFileName;
   if (doTrivialClosureTest) {
@@ -1783,7 +1785,8 @@ void closuretest520161(ActionType action, bool doTrivialClosureTest, int minIter
   responseFileName = "RooUnfoldResponse_" + trainingFileName;
   closureFileName  = "ClosureTest_" + trainingFileName;
 
-  InputSettings x; x.setVerbosity(verbosityutilities::kDebug);
+  InputSettings x;
+  x.setVerbosity(v);
   x.setPtV0Rec(1., 40);
   x.autoTemplateHists();
   x.doTrivialClosureTest = doTrivialClosureTest;
@@ -1791,7 +1794,7 @@ void closuretest520161(ActionType action, bool doTrivialClosureTest, int minIter
   doclosuretest(action, x, array<string, 4>{trainingFileName, testFileName, responseFileName, closureFileName});
 }
 
-void closuretest527899(ActionType action, bool doTrivialClosureTest, int minIteration = -1, int maxIteration = -1) {
+void closuretest527899(ActionType action, bool doTrivialClosureTest, int minIteration = -1, int maxIteration = -1, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   int train = 527899;
   string trainingFileName, testFileName, responseFileName, closureFileName;
   if (doTrivialClosureTest) {
@@ -1804,7 +1807,8 @@ void closuretest527899(ActionType action, bool doTrivialClosureTest, int minIter
   responseFileName = "RooUnfoldResponse_" + trainingFileName;
   closureFileName  = "ClosureTest_" + trainingFileName;
 
-  InputSettings x; x.setVerbosity(verbosityutilities::kDebug);
+  InputSettings x;
+  x.setVerbosity(v);
   x.setPtV0Rec(1., 40);
   x.autoTemplateHists();
   x.doTrivialClosureTest = doTrivialClosureTest;

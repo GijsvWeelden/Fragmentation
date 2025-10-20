@@ -1110,7 +1110,8 @@ void MassFitter::setFitInitialValues() {
       }
       this->fit->SetParLimits(2, 0., 1.); // sigma
       this->fit->SetParLimits(3, 0., 10.); // lambda
-      this->fit->SetParLimits(4, 0., 1.); // B
+      this->fit->SetParLimits(4, 0., 0.5); // B
+
       this->fit->SetParLimits(5, 0., 1.); // rho
       this->fit->SetParLimits(6, 0., 1.); // a
       this->fit->SetParLimits(7, -1., 1.); // b
@@ -2455,6 +2456,7 @@ struct FitPlotter {
     void plotFitInfo();
     int plotFitInfo(int infoToPlot);
     void plotFitParts();
+    void setFitPartsPlotRanges();
     void plotSignalRegion();
 
     void autoCanvas();
@@ -2489,7 +2491,7 @@ void FitPlotter::fillLegendWithFitParts() {
       partNames = {"Signal (Narrow Gaussian)", "Signal (Wide Gaussian)", "Background"};
       break;
     case InputSettings::kPol1GausGausExp:
-      partNames = {"Signal (Narrow Gaussian)", "Signal (Wide Gaussian)", "Signal (Exp tail)", "Background"};
+      partNames = {"Signal (Narrow Gaussian)", "Signal (Exp tail)", "Signal (Wide Gaussian)", "Background"};
       break;
     case InputSettings::kPol1ExpGausExp:
       partNames = {"Signal (Gaussian)", "Signal (Exp tail)", "Signal (Exp tail)", "Background"};
@@ -2605,10 +2607,12 @@ void FitPlotter::plotFitParts() {
   this->frame->Draw();
   if (this->legend) this->legend->Draw("same");
 
+  this->setFitPartsPlotRanges();
   for (int i = 0; i < this->mf->fitParts.size(); i++) {
     TF1* f = this->mf->fitParts[i];
     plotutils::setStyle(f, i + 2);
-    f->SetRange(this->mf->data->GetXaxis()->GetXmin(), this->mf->data->GetXaxis()->GetXmax());
+    // this->setFitPartsPlotRanges(i);
+    // f->SetRange(this->mf->data->GetXaxis()->GetXmin(), this->mf->data->GetXaxis()->GetXmax());
     f->Draw("same c");
   }
   // Only do this if auto setup is requested
@@ -2625,6 +2629,41 @@ void FitPlotter::plotFitParts() {
     obj->Draw("same");
   }
   this->canvas->SaveAs(this->inputs->outputFileName.c_str());
+}
+
+void FitPlotter::setFitPartsPlotRanges() {
+  double xmin = this->mf->data->GetXaxis()->GetXmin();
+  double xmax = this->mf->data->GetXaxis()->GetXmax();
+
+  switch (this->inputs->fitType) {
+    case InputSettings::kPol1GausGaus:
+      for (auto f : this->mf->fitParts) {
+        f->SetRange(xmin, xmax);
+      }
+      break;
+    case InputSettings::kPol1GausGausExp: {
+        double crossover = this->mf->fit->GetParameter(1) + this->mf->fit->GetParameter(2) * this->mf->fit->GetParameter(3);
+        this->mf->fitParts[0]->SetRange(xmin, crossover); this->mf->fitParts[0]->SetNpx(10000);
+        this->mf->fitParts[1]->SetRange(crossover, xmax); this->mf->fitParts[1]->SetNpx(10000);
+        this->mf->fitParts[2]->SetRange(xmin, xmax);
+        this->mf->fitParts[3]->SetRange(xmin, xmax);
+      }
+      break;
+    case InputSettings::kPol1ExpGausExp: {
+        double crossoverLeft  = this->mf->fit->GetParameter(1) - this->mf->fit->GetParameter(2) * this->mf->fit->GetParameter(3);
+        double crossoverRight = this->mf->fit->GetParameter(1) + this->mf->fit->GetParameter(2) * this->mf->fit->GetParameter(4);
+        this->mf->fitParts[0]->SetRange(crossoverLeft, crossoverRight); this->mf->fitParts[0]->SetNpx(10000);
+        this->mf->fitParts[1]->SetRange(xmin, crossoverLeft); this->mf->fitParts[1]->SetNpx(10000);
+        this->mf->fitParts[2]->SetRange(crossoverRight, xmax); this->mf->fitParts[2]->SetNpx(10000);
+        this->mf->fitParts[3]->SetRange(xmin, xmax);
+      }
+      break;
+    default:
+      inputs->printLog("FitPlotter::setFitPartsPlotRanges(): fit type " + to_string(this->inputs->fitType) + " not implemented. Using histogram ranges", InputSettings::kInfo);
+      for (auto f : this->mf->fitParts) {
+        f->SetRange(xmin, xmax);
+      }
+  }
 }
 
 void FitPlotter::plotSignalRegion() {

@@ -212,6 +212,38 @@ void plotjetsunfoldedratio(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
+void plotjetsgenrecunfolded(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+  InputSettings inputs; inputs.setVerbosity(v);
+  inputs.setIterations(minIteration, maxIteration);
+  inputs.inputFileName = "ClosureTest_527899_80.root";
+
+  TH1* hGen = GetHist<TH1>(inputs, rmutilities::testing::nameGenJets);
+  plotutils::setStyle(hGen, 1);
+  // hGen->Scale(1. / hGen->Integral(), "width");
+
+  TH1* hRec = GetHist<TH1>(inputs, rmutilities::testing::nameRecJets);
+  plotutils::setStyle(hRec, 2);
+  // hRec->Scale(1. / hRec->Integral(), "width");
+
+  const bool isUnfolded = true;
+  inputs.printLog("Plotting unfolded ratios", verbosityutilities::kInfo);
+  plotutils::Plotter p(inputs.getNameFromIterations("unfoldedJetsRatio", ".pdf"), true, 0.04);
+  p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
+  p.makeFrame(5., 80., 1e-6, 1., mystrings::sPtJet, "");
+  GetJetIterations(inputs, p, isUnfolded);
+  p.addHistogram(hGen); p.addLegendEntry(hGen, "Generated");
+  p.addHistogram(hRec); p.addLegendEntry(hRec, "Reconstructed");
+  // p.selfNormaliseHists();
+  p.makeRatios(hGen);
+  p.setDrawOption("hist");
+  p.plot();
+
+  if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
+    for (auto& hist : p.getHists())
+      hist->Print("all");
+  }
+}
+
 void plotalljets(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kErrors) {
   gROOT->SetBatch(true);
   plotjetsunfolded(minIteration, maxIteration, v);

@@ -116,7 +116,7 @@ void GetK0SIterations(InputSettings& inputs, plotutils::Plotter& plotter, bool i
 //
 // -------------------------------------------------------------------------------------------------
 
-void plotjetsrefolded(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotjetsRefolded(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
@@ -126,9 +126,8 @@ void plotjetsrefolded(int minIteration, int maxIteration, verbosityutilities::Ve
   inputs.printLog("Plotting refolded spectra", verbosityutilities::kInfo);
   plotutils::Plotter p(inputs.getNameFromIterations("refoldedJets", ".pdf"), true, 0.04);
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
-  p.makeFrame(10., 60., 1e-5, 1., mystrings::sPtJet, "Refolded");
+  p.makeFrame(10., 60., 1e2, 1e6, mystrings::sPtJet, "Refolded");
   GetJetIterations(inputs, p, !isUnfolded);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -137,14 +136,13 @@ void plotjetsrefolded(int minIteration, int maxIteration, verbosityutilities::Ve
   }
 }
 
-void plotjetsrefoldedratio(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotjetsRefoldedOverRec(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH1* hRec = GetHist<TH1>(inputs, rmutilities::testing::nameRecJets);
-  hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   inputs.printLog("Plotting refolded ratios", verbosityutilities::kInfo);
@@ -152,7 +150,6 @@ void plotjetsrefoldedratio(int minIteration, int maxIteration, verbosityutilitie
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   p.makeFrame(10., 60., 0.8, 1.2, mystrings::sPtJet, "#frac{Refolded}{Reconstructed}");
   GetJetIterations(inputs, p, !isUnfolded);
-  p.selfNormaliseHists();
   p.makeRatios(hRec);
   p.setDrawOption("hist");
   p.plot();
@@ -163,7 +160,7 @@ void plotjetsrefoldedratio(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
-void plotjetsunfolded(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotjetsUnfolded(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
@@ -171,14 +168,12 @@ void plotjetsunfolded(int minIteration, int maxIteration, verbosityutilities::Ve
 
   const bool isUnfolded = true;
   TH1* hGen = GetHist<TH1>(inputs, rmutilities::testing::nameGenJets);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   inputs.printLog("Plotting unfolded spectra", verbosityutilities::kInfo);
   plotutils::Plotter p(inputs.getNameFromIterations("unfoldedJets", ".pdf"), true, 0.04);
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
-  p.makeFrame(5., 80., 1e-6, 1., mystrings::sPtJet, "Unfolded");
+  p.makeFrame(5., 80., 1e2, 1e6, mystrings::sPtJet, "Unfolded");
   GetJetIterations(inputs, p, isUnfolded);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -187,13 +182,12 @@ void plotjetsunfolded(int minIteration, int maxIteration, verbosityutilities::Ve
   }
 }
 
-void plotjetsunfoldedratio(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotjetsUnfoldedOverGen(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs; inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH1* hGen = GetHist<TH1>(inputs, rmutilities::testing::nameGenJets);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   const bool isUnfolded = true;
   inputs.printLog("Plotting unfolded ratios", verbosityutilities::kInfo);
@@ -201,7 +195,6 @@ void plotjetsunfoldedratio(int minIteration, int maxIteration, verbosityutilitie
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   p.makeFrame(5., 80., 0.8, 1.2, mystrings::sPtJet, "#frac{Unfolded}{Generated}");
   GetJetIterations(inputs, p, isUnfolded);
-  p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -212,18 +205,16 @@ void plotjetsunfoldedratio(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
-void plotjetsgenrecunfolded(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotjetsGenRecUnfolded(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs; inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH1* hGen = GetHist<TH1>(inputs, rmutilities::testing::nameGenJets);
   plotutils::setStyle(hGen, 1);
-  // hGen->Scale(1. / hGen->Integral(), "width");
 
   TH1* hRec = GetHist<TH1>(inputs, rmutilities::testing::nameRecJets);
   plotutils::setStyle(hRec, 2);
-  // hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   inputs.printLog("Plotting unfolded ratios", verbosityutilities::kInfo);
@@ -233,7 +224,6 @@ void plotjetsgenrecunfolded(int minIteration, int maxIteration, verbosityutiliti
   GetJetIterations(inputs, p, isUnfolded);
   p.addHistogram(hGen); p.addLegendEntry(hGen, "Generated");
   p.addHistogram(hRec); p.addLegendEntry(hRec, "Reconstructed");
-  // p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -246,10 +236,10 @@ void plotjetsgenrecunfolded(int minIteration, int maxIteration, verbosityutiliti
 
 void plotalljets(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kErrors) {
   gROOT->SetBatch(true);
-  plotjetsunfolded(minIteration, maxIteration, v);
-  plotjetsunfoldedratio(minIteration, maxIteration, v);
-  plotjetsrefolded(minIteration, maxIteration, v);
-  plotjetsrefoldedratio(minIteration, maxIteration, v);
+  plotjetsUnfolded(minIteration, maxIteration, v);
+  plotjetsUnfoldedOverGen(minIteration, maxIteration, v);
+  plotjetsRefolded(minIteration, maxIteration, v);
+  plotjetsRefoldedOverRec(minIteration, maxIteration, v);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -258,12 +248,12 @@ void plotalljets(int minIteration, int maxIteration, verbosityutilities::Verbosi
 //
 // -------------------------------------------------------------------------------------------------
 
-void plotK0SPtunfolded1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtUnfolded1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(10., 20.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -273,7 +263,6 @@ void plotK0SPtunfolded1020(int minIteration, int maxIteration, verbosityutilitie
   p.makeFrame(0., 20., 1e-5, 1., mystrings::sPtK0S, "Unfolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -282,17 +271,16 @@ void plotK0SPtunfolded1020(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
-void plotK0SPtunfoldedratio1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtUnfoldedOverGen1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(10., 20.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Gen = GetHist<TH2>(inputs, rmutilities::testing::nameGenK0SPt);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Gen->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hGen = (TH1*)h2Gen->ProjectionX("hGen", ptjetBins[0], ptjetBins[1]);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -302,7 +290,6 @@ void plotK0SPtunfoldedratio1020(int minIteration, int maxIteration, verbosityuti
   p.makeFrame(0., 20., 0.8, 1.2, mystrings::sPtK0S, "#frac{Unfolded}{Generated}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -313,12 +300,12 @@ void plotK0SPtunfoldedratio1020(int minIteration, int maxIteration, verbosityuti
   }
 }
 
-void plotK0SPtrefolded1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtRefolded1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(10., 20.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -328,7 +315,6 @@ void plotK0SPtrefolded1020(int minIteration, int maxIteration, verbosityutilitie
   p.makeFrame(0., 20., 1e-6, 1., mystrings::sPtK0S, "Refolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -337,17 +323,16 @@ void plotK0SPtrefolded1020(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
-void plotK0SPtrefoldedratio1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtRefoldedOverRec1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(10., 20.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Rec = GetHist<TH2>(inputs, rmutilities::testing::nameRecK0SPt);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Rec->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hRec = (TH1*)h2Rec->ProjectionX("hRec", ptjetBins[0], ptjetBins[1]);
-  hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -357,7 +342,6 @@ void plotK0SPtrefoldedratio1020(int minIteration, int maxIteration, verbosityuti
   p.makeFrame(0., 20., 0.8, 1.2, mystrings::sPtK0S, "#frac{Refolded}{Reconstructed}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hRec);
   p.setDrawOption("hist");
   p.plot();
@@ -368,12 +352,12 @@ void plotK0SPtrefoldedratio1020(int minIteration, int maxIteration, verbosityuti
   }
 }
 
-void plotK0SPtunfolded2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtUnfolded2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(20., 30.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -383,7 +367,6 @@ void plotK0SPtunfolded2030(int minIteration, int maxIteration, verbosityutilitie
   p.makeFrame(0., 30., 1e-5, 1., mystrings::sPtK0S, "Unfolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -392,17 +375,16 @@ void plotK0SPtunfolded2030(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
-void plotK0SPtunfoldedratio2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtUnfoldedOverGen2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(20., 30.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Gen = GetHist<TH2>(inputs, rmutilities::testing::nameGenK0SPt);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Gen->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hGen = (TH1*)h2Gen->ProjectionX("hGen", ptjetBins[0], ptjetBins[1]);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -412,7 +394,6 @@ void plotK0SPtunfoldedratio2030(int minIteration, int maxIteration, verbosityuti
   p.makeFrame(0., 30., 0.8, 1.2, mystrings::sPtK0S, "#frac{Unfolded}{Generated}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -423,12 +404,12 @@ void plotK0SPtunfoldedratio2030(int minIteration, int maxIteration, verbosityuti
   }
 }
 
-void plotK0SPtrefolded2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtRefolded2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(20., 30.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -438,7 +419,6 @@ void plotK0SPtrefolded2030(int minIteration, int maxIteration, verbosityutilitie
   p.makeFrame(0., 30., 1e-5, 1., mystrings::sPtK0S, "Refolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -447,17 +427,16 @@ void plotK0SPtrefolded2030(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
-void plotK0SPtrefoldedratio2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtRefoldedOverRec2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(20., 30.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Rec = GetHist<TH2>(inputs, rmutilities::testing::nameRecK0SPt);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Rec->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hRec = (TH1*)h2Rec->ProjectionX("hRec", ptjetBins[0], ptjetBins[1]);
-  hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -467,7 +446,6 @@ void plotK0SPtrefoldedratio2030(int minIteration, int maxIteration, verbosityuti
   p.makeFrame(0., 30., 0.8, 1.2, mystrings::sPtK0S, "#frac{Refolded}{Reconstructed}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hRec);
   p.setDrawOption("hist");
   p.plot();
@@ -478,12 +456,12 @@ void plotK0SPtrefoldedratio2030(int minIteration, int maxIteration, verbosityuti
   }
 }
 
-void plotK0SPtunfolded3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtUnfolded3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(30., 40.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -493,7 +471,6 @@ void plotK0SPtunfolded3040(int minIteration, int maxIteration, verbosityutilitie
   p.makeFrame(0., 40., 1e-5, 1., mystrings::sPtK0S, "Unfolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -502,17 +479,16 @@ void plotK0SPtunfolded3040(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
-void plotK0SPtunfoldedratio3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtUnfoldedOverGen3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(30., 40.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Gen = GetHist<TH2>(inputs, rmutilities::testing::nameGenK0SPt);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Gen->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hGen = (TH1*)h2Gen->ProjectionX("hGen", ptjetBins[0], ptjetBins[1]);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -522,7 +498,6 @@ void plotK0SPtunfoldedratio3040(int minIteration, int maxIteration, verbosityuti
   p.makeFrame(0., 40., 0.8, 1.2, mystrings::sPtK0S, "#frac{Unfolded}{Generated}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -533,12 +508,12 @@ void plotK0SPtunfoldedratio3040(int minIteration, int maxIteration, verbosityuti
   }
 }
 
-void plotK0SPtrefolded3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtRefolded3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(30., 40.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -548,7 +523,6 @@ void plotK0SPtrefolded3040(int minIteration, int maxIteration, verbosityutilitie
   p.makeFrame(0., 40., 1e-5, 1., mystrings::sPtK0S, "Refolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -557,17 +531,16 @@ void plotK0SPtrefolded3040(int minIteration, int maxIteration, verbosityutilitie
   }
 }
 
-void plotK0SPtrefoldedratio3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SPtRefoldedOverRec3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(30., 40.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Rec = GetHist<TH2>(inputs, rmutilities::testing::nameRecK0SPt);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Rec->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hRec = (TH1*)h2Rec->ProjectionX("hRec", ptjetBins[0], ptjetBins[1]);
-  hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -577,7 +550,6 @@ void plotK0SPtrefoldedratio3040(int minIteration, int maxIteration, verbosityuti
   p.makeFrame(0., 40., 0.8, 1.2, mystrings::sPtK0S, "#frac{Refolded}{Reconstructed}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, !doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hRec);
   p.setDrawOption("hist");
   p.plot();
@@ -590,20 +562,20 @@ void plotK0SPtrefoldedratio3040(int minIteration, int maxIteration, verbosityuti
 
 void plotallK0SPt(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kErrors) {
   gROOT->SetBatch(true);
-  plotK0SPtunfolded1020(minIteration, maxIteration, v);
-  plotK0SPtunfoldedratio1020(minIteration, maxIteration, v);
-  plotK0SPtrefolded1020(minIteration, maxIteration, v);
-  plotK0SPtrefoldedratio1020(minIteration, maxIteration, v);
+  plotK0SPtUnfolded1020(minIteration, maxIteration, v);
+  plotK0SPtUnfoldedOverGen1020(minIteration, maxIteration, v);
+  plotK0SPtRefolded1020(minIteration, maxIteration, v);
+  plotK0SPtRefoldedOverRec1020(minIteration, maxIteration, v);
 
-  plotK0SPtunfolded2030(minIteration, maxIteration, v);
-  plotK0SPtunfoldedratio2030(minIteration, maxIteration, v);
-  plotK0SPtrefolded2030(minIteration, maxIteration, v);
-  plotK0SPtrefoldedratio2030(minIteration, maxIteration, v);
+  plotK0SPtUnfolded2030(minIteration, maxIteration, v);
+  plotK0SPtUnfoldedOverGen2030(minIteration, maxIteration, v);
+  plotK0SPtRefolded2030(minIteration, maxIteration, v);
+  plotK0SPtRefoldedOverRec2030(minIteration, maxIteration, v);
 
-  plotK0SPtunfolded3040(minIteration, maxIteration, v);
-  plotK0SPtunfoldedratio3040(minIteration, maxIteration, v);
-  plotK0SPtrefolded3040(minIteration, maxIteration, v);
-  plotK0SPtrefoldedratio3040(minIteration, maxIteration, v);
+  plotK0SPtUnfolded3040(minIteration, maxIteration, v);
+  plotK0SPtUnfoldedOverGen3040(minIteration, maxIteration, v);
+  plotK0SPtRefolded3040(minIteration, maxIteration, v);
+  plotK0SPtRefoldedOverRec3040(minIteration, maxIteration, v);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -612,12 +584,12 @@ void plotallK0SPt(int minIteration, int maxIteration, verbosityutilities::Verbos
 //
 // -------------------------------------------------------------------------------------------------
 
-void plotK0SZunfolded1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZUnfolded1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(10., 20.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -627,7 +599,6 @@ void plotK0SZunfolded1020(int minIteration, int maxIteration, verbosityutilities
   p.makeFrame(1e-3, 1. + 1e-3, 1e-2, 10., mystrings::sZK0S, "Unfolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -636,17 +607,16 @@ void plotK0SZunfolded1020(int minIteration, int maxIteration, verbosityutilities
   }
 }
 
-void plotK0SZunfoldedratio1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZUnfoldedOverGen1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(10., 20.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Gen = GetHist<TH2>(inputs, rmutilities::testing::nameGenK0SZ);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Gen->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hGen = (TH1*)h2Gen->ProjectionX("hGen", ptjetBins[0], ptjetBins[1]);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -656,7 +626,6 @@ void plotK0SZunfoldedratio1020(int minIteration, int maxIteration, verbosityutil
   p.makeFrame(1e-3, 1. + 1e-3, 0.8, 1.2, mystrings::sZK0S, "#frac{Unfolded}{Generated}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -667,12 +636,12 @@ void plotK0SZunfoldedratio1020(int minIteration, int maxIteration, verbosityutil
   }
 }
 
-void plotK0SZrefolded1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZRefolded1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(10., 20.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -682,7 +651,6 @@ void plotK0SZrefolded1020(int minIteration, int maxIteration, verbosityutilities
   p.makeFrame(1e-3, 1. + 1e-3, 1e-2, 10., mystrings::sZK0S, "Refolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -691,17 +659,16 @@ void plotK0SZrefolded1020(int minIteration, int maxIteration, verbosityutilities
   }
 }
 
-void plotK0SZrefoldedratio1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZRefoldedOverRec1020(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(10., 20.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Rec = GetHist<TH2>(inputs, rmutilities::testing::nameRecK0SZ);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Rec->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hRec = (TH1*)h2Rec->ProjectionX("hRec", ptjetBins[0], ptjetBins[1]);
-  hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -711,7 +678,6 @@ void plotK0SZrefoldedratio1020(int minIteration, int maxIteration, verbosityutil
   p.makeFrame(1e-3, 1. + 1e-3, 0.8, 1.2, mystrings::sZK0S, "#frac{Refolded}{Reconstructed}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hRec);
   p.setDrawOption("hist");
   p.plot();
@@ -722,12 +688,12 @@ void plotK0SZrefoldedratio1020(int minIteration, int maxIteration, verbosityutil
   }
 }
 
-void plotK0SZunfolded1525(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZUnfolded1525(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(15., 25.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -737,7 +703,6 @@ void plotK0SZunfolded1525(int minIteration, int maxIteration, verbosityutilities
   p.makeFrame(1e-3, 1. + 1e-3, 1e-2, 10., mystrings::sZK0S, "Unfolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -746,17 +711,16 @@ void plotK0SZunfolded1525(int minIteration, int maxIteration, verbosityutilities
   }
 }
 
-void plotK0SZunfoldedratio1525(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZUnfoldedOverGen1525(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(15., 25.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Gen = GetHist<TH2>(inputs, rmutilities::testing::nameGenK0SZ);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Gen->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hGen = (TH1*)h2Gen->ProjectionX("hGen", ptjetBins[0], ptjetBins[1]);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -766,7 +730,6 @@ void plotK0SZunfoldedratio1525(int minIteration, int maxIteration, verbosityutil
   p.makeFrame(1e-3, 1. + 1e-3, 0.8, 1.2, mystrings::sZK0S, "#frac{Unfolded}{Generated}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -777,12 +740,12 @@ void plotK0SZunfoldedratio1525(int minIteration, int maxIteration, verbosityutil
   }
 }
 
-void plotK0SZrefolded1525(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZRefolded1525(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(15., 25.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -792,7 +755,6 @@ void plotK0SZrefolded1525(int minIteration, int maxIteration, verbosityutilities
   p.makeFrame(1e-3, 1. + 1e-3, 1e-3, 10., mystrings::sZK0S, "Refolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -801,17 +763,16 @@ void plotK0SZrefolded1525(int minIteration, int maxIteration, verbosityutilities
   }
 }
 
-void plotK0SZrefoldedratio1525(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZRefoldedOverRec1525(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(15., 25.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Rec = GetHist<TH2>(inputs, rmutilities::testing::nameRecK0SZ);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Rec->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hRec = (TH1*)h2Rec->ProjectionX("hRec", ptjetBins[0], ptjetBins[1]);
-  hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -821,7 +782,6 @@ void plotK0SZrefoldedratio1525(int minIteration, int maxIteration, verbosityutil
   p.makeFrame(1e-3, 1. + 1e-3, 0.8, 1.2, mystrings::sZK0S, "#frac{Refolded}{Reconstructed}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hRec);
   p.setDrawOption("hist");
   p.plot();
@@ -832,12 +792,12 @@ void plotK0SZrefoldedratio1525(int minIteration, int maxIteration, verbosityutil
   }
 }
 
-void plotK0SZunfolded2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZUnfolded2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(20., 30.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -847,7 +807,6 @@ void plotK0SZunfolded2030(int minIteration, int maxIteration, verbosityutilities
   p.makeFrame(1e-3, 1. + 1e-3, 1e-2, 10., mystrings::sZK0S, "Unfolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -856,17 +815,16 @@ void plotK0SZunfolded2030(int minIteration, int maxIteration, verbosityutilities
   }
 }
 
-void plotK0SZunfoldedratio2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZUnfoldedOverGen2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(20., 30.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Gen = GetHist<TH2>(inputs, rmutilities::testing::nameGenK0SZ);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Gen->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hGen = (TH1*)h2Gen->ProjectionX("hGen", ptjetBins[0], ptjetBins[1]);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -876,7 +834,6 @@ void plotK0SZunfoldedratio2030(int minIteration, int maxIteration, verbosityutil
   p.makeFrame(1e-3, 1. + 1e-3, 0.8, 1.2, mystrings::sZK0S, "#frac{Unfolded}{Generated}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -887,12 +844,12 @@ void plotK0SZunfoldedratio2030(int minIteration, int maxIteration, verbosityutil
   }
 }
 
-void plotK0SZrefolded2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZRefolded2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(20., 30.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -902,7 +859,6 @@ void plotK0SZrefolded2030(int minIteration, int maxIteration, verbosityutilities
   p.makeFrame(1e-3, 1. + 1e-3, 1e-3, 10., mystrings::sZK0S, "Refolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -911,17 +867,16 @@ void plotK0SZrefolded2030(int minIteration, int maxIteration, verbosityutilities
   }
 }
 
-void plotK0SZrefoldedratio2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZRefoldedOverRec2030(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(20., 30.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Rec = GetHist<TH2>(inputs, rmutilities::testing::nameRecK0SZ);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Rec->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hRec = (TH1*)h2Rec->ProjectionX("hRec", ptjetBins[0], ptjetBins[1]);
-  hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -931,7 +886,6 @@ void plotK0SZrefoldedratio2030(int minIteration, int maxIteration, verbosityutil
   p.makeFrame(1e-3, 1. + 1e-3, 0.8, 1.2, mystrings::sZK0S, "#frac{Refolded}{Reconstructed}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hRec);
   p.setDrawOption("hist");
   p.plot();
@@ -942,12 +896,12 @@ void plotK0SZrefoldedratio2030(int minIteration, int maxIteration, verbosityutil
   }
 }
 
-void plotK0SZunfolded3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZUnfolded3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(30., 40.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -957,7 +911,6 @@ void plotK0SZunfolded3040(int minIteration, int maxIteration, verbosityutilities
   p.makeFrame(1e-3, 1. + 1e-3, 1e-2, 10., mystrings::sZK0S, "Unfolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -966,17 +919,16 @@ void plotK0SZunfolded3040(int minIteration, int maxIteration, verbosityutilities
   }
 }
 
-void plotK0SZunfoldedratio3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZUnfoldedOverGen3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(30., 40.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Gen = GetHist<TH2>(inputs, rmutilities::testing::nameGenK0SZ);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Gen->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hGen = (TH1*)h2Gen->ProjectionX("hGen", ptjetBins[0], ptjetBins[1]);
-  hGen->Scale(1. / hGen->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -986,7 +938,6 @@ void plotK0SZunfoldedratio3040(int minIteration, int maxIteration, verbosityutil
   p.makeFrame(1e-3, 1. + 1e-3, 0.8, 1.2, mystrings::sZK0S, "#frac{Unfolded}{Generated}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hGen);
   p.setDrawOption("hist");
   p.plot();
@@ -997,12 +948,12 @@ void plotK0SZunfoldedratio3040(int minIteration, int maxIteration, verbosityutil
   }
 }
 
-void plotK0SZrefolded3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZRefolded3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(30., 40.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -1012,7 +963,6 @@ void plotK0SZrefolded3040(int minIteration, int maxIteration, verbosityutilities
   p.makeFrame(1e-3, 1. + 1e-3, 1e-3, 10., mystrings::sZK0S, "Refolded");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.plot();
 
   if (inputs.passVerbosityCheck(verbosityutilities::kDebug)) {
@@ -1021,17 +971,16 @@ void plotK0SZrefolded3040(int minIteration, int maxIteration, verbosityutilities
   }
 }
 
-void plotK0SZrefoldedratio3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
+void plotK0SZRefoldedOverRec3040(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kDebug) {
   InputSettings inputs;
   inputs.setVerbosity(v);
   inputs.setIterations(minIteration, maxIteration);
   inputs.setPtJetProjection(30., 40.);
-  inputs.inputFileName = "ClosureTest_520161_40.root";
+  inputs.inputFileName = "ClosureTest_527899_80.root";
 
   TH2* h2Rec = GetHist<TH2>(inputs, rmutilities::testing::nameRecK0SZ);
   array<int, 2> ptjetBins = histutils::getProjectionBins(h2Rec->GetYaxis(), inputs.ptjetminProjection, inputs.ptjetmaxProjection);
   TH1* hRec = (TH1*)h2Rec->ProjectionX("hRec", ptjetBins[0], ptjetBins[1]);
-  hRec->Scale(1. / hRec->Integral(), "width");
 
   const bool isUnfolded = true;
   const bool doZ = true;
@@ -1041,7 +990,6 @@ void plotK0SZrefoldedratio3040(int minIteration, int maxIteration, verbosityutil
   p.makeFrame(1e-3, 1. + 1e-3, 0.8, 1.5, mystrings::sZK0S, "#frac{Refolded}{Reconstructed}");
   p.makeLegend(0.6, 0.9, 0.7, 0.9, "Iteration");
   GetK0SIterations(inputs, p, !isUnfolded, doZ);
-  p.selfNormaliseHists();
   p.makeRatios(hRec);
   p.setDrawOption("hist");
   p.plot();
@@ -1054,19 +1002,24 @@ void plotK0SZrefoldedratio3040(int minIteration, int maxIteration, verbosityutil
 
 void plotallK0SZ(int minIteration, int maxIteration, verbosityutilities::Verbosity v = verbosityutilities::kErrors) {
   gROOT->SetBatch(true);
-  plotK0SZunfolded1020(minIteration, maxIteration, v);
-  plotK0SZunfoldedratio1020(minIteration, maxIteration, v);
-  plotK0SZrefolded1020(minIteration, maxIteration, v);
-  plotK0SZrefoldedratio1020(minIteration, maxIteration, v);
+  plotK0SZUnfolded1020(minIteration, maxIteration, v);
+  plotK0SZUnfoldedOverGen1020(minIteration, maxIteration, v);
+  plotK0SZRefolded1020(minIteration, maxIteration, v);
+  plotK0SZRefoldedOverRec1020(minIteration, maxIteration, v);
 
-  plotK0SZunfolded2030(minIteration, maxIteration, v);
-  plotK0SZunfoldedratio2030(minIteration, maxIteration, v);
-  plotK0SZrefolded2030(minIteration, maxIteration, v);
-  plotK0SZrefoldedratio2030(minIteration, maxIteration, v);
+  plotK0SZUnfolded1525(minIteration, maxIteration, v);
+  plotK0SZUnfoldedOverGen1525(minIteration, maxIteration, v);
+  plotK0SZRefolded1525(minIteration, maxIteration, v);
+  plotK0SZRefoldedOverRec1525(minIteration, maxIteration, v);
 
-  plotK0SZunfolded3040(minIteration, maxIteration, v);
-  plotK0SZunfoldedratio3040(minIteration, maxIteration, v);
-  plotK0SZrefolded3040(minIteration, maxIteration, v);
-  plotK0SZrefoldedratio3040(minIteration, maxIteration, v);
+  plotK0SZUnfolded2030(minIteration, maxIteration, v);
+  plotK0SZUnfoldedOverGen2030(minIteration, maxIteration, v);
+  plotK0SZRefolded2030(minIteration, maxIteration, v);
+  plotK0SZRefoldedOverRec2030(minIteration, maxIteration, v);
+
+  plotK0SZUnfolded3040(minIteration, maxIteration, v);
+  plotK0SZUnfoldedOverGen3040(minIteration, maxIteration, v);
+  plotK0SZRefolded3040(minIteration, maxIteration, v);
+  plotK0SZRefoldedOverRec3040(minIteration, maxIteration, v);
 }
 

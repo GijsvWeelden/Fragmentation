@@ -570,7 +570,7 @@ vector<vector<double>> InputSettings::setPtBinEdgesFromHadron() {
   if (inputIssue("setPtBinEdgesFromHadron", "hadron"))
     return x;
 
-  x.push_back({0., 1.});
+  // x.push_back({0., 1.});
   x.push_back({1., 2.});
   x.push_back({2., 3.});
   x.push_back({3., 4.});
@@ -2228,12 +2228,7 @@ double SignalFinder::GGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = fal
   double E = ampNarrow * sigmaNarrow * exp(-lambda*lambda / 2) / lambda;
 
   double s;
-  if (n > lambda) {
-    double x = W * TMath::Erf((lambda + n / lambda - 1) * sigmaNarrow / (sqrt(2) * sigmaWide));
-    double y = N * TMath::Erf(lambda / sqrt(2));
-    double z = E * (1 - exp(lambda - n));
-    s = x + y + z;
-  } else {
+  if (n <= lambda) {
     TF1* g = new TF1("g", "[0]*TMath::Gaus(x,[1],[2]) + [3]*TMath::Gaus(x,[1],[4])", f->GetXmin(), f->GetXmax());
     g->SetParameters(ampNarrow, mu, sigmaNarrow, ampWide, sigmaWide);
     double Sigma = getGG_Sigma(g);
@@ -2241,8 +2236,12 @@ double SignalFinder::GGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = fal
     double x = W * TMath::Erf((n * Sigma) / (sqrt(2) * sigmaWide));
     double y = N * TMath::Erf((n * Sigma) / (sqrt(2) * sigmaNarrow));
     s = x + y;
+  } else {
+    double x = W * TMath::Erf((lambda + n / lambda - 1) * sigmaNarrow / (sqrt(2) * sigmaWide));
+    double y = N * TMath::Erf(lambda / sqrt(2));
+    double z = E * (1 - exp(lambda - n));
+    s = x + y + z;
   }
-
   s /= (W + N * TMath::Erf(lambda / sqrt(2)) + E);
   inputs->printLog(TString::Format("GGE_SigFrac: s_R = %f", s).Data(), InputSettings::kDebug);
   return s;
@@ -2261,13 +2260,13 @@ double SignalFinder::EGE_SigFrac(double n, TF1* f = nullptr, bool leftSide = fal
 
   double lambda = (leftSide) ? lambdaL : lambdaR;
 
-  double x = lambda * sqrt(TMath::PiOver2()) * TMath::Erf(lambda / TMath::Sqrt2());
-
-  double y = exp(- lambda*lambda / 2);
-
-  double s = x;
-  if (n > lambda) {
-    s += y * (1 - exp(lambda - n));
+  double s;
+  double x = sqrt(TMath::PiOver2()) * TMath::Erf(lambda / TMath::Sqrt2());
+  double y = exp(- lambda*lambda / 2) / lambda;
+  if (n <= lambda) {
+    s = sqrt(TMath::PiOver2()) * TMath::Erf(n / TMath::Sqrt2());
+  } else {
+    s = x + y * (1 - exp(lambda - n));
   }
   s /= (x + y);
   inputs->printLog(TString::Format("EGE_SigFrac: s_%s = %f", (leftSide) ? "L" : "R", s).Data(), InputSettings::kDebug);
@@ -2961,7 +2960,8 @@ void saveSignalFractionHists_GG() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1GausGaus");
-  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
+  // x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + ".root";
   x.setPtBinEdgesFromHadron();
 
   for (int iPt = 0; iPt < x.ptBinEdges.size(); iPt++) {
@@ -2984,7 +2984,8 @@ void saveSignalFractionHists_EGE() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1ExpGausExp");
-  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
+  // x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + ".root";
   x.setPtBinEdgesFromHadron();
   x.verbosity = InputSettings::kInfo;
 
@@ -3013,7 +3014,8 @@ void saveSignalFractionHists_GGE() {
   x.hadron = "K0S";
   x.train = 252064;
   x.setFitType("pol1GausGausExp");
-  x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
+  // x.inputFileName = x.hadron + "_" + x.fitName + "/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = x.hadron + "_" + x.fitName + ".root";
   x.setPtBinEdgesFromHadron();
   x.verbosity = InputSettings::kInfo;
 
@@ -3025,6 +3027,7 @@ void saveSignalFractionHists_GGE() {
 
     SignalFinder sf(x);
     sf.mf->loadSavedMassHist();
+    sf.mf->data->Print();
     sf.mf->loadSavedFitFunction();
     sf.nBins = 1e5;
     sf.inputs->outputFileName = sf.inputs->inputFileName;
@@ -3269,8 +3272,11 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
   InputSettings x; x.verbosity = InputSettings::kInfo;
   x.hadron = "K0S";
   x.train = 252064;
-  x.setFitType("pol1ExpGausExp");
-  x.inputFileName = to_string(x.train) + "/MassFits/" + x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  // x.setFitType("pol1ExpGausExp");
+  x.setFitType("pol1GausGaus");
+  // x.setFitType("pol1GausGausExp");
+  // x.inputFileName = to_string(x.train) + "/MassFits/" + x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
+  x.inputFileName = "K0S_" + x.fitName + ".root";
 
   bool useSigma = false;
   const bool leftSide = true;
@@ -3283,7 +3289,7 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
     useSigma = true;
 
   if (x.fitType == InputSettings::kPol1GausGaus)
-    x.ptBinEdges = { {0., 1.}, {1., 2.}, {2., 3.}, {3., 4.}, {4., 5.}, {5., 10.}};
+    x.ptBinEdges = { {1., 2.}, {2., 3.}, {3., 4.}, {4., 5.}, {5., 10.}};
   else
     x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25.}, {25., 30.}, {30., 40.}};
 
@@ -3306,9 +3312,9 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
     switch (x.fitType) {
       case InputSettings::kPol1GausGaus:
         if (printLatex && useSigma)
-          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s = %.2f \\) \\%%, \\newline \\(p = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, sf.signalFraction * 100., hPurity * 100.).Data();
+          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s = %.2f \\) \\%%, \\newline \\(\\purity = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, sf.signalFraction * 100., hPurity * 100.).Data();
         if (printLatex && !useSigma)
-          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n = %.2f \\), \\newline \\(p = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, x.nSigma, hPurity * 100.).Data();
+          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n = %.2f \\), \\newline \\(\\purity = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, x.nSigma, hPurity * 100.).Data();
 
         if (!printLatex && useSigma)
           s = TString::Format("Signal region: %f, %f \nExpected signal fraction: %f \nPurity: %f (h), %f (f) \nh-f: %g, f/h: %g, (h-f)/h: %g", x.signalRegionMin, x.signalRegionMax, sf.signalFraction, hPurity, fPurity, fPurity - hPurity, hPurity / fPurity, (hPurity - fPurity) / hPurity).Data();
@@ -3319,9 +3325,9 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
       case InputSettings::kPol1ExpGausExp: // Same as kPol1GausGausExp
       case InputSettings::kPol1GausGausExp:
         if (printLatex && useSigma)
-          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s_L = %.2f \\) \\%%, \\newline \\(s_R = %.2f \\) \\%%, \\newline \\(p = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, sf.signalFractionLeft * 100., sf.signalFractionRight * 100., hPurity * 100.).Data();
+          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(s_L = %.2f \\) \\%%, \\newline \\(s_R = %.2f \\) \\%%, \\newline \\(\\purity = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, sf.signalFractionLeft * 100., sf.signalFractionRight * 100., hPurity * 100.).Data();
         if (printLatex && !useSigma)
-          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\newline \\(n_R = %.2f \\), \\newline \\(p = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, x.nSigmaL, x.nSigmaR, hPurity * 100.).Data();
+          s = TString::Format("\\RaggedRight{\\( (%.3f, %.3f) \\) \\newline \\(n_L = %.2f \\), \\newline \\(n_R = %.2f \\), \\newline \\(\\purity = %.2f \\) \\%%}", x.signalRegionMin, x.signalRegionMax, x.nSigmaL, x.nSigmaR, hPurity * 100.).Data();
 
         if (!printLatex && useSigma)
           s = TString::Format("Signal region: %f, %f \nExpected signal fraction: %f (L), %f (R) \nPurity: %f (h), %f (f) \nh-f: %g, f/h: %g, (h-f)/h: %g", x.signalRegionMin, x.signalRegionMax, sf.signalFractionLeft, sf.signalFractionRight, hPurity, fPurity, fPurity - hPurity, hPurity / fPurity, (hPurity - fPurity) / hPurity).Data();

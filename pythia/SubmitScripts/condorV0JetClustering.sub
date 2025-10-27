@@ -6,5 +6,5 @@ Log        = ../V0JetClustering/$INT(ClusterId)_$INT(JobID).log
 Output     = ../V0JetClustering/$INT(ClusterId)_$INT(JobID).out
 Error      = ../V0JetClustering/$INT(ClusterId)_$INT(JobID).error
 +JobCategory = "long"
-+SingularityImage = "/user/templon/ALICEnikhef.sif"
++UseOS = "el9"
 queue 50

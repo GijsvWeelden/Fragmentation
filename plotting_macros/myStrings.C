@@ -67,6 +67,7 @@ namespace mystrings {
 
   const string sEtaJetRange035 = "|" + sEtaJet + "| < 0.35";
   const string sEtaJetRange05  = "|" + sEtaJet + "| < 0.5";
+  const string sEtaJetRange20  = "|" + sEtaJet + "| < 2.0";
   const string sEtaV0Range075  = "|" + sEtaV0 + "| < 0.75";
   const string sEtaV0Range09   = "|" + sEtaV0 + "| < 0.9";
   const string sEtaK0SRange09  = "|" + sEtaK0S + "| < 0.9";
@@ -80,6 +81,8 @@ namespace mystrings {
   const string sZLambda      = getZString(sLambda);
   const string sPtAntiLambda = getPtString(sAntiLambda);
   const string sZAntiLambda  = getZString(sAntiLambda);
+
+  const string sPtJetWithUnits = sPtJet + " (" + sGevC + ")";
 
   // Measurements
   const string sJetsPerEvent     = getOneOverString(sNevts) + " " + getdYdXString(sNjets, sPtJet);

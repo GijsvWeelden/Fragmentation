@@ -234,6 +234,7 @@ struct InputSettings{
     string getFitExpression();
     string getSaveNameFromPt(string prefix, string suffix);
     int inputIssue(string home, string obj);
+    bool passVerbosityCheck(int verbLevel);
     string printLog(string message, int verbThreshold);
     string setFitName();
     string setFitName(int fit);
@@ -351,6 +352,10 @@ int InputSettings::inputIssue(string home, string obj) {
   string s = "InputSettings::" + home + "() Error: " + obj + " not initialised";
   printLog(s, kErrors);
   return 2;
+}
+
+bool InputSettings::passVerbosityCheck(int verbLevel) {
+  return ((this->verbosity >= verbLevel) && (verbLevel >= kErrors) && (verbLevel <= kDebugMax));
 }
 
 string InputSettings::printLog(string message, int verbThreshold) {
@@ -807,6 +812,9 @@ TF1* MassFitter::loadFitFunction() {
 }
 
 TF1* MassFitter::loadSavedFitFunction() {
+  string fitName = inputs->getSaveNameFromPt("fit");
+
+  inputs->printLog("MassFitter::loadSavedFitFunction(): Loading fit function " + fitName + " from file " + inputs->inputFileName, InputSettings::kDebug);
   TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
   if (!file) {
     string s = "Could not open file " + inputs->inputFileName;
@@ -814,7 +822,6 @@ TF1* MassFitter::loadSavedFitFunction() {
     return nullptr;
   }
 
-  string fitName = inputs->getSaveNameFromPt("fit");
   TF1* f = (TF1*)file->Get(fitName.c_str());
   if (!f) {
     string s = "Could not find fit function " + fitName + " in file " + inputs->inputFileName;
@@ -827,16 +834,18 @@ TF1* MassFitter::loadSavedFitFunction() {
 }
 
 TH1* MassFitter::loadSavedMassHist() {
+  string histName = inputs->histName;
+  if (histName == "") {
+    histName = inputs->getSaveNameFromPt("data");
+  }
+
+  inputs->printLog("MassFitter::loadSavedMassHist(): Loading mass hist " + histName + " from file " + inputs->inputFileName, InputSettings::kDebug);
+
   TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
   if (!file) {
     string s = "Could not open file " + inputs->inputFileName;
     inputs->printLog(s, InputSettings::kErrors);
     return nullptr;
-  }
-
-  string histName = inputs->histName;
-  if (histName == "") {
-    histName = inputs->getSaveNameFromPt("data");
   }
 
   TH1* hist = (TH1*)file->Get(histName.c_str());
@@ -1261,11 +1270,11 @@ vector<TF1*> MassFitter::loadSavedFitParts() {
   vector<TF1*> parts = {};
   int maxParts = 10; // To prevent infinite loop
   for (int i = 1; i < maxParts; i++) {
-    inputs->printLog("Getting fit part " + inputs->getSaveNameFromPt("fit", "_f" + to_string(i)), InputSettings::kDebugMax);
     string fName = inputs->getSaveNameFromPt("fit", "_f" + to_string(i));
     TF1* f = (TF1*)file->Get(fName.c_str());
     if (!f) break;
 
+    inputs->printLog("Loaded fit part " + fName, InputSettings::kDebugMax);
     parts.push_back(f);
   }
 
@@ -1888,25 +1897,53 @@ struct SignalFinder {
 
 void SignalFinder::calcSigBkg() {
   if (mf->fitParts.empty()) {
-    inputs->printLog("SignalFinder::calcSigBkg: fit parts not set, loading saved fit parts", InputSettings::kInfo);
-    mf->loadSavedFitParts();
+    // When looping over pt bins, loading saved fit parts here only works on the first loop
+    inputs->printLog("SignalFinder::calcSigBkg: fit parts not set. Aborting", InputSettings::kErrors);
+    return;
   }
 
-  array<int, 2> sigBins = histutils::getProjectionBins(mf->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax);
+  array<int, 2> sigBins = histutils::getProjectionBins(mf->data->GetXaxis(), inputs->signalRegionMin, inputs->signalRegionMax, 1e-9);
   double xmin = mf->data->GetXaxis()->GetBinLowEdge(sigBins[0]);
   double xmax = mf->data->GetXaxis()->GetBinUpEdge(sigBins[1]);
 
+  inputs->printLog(TString::Format("SignalFinder::calcSigBkg: setting signal region to histogram bin edges (%f, %f) -> (%f, %f)", inputs->signalRegionMin, inputs->signalRegionMax, xmin, xmax).Data(), InputSettings::kDebug);
+  if (xmin > inputs->signalRegionMin) {
+    inputs->printLog(TString::Format("SignalFinder::calcSigBkg Warning: new lower bound is larger! (%f -> %f)", inputs->signalRegionMin, xmin).Data(), InputSettings::kWarnings);
+    inputs->printLog(TString::Format("Bin %d (%f, %f)", sigBins[0], mf->data->GetXaxis()->GetBinLowEdge(sigBins[0]), mf->data->GetXaxis()->GetBinUpEdge(sigBins[0])).Data(), InputSettings::kWarnings);
+  }
+  if (xmax < inputs->signalRegionMax) {
+    inputs->printLog(TString::Format("SignalFinder::calcSigBkg Warning: new upper bound is smaller! (%f -> %f)", inputs->signalRegionMax, xmax).Data(), InputSettings::kWarnings);
+
+    int foundbin = mf->data->GetXaxis()->FindBin(inputs->signalRegionMax);
+    inputs->printLog(TString::Format("Found bin %d (%f, %f)", foundbin, mf->data->GetXaxis()->GetBinLowEdge(foundbin), mf->data->GetXaxis()->GetBinUpEdge(foundbin)).Data(), InputSettings::kWarnings);
+    inputs->printLog(TString::Format("Sig bin %d (%f, %f)", sigBins[1], mf->data->GetXaxis()->GetBinLowEdge(sigBins[1]), mf->data->GetXaxis()->GetBinUpEdge(sigBins[1])).Data(), InputSettings::kWarnings);
+  }
+
   // TF1 integral is equivalent to TH1 integral with "width" option
   hSigPlusBkg = mf->data->Integral(sigBins[0], sigBins[1], "width");
-  fSigPlusBkg = mf->fit->Integral(xmin, xmax);
+
+  TF1* fitCopy = (TF1*)mf->fit->Clone("fitCopy");
+  fitCopy->SetRange(xmin, xmax);
+  fSigPlusBkg = fitCopy->Integral(xmin, xmax);
 
   double background = 0;
   for (int i : bkgFits) {
     TF1* f = (TF1*)mf->fitParts[i - 1]->Clone(("f" + to_string(i)).c_str());
     f->SetRange(xmin, xmax);
     double bkg = f->Integral(xmin, xmax);
-    inputs->printLog(TString::Format("f%d: %f", i, bkg).Data(), InputSettings::kDebugMax);
-    background += bkg;
+    if (inputs->passVerbosityCheck(InputSettings::kDebugMax)) {
+      f->Print();
+      for (int ip = 0; ip < f->GetNpar(); ip++) {
+        cout << TString::Format("p%d = %f, ", ip, f->GetParameter(ip)).Data();
+      }
+      cout << endl;
+    }
+    if (bkg < 0) {
+      inputs->printLog(TString::Format("SignalFinder::calcSigBkg Warning: negative background integral for f%d: %f \nSkipping this integral", i, bkg).Data(), InputSettings::kWarnings);
+    } else {
+      inputs->printLog(TString::Format("Integral of f%d on (%f, %f): %f", i, xmin, xmax, bkg).Data(), InputSettings::kDebugMax);
+      background += bkg;
+    }
   }
   hBkg = background;
   fBkg = background;
@@ -3268,15 +3305,18 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
     cout << "Please set either nSigma or desiredSignalFraction, not both. Aborting" << endl;
     return;
   }
+  if (desiredSignalFraction < 0 || desiredSignalFraction > 1) {
+    cout << "Desired signal fraction must be between 0 and 1. Aborting" << endl;
+    return;
+  }
 
   InputSettings x; x.verbosity = InputSettings::kInfo;
   x.hadron = "K0S";
-  x.train = 252064;
-  // x.setFitType("pol1ExpGausExp");
-  x.setFitType("pol1GausGaus");
+  x.setFitType("pol1ExpGausExp");
+  // x.setFitType("pol1GausGaus");
   // x.setFitType("pol1GausGausExp");
-  // x.inputFileName = to_string(x.train) + "/MassFits/" + x.hadron + "_" + x.fitName + "_fixedMu/" + x.hadron + "_" + x.fitName + ".root";
   x.inputFileName = "K0S_" + x.fitName + ".root";
+  // x.inputFileName = "252064/MassFits/K0S_" + x.fitName + "_fixedMu/" + x.inputFileName;
 
   bool useSigma = false;
   const bool leftSide = true;
@@ -3288,6 +3328,8 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
   if (x.nSigma > 0)
     useSigma = true;
 
+  x.printLog("Calculating signal region and purity for " + x.hadron + " with fit type " + x.fitName + ". Signal region definition: " + (useSigma ? TString::Format("+/-%.f Sigma", x.nSigma).Data() : TString::Format("s = %.0f%%", desiredSignalFraction * 100).Data()), InputSettings::kInfo);
+
   if (x.fitType == InputSettings::kPol1GausGaus)
     x.ptBinEdges = { {1., 2.}, {2., 3.}, {3., 4.}, {4., 5.}, {5., 10.}};
   else
@@ -3296,8 +3338,10 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
   // In a given pt bin:
   for (int iPt = 0; iPt < x.ptBinEdges.size(); iPt++) {
     x.setPt(x.ptBinEdges[iPt][0], x.ptBinEdges[iPt][1]);
+    x.printLog(TString::Format("Pt: %.f - %.f", x.lowpt, x.highpt).Data(), InputSettings::kInfo);
     sf.mf->loadSavedMassHist();
     sf.mf->loadSavedFitFunction();
+    sf.mf->loadSavedFitParts();
     sf.getSignalRegion(useSigma);
     sf.calcSigBkg();
     if (useSigma)
@@ -3306,9 +3350,7 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
     double hPurity = sf.hSig / sf.hSigPlusBkg;
     double fPurity = sf.fSig / sf.fSigPlusBkg;
 
-    x.printLog(TString::Format("Pt: %.f - %.f", x.lowpt, x.highpt).Data(), InputSettings::kInfo);
     string s;
-
     switch (x.fitType) {
       case InputSettings::kPol1GausGaus:
         if (printLatex && useSigma)
@@ -3341,6 +3383,13 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
 
     x.printLog(s, InputSettings::kInfo);
   }
+}
+
+void calcPurity(bool printLatex = false) {
+  calcPurity(3., -1., printLatex);
+  calcPurity(-1., 0.9, printLatex);
+  calcPurity(-1., 0.95, printLatex);
+  calcPurity(-1., 0.99, printLatex);
 }
 
 #endif

@@ -115,7 +115,16 @@ string InputSettings::GetHistName(histutils::histtypes htype) {
   if (!is_valid(htype)) {
     return "";
   }
-  string d = "jet-v0qa/sharing/", n = "";
+  string d = "jet-v0qa", n = "";
+
+  switch (_train) {
+    case 538318:
+      d += "_id38323"; // Different directory structure in this train
+      break;
+    default:
+      break;
+  }
+  d += "/sharing/";
 
   switch (htype) {
     case histutils::kV0Incl:
@@ -176,12 +185,15 @@ T* InputSettings::GetHist(histutils::histtypes htype) {
       return nullptr;
 
     h->SetName("JetPtEtaPhiV0");
+    // h->Print();
 
     T* g = GetHist<T>(nMultiple);
     if (!g)
       return nullptr;
+    // g->Print();
 
     h->Add(g);
+    // h->Print();
   } else {
     h = GetHist<T>(GetHistName(htype));
   }
@@ -253,7 +265,7 @@ array<TH1D*, 2> gethistsincl(InputSettings& inputs) {
 
 void plotincl() {
   InputSettings inputs;
-  inputs.setTrain(515268); // Does not contain JetPtEtaPhiShared!
+  inputs.setTrain(538318); // Does not contain JetPtEtaPhiShared!
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.75, 0.75);
 
@@ -272,7 +284,7 @@ void plotincl() {
 
   plSpectra.addLatex(0.45, 0.85, "This Thesis");
   plSpectra.addLatex(0.45, 0.80, "ALICE pp data, #sqrt{s} = 13.6 TeV");
-  plSpectra.addLatex(0.45, 0.75, "|#eta| < 0.75 Incorrectly applied!");
+  plSpectra.addLatex(0.45, 0.75, "|#eta| < 0.75");
 
   plSpectra.plot();
 
@@ -330,7 +342,7 @@ array<TH1D*, 2> gethistsinjet(InputSettings& inputs) {
 
 void plotinjet1020() {
   InputSettings inputs;
-  inputs.setTrain(515268); // Does not contain JetPtEtaPhiShared!
+  inputs.setTrain(515268);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
   inputs.setPtJet(10., 20.);
@@ -338,9 +350,6 @@ void plotinjet1020() {
   array<TH1D*, 2> hists = gethistsinjet(inputs);
   TH1D* hAllV0sInJets = hists[0];
   TH1D* hSharedV0sInJets = hists[1];
-  // FIXME: There is a bug in the task, the pTV0 axis of hAllV0sInJets goes up to 10 GeV/c only!
-  // hAllV0sInJets->Print("all");
-  // hSharedV0sInJets->Print("all");
 
   plotutils::Plotter plSpectra("sharing_injet.pdf", true, 0.04);
   plSpectra.makeFrame(0., 20., 1e-8, 0.1, mystrings::sPtV0, mystrings::sV0PtPerJet);
@@ -358,7 +367,6 @@ void plotinjet1020() {
   plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
   plSpectra.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
   plSpectra.addLatex(xLatex, yLatex - 0.20, TString::Format("%.f < #it{p}_{T,jet} < %.f GeV/#it{c}", inputs.getPtJetMin(), inputs.getPtJetMax()).Data());
-
   plSpectra.plot();
 
   plotutils::Plotter plRatio("sharing_injet_ratio.pdf", true, 0.04);
@@ -374,49 +382,106 @@ void plotinjet1020() {
   plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
   plSpectra.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
   plSpectra.addLatex(xLatex, yLatex - 0.20, TString::Format("%.f < #it{p}_{T,jet} < %.f GeV/#it{c}", inputs.getPtJetMin(), inputs.getPtJetMax()).Data());
+  plRatio.makeRatios(hAllV0sInJets);
+  plRatio.plot();
+}
 
+void plotinjet2030() {
+  InputSettings inputs;
+  inputs.setTrain(515268);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(20., 30.);
+
+  array<TH1D*, 2> hists = gethistsinjet(inputs);
+  TH1D* hAllV0sInJets = hists[0];
+  TH1D* hSharedV0sInJets = hists[1];
+
+  plotutils::Plotter plSpectra("sharing_injet.pdf", true, 0.04);
+  plSpectra.makeFrame(0., 20., 1e-8, 0.1, mystrings::sPtV0, mystrings::sV0PtPerJet);
+
+  plSpectra.setHists({hAllV0sInJets, hSharedV0sInJets});
+  plSpectra.setHistStyles();
+
+  plSpectra.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  plSpectra.addLegendEntry(hAllV0sInJets, "All V0s in jets");
+  plSpectra.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
+
+  double xLatex = 0.25, yLatex = 0.55;
+  plSpectra.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
+  plSpectra.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
+  plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
+  plSpectra.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
+  plSpectra.addLatex(xLatex, yLatex - 0.20, TString::Format("%.f < #it{p}_{T,jet} < %.f GeV/#it{c}", inputs.getPtJetMin(), inputs.getPtJetMax()).Data());
+  plSpectra.plot();
+
+  plotutils::Plotter plRatio("sharing_injet_ratio.pdf", true, 0.04);
+  plRatio.makeFrame(0., 20., 1e-2, 2., mystrings::sPtV0, "Ratio");
+  plRatio.makeLegend(0.50, 0.75, 0.20, 0.35, "");
+  plRatio.setHists({hSharedV0sInJets, hAllV0sInJets});
+  plRatio.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
+  plRatio.addLegendEntry(hAllV0sInJets, "All V0s in jets");
+
+  xLatex = 0.25, yLatex = 0.60;
+  plSpectra.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
+  plSpectra.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
+  plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
+  plSpectra.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
+  plSpectra.addLatex(xLatex, yLatex - 0.20, TString::Format("%.f < #it{p}_{T,jet} < %.f GeV/#it{c}", inputs.getPtJetMin(), inputs.getPtJetMax()).Data());
   plRatio.makeRatios(hAllV0sInJets);
   plRatio.plot();
 }
 
 array<TH1D*, 3> gethistsjet(InputSettings& inputs) {
-  inputs.printLog("gethistjet()", TString::Format("Getting histograms for jet pT in [%.f, %.f] GeV/c and eta in [%.2f, %.2f]", inputs.getPtJetMin(), inputs.getPtJetMax(), inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
+  inputs.printLog("gethistjet()", TString::Format("Getting histograms for jet pT with eta in [%.2f, %.2f]", inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
 
   TH3D* h3All     = inputs.GetHist<TH3D>(histutils::kJetIncl); // All jets
   TH3D* h3AllwV0s = inputs.GetHist<TH3D>(histutils::kJetV0); // All jets with V0 candidates
   TH3D* h3Shared  = inputs.GetHist<TH3D>(histutils::kJetShared); // All jets with V0s that share daughters
 
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    h3All->Print();
+    h3AllwV0s->Print();
+    h3Shared->Print();
+  }
+
   array<int, 2> etaBins = histutils::getProjectionBins(h3All->GetYaxis(), inputs.getEtaMin(), inputs.getEtaMax());
   TH1D* hAll = h3All->ProjectionX("hAll", etaBins[0], etaBins[1], 0, 1 + h3All->GetNbinsZ());
 
   etaBins = histutils::getProjectionBins(h3AllwV0s->GetYaxis(), inputs.getEtaMin(), inputs.getEtaMax());
-  TH1D* hAllwV0s = h3AllwV0s->ProjectionX("hAll", etaBins[0], etaBins[1], 0, 1 + h3AllwV0s->GetNbinsZ());
+  TH1D* hAllwV0s = h3AllwV0s->ProjectionX("hAllwV0s", etaBins[0], etaBins[1], 0, 1 + h3AllwV0s->GetNbinsZ());
 
   etaBins = histutils::getProjectionBins(h3Shared->GetYaxis(), inputs.getEtaMin(), inputs.getEtaMax());
   TH1D* hShared = h3Shared->ProjectionX("hShared", etaBins[0], etaBins[1], 0, 1 + h3Shared->GetNbinsZ());
 
-  hAll->Scale(1. / inputs.GetNevts(), "width");
-  hAllwV0s->Scale(1. / inputs.GetNevts(), "width");
-  hShared->Scale(1. / inputs.GetNevts(), "width");
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    h3All->Print();
+    h3AllwV0s->Print();
+    h3Shared->Print();
+  }
 
   return array<TH1D*, 3>{hAll, hAllwV0s, hShared};
 }
 
-void plotjet() {
+void plotjetall3() {
+  TH1D* jetTemplate = new TH1D("hJetPtTemplate", "hJetPtTemplate", 10, 0., 50.);
   InputSettings inputs;
-  inputs.setTrain(515268); // Does not contain JetPtEtaPhiShared!
+  inputs.setTrain(538318);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
 
   array<TH1D*, 3> hists = gethistsjet(inputs);
-  TH1D* hAll = hists[0];
-  TH1D* hAllwV0s = hists[1];
-  TH1D* hShared = hists[2];
+  TH1D* hAll     = (TH1D*)histutils::rebinHist(hists[0], jetTemplate);
+  TH1D* hAllwV0s = (TH1D*)histutils::rebinHist(hists[1], jetTemplate);
+  TH1D* hShared  = (TH1D*)histutils::rebinHist(hists[2], jetTemplate);
 
-  plotutils::Plotter plSpectra("sharing_jets.pdf", false, 0.04);
-  // Which comparison do you want to make?
-  plSpectra.setHists({hAll, hShared});
-  // plSpectra.setHists({hAllwV0s, hShared});
+  double nevts = inputs.GetNevts();
+  hAll->Scale(1. / nevts, "width");
+  hAllwV0s->Scale(1. / nevts, "width");
+  hShared->Scale(1. / nevts, "width");
+
+  plotutils::Plotter plSpectra("sharing_jets_all.pdf", false, 0.04);
+  plSpectra.setHists({hAll, hAllwV0s, hShared});
   plSpectra.setHistStyles();
 
   plSpectra.makeLegend(0.25, 0.50, 0.20, 0.30, "");
@@ -433,25 +498,131 @@ void plotjet() {
   plSpectra.makeFrame(mystrings::sPtJet, mystrings::sJetsPerEvent);
   plSpectra.plot();
 
-  plotutils::Plotter plRatio("sharing_jets_ratio.pdf", false, 0.04);
-  plRatio.makeLegend(0.50, 0.75, 0.20, 0.35, "");
+  plotutils::Plotter plRatio("sharing_jets_ratio_all.pdf", true, 0.04);
+  plRatio.makeFrame(0., 50., 1e-4, 2., mystrings::sPtJet, "Ratio");
 
   plRatio.setHists(plSpectra.getHists()); // Should ensure the histograms are the same
   plRatio.setHistStyles();
   plRatio.makeRatios(0);
 
+  plRatio.makeLegend(0.25, 0.50, 0.40, 0.50, "");
+  plRatio.addLegendEntry(hAll, "Inclusive jets");
+  plRatio.addLegendEntry(hAllwV0s, "Jets with V0s");
+  plRatio.addLegendEntry(hShared, "Jets with V0s that share daughters");
+
+  xLatex = 0.25, yLatex = 0.75;
+  plRatio.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
+  plRatio.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
+  plRatio.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
+  plRatio.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
+
+  plRatio.plot();
+}
+
+void plotjetallvsv0() {
+  TH1D* jetTemplate = new TH1D("hJetPtTemplate", "hJetPtTemplate", 10, 0., 50.);
+  InputSettings inputs;
+  inputs.setTrain(538318);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+
+  array<TH1D*, 3> hists = gethistsjet(inputs);
+  TH1D* hAll     = (TH1D*)histutils::rebinHist(hists[0], jetTemplate);
+  TH1D* hAllwV0s = (TH1D*)histutils::rebinHist(hists[1], jetTemplate);
+  TH1D* hShared  = (TH1D*)histutils::rebinHist(hists[2], jetTemplate);
+
+  double nevts = inputs.GetNevts();
+  hAll->Scale(1. / nevts, "width");
+  hAllwV0s->Scale(1. / nevts, "width");
+  hShared->Scale(1. / nevts, "width");
+
+  plotutils::Plotter plSpectra("sharing_jets_all-v0s.pdf", false, 0.04);
+  plSpectra.setHists({hAll, hAllwV0s});
+  plSpectra.setHistStyles();
+
   plSpectra.makeLegend(0.25, 0.50, 0.20, 0.30, "");
   plSpectra.addLegendEntry(hAll, "Inclusive jets");
   plSpectra.addLegendEntry(hAllwV0s, "Jets with V0s");
-  plSpectra.addLegendEntry(hShared, "Jets with V0s that share daughters");
 
-  xLatex = 0.25, yLatex = 0.55;
+  double xLatex = 0.25, yLatex = 0.55;
   plSpectra.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
   plSpectra.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
   plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
   plSpectra.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
 
-  plRatio.makeFrame(mystrings::sPtJet, "Ratio");
+  plSpectra.makeFrame(mystrings::sPtJet, mystrings::sJetsPerEvent);
+  plSpectra.plot();
+
+  plotutils::Plotter plRatio("sharing_jets_ratio_all-v0s.pdf", true, 0.04);
+  plRatio.makeFrame(0., 50., 1e-2, 2., mystrings::sPtJet, "Ratio");
+
+  plRatio.setHists(plSpectra.getHists()); // Should ensure the histograms are the same
+  plRatio.setHistStyles();
+  plRatio.makeRatios(0);
+
+  plRatio.makeLegend(0.25, 0.50, 0.40, 0.50, "");
+  plRatio.addLegendEntry(hAll, "Inclusive jets");
+  plRatio.addLegendEntry(hAllwV0s, "Jets with V0s");
+
+  xLatex = 0.25, yLatex = 0.75;
+  plRatio.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
+  plRatio.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
+  plRatio.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
+  plRatio.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
+
+  plRatio.plot();
+}
+
+void plotjetwv0vsshared() {
+  TH1D* jetTemplate = new TH1D("hJetPtTemplate", "hJetPtTemplate", 10, 0., 50.);
+  InputSettings inputs;
+  inputs.setTrain(538318);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+
+  array<TH1D*, 3> hists = gethistsjet(inputs);
+  TH1D* hAll     = (TH1D*)histutils::rebinHist(hists[0], jetTemplate);
+  TH1D* hAllwV0s = (TH1D*)histutils::rebinHist(hists[1], jetTemplate);
+  TH1D* hShared  = (TH1D*)histutils::rebinHist(hists[2], jetTemplate);
+  double nevts = inputs.GetNevts();
+  hAll->Scale(1. / nevts, "width");
+  hAllwV0s->Scale(1. / nevts, "width");
+  hShared->Scale(1. / nevts, "width");
+
+  plotutils::Plotter plSpectra("sharing_jets_shared.pdf", false, 0.04);
+  plSpectra.setHists({hAllwV0s, hShared});
+  plSpectra.setHistStyles();
+
+  plSpectra.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  plSpectra.addLegendEntry(hAllwV0s, "Jets with V0s");
+  plSpectra.addLegendEntry(hShared, "Jets with V0s that share daughters");
+
+  double xLatex = 0.25, yLatex = 0.55;
+  plSpectra.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
+  plSpectra.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
+  plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
+  plSpectra.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
+
+  plSpectra.makeFrame(mystrings::sPtJet, mystrings::sJetsPerEvent);
+  plSpectra.plot();
+
+  plotutils::Plotter plRatio("sharing_jets_ratio_shared.pdf", true, 0.04);
+  plRatio.makeFrame(0., 50., 1e-4, 2., mystrings::sPtJet, "Ratio");
+
+  plRatio.setHists(plSpectra.getHists()); // Should ensure the histograms are the same
+  plRatio.setHistStyles();
+  plRatio.makeRatios(0);
+
+  plRatio.makeLegend(0.25, 0.50, 0.40, 0.50, "");
+  plRatio.addLegendEntry(hAllwV0s, "Jets with V0s");
+  plRatio.addLegendEntry(hShared, "Jets with V0s that share daughters");
+
+  xLatex = 0.25, yLatex = 0.75;
+  plRatio.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
+  plRatio.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
+  plRatio.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
+  plRatio.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
+
   plRatio.plot();
 }
 

@@ -14,15 +14,16 @@ static  int      myDarkRed     = TColor::GetColor(128,0,0);
 static  int      myDarkGreen   = TColor::GetColor(0,128,0);
 static  int      myDarkBlue    = TColor::GetColor(0,0,128);
 
+void SetPadMargins(double left, double right, double bottom, double top) {
+  gPad->SetLeftMargin(left);
+  gPad->SetRightMargin(right);
+  gPad->SetBottomMargin(bottom);
+  gPad->SetTopMargin(top);
+}
+
 TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString xTitle = "", TString yTitle = "", bool setMargins = true) {
-  if(setMargins) {
-    gPad->SetLeftMargin(0.22);
-    gPad->SetBottomMargin(0.15);
-    gPad->SetRightMargin(0.05);
-    gPad->SetTopMargin(0.05);
-    // gPad->SetRightMargin(0.15);
-    // gPad->SetTopMargin(0.1);
-  }
+  if (setMargins)
+    SetPadMargins(0.22, 0.05, 0.15, 0.05);
 
   TH1F *frame = gPad->DrawFrame(xmin,ymin,xmax,ymax);
   frame->SetXTitle(xTitle.Data());
@@ -124,13 +125,6 @@ void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3) {
   f->SetLineWidth(lineWidth);
   f->SetLineColor(GetColor(styleNumber));
   f->SetLineStyle(lineStyle);
-}
-
-void SetPadMargins(double left, double right, double bottom, double top) {
-  gPad->SetLeftMargin(left);
-  gPad->SetRightMargin(right);
-  gPad->SetBottomMargin(bottom);
-  gPad->SetTopMargin(top);
 }
 
 struct Plotter {

@@ -70,12 +70,28 @@ string getDataSet(int train) {
 //
 // -------------------------------------------------------------------------------------------------
 
-std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const double max, double epsilon = 1e-3) {
-  int firstBin = 0, lastBin = axis->GetNbins() + 1;
+std::array<int, 2> getProjectionBins(const TAxis* axis, const double min, const double max, double epsilon = 1e-5) {
+  int nbins = axis->GetNbins();
+  int firstBin = 0, lastBin = nbins + 1;
+
   if (min > -900)
     firstBin = axis->FindBin(min + epsilon);
   if (max > -900)
     lastBin = axis->FindBin(max - epsilon);
+
+  string warningPrefix = "histutils::getProjectionBins() Warning: ";
+  if (firstBin <= 0)
+    cout << warningPrefix << "lower bound " << min << " is out of range of axis (" << axis->GetBinLowEdge(1) << ")!\n";
+
+  if (firstBin > nbins)
+    cout << warningPrefix << "lower bound " << min << " is out of range of axis (" << axis->GetBinUpEdge(nbins) << ")!\n";
+
+  if (lastBin <= 0)
+    cout << warningPrefix << "upper bound " << max << " is out of range of axis (" << axis->GetBinUpEdge(nbins) << ")!" << endl;
+
+  if (lastBin > axis->GetNbins())
+    cout << warningPrefix << "upper bound " << max << " is out of range of axis (" << axis->GetBinUpEdge(nbins) << ")!" << endl;
+
   return std::array{firstBin, lastBin};
 }
 

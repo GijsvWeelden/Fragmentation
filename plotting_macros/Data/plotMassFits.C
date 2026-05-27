@@ -1095,7 +1095,7 @@ void MassFitter::setFitInitialValues() {
       this->fit->SetParLimits(5, 0., 1.);
       this->fit->SetParLimits(6, -1, 1);
       break;
-      case InputSettings::kPol2GausGaus:
+    case InputSettings::kPol2GausGaus:
       this->fit->SetParameters(A, mu, sigma, B, rho, a, b, c);
       this->fit->SetParLimits(0, 0., 1.);
       if (this->inputs->fixMu) {
@@ -2670,6 +2670,7 @@ void FitPlotter::plotFitParts() {
 void FitPlotter::setFitPartsPlotRanges() {
   double xmin = this->mf->data->GetXaxis()->GetXmin();
   double xmax = this->mf->data->GetXaxis()->GetXmax();
+  int npx = 1e7; //1e4;
 
   switch (this->inputs->fitType) {
     case InputSettings::kPol1GausGaus:
@@ -2679,8 +2680,8 @@ void FitPlotter::setFitPartsPlotRanges() {
       break;
     case InputSettings::kPol1GausGausExp: {
         double crossover = this->mf->fit->GetParameter(1) + this->mf->fit->GetParameter(2) * this->mf->fit->GetParameter(3);
-        this->mf->fitParts[0]->SetRange(xmin, crossover); this->mf->fitParts[0]->SetNpx(10000);
-        this->mf->fitParts[1]->SetRange(crossover, xmax); this->mf->fitParts[1]->SetNpx(10000);
+        this->mf->fitParts[0]->SetRange(xmin, crossover); this->mf->fitParts[0]->SetNpx(npx);
+        this->mf->fitParts[1]->SetRange(crossover, xmax); this->mf->fitParts[1]->SetNpx(npx);
         this->mf->fitParts[2]->SetRange(xmin, xmax);
         this->mf->fitParts[3]->SetRange(xmin, xmax);
       }
@@ -2688,9 +2689,9 @@ void FitPlotter::setFitPartsPlotRanges() {
     case InputSettings::kPol1ExpGausExp: {
         double crossoverLeft  = this->mf->fit->GetParameter(1) - this->mf->fit->GetParameter(2) * this->mf->fit->GetParameter(3);
         double crossoverRight = this->mf->fit->GetParameter(1) + this->mf->fit->GetParameter(2) * this->mf->fit->GetParameter(4);
-        this->mf->fitParts[0]->SetRange(crossoverLeft, crossoverRight); this->mf->fitParts[0]->SetNpx(10000);
-        this->mf->fitParts[1]->SetRange(xmin, crossoverLeft); this->mf->fitParts[1]->SetNpx(10000);
-        this->mf->fitParts[2]->SetRange(crossoverRight, xmax); this->mf->fitParts[2]->SetNpx(10000);
+        this->mf->fitParts[0]->SetRange(crossoverLeft, crossoverRight); this->mf->fitParts[0]->SetNpx(npx);
+        this->mf->fitParts[1]->SetRange(xmin, crossoverLeft); this->mf->fitParts[1]->SetNpx(npx);
+        this->mf->fitParts[2]->SetRange(crossoverRight, xmax); this->mf->fitParts[2]->SetNpx(npx);
         this->mf->fitParts[3]->SetRange(xmin, xmax);
       }
       break;
@@ -3312,9 +3313,9 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
 
   InputSettings x; x.verbosity = InputSettings::kInfo;
   x.hadron = "K0S";
-  x.setFitType("pol1ExpGausExp");
+  // x.setFitType("pol1ExpGausExp");
   // x.setFitType("pol1GausGaus");
-  // x.setFitType("pol1GausGausExp");
+  x.setFitType("pol1GausGausExp");
   x.inputFileName = "K0S_" + x.fitName + ".root";
   // x.inputFileName = "252064/MassFits/K0S_" + x.fitName + "_fixedMu/" + x.inputFileName;
 
@@ -3333,7 +3334,8 @@ void calcPurity(double nSigma, double desiredSignalFraction, bool printLatex = f
   if (x.fitType == InputSettings::kPol1GausGaus)
     x.ptBinEdges = { {1., 2.}, {2., 3.}, {3., 4.}, {4., 5.}, {5., 10.}};
   else
-    x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25.}, {25., 30.}, {30., 40.}};
+    x.ptBinEdges = { {30., 40.}};
+    // x.ptBinEdges = { {10., 15.}, {15., 20.}, {20., 25.}, {25., 30.}, {30., 40.}};
 
   // In a given pt bin:
   for (int iPt = 0; iPt < x.ptBinEdges.size(); iPt++) {

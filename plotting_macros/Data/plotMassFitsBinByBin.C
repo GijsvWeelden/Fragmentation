@@ -356,11 +356,15 @@ void fitK0SGausGaus30_40() {
   m.loadMassHist();
   m.loadFitFunction();
   m.setFitInitialValues();
+
+  histutils::printParLimits(m.fit);
+  m.fit->SetParLimits(6, 0., 1.);
   m.data->Fit(m.fit, "R");
   m.loadFitParts();
   m.loadFitParams();
   m.loadResidualHist();
   m.loadPullHist();
+  histutils::printParLimits(m.fit);
 
   m.writeOutputsToFile();
 
@@ -425,7 +429,7 @@ void fitK0SGausGausExp1_2() {
 
   x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
   FitPlotter p(m);
-  p.createLegend(0.55, 0.75, 0.3, 0.5);
+
   p.fillLegendWithFitParts();
 
   double xLatex = 0.55, yLatex = 0.80;
@@ -777,6 +781,8 @@ void fitK0SGausGausExp30_40() {
   m.fit->SetParLimits(0, 0.5, 1.); // A
   m.fit->SetParLimits(4, 0., 0.25); // B
   m.fit->SetParLimits(5, 1e-2, 1.); // rho
+  m.fit->SetParLimits(7, 0., 1.);
+  histutils::printParLimits(m.fit);
   m.data->Fit(m.fit, "R");
   m.loadFitParts();
   m.loadFitParams();
@@ -848,7 +854,7 @@ void fitK0SExpGausExp1_2() {
 
   x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
   FitPlotter p(m);
-  p.createLegend(0.55, 0.75, 0.3, 0.5);
+
   p.fillLegendWithFitParts();
 
   double xLatex = 0.55, yLatex = 0.80;
@@ -1241,7 +1247,7 @@ void fitK0SExpGausExp() {
 void fitLambdaGausGaus1_2() {
   InputSettings x; x.verbosity = InputSettings::kInfo;
   x.setPt(1., 2.);
-  x.train = 529130;
+  x.train = 672133;
   x.hadron = "Lambda";
   x.setFitType("pol1GausGaus");
   x.normaliseData = true;
@@ -1256,10 +1262,17 @@ void fitLambdaGausGaus1_2() {
 
   MassFitter m(x);
   m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
   m.loadFitFunction();
   m.setFitInitialValues();
   m.data->Fit(m.fit, "R");
-  m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
   m.loadFitParts();
   m.loadFitParams();
   m.loadResidualHist();
@@ -1268,7 +1281,12 @@ void fitLambdaGausGaus1_2() {
   m.writeOutputsToFile();
 
   x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
   FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
   p.createLegend(0.55, 0.75, 0.3, 0.5);
   p.fillLegendWithFitParts();
 
@@ -1279,4 +1297,431 @@ void fitLambdaGausGaus1_2() {
   p.addLatex(xLatex, yLatex - 0.15, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
 
   p.plotFitParts();
+}
+
+void fitLambdaGausGaus2_3() {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.setPt(2., 3.);
+  x.train = 672133;
+  x.hadron = "Lambda";
+  x.setFitType("pol1GausGaus");
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = true;
+
+  x.setFitX(1.1, 1.13);
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+
+  MassFitter m(x);
+  m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
+  m.loadFitFunction();
+  m.setFitInitialValues();
+  m.data->Fit(m.fit, "R");
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  m.loadFitParts();
+  m.loadFitParams();
+  m.loadResidualHist();
+  m.loadPullHist();
+
+  m.writeOutputsToFile();
+
+  x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
+  FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
+
+  double xLatex = 0.55, yLatex = 0.80;
+  p.addLatex(xLatex, yLatex, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
+
+  p.plotFitParts();
+}
+
+void fitLambdaGausGaus3_4() {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.setPt(3., 4.);
+  x.train = 672133;
+  x.hadron = "Lambda";
+  x.setFitType("pol1GausGaus");
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = true;
+
+  x.setFitX(1.1, 1.13);
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+
+  MassFitter m(x);
+  m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
+  m.loadFitFunction();
+  m.setFitInitialValues();
+  m.data->Fit(m.fit, "R");
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  m.loadFitParts();
+  m.loadFitParams();
+  m.loadResidualHist();
+  m.loadPullHist();
+
+  m.writeOutputsToFile();
+
+  x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
+  FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
+
+
+
+  double xLatex = 0.55, yLatex = 0.80;
+  p.addLatex(xLatex, yLatex, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
+
+  p.plotFitParts();
+}
+
+void fitLambdaGausGaus4_5() {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.setPt(4., 5.);
+  x.train = 672133;
+  x.hadron = "Lambda";
+  x.setFitType("pol1GausGaus");
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = true;
+
+  x.setFitX(1.1, 1.13);
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+
+  MassFitter m(x);
+  m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
+  m.loadFitFunction();
+  m.setFitInitialValues();
+  m.data->Fit(m.fit, "R");
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  m.loadFitParts();
+  m.loadFitParams();
+  m.loadResidualHist();
+  m.loadPullHist();
+
+  m.writeOutputsToFile();
+
+  x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
+  FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
+
+
+
+  double xLatex = 0.55, yLatex = 0.80;
+  p.addLatex(xLatex, yLatex, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
+
+  p.plotFitParts();
+}
+
+void fitLambdaGausGaus5_10() {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.setPt(5., 10.);
+  x.train = 672133;
+  x.hadron = "Lambda";
+  x.setFitType("pol1GausGaus");
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = true;
+
+  x.setFitX(1.1, 1.13);
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+
+  MassFitter m(x);
+  m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
+  m.loadFitFunction();
+  m.setFitInitialValues();
+  m.data->Fit(m.fit, "R");
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  m.loadFitParts();
+  m.loadFitParams();
+  m.loadResidualHist();
+  m.loadPullHist();
+
+  m.writeOutputsToFile();
+
+  x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
+  FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
+
+
+
+  double xLatex = 0.55, yLatex = 0.80;
+  p.addLatex(xLatex, yLatex, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
+
+  p.plotFitParts();
+}
+
+void fitLambdaGausGaus10_15() {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.setPt(10., 15.);
+  x.train = 672133;
+  x.hadron = "Lambda";
+  x.setFitType("pol1GausGaus");
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = true;
+
+  x.setFitX(1.1, 1.13);
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+
+  MassFitter m(x);
+  m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
+  m.loadFitFunction();
+  m.setFitInitialValues();
+  m.data->Fit(m.fit, "R");
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  m.loadFitParts();
+  m.loadFitParams();
+  m.loadResidualHist();
+  m.loadPullHist();
+
+  m.writeOutputsToFile();
+
+  x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
+  FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
+
+
+
+  double xLatex = 0.55, yLatex = 0.80;
+  p.addLatex(xLatex, yLatex, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
+
+  p.plotFitParts();
+}
+
+void fitLambdaGausGaus15_20() {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.setPt(15., 20.);
+  x.train = 672133;
+  x.hadron = "Lambda";
+  x.setFitType("pol1GausGaus");
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = true;
+
+  x.setFitX(1.1, 1.13);
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+
+  MassFitter m(x);
+  m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
+  m.loadFitFunction();
+  m.setFitInitialValues();
+  m.data->Fit(m.fit, "R");
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  m.loadFitParts();
+  m.loadFitParams();
+  m.loadResidualHist();
+  m.loadPullHist();
+
+  m.writeOutputsToFile();
+
+  x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
+  FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
+
+
+
+  double xLatex = 0.55, yLatex = 0.80;
+  p.addLatex(xLatex, yLatex, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
+
+  p.plotFitParts();
+}
+
+void fitLambdaGausGaus20_30() {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.setPt(20., 30.);
+  x.train = 672133;
+  x.hadron = "Lambda";
+  x.setFitType("pol1GausGaus");
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = true;
+
+  x.setFitX(1.1, 1.13);
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+
+  MassFitter m(x);
+  m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
+  m.loadFitFunction();
+  m.setFitInitialValues();
+  m.data->Fit(m.fit, "R");
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  m.loadFitParts();
+  m.loadFitParams();
+  m.loadResidualHist();
+  m.loadPullHist();
+
+  m.writeOutputsToFile();
+
+  x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
+  FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
+
+
+
+  double xLatex = 0.55, yLatex = 0.30;
+  p.addLatex(xLatex, yLatex, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
+
+  p.plotFitParts();
+}
+
+void fitLambdaGausGaus30_40() {
+  InputSettings x; x.verbosity = InputSettings::kInfo;
+  x.setPt(30., 40.);
+  x.train = 672133;
+  x.hadron = "Lambda";
+  x.setFitType("pol1GausGaus");
+  x.normaliseData = true;
+  x.nSigma = 3.;
+  x.fixMu = true;
+
+  x.setFitX(1.1, 1.13);
+  x.setPolInitXFromHadron();
+  x.setMassWindowDiffFromHadron();
+  x.setInputFileNameFromTrain();
+  x.outputFileName = x.hadron + "_" + x.fitName + ".root";
+
+  MassFitter m(x);
+  m.loadMassHist();
+
+  double xMin = 1.08;
+  double xMax = m.data->GetXaxis()->GetXmax();
+  std::array<int, 2> xBins = histutils::getProjectionBins(m.data->GetXaxis(), xMin, xMax);
+  std::array<double, 2> xBinEdges = histutils::getProjectionEdges(m.data->GetXaxis(), xBins);
+  m.data->GetXaxis()->SetRange(xBins[0], xBins[1]);
+
+  m.loadFitFunction();
+  m.setFitInitialValues();
+  m.data->Fit(m.fit, "R");
+  // m.fixFitInPost(); // Applies `any post-fit fixes, like swapping gaussians
+  m.loadFitParts();
+  m.loadFitParams();
+  m.loadResidualHist();
+  m.loadPullHist();
+
+  m.writeOutputsToFile();
+
+  x.outputFileName = x.getSaveNameFromPt(x.hadron + "_" + x.fitName, ".pdf");
+
+  cout << xBins[0] << ", " << xBins[1] << endl;
+  FitPlotter p(m);
+  p.autoCanvas();
+  p.autoFrame();
+  p.frame->GetXaxis()->SetRangeUser(xBinEdges[0], xBinEdges[1]);
+
+
+
+  double xLatex = 0.20, yLatex = 0.80;
+  p.addLatex(xLatex, yLatex, TString::Format("%.f < #it{p}_{T, V0} < %.f GeV/#it{c}", p.inputs->lowpt, p.inputs->highpt).Data());
+
+  p.plotFitParts();
+}
+
+void fitLambdaGausGaus() {
+  gROOT->SetBatch(kTRUE);
+  fitLambdaGausGaus1_2();
+  fitLambdaGausGaus2_3();
+  fitLambdaGausGaus3_4();
+  fitLambdaGausGaus4_5();
+  fitLambdaGausGaus5_10();
+  fitLambdaGausGaus10_15();
+  fitLambdaGausGaus15_20();
+  fitLambdaGausGaus20_30();
+  fitLambdaGausGaus30_40();
 }

@@ -205,6 +205,7 @@ struct InputSettings {
 
     verbosityutilities::Verbosity verbosity = verbosityutilities::kInfo;
     unfoldingutilities::VariableType vartype;
+    Int_t rooUnfoldVerbosity = 0; // 0: Warnings, 1: info, 2: debug, 3: detailed
 
     TH1D* templatePtJetGen = nullptr;
     TH1D* templatePtJetRec = nullptr;
@@ -287,7 +288,6 @@ struct InputSettings {
     }
 
     // Getters for private variables
-    unfoldingutilities::VariableType getVariableType() { return vartype; }
     string getRmHistName() {
       switch (vartype) {
         case unfoldingutilities::kJet:   return rmutilities::analysis::nameJetRm;
@@ -296,7 +296,7 @@ struct InputSettings {
         default: return "";
       }
     }
-    verbosityutilities::Verbosity getVerbosity() { return verbosity; }
+    Int_t getRooUnfoldVerbosity() { return rooUnfoldVerbosity; }
     TH1D* getTemplateHistJetGen()  { return templatePtJetGen; }
     TH1D* getTemplateHistJetRec()  { return templatePtJetRec; }
     TH2D* getTemplateHistV0PtGen() { return templatePtV0Gen; }
@@ -319,10 +319,11 @@ struct InputSettings {
       else
         return nullptr;
     }
+    unfoldingutilities::VariableType getVariableType() { return vartype; }
+    verbosityutilities::Verbosity getVerbosity() { return verbosity; }
 
     // Setters for private variables
-    bool setVariableType(unfoldingutilities::VariableType p);
-    bool setVerbosity(verbosityutilities::Verbosity v);
+    void setRooUnfoldVerbosity(Int_t v);
     void setTemplateHistJetGen(TH1D* hist)  { setTemplateHist(templatePtJetGen, hist); }
     void setTemplateHistJetRec(TH1D* hist)  { setTemplateHist(templatePtJetRec, hist); }
     void setTemplateHistV0PtGen(TH2D* hist) { setTemplateHist(templatePtV0Gen, hist); }
@@ -344,6 +345,9 @@ struct InputSettings {
     void setTemplateHistV0ZRec(const int nbinsx, const double* binedgesx, const int nbinsy, const double* binedgesy) { setTemplateHistV0Z(nbinsx, binedgesx, nbinsy, binedgesy, false); }
     void setTemplateHistV0ZGen(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy) { setTemplateHistV0Z(minx, maxx, binwidthx, miny, maxy, binwidthy, true); }
     void setTemplateHistV0ZRec(const double minx, const double maxx, const double binwidthx, const double miny, const double maxy, const double binwidthy) { setTemplateHistV0Z(minx, maxx, binwidthx, miny, maxy, binwidthy, false); }
+
+    bool setVariableType(unfoldingutilities::VariableType p);
+    bool setVerbosity(verbosityutilities::Verbosity v);
 
     // Utilities
     void autoTemplateHists();
@@ -382,10 +386,22 @@ void InputSettings::autoTemplateHists() {
     ptjetmaxRec = 60.;
     binwidthptjet = 5.;
   }
-  const int nbinsPtJetGen = (int)((ptjetmaxGen - ptjetminGen) / binwidthptjet);
-  const int nbinsPtJetRec = (int)((ptjetmaxRec - ptjetminRec) / binwidthptjet);
+  const int nbinsPtJetGen = std::round((ptjetmaxGen - ptjetminGen) / binwidthptjet);
+  const int nbinsPtJetRec = std::round((ptjetmaxRec - ptjetminRec) / binwidthptjet);
   templatePtJetGen = new TH1D("templateJetPtGen", ";#it{p}_{T,jet} (GeV/c)", nbinsPtJetGen, ptjetminGen, ptjetmaxGen);
   templatePtJetRec = new TH1D("templateJetPtRec", ";#it{p}_{T,jet} (GeV/c)", nbinsPtJetRec, ptjetminRec, ptjetmaxRec);
+  if (passVerbosityCheck(verbosityutilities::kDebug)) {
+    cout << "InputSettings::autoTemplateHists: setting ptjet bins: ";
+    string sGen = "\nGen: " + to_string(nbinsPtJetGen) + " bins of width " + to_string(binwidthptjet) + ". Edges:\n";
+    string sRec = "\nRec: " + to_string(nbinsPtJetRec) + " bins of width " + to_string(binwidthptjet) + ". Edges:\n";
+    for (int i = 1; i <= 1 + nbinsPtJetGen; i++) {
+      sGen += TString::Format("%f, ", templatePtJetGen->GetXaxis()->GetBinLowEdge(i)).Data();
+    }
+    for (int i = 1; i <= 1 + nbinsPtJetRec; i++) {
+      sRec += TString::Format("%f, ", templatePtJetRec->GetXaxis()->GetBinLowEdge(i)).Data();
+    }
+    cout << sGen << sRec << "\n";
+  }
 
   if (zv0minGen < 0. || zv0maxGen < 0. || zv0minRec < 0. || zv0maxRec < 0. || binwidthzv0 < 0.) {
     zv0minGen = 1e-3;
@@ -394,28 +410,61 @@ void InputSettings::autoTemplateHists() {
     zv0maxRec = 1. + 1e-3;
     binwidthzv0 = 0.1;
   }
-  const int nbinszv0Gen   = (int)((zv0maxGen - zv0minGen) / binwidthzv0);
-  const int nbinszv0Rec   = (int)((zv0maxRec - zv0minRec) / binwidthzv0);
+  const int nbinszv0Gen = std::round((zv0maxGen - zv0minGen) / binwidthzv0);
+  const int nbinszv0Rec = std::round((zv0maxRec - zv0minRec) / binwidthzv0);
   templateZV0Gen   = new TH2D("templateV0ZGen", ";#it{z}_{V0};#it{p}_{T,jet} (GeV/c)", nbinszv0Gen, zv0minGen, zv0maxGen, nbinsPtJetGen, ptjetminGen, ptjetmaxGen);
   templateZV0Rec   = new TH2D("templateV0ZRec", ";#it{z}_{V0};#it{p}_{T,jet} (GeV/c)", nbinszv0Rec, zv0minRec, zv0maxRec, nbinsPtJetRec, ptjetminRec, ptjetmaxRec);
+  if (passVerbosityCheck(verbosityutilities::kDebug)) {
+    cout << "InputSettings::autoTemplateHists: setting zV0 bins: ";
+    string sGen = "\nGen: " + to_string(nbinszv0Gen) + " bins of width " + to_string(binwidthzv0) + ". Edges:\n";
+    string sRec = "\nRec: " + to_string(nbinszv0Rec) + " bins of width " + to_string(binwidthzv0) + ". Edges:\n";
+    for (int i = 1; i <= 1 + nbinszv0Gen; i++) {
+      sGen += TString::Format("%f, ", templateZV0Gen->GetXaxis()->GetBinLowEdge(i)).Data();
+    }
+    for (int i = 1; i <= 1 + nbinszv0Rec; i++) {
+      sRec += TString::Format("%f, ", templateZV0Rec->GetXaxis()->GetBinLowEdge(i)).Data();
+    }
+    cout << sGen << sRec << "\n";
+  }
 
   if (ptv0minGen < 0. || ptv0maxGen < 0. || binwidthptv0 < 0.) {
     ptv0minGen = 1.;
     ptv0maxGen = 40.;
     binwidthptv0 = 1.;
   }
-  const int nbinsptv0Gen  = (int)((ptv0maxGen - ptv0minGen) / binwidthptv0);
+  const int nbinsptv0Gen  = std::round((ptv0maxGen - ptv0minGen) / binwidthptv0);
   templatePtV0Gen  = new TH2D("templateV0PtGen", ";#it{p}_{T,V0} (GeV/c);#it{p}_{T,jet} (GeV/c)", nbinsptv0Gen, ptv0minGen, ptv0maxGen, nbinsPtJetGen, ptjetminGen, ptjetmaxGen);
+  if (passVerbosityCheck(verbosityutilities::kDebug)) {
+    cout << "InputSettings::autoTemplateHists: setting ptV0 bins: ";
+    string sGen = "\nGen: " + to_string(nbinsptv0Gen) + " bins of width " + to_string(binwidthptv0) + ". Edges:\n";
+    for (int i = 1; i <= 1 + nbinsptv0Gen; i++) {
+      sGen += TString::Format("%f, ", templatePtV0Gen->GetXaxis()->GetBinLowEdge(i)).Data();
+    }
+    cout << sGen;
+  }
 
   if (ptv0minRec < 0. || ptv0maxRec < 0.) {
     const int nbinsptv0Rec  = 10;
     double ptv0RecBinEdges[nbinsptv0Rec + 1] = {1., 2., 3., 4., 5., 10., 15., 20., 25., 30., 40.};
     templatePtV0Rec  = new TH2D("templateV0PtRec", ";#it{p}_{T,V0} (GeV/c);#it{p}_{T,jet} (GeV/c)", nbinsptv0Rec, ptv0RecBinEdges, nbinsPtJetRec, ptjetminRec, ptjetmaxRec);
+    if (passVerbosityCheck(verbosityutilities::kDebug)) {
+      string sRec = "\nRec: " + to_string(nbinsptv0Rec) + " bins of variable width. Edges:\n";
+      for (int i = 1; i <= 1 + nbinsptv0Rec; i++) {
+        sRec += TString::Format("%f, ", templatePtV0Rec->GetXaxis()->GetBinLowEdge(i)).Data();
+      }
+      cout << sRec << "\n";
+    }
   } else {
-    const int nbinsptv0Rec  = (int)((ptv0maxRec - ptv0minRec) / binwidthptv0);
+    const int nbinsptv0Rec  = std::round((ptv0maxRec - ptv0minRec) / binwidthptv0);
     templatePtV0Rec  = new TH2D("templateV0PtRec", ";#it{p}_{T,V0} (GeV/c);#it{p}_{T,jet} (GeV/c)", nbinsptv0Rec, ptv0minRec, ptv0maxRec, nbinsPtJetRec, ptjetminRec, ptjetmaxRec);
+    if (passVerbosityCheck(verbosityutilities::kDebug)) {
+      string sRec = "\nRec: " + to_string(nbinsptv0Rec) + " bins of width " + to_string(binwidthptv0) + ". Edges:\n";
+      for (int i = 1; i <= 1 + nbinsptv0Rec; i++) {
+        sRec += TString::Format("%f, ", templatePtV0Rec->GetXaxis()->GetBinLowEdge(i)).Data();
+      }
+      cout << sRec << "\n";
+    }
   }
-
 }
 
 bool InputSettings::isHistInRange(TH1D* hist, double min, double max) {
@@ -436,6 +485,14 @@ string InputSettings::setInputFileNameFromTrain() {
   string s = "~/cernbox/TrainOutput/" + to_string(train) + "/AnalysisResults.root";
   inputFileName = s;
   return s;
+}
+
+void InputSettings::setRooUnfoldVerbosity(Int_t v) {
+  if (v < 0 || v > 3) {
+    printLog("InputSettings::setRooUnfoldVerbosity: invalid verbosity level, must be between 0 and 3", verbosityutilities::kErrors);
+    return;
+  }
+  rooUnfoldVerbosity = v;
 }
 
 template <typename T>
@@ -887,8 +944,8 @@ void DoUnfoldingJets(InputSettings& inputs, int nIterations) {
   inputs.printLog("Creating RooUnfoldBayes object and unfolding.", verbosityutilities::kDebug);
   string ruBayesName  = rmutilities::unfolding::nameRooUnfoldBayesJets + to_string(nIterations);
   string ruBayesTitle = ruBayesName;
-  // RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
   RooUnfoldBayes ruBayes(response, testRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
+  ruBayes.SetVerbose(inputs.getRooUnfoldVerbosity());
 
   string unfoldedName = rmutilities::unfolding::nameUnfoldedJets + to_string(nIterations);
   TH1D* unfolded = (TH1D*)ruBayes.Hreco(inputs.errorTreatment);
@@ -1039,7 +1096,7 @@ void DoUnfoldingV0(InputSettings& inputs, int nIterations) {
 
   string ruBayesTitle = ruBayesName;
   RooUnfoldBayes ruBayes(response, testRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
-  // RooUnfoldBayes ruBayes(response, trainingRec, nIterations, inputs.doSmoothing, ruBayesName.c_str(), ruBayesTitle.c_str());
+  ruBayes.SetVerbose(inputs.getRooUnfoldVerbosity());
 
   TH2D* unfolded = (TH2D*)ruBayes.Hreco(inputs.errorTreatment);
   unfolded->SetName(unfoldedName.c_str());
@@ -1737,7 +1794,7 @@ void checktrainingtest(InputSettings& x) {
   CompareTrainingAndTestV0Z(x);
 }
 
-enum ActionType { kCreateResponses, kDoUnfolding, kCheckClosure, kCompareDists, kDoAll };
+enum ActionType { kDryRun, kCreateResponses, kDoUnfolding, kCheckClosure, kCompareDists, kDoAll };
 void doclosuretest(ActionType action, InputSettings& inputs, array<string, 4> fileNames) {
   string trainingFileName = fileNames[0];
   string testFileName     = fileNames[1];
@@ -1751,6 +1808,12 @@ void doclosuretest(ActionType action, InputSettings& inputs, array<string, 4> fi
     }
   }
 
+  if (action == kDryRun) {
+    cout << "Training file: " << trainingFileName << endl;
+    cout << "Test file: " << testFileName << endl;
+    cout << "Response file: " << responseFileName << endl;
+    cout << "Closure file: " << closureFileName << endl;
+  }
   if (action == kCreateResponses || action == kDoAll) {
     inputs.inputFileName  = trainingFileName;
     inputs.outputFileName = responseFileName;
@@ -1809,10 +1872,25 @@ void closuretest527899(ActionType action, bool doTrivialClosureTest, int minIter
 
   InputSettings x;
   x.setVerbosity(v);
-  x.setPtV0Rec(1., 40);
+  // x.setPtV0Rec(1., 40);
+  x.setPtJetGen(10., 70.); x.binwidthptjet = 10.;
+  x.setPtJetRec(10., 60.);
   x.autoTemplateHists();
   x.doTrivialClosureTest = doTrivialClosureTest;
   x.setIterations(minIteration, maxIteration);
+
+  // For messing around with unfolding ranges
+  string ptJetGenString = TString::Format("_ptjetgen%.f-%.f-%.f", x.ptjetminGen, x.ptjetmaxGen, x.binwidthptjet).Data();
+  string ptJetRecString = TString::Format("_ptjetrec%.f-%.f-%.f", x.ptjetminRec, x.ptjetmaxRec, x.binwidthptjet).Data();
+
+  if (doTrivialClosureTest) {
+    responseFileName = "RooUnfoldResponse_" + to_string(train) + ptJetGenString + ptJetRecString + ".root";
+    closureFileName  = "ClosureTest_" + to_string(train) + ptJetGenString + ptJetRecString + ".root";
+  } else {
+    responseFileName = "RooUnfoldResponse_" + to_string(train) + "_80" + ptJetGenString + ptJetRecString + ".root";
+    closureFileName  = "ClosureTest_" + to_string(train) + "_80" + ptJetGenString + ptJetRecString + ".root";
+  }
+
   doclosuretest(action, x, array<string, 4>{trainingFileName, testFileName, responseFileName, closureFileName});
 }
 

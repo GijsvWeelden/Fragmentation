@@ -22,6 +22,8 @@
 // * K0S z spectrum
 // * Lambda z spectrum
 
+using namespace histutils;
+
 namespace verbosityutilities {
   enum Verbosity {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
   bool is_valid(int v) { return (v >= kErrors && v <= kDebugMax); }
@@ -662,7 +664,7 @@ void compareJetPtSchemes(InputSettings& inputs) {
 void compareJetPtSchemes() {
   InputSettings x; x.setVerbosity(verbosityutilities::kDebug);
 
-  string filePath = "../../inputfiles/pythia/V0Study/";
+  string filePath = "../../../inputfiles/pythia/V0Study/";
   string eFileName = filePath + "v0jetclustering-Escheme.root";
   string ptFileName = filePath + "v0jetclustering-ptscheme.root";
   x.addNames(eFileName, "hK0Jet", "#it{E}-scheme");

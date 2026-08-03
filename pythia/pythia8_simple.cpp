@@ -36,6 +36,24 @@ void fill_fragmentation(double px, double py, double pz, int id,
 												std::vector<TH1F*> &frags, std::vector<int> &PDG);
 void fill_fragmentation(const fastjet::PseudoJet &jet, std::vector<TH2F*> &jetFrags, std::vector<int> &PDG);
 
+// !!!
+// Set seed, use both time in ms and pid. If only time is used, jobs in a batch system may run with the same seed
+// The value of the seed is too large for pythia, so use modulo to get it in the range [0, SEED_MAX - 1]
+// Seed 0 selects a random seed based on time(0), which we want to avoid.
+// Add 1 to set the range to [1, SEED_MAX]
+int get_pythia_seed() {
+	const int PYTHIA_SEED_MAX = 900000000;
+
+	long time_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	long seed = getpid() + time_in_ms;
+	// cout << "PID: " << getpid() << "\nTime: " << time_in_ms << "\nSeed: " << seed << endl;
+  
+	seed %= PYTHIA_SEED_MAX;
+	seed++;
+	// cout << "Seed: " << seed << endl;
+	return seed;
+} 
+
 int main(int argc, char** argv)
 {
 	int nEvents = 200;
@@ -71,6 +89,10 @@ int main(int argc, char** argv)
 	// Float_t ptHatMin = 80;
 	// Float_t ptHatMax = 200;
 
+	// !!! Set seed, use both time in ms and pid. If only time is used, jobs in a batch system may run with the same seed
+	int seed = get_pythia_seed();
+	cout << "Using seed " << seed << endl;
+
 	// Generator. Process selection. LHC initialization. Histogram.
 	Pythia pythia;
 	pythia.readString("Beams:idA = 2212"); //beam 1 proton
@@ -78,9 +100,12 @@ int main(int argc, char** argv)
 	pythia.readString("Beams:eCM = 13000.");
 	pythia.readString("Tune:pp = 5");  //tune 1-13    5=defaulr TUNE4C,  6=Tune 4Cx, 7=ATLAS MB Tune A2-CTEQ6L1
 
+	
+	// !!! Set seed, use both time in ms and pid. If only time is used, jobs in a batch system may run with the same seed
+	string tmpstr = "Random:seed = " + std::to_string(seed);
 	pythia.readString("Random:setSeed = on");
-	pythia.readString("Random:seed = 0");
-
+  pythia.readString(tmpstr);
+	
 	pythia.readString("HardQCD:all = on");
 	if(ptHatMin>0 && ptHatMax >0){
   	name = Form("PhaseSpace:pTHatMin = %f", (Float_t) ptHatMin);

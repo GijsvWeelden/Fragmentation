@@ -37,6 +37,34 @@ using namespace Pythia8;
 const double MassK0S = 0.497611;
 const double MassLambda0 = 1.115683;
 
+// Return a long, just in case the 
+// A steady clock's value can't decrease, in contrast to e.g. system_clock, which resets when the device is rebooted
+// NB: the value of a steady clock is meaningless, only differences in value matter
+long get_steady_time_in_minutes() {
+	auto now = chrono::steady_clock::now();
+	auto duration = now.time_since_epoch();
+	long time_in_minutes = chrono::duration_cast<chrono::minutes>(duration).count();
+	return time_in_minutes;
+}
+
+// !!!
+// Set seed, use both time in ms and pid. If only time is used, jobs in a batch system may run with the same seed
+// The value of the seed is too large for pythia, so use modulo to get it in the range [0, SEED_MAX - 1]
+// Seed 0 selects a random seed based on time(0), which we want to avoid.
+// Add 1 to set the range to [1, SEED_MAX]
+int get_pythia_seed() {
+	const int PYTHIA_SEED_MAX = 900000000;
+
+	long time_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	long seed = getpid() + time_in_ms;
+	// cout << "PID: " << getpid() << "\nTime: " << time_in_ms << "\nSeed: " << seed << endl;
+  
+	seed %= PYTHIA_SEED_MAX;
+	seed++;
+	// cout << "Seed: " << seed << endl;
+	return seed;
+} 
+
 double z(fastjet::PseudoJet jet, fastjet::PseudoJet pj)
 {
 	double z = pj.px() * jet.px() + pj.py() * jet.py() + pj.pz() * jet.pz();
@@ -74,6 +102,14 @@ int main(int argc, char** argv)
 	double ptHatMin = -20;
 	double ptHatMax = -80;
 
+	// !!! Set seed, use both time in ms and pid. If only time is used, jobs in a batch system may run with the same seed
+	int seed = get_pythia_seed();
+	cout << "Using seed " << seed << endl;
+
+	// For timing how long the task runs
+	long start_time_steady = get_steady_time_in_minutes();
+	long end_time_steady;
+
 	//PYTHIA SETTINGS
 	TString name;
 	int mecorr=1;
@@ -85,8 +121,10 @@ int main(int argc, char** argv)
 	pythia.readString("Beams:eCM = 13000.");
 	pythia.readString("Tune:pp = 5");  //tune 1-13    5=defaulr TUNE4C,  6=Tune 4Cx, 7=ATLAS MB Tune A2-CTEQ6L1
 
+	// !!! Set seed, use both time in ms and pid. If only time is used, jobs in a batch system may run with the same seed
+	string tmpstr = "Random:seed = " + std::to_string(seed);
 	pythia.readString("Random:setSeed = on");
-	pythia.readString("Random:seed = 0");
+  pythia.readString(tmpstr);
 
 	pythia.readString("HardQCD:all = on");
 	if(ptHatMin>0 && ptHatMax >0){
@@ -324,6 +362,12 @@ int main(int argc, char** argv)
 	outFile->Write();
 	cout << "Histos written to file " << outFile->GetName() << endl;
 	outFile->Close();
+
+	end_time_steady = get_steady_time_in_minutes();
+	long run_time_minutes = end_time_steady - start_time_steady;
+	int run_time_hours = (int)(run_time_minutes / 60);
+	int run_time_minutes_remainder = (int)(run_time_minutes % 60);
+	cout << "Approximate run-time: " << run_time_hours << ":" << run_time_minutes_remainder << " (" << run_time_minutes << ")" << endl;
 
   return 0;
 }

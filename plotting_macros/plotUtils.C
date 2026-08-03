@@ -253,6 +253,7 @@ struct Plotter {
     void resetObjects() { _objects.clear(); }
     void resetHists()   { _hists.clear(); }
     void reset() {
+      gStyle->SetNdivisions(505, "xy");
       resetCanvas();
       resetFrame();
       resetLegend();

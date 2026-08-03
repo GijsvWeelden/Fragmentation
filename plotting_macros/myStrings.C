@@ -8,6 +8,8 @@ namespace mystrings {
   string addSubscript(string base, string subscript);
   string formatHadronName(string hadron);
   string formatHadronDaughters(string hadron);
+  string invMassOf(string system);
+  string massOf(string particle);
   string getPtString(string subscript);
   string getZString(string subscript);
   string getRatioString(string num, string den);
@@ -24,6 +26,7 @@ namespace mystrings {
   const string sAntikt     = "Anti-#it{k}_{T}";
   const string sCharged    = "ch";
   const string sCounts     = "Counts";
+  const string sEscheme    = "#it{E}-scheme";
   const string sEta        = "#it{#eta}";
   const string sGevC       = "GeV/#it{c}";
   const string sGevCC      = "GeV/#it{c}^{2}";
@@ -31,7 +34,8 @@ namespace mystrings {
   const string sJets       = "jets";
   const string sMass       = "#it{M}";
   const string sNumber     = "#it{N}";
-  const string sRadius     = "#it{R} = 0.4";
+  const string sPtscheme   = "#it{p}_{T}-scheme";
+  const string sRadius     = "#it{R}";
   const string sRatio      = "Ratio";
   const string sSigma      = "#sigma";
   const string sSqrtS      = "#sqrt{#it{s}} = 13.6 TeV";
@@ -39,10 +43,16 @@ namespace mystrings {
   const string sPythia     = "PYTHIA";
   const string sThisThesis = "This Thesis";
 
+  // Particles
   const string sV0         = "V0";
-  const string sK0S        = formatHadronName("K0S");
-  const string sLambda     = formatHadronName("Lambda");
-  const string sAntiLambda = formatHadronName("AntiLambda");
+  const string sK0S        = "K^{0}_{S}";
+  const string sLambda     = "#Lambda";
+  const string sAntiLambda = "#bar{#Lambda}";
+  const string sPiPm       = "#pi^{#pm}";
+  const string sPiPlus     = "#pi^{+}";
+  const string sPiMinus    = "#pi^{-}";
+  const string sPiZero     = "#pi^{0}";
+  const string sProton     = "p";
 
   // Strings derived from the ones above
   const string sAlicePpData = sALICE + " " + sPpData;
@@ -50,6 +60,7 @@ namespace mystrings {
   const string sThisThesisAliceData = sThisThesis + ", " + sAlicePpData;
   const string sThisThesisAliceSim  = sThisThesis + ", " + sALICE + " ";
   const string sThisThesisPythiaSim = sThisThesis + ", " + sPythiaSim;
+  const string sAntiktJets = sAntikt + " " + sJets;
 
   const string sChJets      = sCharged + " " + sJets;
   const string sChV0Jets    = sCharged + "+" + sV0 + " " + sJets;
@@ -64,6 +75,9 @@ namespace mystrings {
   const string sEtaJet      = sEta + "_{" + sJet + "}";
   const string sEtaV0       = sEta + "_{" + sV0 + "}";
   const string sEtaK0S      = sEta + "_{" + sK0S + "}";
+
+  const string sJetRadius = addSubscript(sRadius, sJet);
+  const string sJetRadius04 = sJetRadius + " = 0.4";
 
   const string sEtaJetRange035 = "|" + sEtaJet + "| < 0.35";
   const string sEtaJetRange05  = "|" + sEtaJet + "| < 0.5";
@@ -105,6 +119,7 @@ namespace mystrings {
   const string sJetsPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sJetXsec, sPtJet);
   const string sV0PtPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sV0Xsec, sPtV0);
   const string sK0SPtPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sK0SXsec, sPtK0S);
+  const string sK0SZPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sK0SXsec, sZK0S);
 }
 
 string mystrings::addSubscript(string base, string subscript) {
@@ -118,19 +133,21 @@ string mystrings::addSubscript(string base, string subscript) {
 string mystrings::formatHadronName(string hadron) {
   string had = hadron;
   if (hadron == "pi") {
-    had = "#pi^{#pm}";
+    had = sPiPm;
   } else if (hadron == "piplus") {
-    had = "#pi^{+}";
+    had = sPiPlus;
   } else if (hadron == "piminus") {
-    had = "#pi^{-}";
+    had = sPiMinus;
   } else if (hadron == "pi0") {
-    had = "#pi^{0}";
+    had = sPiZero;
+  } else if (hadron == "p") {
+    had = sProton;
   } else if (hadron == "K0S") {
-    had = "K^{0}_{S}";
+    had = sK0S;
   } else if (hadron == "Lambda") {
-    had = "#Lambda";
+    had = sLambda;
   } else if (hadron == "AntiLambda") {
-    had = "#bar{#Lambda}";
+    had = sAntiLambda;
   }
   return had;
 }
@@ -146,6 +163,14 @@ string mystrings::formatHadronDaughters(string hadron) {
     daughters = formatHadronName("p") + formatHadronName("piplus");
   }
   return daughters;
+}
+
+string mystrings::invMassOf(string system) {
+  return "#it{M}(" + system + ")";
+}
+
+string mystrings::massOf(string particle) {
+  return "#it{m}(" + particle + ")";
 }
 
 string mystrings::getPtString(string subscript) {

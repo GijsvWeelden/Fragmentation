@@ -31,11 +31,11 @@ namespace verbosityutils {
   }
   string to_string(Verbosity v) {
     switch (v) {
-      case kErrors:   return "kErrors";
-      case kWarnings: return "kWarnings";
-      case kInfo:     return "kInfo";
-      case kDebug:    return "kDebug";
-      case kDebugMax: return "kDebugMax";
+      case kErrors:   return "Error";
+      case kWarnings: return "Warning";
+      case kInfo:     return "Info";
+      case kDebug:    return "Debug";
+      case kDebugMax: return "DebugMax";
       default:        return "Unknown";
     }
   }
@@ -76,6 +76,7 @@ struct InputSettings{
     int _batch = 0;
     vector<int> _jobs = {}; // All jobs to compare
     histogramtypeutils::HistType _histtype = histogramtypeutils::hTrack;
+    string _outputFileName = "";
     verbosityutils::Verbosity _verbosity = verbosityutils::kWarnings;
 
   public:
@@ -84,11 +85,14 @@ struct InputSettings{
     histogramtypeutils::HistType getHistType() { return _histtype; }
     int getJob(int i) { return _jobs[i]; }
     vector<int> getJobs() { return _jobs; }
+    int getNJobs() { return _jobs.size(); }
+    string getOutputFileName() { return _outputFileName; }
     verbosityutils::Verbosity getVerbosity() { return _verbosity; }
     
     void setBatch(int b) {_batch = b; }
     void setHistType(histogramtypeutils::HistType t) { _histtype = t; }
     void setJobs(vector<int> j) { _jobs = j; }
+    void setOutputFileName(string s) { _outputFileName = s; }
     void setVerbosity(verbosityutils::Verbosity v) { _verbosity = v; }
 
     // Methods
@@ -107,7 +111,21 @@ struct InputSettings{
 string formatInputFileName(int batchNumber, int jobNumber) {
   string sb = to_string(batchNumber);
   string sj = to_string(jobNumber);
-  string s = "Batch" + sb + "/" + sb + "_" + sj + ".root";
+  string s = "V0JetClustering/Batch" + sb + "/" + sb + "_" + sj + ".root";
+  return s;
+}
+
+string formatOutputFileName(string prefix, int batchNumber, vector<int> jobNumbers, bool ratio) {
+  string s = prefix + "_b" + to_string(batchNumber) + "_j";
+  for (int i = 0; i < jobNumbers.size(); i++) {
+    s += to_string(jobNumbers[i]);
+    if (i != jobNumbers.size() - 1)
+      s += "-";
+  }
+  if (ratio)
+    s += "_ratio";
+  
+  s += ".pdf";
   return s;
 }
 
@@ -127,7 +145,7 @@ template <typename T> T* getHist(InputSettings &x, int index) {
     return nullptr;
 
   string histName = x.formatHistName();
-  x.printLog("Retrieving histogram " + histName, verbosityutils::kInfo);
+  x.printLog("getHist() Retrieving histogram " + histName, verbosityutils::kInfo);
   
   T* hist = (T*)inputFile->Get(histName.c_str());
   if (!hist)
@@ -136,18 +154,42 @@ template <typename T> T* getHist(InputSettings &x, int index) {
   return hist;
 }
 
-void plotV0s() {
-  gStyle->SetNdivisions(505);
-
+void plotV0s(bool makeRatios = false) {
   InputSettings x; x.setVerbosity(verbosityutils::kDebug);
   x.setBatch(3226091);
-  x.setJobs({0, 1, 2});
+  // x.setJobs({0, 1, 2});
+  x.setJobs({1, 2});
   x.setHistType(histogramtypeutils::hV0);
+  x.setOutputFileName(formatOutputFileName("inclV0", x.getBatch(), x.getJobs(), makeRatios));
 
-  int iJob = 0;
-  TH3D* hV0 = getHist<TH3D>(x, iJob);
+  bool logplot = true;
+  if (makeRatios)
+    logplot = false;
+  plotutils::Plotter p(x.getOutputFileName(), logplot);
 
-  if (x.passVerbosityCheck(verbosityutils::kDebug)) {
-    hV0->Print();
+  p.makeLegend(0.5, 0.7, 0.7, 0.9, TString::Format("Batch %d", x.getBatch()).Data());
+
+  double xLatex = 0.5, yLatex = 0.4;
+  p.addLatex(xLatex, yLatex, "Pythia simulation pp");
+
+  double xMinFrame = 0., xMaxFrame = 60.;
+  double yMinFrame = 1e-1, yMaxFrame = 1e7;
+  string xTitle = "#it{p}_{T, V0}", yTitle = "#it{N}_{V0}";
+  if (makeRatios) {
+    yMinFrame = 0., yMaxFrame = 2.;
+    yTitle = "Ratio";
   }
+  p.makeFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle);
+
+  for (int iJob = 0; iJob < x.getNJobs(); iJob++) {
+    TH3D* h3V0 = getHist<TH3D>(x, iJob);
+    TH1D* hV0 = (TH1D*)h3V0->ProjectionX(TString::Format("hV0Pt_%d", iJob).Data());
+    p.addHistogram(hV0);
+    p.addLegendEntry(hV0, TString::Format("Job %d", iJob).Data());
+  }
+  if (makeRatios)
+    p.makeRatios();
+
+  p.setHistStyles();
+  p.plot();
 }

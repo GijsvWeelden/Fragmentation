@@ -373,9 +373,17 @@ TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
 TH1* rebinHist(const TH1* input, const TH1* output) {
   TH1* h = (TH1*)output->Clone(TString::Format("%s_rebinned", input->GetName()).Data());
   h->Reset();
-  double newContents[h->GetNbinsX() + 2];
-  double newErrorsSquared[h->GetNbinsX() + 2];
-  for (int i = 0; i <= input->GetNbinsX()+1; i++) {
+
+  const int nBinsInput = input->GetNbinsX();
+  const int nBinsInputWithOverflow = nBinsInput + 1;
+  const int nBinsOutput = output->GetNbinsX();
+  const int nBinsOutputWithOverflow = nBinsOutput + 1;
+  const int nBinsOutputWithOverUnderflow = nBinsOutput + 2;
+
+  double newContents[nBinsOutputWithOverUnderflow];
+  double newErrorsSquared[nBinsOutputWithOverUnderflow];
+  // Loop over input bins, sum bins where appropriate
+  for (int i = 0; i <= nBinsInput+1; i++) {
     double content = input->GetBinContent(i);
     double centre = input->GetBinCenter(i);
     double error = input->GetBinError(i);
@@ -383,7 +391,8 @@ TH1* rebinHist(const TH1* input, const TH1* output) {
     newContents[newBin] += content;
     newErrorsSquared[newBin] += error * error;
   }
-  for (int i = 0; i <= h->GetNbinsX()+1; i++) {
+  // Fill rebinned histogram with appropriate values/errors
+  for (int i = 0; i <= nBinsOutput+1; i++) {
     double content = newContents[i];
     double error = std::sqrt(newErrorsSquared[i]);
     h->SetBinContent(i, content);

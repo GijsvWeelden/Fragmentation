@@ -34,4 +34,6 @@ if [ ! -f ${outdir}/condorV0JetClustering.sub ]; then
     cp ${MYDIR}/SubmitScripts/condorV0JetClustering.sub ${outdir}/
 fi
 
+# echo $LD_LIBRARY_PATH
+
 ${MYDIR}/pythia8_v0jetclustering ${NEVENTS} ${outdir}/${OUTFILE} ${DOPTSCHEME}

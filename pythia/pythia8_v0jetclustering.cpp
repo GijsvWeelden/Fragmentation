@@ -41,9 +41,9 @@ const double MassLambda0 = 1.115683;
 // A steady clock's value can't decrease, in contrast to e.g. system_clock, which resets when the device is rebooted
 // NB: the value of a steady clock is meaningless, only differences in value matter
 long get_steady_time_in_minutes() {
-	auto now = chrono::steady_clock::now();
+	auto now = std::chrono::steady_clock::now();
 	auto duration = now.time_since_epoch();
-	long time_in_minutes = chrono::duration_cast<chrono::minutes>(duration).count();
+	long time_in_minutes = std::chrono::duration_cast<std::chrono::minutes>(duration).count();
 	return time_in_minutes;
 }
 
@@ -367,7 +367,7 @@ int main(int argc, char** argv)
 	long run_time_minutes = end_time_steady - start_time_steady;
 	int run_time_hours = (int)(run_time_minutes / 60);
 	int run_time_minutes_remainder = (int)(run_time_minutes % 60);
-	cout << "Approximate run-time: " << run_time_hours << ":" << run_time_minutes_remainder << " (" << run_time_minutes << ")" << endl;
+	cout << "Approximate run-time: " << run_time_hours << ":" << run_time_minutes_remainder << " (" << run_time_minutes << " minutes)" << endl;
 
   return 0;
 }

@@ -17,15 +17,33 @@ struct SeedStruct {
     int _batch;
     int _job;
     int _seed;
+    bool _finished;
   public:
     int getBatch() { return _batch; }
     int getJob() { return _job; }
     int getSeed() { return _seed; }
+    bool getFinished() { return _finished; }
 
-    void print() { string s = TString::Format("%d_%d: %d", _batch, _job, _seed).Data(); cout << s << "\n"; }
+    void print() {
+      string s = TString::Format("%d_%d: %d", _batch, _job, _seed).Data();
+      
+      cout << s;
+      if (!_finished)
+        cout << " (DNF)";
 
-    SeedStruct(int b, int j, int s) : _batch(b), _job(j), _seed(s) {}
+      cout << "\n";
+    }
+
+    SeedStruct(int b, int j, int s, bool f) : _batch(b), _job(j), _seed(s), _finished(f) {}
 };
+
+bool lineContainsFinish(string line) {
+  string prepending = "Histos written to file ";
+  if (line.find(prepending) != std::string::npos) {
+    return true;
+  }
+  return false;
+}
 
 bool lineContainsSeed(string line) {
   string prepending = "Using seed ";
@@ -52,15 +70,19 @@ vector<SeedStruct> getSeedStructs(vector<int> batches) {
       ifstream f(fn);
       string line;
       if (f.is_open()) {
+        int seed;
+        bool finished = false;
         while (getline(f, line)) {
           if (lineContainsSeed(line)) {
-            int seed = getSeedFromLine(line);
-            SeedStruct s(batch, job, seed);
-            seedStructs.push_back(s);
+            seed = getSeedFromLine(line);
           }
-        }
+          if (lineContainsFinish(line)) {
+            finished = true;
+          }
+        } // while
+        SeedStruct s(batch, job, seed, finished);
+        seedStructs.push_back(s);
       } else {
-        // cout << "Can\'t open file " << fn << "\n";
         break;
       }
     } // for job
@@ -131,16 +153,43 @@ void printDuplicates(vector<SeedStruct> seedStructs) {
   }
 }
 
+void printDNF(vector<SeedStruct> seedStructs) {
+  int currentBatch = -1;
+  for (SeedStruct ss : seedStructs) {
+    if (ss.getBatch() != currentBatch) {
+      currentBatch = ss.getBatch();
+      cout << "\n";
+    }
+    if (!ss.getFinished())
+      ss.print();
+  }
+}
+
 void checkBatchesForDuplicates(vector<int> batches) {
   vector<SeedStruct> seedStructs = getSeedStructs(batches);
   printDuplicates(seedStructs);
 }
 
+void checkBatchesForDNF(vector<int> batches) {
+  vector<SeedStruct> seedStructs = getSeedStructs(batches);
+  printDNF(seedStructs);
+}
+
+void checkBatchesForDupsAndDNF(vector<int> batches) {
+  vector<SeedStruct> seedStructs = getSeedStructs(batches);
+  printDuplicates(seedStructs);
+  printDNF(seedStructs);
+}
+
 void checkBatchesEscheme() {
   vector<int> batches = { 4861164, 5190393, 5190859, 5486500, 5486503, 5486504 };
-  checkBatchesForDuplicates(batches);
+  // checkBatchesForDuplicates(batches);
+  // checkBatchesForDNF(batches);
+  checkBatchesForDupsAndDNF(batches);
 }
 void checkBatchesPtscheme() {
   vector<int> batches = { 4861167, 5190394, 5190860, 5486519, 5486522, 5486523 };
-  checkBatchesForDuplicates(batches);
+  // checkBatchesForDuplicates(batches);
+  // checkBatchesForDNF(batches);
+  checkBatchesForDupsAndDNF(batches);
 }

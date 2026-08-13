@@ -6,6 +6,7 @@
 
 namespace mystrings {
   string addSubscript(string base, string subscript);
+  string addSuperscript(string base, string superscript);
   string formatHadronName(string hadron);
   string formatHadronDaughters(string hadron);
   string invMassOf(string system);
@@ -105,12 +106,12 @@ namespace mystrings {
   const string sV0ZPerEvt        = getOneOverString(sNevts) + " " + getdYdXString(sNV0, sZV0);
   const string sK0SZPerEvt       = getOneOverString(sNevts) + " " + getdYdXString(sNK0S, sZK0S);
 
-  const string sV0PtPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNV0, sPtV0);
-  const string sK0SPtPerJet      = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sPtK0S);
-  const string sV0ZPerJet        = getOneOverString(sNjets) + " " + getdYdXString(sNV0, sZV0);
-  const string sK0SZPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sZK0S);
-  const string sLambdaPerJet     = getOneOverString(sNjets) + " " + getdYdXString(sLambda, sZLambda);
-  const string sAntiLambdaPerJet = getOneOverString(sNjets) + " " + getdYdXString(sAntiLambda, sZAntiLambda);
+  const string sV0PtPerJet        = getOneOverString(sNjets) + " " + getdYdXString(sNV0, sPtV0);
+  const string sK0SPtPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sPtK0S);
+  const string sV0ZPerJet         = getOneOverString(sNjets) + " " + getdYdXString(sNV0, sZV0);
+  const string sK0SZPerJet        = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sZK0S);
+  const string sLambdaZPerJet     = getOneOverString(sNjets) + " " + getdYdXString(sLambda, sZLambda);
+  const string sAntiLambdaZPerJet = getOneOverString(sNjets) + " " + getdYdXString(sAntiLambda, sZAntiLambda);
 
   // Simulations
   const string sJetXsec = sSigma + "_{" + sJets + "}";
@@ -123,10 +124,11 @@ namespace mystrings {
 }
 
 string mystrings::addSubscript(string base, string subscript) {
-  if (subscript.empty())
-    return base;
-  else
-    return base + "_{" + subscript + "}";
+  return base + "_{" + subscript + "}";
+}
+
+string mystrings::addSuperscript(string base, string superscript) {
+  return base + "^{" + superscript + "}";
 }
 
 // Formats the hadron name to look nice (Greek letters, sub- and superscripts)
@@ -181,36 +183,45 @@ string mystrings::getPtString(string subscript) {
   else
     return addSubscript(p, (T + ", " + subscript).c_str());
 }
+
 string mystrings::getZString(string subscript) {
   if (subscript.empty())
     return TString::Format("#it{z}").Data();
   else
     return TString::Format("#it{z}_{%s}", subscript.c_str()).Data();
 }
+
 string mystrings::getRatioString(string num, string den) {
   return TString::Format("#frac{%s}{%s}", num.c_str(), den.c_str()).Data();
 }
+
 string mystrings::getOneOverString(string s) {
   return (getRatioString("1", s));
 }
+
 string mystrings::getdYdXString(string y, string x) {
   return getRatioString("d" + y, "d" + x);
 }
+
 string mystrings::getdYdPtString(string y) {
   return getdYdXString(y, getPtString(y));
 }
+
 string mystrings::getdYdZString(string y) {
   return getdYdXString(y, getZString(y));
 }
+
 string mystrings::getVarRangeString(double low, string var, double high) {
   string sLow  = TString::Format("%.0f", low).Data();
   string sHigh = TString::Format("%.0f", high).Data();
   return TString::Format("%s < %s < %s", sLow.c_str(), var.c_str(), sHigh.c_str()).Data();
 }
+
 string mystrings::getVarRangeString(string var, double high) {
   string sHigh = TString::Format("%.0f", high).Data();
   return TString::Format("%s < %s", var.c_str(), sHigh.c_str()).Data();
 }
+
 string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool addUnits = true) {
   string s = TString::Format("%.f < %s < %.f", ptmin, sPtJet.c_str(), ptmax).Data();
   if (addUnits)
@@ -218,6 +229,7 @@ string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool addUnits 
 
   return s;
 }
+
 string mystrings::getPtV0RangeString(double ptmin, double ptmax, bool addUnits = true) {
   string s = TString::Format("%.1f < %s < %.1f", ptmin, sPtV0.c_str(), ptmax).Data();
   if (addUnits)

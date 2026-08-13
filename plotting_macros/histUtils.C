@@ -104,7 +104,6 @@ std::array<double, 2> getProjectionEdges(const TAxis* axis, const std::array<int
 //
 // -------------------------------------------------------------------------------------------------
 
-// Check if a histogram is empty in a given range
 bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10) {
   double integral = h->Integral(low, high);
   if (std::isnan(integral))
@@ -112,8 +111,51 @@ bool isHistEmptyInRange(TH1* h, int low, int high, double threshold = 1e-10) {
   else
     return (integral < threshold);
 }
+
 bool isHistEmptyInRange(TH2* h, int xlow, int xhigh, int ylow, int yhigh, double threshold = 1e-10) {
   return isHistEmptyInRange(h->ProjectionX("px", ylow, yhigh), xlow, xhigh, threshold);
+}
+
+// -------------------------------------------------------------------------------------------------
+//
+// Get histogram errors and save them to a hist (1D only!)
+// Using this hist, set the histogram errors
+//
+// -------------------------------------------------------------------------------------------------
+
+TH1* getHistErrors(TH1* h) {
+  string name = h->GetName();
+  name += "_errors";
+  TH1* output = (TH1*)h->Clone(name.c_str());
+  output->Reset();
+
+  // Exclude under- and overflow?
+  for (int bin = 1; bin <= h->GetNbinsX(); bin++) {
+    double error = h->GetBinError(bin);
+    output->SetBinContent(bin, error);
+  }
+  return output;
+}
+
+TH1* getHistRelErrors(TH1* h) {
+  string name = h->GetName();
+  name += "_relerrors";
+  TH1* output = (TH1*)h->Clone(name.c_str());
+  output->Reset();
+
+  for (int bin = 1; bin <= h->GetNbinsX(); bin++) {
+    double error = h->GetBinError(bin);
+    double content = h->GetBinContent(bin);
+    output->SetBinContent(bin, error / content);
+  }
+  return output;
+}
+
+void setHistErrors(TH1* hData, TH1* hErrors) {
+  for (int bin = 1; bin <= hData->GetNbinsX(); bin++) {
+    double error = hErrors->GetBinContent(bin);
+    hData->SetBinError(bin, error);
+  }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -177,6 +219,7 @@ double getScaleInRange(vector<TH1*> v, int minBin, int maxBin, bool doError, boo
 int getLowerBoundBinInRange(TH1* h, int minBin, int maxBin, bool doError) {
   return getExtremeBinInRange(h, minBin, maxBin, doError, true);
 }
+
 int getLowerBoundBin(TH1* h, bool doError) {
   return getLowerBoundBinInRange(h, 1, h->GetNbinsX(), doError);
 }
@@ -184,6 +227,7 @@ int getLowerBoundBin(TH1* h, bool doError) {
 double getLowerBoundInRange(TH1* h, int minBin, int maxBin, bool doError) {
   return getScaleInRange(h, minBin, maxBin, doError, true);
 }
+
 double getLowerBound(TH1* h, bool doError) {
   return getLowerBoundInRange(h, 1, h->GetNbinsX(), doError);
 }
@@ -191,6 +235,7 @@ double getLowerBound(TH1* h, bool doError) {
 double getLowerBoundInRange(vector<TH1*> v, int minBin, int maxBin, bool doError, bool doSum) {
   return getScaleInRange(v, minBin, maxBin, doError, true, doSum);
 }
+
 double getLowerBound(vector<TH1*> v, bool doError, bool doSum) {
   return getLowerBoundInRange(v, 1, v[0]->GetNbinsX(), doError, doSum);
 }
@@ -199,6 +244,7 @@ double getLowerBound(vector<TH1*> v, bool doError, bool doSum) {
 int getUpperBoundBinInRange(TH1* h, int minBin, int maxBin, bool doError) {
   return getExtremeBinInRange(h, minBin, maxBin, doError, false);
 }
+
 int getUpperBoundBin(TH1* h, bool doError) {
   return getUpperBoundBinInRange(h, 1, h->GetNbinsX(), doError);
 }
@@ -206,6 +252,7 @@ int getUpperBoundBin(TH1* h, bool doError) {
 double getUpperBoundInRange(TH1* h, int minBin, int maxBin, bool doError) {
   return getScaleInRange(h, minBin, maxBin, doError, false);
 }
+
 double getUpperBound(TH1* h, bool doError) {
   return getUpperBoundInRange(h, 1, h->GetNbinsX(), doError);
 }
@@ -213,6 +260,7 @@ double getUpperBound(TH1* h, bool doError) {
 double getUpperBoundInRange(vector<TH1*> v, int minBin, int maxBin, bool doError, bool doSum) {
   return getScaleInRange(v, minBin, maxBin, doError, false, doSum);
 }
+
 double getUpperBound(vector<TH1*> v, bool doError, bool doSum) {
   return getUpperBoundInRange(v, 1, v[0]->GetNbinsX(), doError, doSum);
 }

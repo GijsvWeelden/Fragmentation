@@ -150,6 +150,25 @@ double getNjets(InputSettings& inputs, Names names) {
   return jetpt->Integral(ptbins[0], ptbins[1]);
 }
 
+std::array<double, 2> getNjetsAndError(InputSettings& inputs, Names names) {
+  TFile* f = TFile::Open(names.inputFileName.c_str());
+  if (!f) {
+    inputs.printLog(TString::Format("getNjetsAndError() Error: Could not open file %s", names.inputFileName.c_str()).Data(), verbosityutilities::kErrors);
+    return {-1, -1};
+  }
+  TH3* jets = (TH3*)f->Get(names.jetHistName.c_str());
+  if (!jets) {
+    inputs.printLog(TString::Format("getNjetsAndError() Error: Could not find histogram %s in file %s", names.jetHistName.c_str(), names.inputFileName.c_str()).Data(), verbosityutilities::kErrors);
+    return {-1, -1};
+  }
+  array<int, 2> ptbins  = getProjectionBins(jets->GetXaxis(), inputs.ptjetmin, inputs.ptjetmax);
+  array<int, 2> etabins = getProjectionBins(jets->GetYaxis(), inputs.etamin, inputs.etamax);
+  TH1* jetpt = jets->ProjectionX("jetpt", etabins[0], etabins[1]);
+  double error;
+  double njets = jetpt->IntegralAndError(ptbins[0], ptbins[1], error);
+  return {njets, error};
+}
+
 TH1* getJetPtHist(InputSettings& inputs, Names name, const TH1* rebinTemplate = nullptr) {
   TFile *inFile = TFile::Open(name.inputFileName.c_str());
   if (!inFile) {
@@ -222,7 +241,7 @@ void compareJetPtSchemesK0() {
   x.addNames(eFileName, jetHistName, mystrings::sEscheme);
   x.addNames(ptFileName, jetHistName, mystrings::sPtscheme);
 
-  x.outputFileName = "schemesK0-jetptComparison.pdf";
+  x.outputFileName = "schemesK0-jetpt_Comparison.pdf";
   x.ratioplot = false;
   x.logplot = true;
 
@@ -265,7 +284,7 @@ void ratioJetPtSchemesK0() {
   x.addNames(eFileName, jetHistName, mystrings::sEscheme);
   x.addNames(ptFileName, jetHistName, mystrings::sPtscheme);
 
-  x.outputFileName = "schemesK0-jetptRatio.pdf";
+  x.outputFileName = "schemesK0-jetpt_Ratio.pdf";
   x.ratioplot = true;
   x.logplot = false;
 
@@ -309,7 +328,7 @@ void compareJetPtSchemesV0() {
   x.addNames(eFileName, jetHistName, mystrings::sEscheme);
   x.addNames(ptFileName, jetHistName, mystrings::sPtscheme);
 
-  x.outputFileName = "schemesV0-jetptComparison.pdf";
+  x.outputFileName = "schemesV0-jetpt_Comparison.pdf";
   x.ratioplot = false;
   x.logplot = true;
 
@@ -351,7 +370,7 @@ void ratioJetPtSchemesV0() {
   x.addNames(eFileName, jetHistName, mystrings::sEscheme);
   x.addNames(ptFileName, jetHistName, mystrings::sPtscheme);
 
-  x.outputFileName = "schemesV0-jetptRatio.pdf";
+  x.outputFileName = "schemesV0-jetpt_Ratio.pdf";
   x.ratioplot = true;
   x.logplot = false;
 
@@ -421,8 +440,20 @@ void compareZKSchemesV01020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    std::array<double, 2> njetsAndError = getNjetsAndError(x, ns);
+    double njets = njetsAndError[0];
+    double njetsError = njetsAndError[1];
+    double njetsRelError = njetsError / njets;
+
+    TH1* hRelError = histutils::getHistRelErrors(h);
+    for (int bin = 1; bin <= hRelError->GetNbinsX(); bin++) {
+      double relError = hRelError->GetBinContent(bin);
+      double newRelError = std::sqrt(relError * relError + njetsRelError * njetsRelError);
+      hRelError->SetBinContent(bin, newRelError);
+    }
+    
     h->Scale(1./njets, "width");
+    histutils::setHistErrors(h, hRelError);
     p.addHistogram(h);
   }
 
@@ -466,8 +497,21 @@ void ratioZKSchemesV01020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    // double njets = getNjets(x, ns);
+    std::array<double, 2> njetsAndError = getNjetsAndError(x, ns);
+    double njets = njetsAndError[0];
+    double njetsError = njetsAndError[1];
+    double njetsRelError = njetsError / njets;
+
+    TH1* hRelError = histutils::getHistRelErrors(h);
+    for (int bin = 1; bin <= hRelError->GetNbinsX(); bin++) {
+      double relError = hRelError->GetBinContent(bin);
+      double newRelError = std::sqrt(relError * relError + njetsRelError * njetsRelError);
+      hRelError->SetBinContent(bin, newRelError);
+    }
+    
     h->Scale(1./njets, "width");
+    histutils::setHistErrors(h, hRelError);
     p.addHistogram(h);
   }
 
@@ -514,7 +558,7 @@ void compareZKSchemesV02030() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -559,7 +603,7 @@ void ratioZKSchemesV02030() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -607,7 +651,7 @@ void compareZKSchemesV03040() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -652,7 +696,7 @@ void ratioZKSchemesV03040() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -710,7 +754,7 @@ void compareZLSchemesV01020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -755,7 +799,7 @@ void ratioZLSchemesV01020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -803,7 +847,7 @@ void compareZLSchemesV02030() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -848,7 +892,7 @@ void ratioZLSchemesV02030() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -896,7 +940,7 @@ void compareZLSchemesV03040() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -941,7 +985,7 @@ void ratioZLSchemesV03040() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -998,7 +1042,7 @@ void compareJetPtLasK() {
 
   x.setEta(-0.35, 0.35);
 
-  x.outputFileName = "LasK-jetptComparison.pdf";
+  x.outputFileName = "LasK-jetpt_Comparison.pdf";
   x.logplot = true;
 
   TH1* jetPtTemplate = new TH1D("jetpttemplate", "jetpttemplate", 12, 0., 60.);
@@ -1044,7 +1088,7 @@ void ratioJetPtLasK() {
 
   x.setEta(-0.35, 0.35);
 
-  x.outputFileName = "LasK-jetptRatio.pdf";
+  x.outputFileName = "LasK-jetpt_Ratio.pdf";
   x.logplot = false;
 
   TH1* jetPtTemplate = new TH1D("jetpttemplate", "jetpttemplate", 12, 0., 60.);
@@ -1115,7 +1159,7 @@ void compareZKLasK1020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1163,7 +1207,7 @@ void ratioZKLasK1020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1212,7 +1256,7 @@ void compareZKLasK2030() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1260,7 +1304,7 @@ void ratioZKLasK2030() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1309,7 +1353,7 @@ void compareZKLasK3040() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1357,7 +1401,7 @@ void ratioZKLasK3040() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1417,7 +1461,7 @@ void compareZLLasK1020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1465,7 +1509,7 @@ void ratioZLLasK1020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1514,7 +1558,7 @@ void compareZLLasK2030() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1562,7 +1606,7 @@ void ratioZLLasK2030() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1611,7 +1655,7 @@ void compareZLLasK3040() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }
@@ -1659,7 +1703,7 @@ void ratioZLLasK3040() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    int njets = getNjets(x, ns);
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
     p.addHistogram(h);
   }

@@ -440,20 +440,8 @@ void compareZKSchemesV01020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    std::array<double, 2> njetsAndError = getNjetsAndError(x, ns);
-    double njets = njetsAndError[0];
-    double njetsError = njetsAndError[1];
-    double njetsRelError = njetsError / njets;
-
-    TH1* hRelError = histutils::getHistRelErrors(h);
-    for (int bin = 1; bin <= hRelError->GetNbinsX(); bin++) {
-      double relError = hRelError->GetBinContent(bin);
-      double newRelError = std::sqrt(relError * relError + njetsRelError * njetsRelError);
-      hRelError->SetBinContent(bin, newRelError);
-    }
-    
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
-    histutils::setHistErrors(h, hRelError);
     p.addHistogram(h);
   }
 
@@ -497,21 +485,8 @@ void ratioZKSchemesV01020() {
   plotutils::Plotter p(x.outputFileName, x.logplot, 0.04);
   for (auto ns : x.names) {
     TH1* h = getV0ZHist(x, ns, zTemplate);
-    // double njets = getNjets(x, ns);
-    std::array<double, 2> njetsAndError = getNjetsAndError(x, ns);
-    double njets = njetsAndError[0];
-    double njetsError = njetsAndError[1];
-    double njetsRelError = njetsError / njets;
-
-    TH1* hRelError = histutils::getHistRelErrors(h);
-    for (int bin = 1; bin <= hRelError->GetNbinsX(); bin++) {
-      double relError = hRelError->GetBinContent(bin);
-      double newRelError = std::sqrt(relError * relError + njetsRelError * njetsRelError);
-      hRelError->SetBinContent(bin, newRelError);
-    }
-    
+    double njets = getNjets(x, ns);
     h->Scale(1./njets, "width");
-    histutils::setHistErrors(h, hRelError);
     p.addHistogram(h);
   }
 

@@ -137,10 +137,10 @@ void checkBatchesForDuplicates(vector<int> batches) {
 }
 
 void checkBatchesEscheme() {
-  vector<int> batches = { 4861164, 5190393, 5190859 };
+  vector<int> batches = { 4861164, 5190393, 5190859, 5486500, 5486503, 5486504 };
   checkBatchesForDuplicates(batches);
 }
 void checkBatchesPtscheme() {
-  vector<int> batches = { 4861167, 5190394, 5190860 };
+  vector<int> batches = { 4861167, 5190394, 5190860, 5486519, 5486522, 5486523 };
   checkBatchesForDuplicates(batches);
 }

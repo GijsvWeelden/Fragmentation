@@ -1,0 +1,75 @@
+
+#! /bin/bash
+
+dryrun=0
+hadron="K0S"
+fit="pol1GausExp"
+
+while getopts 'dh:f:' OPTION; do
+  case "$OPTION" in
+    d)
+      dryrun=1
+      ;;
+    h)
+      hadron="${OPTARG}"
+      ;;
+    f)
+      fit="${OPTARG}"
+      ;;
+    ?)
+      echo "Script usage: $(basename \$0) [-h hadron -s suffix -z (for z bins)]"
+      exit 1
+      ;;
+  esac
+done
+
+if [[ ${hadron} == "K0S" || ${hadron} == "K" || ${hadron} == "k" ]]
+then
+  hadron="K0S"
+elif [[ ${hadron} == "Lambda" || ${hadron} == "L" || ${hadron} == "l" ]]
+then
+  hadron="Lambda"
+elif [[ ${hadron} == "AntiLambda" || ${hadron} == "A" || ${hadron} == "a" ]]
+then
+  hadron="AntiLambda"
+else
+  echo "Please specify a hadron with -h (K0S, Lambda, AntiLambda)/(K, L, A)/(k, l, a)"
+  exit 1
+fi
+
+function addFilesToList {
+  local filelist=""
+  local file=$1
+  local suffix=$2
+  local tmpvar=$(ls ${file}?${suffix}.pdf 2> /dev/null)
+  filelist="${filelist} ${tmpvar}"
+  tmpvar=$(ls ${file}??${suffix}.pdf 2> /dev/null)
+  filelist="${filelist} ${tmpvar}"
+  echo ${filelist}
+}
+
+function merging {
+  local filelist=$1
+  local output=$2
+
+  if [[ $filelist == "" ]]; then
+    echo "No files found for ${output}"
+  else
+    echo "Merging plots into ${output}"
+    gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=${output} ${filelist}
+  fi
+}
+
+ptlist=$(addFilesToList "${hadron}_${fit}_pt" ".*")
+paramlist=$(addFilesToList "${hadron}_${fit}_fitParams")
+resultlist=$(addFilesToList "${hadron}_${fit}_fitResults")
+
+if [[ ${dryrun} -eq 1 ]]; then
+  echo "ptlist: ${ptlist}"
+  echo "paramlist: ${paramlist}"
+  echo "resultlist: ${resultlist}"
+else
+  merging "${ptlist}" "${hadron}_${fit}.pdf"
+  merging "${paramlist}" "${hadron}_${fit}_fitParams.pdf"
+  merging "${resultlist}" "${hadron}_${fit}_fitResults.pdf"
+fi

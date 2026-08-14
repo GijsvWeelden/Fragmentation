@@ -12,6 +12,8 @@
 #include "TString.h"
 #include "TLegend.h"
 
+const int seedForEmptyLogFile = -5;
+
 struct SeedStruct {
   private:
     int _batch;
@@ -70,7 +72,7 @@ vector<SeedStruct> getSeedStructs(vector<int> batches) {
       ifstream f(fn);
       string line;
       if (f.is_open()) {
-        int seed = -1;
+        int seed = seedForEmptyLogFile;
         bool finished = false;
         while (getline(f, line)) {
           if (lineContainsSeed(line)) {
@@ -107,11 +109,17 @@ void printDuplicates(vector<SeedStruct> seedStructs) {
       continue;
 
     SeedStruct ss1 = seedStructs[i];
+    if (ss1.getSeed() == seedForEmptyLogFile) // Job is broken, log is empty
+      continue;
+
     for (int j = i + 1; j < nSeeds - 1; j++) {
       if (duplicateIterators[j] != uniqueSeedId) // Already matched with something
         continue;
 
       SeedStruct ss2 = seedStructs[j];
+      if (ss2.getSeed() == seedForEmptyLogFile) // Job is broken, log is empty
+        continue;
+
       if (ss1.getSeed() == ss2.getSeed()) {
         duplicateIterators[i] = duplicateSetID;
         duplicateIterators[j] = duplicateSetID;

@@ -70,7 +70,7 @@ vector<SeedStruct> getSeedStructs(vector<int> batches) {
       ifstream f(fn);
       string line;
       if (f.is_open()) {
-        int seed;
+        int seed = -1;
         bool finished = false;
         while (getline(f, line)) {
           if (lineContainsSeed(line)) {
@@ -182,14 +182,16 @@ void checkBatchesForDupsAndDNF(vector<int> batches) {
 }
 
 void checkBatchesEscheme() {
-  vector<int> batches = { 4861164, 5190393, 5190859, 5486500, 5486503, 5486504 };
+  vector<int> batches = { 4861164, 5190393, 5190859 };
+  // 5491362, 5491366, 5491367
   // checkBatchesForDuplicates(batches);
-  // checkBatchesForDNF(batches);
-  checkBatchesForDupsAndDNF(batches);
+  checkBatchesForDNF(batches);
+  // checkBatchesForDupsAndDNF(batches);
 }
 void checkBatchesPtscheme() {
-  vector<int> batches = { 4861167, 5190394, 5190860, 5486519, 5486522, 5486523 };
+  vector<int> batches = { 4861167, 5190394, 5190860 };
+  // 5491363, 5491364, 5491365
   // checkBatchesForDuplicates(batches);
-  // checkBatchesForDNF(batches);
-  checkBatchesForDupsAndDNF(batches);
+  checkBatchesForDNF(batches);
+  // checkBatchesForDupsAndDNF(batches);
 }

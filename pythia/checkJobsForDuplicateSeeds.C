@@ -173,6 +173,16 @@ void printDNF(vector<SeedStruct> seedStructs) {
   }
 }
 
+void printBroken(vector<SeedStruct> seedStructs) {
+  cout << "Broken jobs (empty out files):\n";
+  for (SeedStruct ss : seedStructs) {
+    if (ss.getBatch() == seedForEmptyLogFile) {
+      ss.print();
+    }
+  }
+  cout << "\n"; 
+}
+
 void checkBatchesForDuplicates(vector<int> batches) {
   vector<SeedStruct> seedStructs = getSeedStructs(batches);
   printDuplicates(seedStructs);
@@ -181,6 +191,11 @@ void checkBatchesForDuplicates(vector<int> batches) {
 void checkBatchesForDNF(vector<int> batches) {
   vector<SeedStruct> seedStructs = getSeedStructs(batches);
   printDNF(seedStructs);
+}
+
+void checkBatchesForBrokenJobs(vector<int> batches) {
+  vector<SeedStruct> seedStructs = getSeedStructs(batches);
+  printBroken(seedStructs);
 }
 
 void checkBatchesForDupsAndDNF(vector<int> batches) {

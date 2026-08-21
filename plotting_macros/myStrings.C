@@ -54,6 +54,7 @@ namespace mystrings {
   const string sPiMinus    = "#pi^{-}";
   const string sPiZero     = "#pi^{0}";
   const string sProton     = "p";
+  const string sAntiProton = "#bar{p}";
 
   // Strings derived from the ones above
   const string sAlicePpData = sALICE + " " + sPpData;
@@ -144,6 +145,8 @@ string mystrings::formatHadronName(string hadron) {
     had = sPiZero;
   } else if (hadron == "p") {
     had = sProton;
+  } else if (hadron == "pbar") {
+    had = sAntiProton;
   } else if (hadron == "K0S") {
     had = sK0S;
   } else if (hadron == "Lambda") {
@@ -158,11 +161,11 @@ string mystrings::formatHadronName(string hadron) {
 string mystrings::formatHadronDaughters(string hadron) {
   string daughters = hadron;
   if ("K0S" == hadron) {
-    daughters = formatHadronName("piplus") + formatHadronName("piminus");
+    daughters = sPiPlus + sPiMinus;
   } else if ("Lambda" == hadron) {
-    daughters = formatHadronName("p") + formatHadronName("piminus");
+    daughters = sProton + sPiMinus;
   } else if ("AntiLambda" == hadron) {
-    daughters = formatHadronName("p") + formatHadronName("piplus");
+    daughters = sAntiProton + sPiPlus;
   }
   return daughters;
 }

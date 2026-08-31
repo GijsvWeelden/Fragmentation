@@ -17,6 +17,7 @@
 #include "../plotUtils.C"
 #include "../myStrings.C"
 
+// TODO: Beautify plots
 // This script compares jets when we assign Lambdas the K0S mass or the Lambda mass:
 // * Jet pt spectrum
 // * K0S z spectrum
@@ -416,7 +417,6 @@ void jetPtSchemes() {
 // V0: V0s have correct mass
 // --------------------------------------------------------
 
-// TODO: Add manual error calculations!!!
 // K0S
 void compareZKSchemesV01020() {
   InputSettings x; x.setVerbosity(verbosityutilities::kDebug);
@@ -678,7 +678,7 @@ void ratioZKSchemesV03040() {
 
   string xTitle = mystrings::sZK0S;
   string yTitle = mystrings::sRatio;
-  p.makeFrame(1e-3, 1.+1e-3, 0., 4., xTitle, yTitle);
+  p.makeFrame(1e-3, 1.+1e-3, 0.5, 2., xTitle, yTitle);
 
   p.addLatex(0.275, 0.85, mystrings::sThisThesis);
   p.addLatex(0.275, 0.80, mystrings::sPythiaSim);
@@ -734,8 +734,8 @@ void compareZLSchemesV01020() {
     p.addHistogram(h);
   }
 
-  string xTitle = mystrings::sZK0S;
-  string yTitle = mystrings::sK0SZPerJetXsec;
+  string xTitle = mystrings::sZLambda;
+  string yTitle = mystrings::sLambdaZPerJetXsec;
   p.makeFrame(1e-3, 1.+1e-3, 1e-2, 10, xTitle, yTitle);
 
   p.addLatex(0.275, 0.45, mystrings::sPythiaSim);
@@ -779,7 +779,7 @@ void ratioZLSchemesV01020() {
     p.addHistogram(h);
   }
 
-  string xTitle = mystrings::sZK0S;
+  string xTitle = mystrings::sZLambda;
   string yTitle = mystrings::sRatio;
   p.makeFrame(1e-3, 1.+1e-3, 0.5, 2., xTitle, yTitle);
 
@@ -827,8 +827,8 @@ void compareZLSchemesV02030() {
     p.addHistogram(h);
   }
 
-  string xTitle = mystrings::sZK0S;
-  string yTitle = mystrings::sK0SZPerJetXsec;
+  string xTitle = mystrings::sZLambda;
+  string yTitle = mystrings::sLambdaZPerJetXsec;
   p.makeFrame(1e-3, 1.+1e-3, 1e-2, 10, xTitle, yTitle);
 
   p.addLatex(0.275, 0.45, mystrings::sPythiaSim);
@@ -872,7 +872,7 @@ void ratioZLSchemesV02030() {
     p.addHistogram(h);
   }
 
-  string xTitle = mystrings::sZK0S;
+  string xTitle = mystrings::sZLambda;
   string yTitle = mystrings::sRatio;
   p.makeFrame(1e-3, 1.+1e-3, 0.5, 2., xTitle, yTitle);
 
@@ -920,8 +920,8 @@ void compareZLSchemesV03040() {
     p.addHistogram(h);
   }
 
-  string xTitle = mystrings::sZK0S;
-  string yTitle = mystrings::sK0SZPerJetXsec;
+  string xTitle = mystrings::sZLambda;
+  string yTitle = mystrings::sLambdaZPerJetXsec;
   p.makeFrame(1e-3, 1.+1e-3, 1e-3, 10, xTitle, yTitle);
 
   p.addLatex(0.275, 0.45, mystrings::sPythiaSim);
@@ -965,9 +965,9 @@ void ratioZLSchemesV03040() {
     p.addHistogram(h);
   }
 
-  string xTitle = mystrings::sZK0S;
+  string xTitle = mystrings::sZLambda;
   string yTitle = mystrings::sRatio;
-  p.makeFrame(1e-3, 1.+1e-3, 0., 4., xTitle, yTitle);
+  p.makeFrame(1e-3, 1.+1e-3, 0.5, 2., xTitle, yTitle);
 
   p.addLatex(0.275, 0.85, mystrings::sThisThesis);
   p.addLatex(0.275, 0.80, mystrings::sPythiaSim);

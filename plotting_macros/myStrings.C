@@ -118,10 +118,14 @@ namespace mystrings {
   const string sJetXsec = sSigma + "_{" + sJets + "}";
   const string sV0Xsec = sSigma + "_{" + sV0 + "}";
   const string sK0SXsec = sSigma + "_{" + sK0S + "}";
+  const string sLambdaXsec = sSigma + "_{" + sLambda + "}";
+  const string sAntiLambdaXsec = sSigma + "_{" + sAntiLambda + "}";
   const string sJetsPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sJetXsec, sPtJet);
   const string sV0PtPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sV0Xsec, sPtV0);
   const string sK0SPtPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sK0SXsec, sPtK0S);
   const string sK0SZPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sK0SXsec, sZK0S);
+  const string sLambdaPtPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sLambdaXsec, sPtLambda);
+  const string sLambdaZPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sLambdaXsec, sZLambda);
 }
 
 string mystrings::addSubscript(string base, string subscript) {

@@ -431,8 +431,8 @@ TH1* rebinHist(const TH1* input, const TH1* output) {
   double newErrorsSquared[nBinsOutputWithOverUnderflow];
   // Loop over input bins, sum bins where appropriate
   for (int i = 0; i <= nBinsInput+1; i++) {
+    double centre = input->GetXaxis()->GetBinCenter(i);
     double content = input->GetBinContent(i);
-    double centre = input->GetBinCenter(i);
     double error = input->GetBinError(i);
     int newBin = h->FindBin(centre);
     newContents[newBin] += content;
@@ -444,6 +444,58 @@ TH1* rebinHist(const TH1* input, const TH1* output) {
     double error = std::sqrt(newErrorsSquared[i]);
     h->SetBinContent(i, content);
     h->SetBinError(i, error);
+  }
+  return h;
+}
+
+TH2* rebinHist2D(const TH2* input, const TH2* output) {
+  TH2* h = (TH2*)output->Clone(TString::Format("%s_rebinned", input->GetName()).Data());
+  h->Reset();
+
+  const int nBinsXInput = input->GetNbinsX();
+  const int nBinsXInputWithOverflow = nBinsXInput + 1;
+  const int nBinsYInput = input->GetNbinsY();
+  const int nBinsYInputWithOverflow = nBinsYInput + 1;
+
+  const int nBinsXOutput = output->GetNbinsX();
+  const int nBinsXOutputWithOverflow = nBinsXOutput + 1;
+  const int nBinsXOutputWithOverUnderflow = nBinsXOutput + 2;
+  const int nBinsYOutput = output->GetNbinsY();
+  const int nBinsYOutputWithOverflow = nBinsYOutput + 1;
+  const int nBinsYOutputWithOverUnderflow = nBinsYOutput + 2;
+
+  double newContents[nBinsXOutputWithOverUnderflow][nBinsYOutputWithOverUnderflow];
+  double newErrorsSquared[nBinsXOutputWithOverUnderflow][nBinsYOutputWithOverUnderflow];
+  // double newContents[nBinsXOutputWithOverUnderflow * nBinsYOutputWithOverUnderflow];
+  // double newErrorsSquared[nBinsXOutputWithOverUnderflow * nBinsYOutputWithOverUnderflow];
+  // Loop over input bins, sum bins where appropriate
+  for (int i = 0; i <= nBinsXInput+1; i++) {
+    for (int j = 0; j <= nBinsYInput+1; j++) {
+      double content = input->GetBinContent(i, j);
+      double error = input->GetBinError(i, j);
+      
+      if (std::isnan(content))
+        continue; 
+
+      // FIXME: Not sure why this does not work, but get an error aying GetBinCenter is an invalid method
+    
+      double centreX = input->GetXaxis()->GetBinCenter(i);
+      int newBinX = h->GetXaxis()->FindBin(centreX);
+      double centreY = input->GetYaxis()->GetBinCenter(j);
+      int newBinY = h->GetYaxis()->FindBin(centreY);
+
+      newContents[newBinX][newBinY] += content;
+      newErrorsSquared[newBinX][newBinY] += error * error;
+    }
+  }
+  // Fill rebinned histogram with appropriate values/errors
+  for (int i = 0; i <= nBinsXOutput+1; i++) {
+    for (int j = 0; j <= nBinsYOutput+1; j++) {
+      double content = newContents[i][j];
+      double error = std::sqrt(newErrorsSquared[i][j]);
+      h->SetBinContent(i, j, content);
+      h->SetBinError(i, j, error);
+    }
   }
   return h;
 }
@@ -462,6 +514,35 @@ TH1* rebinnedV0PtHist(string hadron, string name) {
     return nullptr;
   }
 }
+
+TH2* rebinnedV0PtHist2D(string hadronX, string hadronY, string name) {
+  const int nBinsK0S = 11;
+  const double edgesK0S[nBinsK0S + 1] = {0., 1., 2., 3., 4., 5., 10., 15., 20., 25., 30., 40.};
+
+  const int nBinsLAL = 10;
+  const double edgesLAL[nBinsLAL + 1] = {0., 1., 2., 3., 4., 5., 10., 15., 20., 30., 40.};
+
+  if (hadronX != "K0S" && hadronX != "Lambda" && hadronX != "AntiLambda") {
+    cout << "Hadron X not recognised for rebinned V0 pt hist: " << hadronX << endl;
+    return nullptr;
+  } 
+  if (hadronY != "K0S" && hadronY != "Lambda" && hadronY != "AntiLambda") {
+    cout << "Hadron X not recognised for rebinned V0 pt hist: " << hadronY << endl;
+    return nullptr;
+  } 
+
+  bool xK = (hadronX == "K0S"), yK = (hadronY == "K0S");
+  if (xK && yK) {
+    return new TH2D(name.c_str(), name.c_str(), nBinsK0S, edgesK0S, nBinsK0S, edgesK0S);
+  } else if (xK && !yK) {
+    return new TH2D(name.c_str(), name.c_str(), nBinsK0S, edgesK0S, nBinsLAL, edgesLAL);
+  } else if (!xK && yK) {
+    return new TH2D(name.c_str(), name.c_str(), nBinsLAL, edgesLAL, nBinsK0S, edgesK0S);
+  } else {
+    return new TH2D(name.c_str(), name.c_str(), nBinsLAL, edgesLAL, nBinsLAL, edgesLAL);
+  }
+}
+
 TH1* rebinnedV0ZHist(string name) {
   const int nBins = 10;
   const double edges[nBins + 1] = {0.001, .101, .201, .301, .401, .501, .601, .701, .801, .901, 1.001};

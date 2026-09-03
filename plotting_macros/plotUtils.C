@@ -130,7 +130,7 @@ void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3) {
 struct Plotter {
   private:
     string _drawOption; // Private because it requires caution with spaces
-    bool   _logPlot;
+    bool   _logx = false, _logy = false, _logz = false;
     string _outputFileName;
     double _textSize;
 
@@ -147,15 +147,21 @@ struct Plotter {
       }
       return false;
     }
+    void setLogAxes() {
+      _canvas->SetLogx(_logx);
+      _canvas->SetLogy(_logy);
+      _canvas->SetLogz(_logz);
+    }
   public:
-    Plotter(string ofn = "", bool lp = false, double ts = 0.04) : _outputFileName(ofn), _logPlot(lp), _textSize(ts) { Plotter::reset(); }
+    Plotter(string ofn = "", bool ly = false, double ts = 0.04) : _outputFileName(ofn), _logy(ly), _textSize(ts) { Plotter::reset(); }
+    Plotter(string ofn = "", bool lx = false, bool ly = false, bool lz = false, double ts = 0.04) : _outputFileName(ofn), _logx(lx), _logy(ly), _logz(lz), _textSize(ts) { Plotter::reset(); }
 
     TCanvas* getCanvas() { return _canvas; }
     string getDrawOption() { return _drawOption; }
     TH1F* getFrame() { return _frame; }
     vector<TH1*> getHists() { return _hists; }
     TLegend* getLegend() { return _legend; }
-    bool getLogPlot() { return _logPlot; }
+    bool getLogPlot() { return _logy; }
     vector<TObject*> getObjects() { return _objects; }
     string getOutputFileName() { return _outputFileName; }
     double getTextSize() { return _textSize; }
@@ -168,9 +174,18 @@ struct Plotter {
         _drawOption = " " + s;
       }
     }
-    void setLogPlot(bool x = true) { _logPlot = x; }
+    void setLogX(bool b = true) { _logx = b; }
+    void setLogY(bool b = true) { _logy = b; }
+    void setLogZ(bool b = true) { _logz = b; }
     void setOutputFileName(string s) { _outputFileName = s; }
     void setTextSize(double x) { _textSize = x; }
+    void setZAxisRange(double min, double max) {
+      if (isHistVectorEmpty("setZAxisRange"))
+        return;
+
+      for (auto h : _hists)
+        histutils::setHistMinMax(h, min, max);
+    }
 
     // Utilities
     void addLatex(double x, double y, string s) {
@@ -196,7 +211,7 @@ struct Plotter {
     }
     void makeCanvas(string s = "c", double x = 800, double y = 600) {
       _canvas = new TCanvas(s.c_str(), s.c_str(), x, y);
-      _canvas->SetLogy(_logPlot);
+      setLogAxes();
     }
     void makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
       if (!_canvas) makeCanvas();

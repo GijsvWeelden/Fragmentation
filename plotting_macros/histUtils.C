@@ -160,6 +160,16 @@ void setHistErrors(TH1* hData, TH1* hErrors) {
 
 // -------------------------------------------------------------------------------------------------
 //
+// Set histogram minimum and maximum
+//
+// -------------------------------------------------------------------------------------------------
+void setHistMinMax(TH1* h, double min, double max) {
+  h->SetMinimum(min);
+  h->SetMaximum(max);
+}
+
+// -------------------------------------------------------------------------------------------------
+//
 // Get histogram bounds (1D only!)
 //
 // -------------------------------------------------------------------------------------------------
@@ -466,8 +476,6 @@ TH2* rebinHist2D(const TH2* input, const TH2* output) {
 
   double newContents[nBinsXOutputWithOverUnderflow][nBinsYOutputWithOverUnderflow];
   double newErrorsSquared[nBinsXOutputWithOverUnderflow][nBinsYOutputWithOverUnderflow];
-  // double newContents[nBinsXOutputWithOverUnderflow * nBinsYOutputWithOverUnderflow];
-  // double newErrorsSquared[nBinsXOutputWithOverUnderflow * nBinsYOutputWithOverUnderflow];
   // Loop over input bins, sum bins where appropriate
   for (int i = 0; i <= nBinsXInput+1; i++) {
     for (int j = 0; j <= nBinsYInput+1; j++) {
@@ -475,13 +483,13 @@ TH2* rebinHist2D(const TH2* input, const TH2* output) {
       double error = input->GetBinError(i, j);
       
       if (std::isnan(content))
-        continue; 
-
-      // FIXME: Not sure why this does not work, but get an error aying GetBinCenter is an invalid method
+        continue;
     
-      double centreX = input->GetXaxis()->GetBinCenter(i);
+      double centreX = 0., centreY = 0.;
+      centreX = input->GetXaxis()->GetBinCenter(i);
+      centreY = input->GetYaxis()->GetBinCenter(j);
+
       int newBinX = h->GetXaxis()->FindBin(centreX);
-      double centreY = input->GetYaxis()->GetBinCenter(j);
       int newBinY = h->GetYaxis()->FindBin(centreY);
 
       newContents[newBinX][newBinY] += content;

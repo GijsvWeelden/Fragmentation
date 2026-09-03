@@ -328,6 +328,7 @@ void compareJetPtSchemesV0() {
   string jetHistName = "hV0Jet";
   x.addNames(eFileName, jetHistName, mystrings::sEscheme);
   x.addNames(ptFileName, jetHistName, mystrings::sPtscheme);
+  string lambdaMassString = mystrings::sLambda + " mass = #it{m}(" + mystrings::sLambda + ")";
 
   x.outputFileName = "schemesV0-jetpt_Comparison.pdf";
   x.ratioplot = false;
@@ -345,7 +346,7 @@ void compareJetPtSchemesV0() {
   p.addLatex(0.60, 0.80, mystrings::sThisThesis);
   p.addLatex(0.60, 0.75, mystrings::sPythiaSim);
   p.addLatex(0.60, 0.70, mystrings::sSqrtS);
-  p.addLatex(0.60, 0.65, mystrings::sAntikt + " jets");
+  p.addLatex(0.60, 0.65, mystrings::sAntikt + " jets, " + lambdaMassString);
   p.addLatex(0.60, 0.60, mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
 
   string xTitle = mystrings::sPtJetWithUnits;
@@ -370,6 +371,7 @@ void ratioJetPtSchemesV0() {
   string jetHistName = "hV0Jet";
   x.addNames(eFileName, jetHistName, mystrings::sEscheme);
   x.addNames(ptFileName, jetHistName, mystrings::sPtscheme);
+  string lambdaMassString = mystrings::sLambda + " mass = #it{m}(" + mystrings::sLambda + ")";
 
   x.outputFileName = "schemesV0-jetpt_Ratio.pdf";
   x.ratioplot = true;
@@ -388,7 +390,7 @@ void ratioJetPtSchemesV0() {
   p.addLatex(0.275, 0.85, mystrings::sThisThesis);
   p.addLatex(0.275, 0.80, mystrings::sPythiaSim);
   p.addLatex(0.275, 0.75, mystrings::sSqrtS);
-  p.addLatex(0.275, 0.70, mystrings::sAntikt + " jets");
+  p.addLatex(0.275, 0.70, mystrings::sAntikt + " jets, " + lambdaMassString);
   p.addLatex(0.275, 0.65, mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
 
   string xTitle = mystrings::sPtJetWithUnits;

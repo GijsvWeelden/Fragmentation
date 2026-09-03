@@ -26,6 +26,7 @@ namespace mystrings {
 
   const string sALICE      = "ALICE";
   const string sAntikt     = "Anti-#it{k}_{T}";
+  const string sCGeV       = "#it{c}/GeV";
   const string sCharged    = "ch";
   const string sCounts     = "Counts";
   const string sEscheme    = "#it{E}-scheme";
@@ -118,6 +119,8 @@ namespace mystrings {
   const string sK0SZPerJet        = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sZK0S);
   const string sLambdaZPerJet     = getOneOverString(sNjets) + " " + getdYdXString(sLambda, sZLambda);
   const string sAntiLambdaZPerJet = getOneOverString(sNjets) + " " + getdYdXString(sAntiLambda, sZAntiLambda);
+
+  const string sV0PtPerJetWithUnits = addUnits(sV0PtPerJet, sCGeV, true);
 
   // Simulations
   const string sJetXsec = sSigma + "_{" + sJets + "}";
@@ -247,7 +250,7 @@ string mystrings::getVarRangeString(string var, double high) {
 string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool units = true) {
   string s = TString::Format("%.f < %s < %.f", ptmin, sPtJet.c_str(), ptmax).Data();
   if (units)
-    addUnits(s, sGevC, false);
+    s = addUnits(s, sGevC, false);
 
   return s;
 }
@@ -255,7 +258,7 @@ string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool units = t
 string mystrings::getPtV0RangeString(double ptmin, double ptmax, bool units = true) {
   string s = TString::Format("%.1f < %s < %.1f", ptmin, sPtV0.c_str(), ptmax).Data();
   if (units)
-    addUnits(s, sGevC, false);
+    s = addUnits(s, sGevC, false);
 
   return s;
 }

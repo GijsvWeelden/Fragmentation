@@ -161,7 +161,9 @@ struct Plotter {
     TH1F* getFrame() { return _frame; }
     vector<TH1*> getHists() { return _hists; }
     TLegend* getLegend() { return _legend; }
-    bool getLogPlot() { return _logy; }
+    bool getLogX() { return _logx; }
+    bool getLogY() { return _logy; }
+    bool getLogZ() { return _logz; }
     vector<TObject*> getObjects() { return _objects; }
     string getOutputFileName() { return _outputFileName; }
     double getTextSize() { return _textSize; }

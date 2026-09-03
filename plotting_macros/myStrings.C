@@ -7,6 +7,7 @@
 namespace mystrings {
   string addSubscript(string base, string subscript);
   string addSuperscript(string base, string superscript);
+  string addUnits(string base, string units, bool brackets);
   string formatHadronName(string hadron);
   string formatHadronDaughters(string hadron);
   string invMassOf(string system);
@@ -98,7 +99,11 @@ namespace mystrings {
   const string sPtAntiLambda = getPtString(sAntiLambda);
   const string sZAntiLambda  = getZString(sAntiLambda);
 
-  const string sPtJetWithUnits = sPtJet + " (" + sGevC + ")";
+  const string sPtJetWithUnits        = addUnits(sPtJet, sGevC, true); 
+  const string sPtV0WithUnits         = addUnits(sPtV0, sGevC, true);
+  const string sPtK0SWithUnits        = addUnits(sPtK0S, sGevC, true);
+  const string sPtLambdaWithUnits     = addUnits(sPtLambda, sGevC, true);
+  const string sPtAntiLambdaWithUnits = addUnits(sPtAntiLambda, sGevC, true);
 
   // Measurements
   const string sJetsPerEvent     = getOneOverString(sNevts) + " " + getdYdXString(sNjets, sPtJet);
@@ -134,6 +139,16 @@ string mystrings::addSubscript(string base, string subscript) {
 
 string mystrings::addSuperscript(string base, string superscript) {
   return base + "^{" + superscript + "}";
+}
+
+string mystrings::addUnits(string base, string units, bool brackets) {
+  string s; 
+  if (brackets) 
+    s = TString::Format("(%s)", units.c_str()).Data();
+  else 
+    s = units;
+
+  return TString::Format("%s %s", base.c_str(), s.c_str()).Data();
 }
 
 // Formats the hadron name to look nice (Greek letters, sub- and superscripts)
@@ -229,18 +244,18 @@ string mystrings::getVarRangeString(string var, double high) {
   return TString::Format("%s < %s", var.c_str(), sHigh.c_str()).Data();
 }
 
-string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool addUnits = true) {
+string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool units = true) {
   string s = TString::Format("%.f < %s < %.f", ptmin, sPtJet.c_str(), ptmax).Data();
-  if (addUnits)
-    s += TString::Format(" %s", sGevC.c_str()).Data();
+  if (units)
+    addUnits(s, sGevC, false);
 
   return s;
 }
 
-string mystrings::getPtV0RangeString(double ptmin, double ptmax, bool addUnits = true) {
+string mystrings::getPtV0RangeString(double ptmin, double ptmax, bool units = true) {
   string s = TString::Format("%.1f < %s < %.1f", ptmin, sPtV0.c_str(), ptmax).Data();
-  if (addUnits)
-    s += TString::Format(" %s", sGevC.c_str()).Data();
+  if (units)
+    addUnits(s, sGevC, false);
 
   return s;
 }

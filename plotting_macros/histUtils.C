@@ -557,6 +557,12 @@ TH1* rebinnedV0ZHist(string name) {
   return new TH1D(name.c_str(), name.c_str(), nBins, edges);
 }
 
+TH2* rebinnedV0ZHist2D(string name) {
+  const int nBins = 10;
+  const double edges[nBins + 1] = {0.001, .101, .201, .301, .401, .501, .601, .701, .801, .901, 1.001};
+  return new TH2D(name.c_str(), name.c_str(), nBins, edges, nBins, edges);
+}
+
 // -------------------------------------------------------------------------------------------------
 //
 // Print the parameter names, values, and limits of a function

@@ -129,10 +129,10 @@ void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3) {
 
 struct Plotter {
   private:
-    string _drawOption; // Private because it requires caution with spaces
+    string _drawOption = ""; // Private because it requires caution with spaces
     bool   _logx = false, _logy = false, _logz = false;
-    string _outputFileName;
-    double _textSize;
+    string _outputFileName = "";
+    double _textSize = 0.04;
 
     TH1F*            _frame   = nullptr;
     TCanvas*         _canvas  = nullptr;

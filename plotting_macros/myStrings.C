@@ -121,6 +121,7 @@ namespace mystrings {
   const string sAntiLambdaZPerJet = getOneOverString(sNjets) + " " + getdYdXString(sAntiLambda, sZAntiLambda);
 
   const string sV0PtPerJetWithUnits = addUnits(sV0PtPerJet, sCGeV, true);
+  const string sK0SPtPerJetWithUnits = addUnits(sK0SPtPerJet, sCGeV, true);
 
   // Simulations
   const string sJetXsec = sSigma + "_{" + sJets + "}";

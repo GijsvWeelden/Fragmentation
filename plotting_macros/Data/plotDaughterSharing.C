@@ -36,9 +36,9 @@ namespace verbosityutils {
 } // namespace verbosityutils
 
 namespace typeutils {
-  enum histtypes {kV0Incl, kV0InclShared, kV0InJet, kV0InJetShared, kJetIncl, kJetV0, kJetShared, kEvents };
+  enum histtypes {kV0InclPt, kV0InclPtShared, kV0PtInJet, kV0PtInJetShared, kV0ZInJet, kV0ZInJetShared, kJetPtIncl, kJetPtWithV0s, kJetPtShared, kEvents };
   bool is_valid(histtypes h) {
-    bool v = (h >= kV0Incl && h <= kEvents);
+    bool v = (h >= kV0InclPt && h <= kEvents);
     if (!v)
       cout << "typeutils Error: invalid histtype " << h << endl;
     return v;
@@ -128,25 +128,31 @@ string InputSettings::GetHistName(typeutils::histtypes htype) {
   d += "/sharing/";
 
   switch (htype) {
-    case typeutils::kV0Incl:
+    case typeutils::kV0InclPt:
       n = "V0PtEtaPhi";
       break;
-    case typeutils::kV0InclShared:
+    case typeutils::kV0InclPtShared:
       n = "V0PtEtaPt";
       break;
-    case typeutils::kV0InJet:
+    case typeutils::kV0PtInJet:
       n = "JetPtEtaV0Pt";
       break;
-    case typeutils::kV0InJetShared:
+    case typeutils::kV0PtInJetShared:
       n = "JetPtEtaV0PtPt";
       break;
-    case typeutils::kJetIncl:
+    case typeutils::kV0ZInJet:
+      n = "JetPtEtaV0Z";
+      break;
+    case typeutils::kV0ZInJetShared:
+      n = "JetPtEtaV0ZZ";
+      break;
+    case typeutils::kJetPtIncl:
       n = "JetPtEtaPhi";
       break;
-    case typeutils::kJetV0:
+    case typeutils::kJetPtWithV0s:
       n = ""; // Requires summation of histograms in GetJetPtHist()
       break;
-    case typeutils::kJetShared:
+    case typeutils::kJetPtShared:
       n = "JetPtEtaPhiShared";
       break;
     case typeutils::kEvents:
@@ -173,7 +179,7 @@ T* InputSettings::GetHist(string name) {
 template <typename T>
 T* InputSettings::GetHist(typeutils::histtypes htype) {
   T* h = nullptr;
-  if (htype == typeutils::kJetV0) {
+  if (htype == typeutils::kJetPtWithV0s) {
     TFile* file = GetFile();
     if (!file)
       return nullptr;
@@ -222,7 +228,7 @@ double InputSettings::GetNevts() {
 }
 
 double InputSettings::GetNjets(double ptmin, double ptmax) {
-  TH3D* h = GetHist<TH3D>(typeutils::kJetIncl);
+  TH3D* h = GetHist<TH3D>(typeutils::kJetPtIncl);
   if (!h)
     return -1.;
 
@@ -243,12 +249,19 @@ void InputSettings::setVar(T a, T b, T& x, T& y, string name) {
   y = b;
 }
 
+
+// ------------------------------------------------------------------------------------
+//
+// Plot spectra of inclusive V0s that share daughters
+//
+// ------------------------------------------------------------------------------------
+
 // Get ptjet of jets with shared daughters vs all jets
 // Get pt of V0s with shared daughters vs all V0s (in jets)
 
 array<TH1D*, 2> gethistsincl(InputSettings& inputs) {
-  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0InclShared); // This is saved as a THn, even though D=3
-  TH3D* h3All = inputs.GetHist<TH3D>(typeutils::kV0Incl);
+  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0InclPtShared); // This is saved as a THn, even though D=3
+  TH3D* h3All = inputs.GetHist<TH3D>(typeutils::kV0InclPt);
 
   array<int, 2> etaBins = histutils::getProjectionBins(h3All->GetYaxis(), inputs.getEtaMin(), inputs.getEtaMax());
   TH1D* hAll = h3All->ProjectionX("hAll", etaBins[0], etaBins[1], 0, 1 + h3All->GetNbinsZ());
@@ -267,12 +280,6 @@ array<TH1D*, 2> gethistsincl(InputSettings& inputs) {
 
   return array<TH1D*, 2>{hAll, hShared};
 }
-
-// ------------------------------------------------------------------------------------
-//
-// Plot spectra of inclusive V0s that share daughters
-//
-// ------------------------------------------------------------------------------------
 
 void plotInclFromTrain(int train) {
   InputSettings inputs;
@@ -328,7 +335,6 @@ void plotInclRatioFromTrain(int train) {
 // 2d plot of the pt of the V0s that share daughters
 void plotIncl2dFromTrain(int train) {
   // TODO:
-  // * How to format z axis?
   // * What pad margins to use?
 
   InputSettings inputs;
@@ -336,7 +342,7 @@ void plotIncl2dFromTrain(int train) {
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.75, 0.75);
 
-  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0InclShared); // This is saved as a THn, even though D=3
+  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0InclPtShared);
   array<int, 2> etaBins = histutils::getProjectionBins(hnShared->GetAxis(1), inputs.getEtaMin(), inputs.getEtaMax());
   hnShared->GetAxis(1)->SetRange(etaBins[0], etaBins[1]);
   TH2D* hTrigAssoc = (TH2D*)hnShared->Projection(2, 0);
@@ -369,16 +375,22 @@ void plotincl() {
   plotIncl2dFromTrain(train);
 }
 
-array<TH1D*, 2> gethistsinjet(InputSettings& inputs) {
-  inputs.printLog("gethistsinjet()", TString::Format("Getting histograms for jet pT in [%.f, %.f] GeV/c and eta in [%.2f, %.2f]", inputs.getPtJetMin(), inputs.getPtJetMax(), inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
+// ------------------------------------------------------------------------------------
+//
+// Plot spectra of in-jet V0s that share daughters
+//
+// ------------------------------------------------------------------------------------
+
+array<TH1D*, 2> gethistsinjetPt(InputSettings& inputs) {
+  inputs.printLog("gethistsinjetPt()", TString::Format("Getting ptV0 histograms for jet pT in [%.f, %.f] GeV/c and eta in [%.2f, %.2f]", inputs.getPtJetMin(), inputs.getPtJetMax(), inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
 
   const int axisJetPt   = 0;
   const int axisJetEta  = 1;
   const int axisTrigger = 2;
   const int axisAssoc   = 3;
 
-  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0InJetShared);
-  TH3D* h3All = inputs.GetHist<TH3D>(typeutils::kV0InJet);
+  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0PtInJetShared);
+  TH3D* h3All = inputs.GetHist<TH3D>(typeutils::kV0PtInJet);
 
   array<int, 2> ptBins = histutils::getProjectionBins(h3All->GetXaxis(), inputs.getPtJetMin(), inputs.getPtJetMax());
   array<int, 2> etaBins = histutils::getProjectionBins(h3All->GetYaxis(), inputs.getEtaMin(), inputs.getEtaMax());
@@ -407,24 +419,18 @@ array<TH1D*, 2> gethistsinjet(InputSettings& inputs) {
   return array<TH1D*, 2>{hAllV0sInJets, hSharedV0sInJets};
 }
 
-// ------------------------------------------------------------------------------------
-//
-// Plot spectra of inclusive V0s that share daughters
-//
-// ------------------------------------------------------------------------------------
-
-void plotInJetFromTrain1020(int train) {
+void plotInJetPtFromTrain1020(int train) {
   InputSettings inputs;
   inputs.setTrain(train);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
   inputs.setPtJet(10., 20.);
 
-  array<TH1D*, 2> hists = gethistsinjet(inputs);
+  array<TH1D*, 2> hists = gethistsinjetPt(inputs);
   TH1D* hAllV0sInJets = hists[0];
   TH1D* hSharedV0sInJets = hists[1];
 
-  plotutils::Plotter plSpectra(inputs.GetNameFromPtJet("sharing_injet", ".pdf"), true, 0.04);
+  plotutils::Plotter plSpectra(inputs.GetNameFromPtJet("sharing_injet_pt", ".pdf"), true, 0.04);
   plSpectra.makeFrame(0., inputs.getPtJetMax(), 1e-8, 0.1, mystrings::sPtV0WithUnits, mystrings::sV0PtPerJetWithUnits);
 
   plSpectra.setHists({hAllV0sInJets, hSharedV0sInJets});
@@ -443,18 +449,18 @@ void plotInJetFromTrain1020(int train) {
   plSpectra.plot();
 } 
 
-void plotInJetRatioFromTrain1020(int train) {
+void plotInJetPtRatioFromTrain1020(int train) {
   InputSettings inputs;
   inputs.setTrain(train);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
   inputs.setPtJet(10., 20.);
 
-  array<TH1D*, 2> hists = gethistsinjet(inputs);
+  array<TH1D*, 2> hists = gethistsinjetPt(inputs);
   TH1D* hAllV0sInJets = hists[0];
   TH1D* hSharedV0sInJets = hists[1];
 
-  plotutils::Plotter plRatio(inputs.GetNameFromPtJet("sharing_injet", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter plRatio(inputs.GetNameFromPtJet("sharing_injet_pt", "_ratio.pdf"), true, 0.04);
   plRatio.makeFrame(0., inputs.getPtJetMax(), 1e-5, 2., mystrings::sPtV0WithUnits, mystrings::sRatio);
   plRatio.setHists({hSharedV0sInJets, hAllV0sInJets});
   plRatio.setHistStyles();
@@ -472,18 +478,18 @@ void plotInJetRatioFromTrain1020(int train) {
   plRatio.plot();
 }
 
-void plotInJetFromTrain2030(int train) {
+void plotInJetPtFromTrain2030(int train) {
   InputSettings inputs;
   inputs.setTrain(train);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
   inputs.setPtJet(20., 30.);
 
-  array<TH1D*, 2> hists = gethistsinjet(inputs);
+  array<TH1D*, 2> hists = gethistsinjetPt(inputs);
   TH1D* hAllV0sInJets = hists[0];
   TH1D* hSharedV0sInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_pt", ".pdf"), true, 0.04);
   p.makeFrame(0., inputs.getPtJetMax(), 1e-8, 0.1, mystrings::sPtV0WithUnits, mystrings::sV0PtPerJetWithUnits);
 
   p.setHists({hAllV0sInJets, hSharedV0sInJets});
@@ -502,18 +508,18 @@ void plotInJetFromTrain2030(int train) {
   p.plot();
 }
 
-void plotInJetRatioFromTrain2030(int train) {
+void plotInJetPtRatioFromTrain2030(int train) {
   InputSettings inputs;
   inputs.setTrain(train);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
   inputs.setPtJet(20., 30.);
 
-  array<TH1D*, 2> hists = gethistsinjet(inputs);
+  array<TH1D*, 2> hists = gethistsinjetPt(inputs);
   TH1D* hAllV0sInJets = hists[0];
   TH1D* hSharedV0sInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_pt", "_ratio.pdf"), true, 0.04);
   p.makeFrame(0., inputs.getPtJetMax(), 1e-4, 2., mystrings::sPtV0WithUnits, mystrings::sRatio);
 
   p.setHists({hAllV0sInJets, hSharedV0sInJets});
@@ -532,18 +538,18 @@ void plotInJetRatioFromTrain2030(int train) {
   p.plot();
 }
 
-void plotInJetFromTrain3040(int train) {
+void plotInJetPtFromTrain3040(int train) {
   InputSettings inputs;
   inputs.setTrain(train);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
   inputs.setPtJet(30., 40.);
 
-  array<TH1D*, 2> hists = gethistsinjet(inputs);
+  array<TH1D*, 2> hists = gethistsinjetPt(inputs);
   TH1D* hAllV0sInJets = hists[0];
   TH1D* hSharedV0sInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_pt", ".pdf"), true, 0.04);
   p.makeFrame(0., inputs.getPtJetMax(), 1e-8, 0.1, mystrings::sPtV0WithUnits, mystrings::sV0PtPerJetWithUnits);
 
   p.setHists({hAllV0sInJets, hSharedV0sInJets});
@@ -562,18 +568,18 @@ void plotInJetFromTrain3040(int train) {
   p.plot();
 }
 
-void plotInJetRatioFromTrain3040(int train) {
+void plotInJetPtRatioFromTrain3040(int train) {
   InputSettings inputs;
   inputs.setTrain(train);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
   inputs.setPtJet(30., 40.);
 
-  array<TH1D*, 2> hists = gethistsinjet(inputs);
+  array<TH1D*, 2> hists = gethistsinjetPt(inputs);
   TH1D* hAllV0sInJets = hists[0];
   TH1D* hSharedV0sInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_pt", "_ratio.pdf"), true, 0.04);
   p.makeFrame(0., inputs.getPtJetMax(), 1e-4, 2., mystrings::sPtV0WithUnits, mystrings::sRatio);
 
   p.setHists({hAllV0sInJets, hSharedV0sInJets});
@@ -592,68 +598,385 @@ void plotInJetRatioFromTrain3040(int train) {
   p.plot();
 }
 
-void plotinjet() {
+void plotinjetpt() {
   int train = 745202;
-  // plotInJetFromTrain1020(train);
-  // plotInJetRatioFromTrain1020(train);
-  // plotInJetFromTrain2030(train);
-  // plotInJetRatioFromTrain2030(train);
-  // plotInJetFromTrain3040(train);
-  plotInJetRatioFromTrain3040(train);
+  // plotInJetPtFromTrain1020(train);
+  // plotInJetPtRatioFromTrain1020(train);
+  // plotInJetPtFromTrain2030(train);
+  // plotInJetPtRatioFromTrain2030(train);
+  // plotInJetPtFromTrain3040(train);
+  plotInJetPtRatioFromTrain3040(train);
 }
 
-void plotinjet2030() {
+array<TH1D*, 2> gethistsinjetZ(InputSettings& inputs) {
+  inputs.printLog("gethistsinjetZ()", TString::Format("Getting zV0 histograms for jet pT in [%.f, %.f] GeV/c and eta in [%.2f, %.2f]", inputs.getPtJetMin(), inputs.getPtJetMax(), inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
+
+  const int axisJetPt   = 0;
+  const int axisJetEta  = 1;
+  const int axisTrigger = 2;
+  const int axisAssoc   = 3;
+
+  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0ZInJetShared);
+  TH3D* h3All = inputs.GetHist<TH3D>(typeutils::kV0ZInJet);
+
+  array<int, 2> ptBins = histutils::getProjectionBins(h3All->GetXaxis(), inputs.getPtJetMin(), inputs.getPtJetMax());
+  array<int, 2> etaBins = histutils::getProjectionBins(h3All->GetYaxis(), inputs.getEtaMin(), inputs.getEtaMax());
+  TH1D* hAllV0sInJets = h3All->ProjectionZ("hAllV0sInJets", ptBins[0], ptBins[1], etaBins[0], etaBins[1]);
+
+  ptBins  = histutils::getProjectionBins(hnShared->GetAxis(axisJetPt), inputs.getPtJetMin(), inputs.getPtJetMax());
+  etaBins = histutils::getProjectionBins(hnShared->GetAxis(axisJetEta), inputs.getEtaMin(), inputs.getEtaMax());
+  hnShared->GetAxis(axisJetPt)->SetRange(ptBins[0], ptBins[1]);
+  hnShared->GetAxis(axisJetEta)->SetRange(etaBins[0], etaBins[1]);
+  TH1D* hSharedTrigger = hnShared->Projection(axisTrigger);
+  TH1D* hSharedAssoc   = hnShared->Projection(axisAssoc);
+  TH1D* hSharedV0sInJets = (TH1D*)hSharedTrigger->Clone("hSharedV0sInJets");
+  hSharedV0sInJets->Add(hSharedAssoc);
+
+  hAllV0sInJets = (TH1D*)histutils::rebinHist(hAllV0sInJets, histutils::rebinnedV0ZHist("hAllV0sInJetsRebinned"));
+  hSharedV0sInJets = (TH1D*)histutils::rebinHist(hSharedV0sInJets, histutils::rebinnedV0ZHist("hSharedV0sInJetsRebinned"));
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    hAllV0sInJets->Print("all");
+    hSharedV0sInJets->Print("all");
+  }
+
+  double nJets = inputs.GetNjets(inputs.getPtJetMin(), inputs.getPtJetMax());
+  hAllV0sInJets->Scale(1. / nJets, "width");
+  hSharedV0sInJets->Scale(1. / nJets, "width");
+
+  return array<TH1D*, 2>{hAllV0sInJets, hSharedV0sInJets};
+}
+
+void plotInJetZFromTrain1020(int train) {
   InputSettings inputs;
-  inputs.setTrain(515268);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(10., 20.);
+
+  array<TH1D*, 2> hists = gethistsinjetZ(inputs);
+  TH1D* hAllV0sInJets = hists[0];
+  TH1D* hSharedV0sInJets = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", ".pdf"), true, 0.04);
+  p.makeFrame(1e-3, 1+1e-3, 1e-8, 1., mystrings::sZV0, mystrings::sV0ZPerJet);
+
+  p.setHists({hAllV0sInJets, hSharedV0sInJets});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hAllV0sInJets, "All V0s in jets");
+  p.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
+
+  double xLatex = 0.25, yLatex = 0.55;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.20, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetZRatioFromTrain1020(int train) {
+  InputSettings inputs;
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(10., 20.);
+
+  array<TH1D*, 2> hists = gethistsinjetZ(inputs);
+  TH1D* hAllV0sInJets = hists[0];
+  TH1D* hSharedV0sInJets = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", "_ratio.pdf"), true, 0.04);
+  p.makeFrame(1e-3, 1+1e-3, 1e-4, 2., mystrings::sZV0, mystrings::sV0ZPerJet);
+
+  p.setHists({hAllV0sInJets, hSharedV0sInJets});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hAllV0sInJets, "All V0s in jets");
+  p.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
+
+  double xLatex = 0.25, yLatex = 0.55;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.20, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+
+  p.makeRatios();
+  p.plot();
+}
+
+void plotInJetZFromTrain2030(int train) {
+  InputSettings inputs;
+  inputs.setTrain(train);
   inputs.SetInputFileNameFromTrain();
   inputs.setEta(-0.35, 0.35);
   inputs.setPtJet(20., 30.);
 
-  array<TH1D*, 2> hists = gethistsinjet(inputs);
+  array<TH1D*, 2> hists = gethistsinjetZ(inputs);
   TH1D* hAllV0sInJets = hists[0];
   TH1D* hSharedV0sInJets = hists[1];
 
-  plotutils::Plotter plSpectra("sharing_injet.pdf", true, 0.04);
-  plSpectra.makeFrame(0., 20., 1e-8, 0.1, mystrings::sPtV0, mystrings::sV0PtPerJet);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", ".pdf"), true, 0.04);
+  p.makeFrame(1e-3, 1+1e-3, 1e-8, 1., mystrings::sZV0, mystrings::sV0ZPerJet);
 
-  plSpectra.setHists({hAllV0sInJets, hSharedV0sInJets});
-  plSpectra.setHistStyles();
+  p.setHists({hAllV0sInJets, hSharedV0sInJets});
+  p.setHistStyles();
 
-  plSpectra.makeLegend(0.25, 0.50, 0.20, 0.30, "");
-  plSpectra.addLegendEntry(hAllV0sInJets, "All V0s in jets");
-  plSpectra.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hAllV0sInJets, "All V0s in jets");
+  p.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
 
   double xLatex = 0.25, yLatex = 0.55;
-  plSpectra.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
-  plSpectra.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
-  plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
-  plSpectra.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
-  plSpectra.addLatex(xLatex, yLatex - 0.20, TString::Format("%.f < #it{p}_{T,jet} < %.f GeV/#it{c}", inputs.getPtJetMin(), inputs.getPtJetMax()).Data());
-  plSpectra.plot();
-
-  plotutils::Plotter plRatio("sharing_injet_ratio.pdf", true, 0.04);
-  plRatio.makeFrame(0., 20., 1e-2, 2., mystrings::sPtV0, "Ratio");
-  plRatio.makeLegend(0.50, 0.75, 0.20, 0.35, "");
-  plRatio.setHists({hSharedV0sInJets, hAllV0sInJets});
-  plRatio.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
-  plRatio.addLegendEntry(hAllV0sInJets, "All V0s in jets");
-
-  xLatex = 0.25, yLatex = 0.60;
-  plSpectra.addLatex(xLatex, yLatex, "This Thesis, ALICE pp data");
-  plSpectra.addLatex(xLatex, yLatex - 0.05, "#sqrt{s} = 13.6 TeV");
-  plSpectra.addLatex(xLatex, yLatex - 0.10, "Anti-#it{k}_{T} ch+V0 jets");
-  plSpectra.addLatex(xLatex, yLatex - 0.15, "#it{R} = 0.4, |#eta_{jet}| < 0.35");
-  plSpectra.addLatex(xLatex, yLatex - 0.20, TString::Format("%.f < #it{p}_{T,jet} < %.f GeV/#it{c}", inputs.getPtJetMin(), inputs.getPtJetMax()).Data());
-  plRatio.makeRatios(hAllV0sInJets);
-  plRatio.plot();
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.20, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
 }
+
+void plotInJetZRatioFromTrain2030(int train) {
+  InputSettings inputs;
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(20., 30.);
+
+  array<TH1D*, 2> hists = gethistsinjetZ(inputs);
+  TH1D* hAllV0sInJets = hists[0];
+  TH1D* hSharedV0sInJets = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", "_ratio.pdf"), true, 0.04);
+  p.makeFrame(1e-3, 1+1e-3, 1e-4, 2., mystrings::sZV0, mystrings::sV0ZPerJet);
+
+  p.setHists({hAllV0sInJets, hSharedV0sInJets});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hAllV0sInJets, "All V0s in jets");
+  p.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
+
+  double xLatex = 0.25, yLatex = 0.55;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.20, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+
+  p.makeRatios();
+  p.plot();
+}
+
+void plotInJetZFromTrain3040(int train) {
+  InputSettings inputs;
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(30., 40.);
+
+  array<TH1D*, 2> hists = gethistsinjetZ(inputs);
+  TH1D* hAllV0sInJets = hists[0];
+  TH1D* hSharedV0sInJets = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", ".pdf"), true, 0.04);
+  p.makeFrame(1e-3, 1+1e-3, 1e-8, 1., mystrings::sZV0, mystrings::sV0ZPerJet);
+
+  p.setHists({hAllV0sInJets, hSharedV0sInJets});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hAllV0sInJets, "All V0s in jets");
+  p.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
+
+  double xLatex = 0.25, yLatex = 0.55;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.20, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetZRatioFromTrain3040(int train) {
+  InputSettings inputs;
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(30., 40.);
+
+  array<TH1D*, 2> hists = gethistsinjetZ(inputs);
+  TH1D* hAllV0sInJets = hists[0];
+  TH1D* hSharedV0sInJets = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", "_ratio.pdf"), true, 0.04);
+  p.makeFrame(1e-3, 1+1e-3, 1e-4, 2., mystrings::sZV0, mystrings::sV0ZPerJet);
+
+  p.setHists({hAllV0sInJets, hSharedV0sInJets});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hAllV0sInJets, "All V0s in jets");
+  p.addLegendEntry(hSharedV0sInJets, "V0s with shared daughters in jets");
+
+  double xLatex = 0.25, yLatex = 0.55;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.20, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+
+  p.makeRatios();
+  p.plot();
+}
+
+void plotInJetZCorrelationFromTrain1020(int train) {
+  // FIXME: How to handle normalisation here? Per jet or per zhard bin?
+  InputSettings inputs;
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(10., 20.);
+
+  const int axisJetPt = 0;
+  const int axisJetEta = 1;
+  const int axisTrigger = 2;
+  const int axisAssoc = 3;
+  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0ZInJetShared);
+  array<int, 2> ptBins = histutils::getProjectionBins(hnShared->GetAxis(axisJetPt), inputs.getPtJetMin(), inputs.getPtJetMax());
+  array<int, 2> etaBins = histutils::getProjectionBins(hnShared->GetAxis(axisJetEta), inputs.getEtaMin(), inputs.getEtaMax());
+  hnShared->GetAxis(axisJetPt)->SetRange(ptBins[0], ptBins[1]);
+  hnShared->GetAxis(axisJetEta)->SetRange(etaBins[0], etaBins[1]);
+  TH2D* hTrigAssoc = (TH2D*)hnShared->Projection(axisAssoc, axisTrigger);
+  hTrigAssoc = (TH2D*)histutils::rebinHist2D(hTrigAssoc, histutils::rebinnedV0ZHist2D("hTrigAssocRebinned"));
+
+  hTrigAssoc->Scale(1. / inputs.GetNjets(inputs.getPtJetMin(), inputs.getPtJetMax()), "width");
+  // normaliseHistColByCol(hTrigAssoc);
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", "_correlation.pdf"), false, false, false, 0.04);
+  p.setDrawOption("colz");
+  p.addHistogram(hTrigAssoc);
+  p.setZAxisRange(1e-12, 1e-2); // Eyeballed values
+
+  string xTitle = mystrings::addSuperscript(mystrings::sZV0, "hard");
+  string yTitle = mystrings::addSuperscript(mystrings::sZV0, "soft");
+  p.makeFrame(1e-3, 1+1e-3, 1e-8, 1., xTitle, yTitle);
+
+  double xLatex = 0.25, yLatex = 0.85;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData + ", " + mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sAntiktJets + ", " + mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  
+  p.plot();
+}
+
+void plotInJetZCorrelationFromTrain2030(int train) {
+  // FIXME: How to handle normalisation here? Per jet or per zhard bin?
+  InputSettings inputs;
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(20., 30.);
+
+  const int axisJetPt = 0;
+  const int axisJetEta = 1;
+  const int axisTrigger = 2;
+  const int axisAssoc = 3;
+  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0ZInJetShared);
+  array<int, 2> ptBins = histutils::getProjectionBins(hnShared->GetAxis(axisJetPt), inputs.getPtJetMin(), inputs.getPtJetMax());
+  array<int, 2> etaBins = histutils::getProjectionBins(hnShared->GetAxis(axisJetEta), inputs.getEtaMin(), inputs.getEtaMax());
+  hnShared->GetAxis(axisJetPt)->SetRange(ptBins[0], ptBins[1]);
+  hnShared->GetAxis(axisJetEta)->SetRange(etaBins[0], etaBins[1]);
+  TH2D* hTrigAssoc = (TH2D*)hnShared->Projection(axisAssoc, axisTrigger);
+  hTrigAssoc = (TH2D*)histutils::rebinHist2D(hTrigAssoc, histutils::rebinnedV0ZHist2D("hTrigAssocRebinned"));
+
+  hTrigAssoc->Scale(1. / inputs.GetNjets(inputs.getPtJetMin(), inputs.getPtJetMax()), "width");
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", "_correlation.pdf"), false, false, false, 0.04);
+  p.setDrawOption("colz");
+  p.addHistogram(hTrigAssoc);
+  p.setZAxisRange(1e-12, 1e-2); // Eyeballed values
+
+  string xTitle = mystrings::addSuperscript(mystrings::sZV0, "hard");
+  string yTitle = mystrings::addSuperscript(mystrings::sZV0, "soft");
+  p.makeFrame(1e-3, 1+1e-3, 1e-8, 1., xTitle, yTitle);
+
+  double xLatex = 0.25, yLatex = 0.85;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData + ", " + mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sAntiktJets + ", " + mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  
+  p.plot();
+}
+
+void plotInJetZCorrelationFromTrain3040(int train) {
+  // FIXME: How to handle normalisation here? Per jet or per zhard bin?
+  InputSettings inputs;
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(30., 40.);
+
+  const int axisJetPt = 0;
+  const int axisJetEta = 1;
+  const int axisTrigger = 2;
+  const int axisAssoc = 3;
+  THnSparse* hnShared = inputs.GetHist<THnSparse>(typeutils::kV0ZInJetShared);
+  array<int, 2> ptBins = histutils::getProjectionBins(hnShared->GetAxis(axisJetPt), inputs.getPtJetMin(), inputs.getPtJetMax());
+  array<int, 2> etaBins = histutils::getProjectionBins(hnShared->GetAxis(axisJetEta), inputs.getEtaMin(), inputs.getEtaMax());
+  hnShared->GetAxis(axisJetPt)->SetRange(ptBins[0], ptBins[1]);
+  hnShared->GetAxis(axisJetEta)->SetRange(etaBins[0], etaBins[1]);
+  TH2D* hTrigAssoc = (TH2D*)hnShared->Projection(axisAssoc, axisTrigger);
+  hTrigAssoc = (TH2D*)histutils::rebinHist2D(hTrigAssoc, histutils::rebinnedV0ZHist2D("hTrigAssocRebinned"));
+
+  hTrigAssoc->Scale(1. / inputs.GetNjets(inputs.getPtJetMin(), inputs.getPtJetMax()), "width");
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("sharing_injet_z", "_correlation.pdf"), false, false, false, 0.04);
+  p.setDrawOption("colz");
+  p.addHistogram(hTrigAssoc);
+  p.setZAxisRange(1e-12, 1e-2); // Eyeballed values
+
+  string xTitle = mystrings::addSuperscript(mystrings::sZV0, "hard");
+  string yTitle = mystrings::addSuperscript(mystrings::sZV0, "soft");
+  p.makeFrame(1e-3, 1+1e-3, 1e-8, 1., xTitle, yTitle);
+
+  double xLatex = 0.25, yLatex = 0.85;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData + ", " + mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sAntiktJets + ", " + mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  
+  p.plot();
+}
+
+void plotinjetz() {
+  int train = 745202;
+  // gROOT->SetBatch(true);
+  // plotInJetZFromTrain1020(train);
+  // plotInJetZRatioFromTrain1020(train);
+  // plotInJetZFromTrain2030(train);
+  // plotInJetZRatioFromTrain2030(train);
+  // plotInJetZFromTrain3040(train);
+  // plotInJetZRatioFromTrain3040(train);
+  // plotInJetZCorrelationFromTrain1020(train);
+  // plotInJetZCorrelationFromTrain2030(train);
+  plotInJetZCorrelationFromTrain3040(train);
+}
+
+
+// ------------------------------------------------------------------------------------
+//
+// Plot spectra of jets, jets with V0s, and jets with V0s that share daughters
+//
+// ------------------------------------------------------------------------------------
 
 array<TH1D*, 3> gethistsjet(InputSettings& inputs) {
   inputs.printLog("gethistjet()", TString::Format("Getting histograms for jet pT with eta in [%.2f, %.2f]", inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
 
-  TH3D* h3All     = inputs.GetHist<TH3D>(typeutils::kJetIncl); // All jets
-  TH3D* h3AllwV0s = inputs.GetHist<TH3D>(typeutils::kJetV0); // All jets with V0 candidates
-  TH3D* h3Shared  = inputs.GetHist<TH3D>(typeutils::kJetShared); // All jets with V0s that share daughters
+  TH3D* h3All     = inputs.GetHist<TH3D>(typeutils::kJetPtIncl); // All jets
+  TH3D* h3AllwV0s = inputs.GetHist<TH3D>(typeutils::kJetPtWithV0s); // All jets with V0 candidates
+  TH3D* h3Shared  = inputs.GetHist<TH3D>(typeutils::kJetPtShared); // All jets with V0s that share daughters
 
   if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
     h3All->Print();

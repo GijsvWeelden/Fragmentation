@@ -17,8 +17,6 @@ namespace mystrings {
   string getRatioString(string num, string den);
   string getOneOverString(string s);
   string getdYdXString(string y, string x);
-  string getdYdPtString(string y);
-  string getdYdZString(string y);
   string getVarRangeString(string var, double high);
   string getVarRangeString(double low, string var, double high);
   string getPtJetRangeString(double ptmin, double ptmax, bool addUnits);
@@ -227,14 +225,6 @@ string mystrings::getOneOverString(string s) {
 
 string mystrings::getdYdXString(string y, string x) {
   return getRatioString("d" + y, "d" + x);
-}
-
-string mystrings::getdYdPtString(string y) {
-  return getdYdXString(y, getPtString(y));
-}
-
-string mystrings::getdYdZString(string y) {
-  return getdYdXString(y, getZString(y));
 }
 
 string mystrings::getVarRangeString(double low, string var, double high) {

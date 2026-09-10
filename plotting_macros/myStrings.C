@@ -19,8 +19,8 @@ namespace mystrings {
   string getdYdXString(string y, string x);
   string getVarRangeString(string var, double high);
   string getVarRangeString(double low, string var, double high);
-  string getPtJetRangeString(double ptmin, double ptmax, bool addUnits);
-  string getPtV0RangeString(double ptmin, double ptmax, bool addUnits);
+  string getPtJetRangeString(double ptmin, double ptmax, bool units);
+  string getPtV0RangeString(double ptmin, double ptmax, bool units);
 
   const string sALICE      = "ALICE";
   const string sAntikt     = "Anti-#it{k}_{T}";
@@ -60,7 +60,7 @@ namespace mystrings {
   const string sAlicePpData = sALICE + " " + sPpData;
   const string sPythiaSim   = sPythia + " simulation pp";
   const string sThisThesisAliceData = sThisThesis + ", " + sAlicePpData;
-  const string sThisThesisAliceSim  = sThisThesis + ", " + sALICE + " ";
+  const string sThisThesisAliceSim  = sThisThesis + ", " + sALICE + " simulation";
   const string sThisThesisPythiaSim = sThisThesis + ", " + sPythiaSim;
   const string sAntiktJets = sAntikt + " " + sJets;
 
@@ -87,6 +87,7 @@ namespace mystrings {
   const string sEtaV0Range075  = "|" + sEtaV0 + "| < 0.75";
   const string sEtaV0Range09   = "|" + sEtaV0 + "| < 0.9";
   const string sEtaK0SRange09  = "|" + sEtaK0S + "| < 0.9";
+  const string sJetR04Eta035 = sJetRadius04 + ", " + sEtaJetRange035;
 
   const string sPtJet        = getPtString(sJet);
   const string sPtV0         = getPtString(sV0);
@@ -129,10 +130,16 @@ namespace mystrings {
   const string sAntiLambdaXsec = sSigma + "_{" + sAntiLambda + "}";
   const string sJetsPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sJetXsec, sPtJet);
   const string sV0PtPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sV0Xsec, sPtV0);
+  const string sV0PtPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sV0Xsec, sPtV0);
   const string sK0SPtPerXsec = getOneOverString(sSigma) + " " + getdYdXString(sK0SXsec, sPtK0S);
   const string sK0SZPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sK0SXsec, sZK0S);
   const string sLambdaPtPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sLambdaXsec, sPtLambda);
   const string sLambdaZPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sLambdaXsec, sZLambda);
+
+  const string sV0ZPerJetXsec = getOneOverString(sJetXsec) + " " + getdYdXString(sV0Xsec, sZV0);
+
+  const string sV0PtPerXsecWithUnits = addUnits(sV0PtPerXsec, sCGeV, true);
+  const string sV0PtPerJetXsecWithUnits = addUnits(sV0PtPerJetXsec, sCGeV, true);
 }
 
 string mystrings::addSubscript(string base, string subscript) {
@@ -238,7 +245,7 @@ string mystrings::getVarRangeString(string var, double high) {
   return TString::Format("%s < %s", var.c_str(), sHigh.c_str()).Data();
 }
 
-string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool units = true) {
+string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool units) {
   string s = TString::Format("%.f < %s < %.f", ptmin, sPtJet.c_str(), ptmax).Data();
   if (units)
     s = addUnits(s, sGevC, false);
@@ -246,7 +253,7 @@ string mystrings::getPtJetRangeString(double ptmin, double ptmax, bool units = t
   return s;
 }
 
-string mystrings::getPtV0RangeString(double ptmin, double ptmax, bool units = true) {
+string mystrings::getPtV0RangeString(double ptmin, double ptmax, bool units) {
   string s = TString::Format("%.1f < %s < %.1f", ptmin, sPtV0.c_str(), ptmax).Data();
   if (units)
     s = addUnits(s, sGevC, false);

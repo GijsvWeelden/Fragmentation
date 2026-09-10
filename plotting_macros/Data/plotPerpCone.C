@@ -8,7 +8,7 @@
 
 namespace verbosityutils {
   enum Verbosity {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
-  // Name of the verbosity as written in code
+  // Name of the verbosity as written in messages
   string to_string(Verbosity v) {
     switch (v) {
       case kErrors:   return "Error";
@@ -36,7 +36,6 @@ struct InputSettings {
     string _inputFileName, _outputFileName;
     verbosityutils::Verbosity _verbosity = verbosityutils::kInfo;
     typeutils::histtypes _histtype;
-    // hadron, histname, ptBinEdges
 
     template <typename T>
     void setVar(T a, T b, T& _x, T& _y, string name);

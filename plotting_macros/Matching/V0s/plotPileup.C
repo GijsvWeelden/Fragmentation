@@ -1,992 +1,859 @@
-#include <vector>
-#include <iostream>
-#include <typeinfo>
-
-#include "TCanvas.h"
-#include "TError.h"
-#include "TFile.h"
-#include "TTree.h"
-#include "TH1D.h"
-#include "TF1.h"
-#include "TH3D.h"
-#include "THnSparse.h"
-#include "TString.h"
-#include "TLegend.h"
 
 #include "../../histUtils.C"
 #include "../../plotUtils.C"
+#include "../../myStrings.C"
 
 #ifndef __PLOTPERPCONE_H__
 #define __PLOTPERPCONE_H__
 
-// -------------------------------------------------------------------------------------------------
-//
-// Struct for input settings
-//
-// -------------------------------------------------------------------------------------------------
-
-// Divide two histograms with protection against nan/null bin content
-// Assumes uncorrelated errors
-// TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
-//   // TODO: Check if same binning
-//   TH1* result = (TH1*)base->Clone("result");
-//   result->Reset();
-
-//   for (int i = 0; i <= 1 + base->GetNbinsX(); i++) {
-//     double numerator = base->GetBinContent(i);
-//     double numError = base->GetBinError(i);
-//     double denominator = divideBy->GetBinContent(i);
-//     double denError = divideBy->GetBinError(i);
-
-//     if (std::isnan(numerator) || std::isnan(denominator))
-//       continue;
-//     else if (std::abs(numerator) < threshold || std::abs(denominator) < threshold)
-//       continue;
-
-//     double newBinContent = numerator / denominator;
-
-//     if (std::isnan(numError) || std::isnan(denError))
-//       continue;
-
-//     double numRelError = numError / numerator;
-//     double denRelError = denError / denominator;
-//     double newBinError = newBinContent * std::sqrt((numRelError * numRelError) + (denRelError * denRelError));
-
-//     result->SetBinContent(i, newBinContent);
-//     result->SetBinError(i, newBinError);
-//   }
-//   return result;
-// }
-
-namespace MyStrings {
-  string getPtString(string subscript);
-  string getZString(string subscript);
-  string getRatioString(string num, string den);
-  string getOneOverString(string s);
-  string getdYdXString(string y, string x);
-  string getdYdPtString(string y);
-  string getdYdZString(string y);
-  string getVarRangeString(string var, double high);
-  string getVarRangeString(double low, string var, double high);
-  string getPtJetRangeString(double ptmin, double ptmax, bool addUnits);
-  string getPtV0RangeString(double ptmin, double ptmax, bool addUnits);
-
-  const string sALICE      = "ALICE";
-  const string sAntikt     = "Anti-#it{k}_{T}";
-  const string sCharged    = "ch";
-  const string sCounts     = "Counts";
-  const string sEta        = "#eta";
-  const string sGevC       = "GeV/#it{c}";
-  const string sGevCC      = "GeV/#it{c}^{2}";
-  const string sJet        = "jet";
-  const string sJets       = "jets";
-  const string sMass       = "#it{M}";
-  const string sNumber     = "#it{N}";
-  const string sRadius     = "#it{R} = 0.4";
-  const string sRatio      = "Ratio";
-  const string sSigma      = "#sigma";
-  const string sSqrtS      = "#sqrt{s} = 13.6 TeV";
-  const string sPpData     = "pp data";
-  const string sPythia     = "PYTHIA";
-  const string sThisThesis = "This Thesis";
-
-  const string sV0         = "V0";
-  const string sK0S        = formatHadronName("K0S");
-  const string sLambda     = formatHadronName("Lambda");
-  const string sAntiLambda = formatHadronName("AntiLambda");
-
-  // Strings derived from the ones above
-  const string sChJets      = sCharged + " " + sJets;
-  const string sChV0Jets    = sCharged + "+" + sV0 + " " + sJets;
-  const string sAliceData   = sALICE + " " + sPpData;
-  const string sAlicePythia = sALICE + " " + sPythia;
-
-  const string sNjets       = sNumber + "_{" + sJets + "}";
-  const string sNevts       = sNumber + "_{evts}";
-  const string sNV0         = sNumber + "_{" + sV0 + "}";
-  const string sNK0S        = sNumber + "_{" + sK0S + "}";
-
-  const string sEtaJet      = sEta + "_{" + sJet + "}";
-  const string sEtaV0       = sEta + "_{" + sV0 + "}";
-  const string sEtaK0S      = sEta + "_{" + sK0S + "}";
-
-  const string sEtaJetRange = "|" + sEtaJet + "| < 0.5";
-  const string sEtaV0Range  = "|" + sEtaV0 + "| < 0.9";
-  const string sEtaK0SRange = "|" + sEtaK0S + "| < 0.9";
-
-  const string sPtJet       = getPtString(sJet);
-  const string sPtV0        = getPtString(sV0);
-  const string sPtK0S       = getPtString(sK0S);
-  const string sZV0         = getZString(sV0);
-  const string sZK0S        = getZString(sK0S);
-
-  const string sJetsPerEvent     = getOneOverString(sNevts) + " " + getdYdXString(sNjets, sPtJet);
-  const string sV0PtPerEvt       = getOneOverString(sNevts) + " " + getdYdXString(sNV0, sPtV0);
-  const string sK0SPtPerEvt      = getOneOverString(sNevts) + " " + getdYdXString(sNK0S, sPtK0S);
-  const string sV0ZPerEvt       = getOneOverString(sNevts) + " " + getdYdXString(sNV0, sZV0);
-  const string sK0SZPerEvt      = getOneOverString(sNevts) + " " + getdYdXString(sNK0S, sZK0S);
-
-  const string sV0PtPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNV0, sPtV0);
-  const string sK0SPtPerJet      = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sPtK0S);
-  const string sV0ZPerJet        = getOneOverString(sNjets) + " " + getdYdZString(sV0);
-  const string sK0SZPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sZK0S);
-  const string sLambdaPerJet     = getOneOverString(sNjets) + " " + getdYdZString(sLambda);
-  const string sAntiLambdaPerJet = getOneOverString(sNjets) + " " + getdYdZString(sAntiLambda);
-}
-
-string MyStrings::getPtString(string subscript) {
-  if (subscript.empty())
-    return TString::Format("#it{p}_{T}").Data();
-  else
-    return TString::Format("#it{p}_{T, %s}", subscript.c_str()).Data();
-}
-string MyStrings::getZString(string subscript) {
-  if (subscript.empty())
-    return TString::Format("#it{z}").Data();
-  else
-    return TString::Format("#it{z}_{%s}", subscript.c_str()).Data();
-}
-string MyStrings::getRatioString(string num, string den) {
-  return TString::Format("#frac{%s}{%s}", num.c_str(), den.c_str()).Data();
-}
-string MyStrings::getOneOverString(string s) {
-  return (getRatioString("1", s));
-}
-string MyStrings::getdYdXString(string y, string x) {
-  return getRatioString("d" + y, "d" + x);
-}
-string MyStrings::getdYdPtString(string y) {
-  return getdYdXString(y, getPtString(y));
-}
-string MyStrings::getdYdZString(string y) {
-  return getdYdXString(y, getZString(y));
-}
-string MyStrings::getVarRangeString(double low, string var, double high) {
-  string sLow  = TString::Format("%.0f", low).Data();
-  string sHigh = TString::Format("%.0f", high).Data();
-  return TString::Format("%s < %s < %s", sLow.c_str(), var.c_str(), sHigh.c_str()).Data();
-}
-string MyStrings::getVarRangeString(string var, double high) {
-  string sHigh = TString::Format("%.0f", high).Data();
-  return TString::Format("%s < %s", var.c_str(), sHigh.c_str()).Data();
-}
-string MyStrings::getPtJetRangeString(double ptmin, double ptmax, bool addUnits = true) {
-  string s = TString::Format("%.f < %s < %.f", ptmin, sPtJet.c_str(), ptmax).Data();
-  if (addUnits)
-    s += TString::Format(" %s", sGevC.c_str()).Data();
-
-  return s;
-}
-string MyStrings::getPtV0RangeString(double ptmin, double ptmax, bool addUnits = true) {
-  string s = TString::Format("%.1f < %s < %.1f", ptmin, sPtV0.c_str(), ptmax).Data();
-  if (addUnits)
-    s += TString::Format(" %s", sGevC.c_str()).Data();
-
-  return s;
-}
-
-namespace VerbosityLevels {
+namespace verbosityutils {
   enum Verbosity {kErrors, kWarnings, kInfo, kDebug, kDebugMax};
-  bool is_valid(int v) { return (v >= kErrors && v <= kDebugMax); }
+  // Name of the verbosity as written in messages
   string to_string(Verbosity v) {
     switch (v) {
-      case kErrors:   return "kErrors";
-      case kWarnings: return "kWarnings";
-      case kInfo:     return "kInfo";
-      case kDebug:    return "kDebug";
-      case kDebugMax: return "kDebugMax";
+      case kErrors:   return "Error";
+      case kWarnings: return "Warning";
+      case kInfo:     return "Info";
+      case kDebug:    return "Debug";
+      case kDebugMax: return "DebugMax";
       default:        return "Unknown";
     }
   }
-}
-namespace HistogramTypes {
-  enum HistType {kInclusive, kInclusiveWrongCollision, kJetPt, kJetPtWrongCollision, kJetZ, kJetZWrongCollision, kMatchedJetPt, kMatchedJetPtWrongCollision, kMatchedJetZ, kMatchedJetZWrongCollision};
-  bool is_valid(int x) { return (x >= kInclusive && x <= kMatchedJetZWrongCollision); }
-  string to_string(HistType x) {
-    switch (x) {
-      case kInclusive:                  return "kInclusive";
-      case kInclusiveWrongCollision:    return "kInclusiveWrongCollision";
-      case kJetPt:                      return "kJetPt";
-      case kJetPtWrongCollision:        return "kJetPtWrongCollision";
-      case kJetZ:                       return "kJetZ";
-      case kJetZWrongCollision:         return "kJetZWrongCollision";
-      case kMatchedJetPt:               return "kMatchedJetPt";
-      case kMatchedJetPtWrongCollision: return "kMatchedJetPtWrongCollision";
-      case kMatchedJetZ:                return "kMatchedJetZ";
-      case kMatchedJetZWrongCollision:  return "kMatchedJetZWrongCollision";
-      default: return "Unknown";
-    }
-  }
-}
-namespace ProjectionTypes {
-  enum ProjType {kPtV0, kZV0, kMass};
-  bool is_valid(int x) { return (x >= kPtV0 && x <= kMass); }
-  string to_string(ProjType x) {
-    switch (x) {
-      case kPtV0: return "kPtV0";
-      case kZV0:  return "kZV0";
-      case kMass: return "kMass";
-      default:    return "Unknown";
-    }
-  }
-}
+  bool passVerbosityCheck(Verbosity level, Verbosity threshold) { return ( level <= threshold); }
+  void printLog(string message, Verbosity level) { cout << to_string(level) << ": " << message << endl; }
+} // namespace verbosityutils
 
-using namespace MyStrings;
-// using namespace VerbosityLevels;
-// using namespace HistogramTypes;
+namespace typeutils {
+  enum histtypes { kNevts, kNjets, kInclusiveV0s, kInclusiveV0sWrongCollision, kInJetsV0Pt, kInJetsV0PtWrongCollision, kInJetsV0Z, kInJetsV0ZWrongCollision, kInMatchedJetsV0Pt, kInMatchedJetsV0PtWrongCollision, kInMatchedJetsV0Z, kInMatchedJetsV0ZWrongCollision };
+} // namespace typeutils
 
-struct InputSettings{
+struct InputSettings {
   private:
+    int _train;
+    double _etamin, _etamax;
+    double _ptjetmin, _ptjetmax;
+    string _inputFileName, _outputFileName;
+    verbosityutils::Verbosity _verbosity = verbosityutils::kInfo;
+    typeutils::histtypes _histtype;
+
+    template <typename T>
+    void setVar(T a, T b, T& _x, T& _y, string name);
   public:
-    int train = 0;
-    int rebinNumber = -1;
-    string hadron = "";
-    string histName = "";
-    string inputFileName = "";
-    string outputFileName = "";
-    double ptmin = -1e3, ptmax = -1e3, lowpt = -1e3, highpt = -1e3;
-    double ptjetmin = -1e3, ptjetmax = -1e3, lowptjet = -1e3, highptjet = -1e3;
-    double etamin = -0.9, etamax = 0.9;
-    bool logplot = false;
-    bool ratioplot = false;
-    vector<vector<double>> ptBinEdges = {};
+    bool passVerbosityCheck(verbosityutils::Verbosity level) {
+      return verbosityutils::passVerbosityCheck(level, _verbosity);
+    }
+    void printLog(string message, verbosityutils::Verbosity messageVerbLevel) {
+      if (passVerbosityCheck(messageVerbLevel))
+        verbosityutils::printLog(message, messageVerbLevel);
+    }
 
-    VerbosityLevels::Verbosity verbosity = VerbosityLevels::kWarnings;
+    // Getters and setters
+    double getEtaMin() { return _etamin; }
+    double getEtaMax() { return _etamax; }
+    array<double, 2> getEtaRange() { return std::array<double, 2>{_etamin, _etamax}; }
+    typeutils::histtypes getHistType() { return _histtype; }
+    string getInputFileName() { return _inputFileName; }
+    string getOutputFileName() { return _outputFileName; }
+    double getPtJetMin() { return _ptjetmin; }
+    double getPtJetMax() { return _ptjetmax; }
+    array<double, 2> getPtJetRange() { return std::array<double, 2>{_ptjetmin, _ptjetmax}; }
+    int getTrain() { return _train; }
+    verbosityutils::Verbosity getVerbosity() { return _verbosity; }
 
-    double massWindowMin = -1., massWindowMax = -1.;
-    double polInitx0 = -1., polInitx1 = -1., polInitx2 = -1.;
-    double signalRegionMin = -1., signalRegionMax = -1.;
-    double nSigma = -1., nSigmaL = -1., nSigmaR = -1.;
+    void setEta(double a, double b) { setVar(a, b, _etamin, _etamax, "setEta()"); }
+    void setEta(array<double, 2> x) { setEta(x[0], x[1]); }
+    void setHistType(typeutils::histtypes h) { _histtype = h; }
+    void setInputFileName(string s) { _inputFileName = s; }
+    void setOutputFileName(string s) { _outputFileName = s; }
+    void setPtJet(double a, double b) { setVar(a, b, _ptjetmin, _ptjetmax, "setPtJet()"); }
+    void setPtJet(array<double, 2> x) { setPtJet(x[0], x[1]); }
+    void setTrain(int t) { _train = t; }
+    void setVerbosity(verbosityutils::Verbosity v) {  _verbosity = v; }
 
-    double getMass();
-    string getNameFromJetPt(string prefix, string suffix);
-    string getNameFromPt(string prefix, string suffix);
-    bool passVerbosityCheck(VerbosityLevels::Verbosity verbThreshold);
-    string printLog(string message, VerbosityLevels::Verbosity verbThreshold);
-    int setHadron(string h);
-    string setInputFileNameFromTrain();
-    void setLowHighFromAxis(const TAxis* axis, double& low, double& high);
-    void setEta(double a, double b);
-    void setJetPt(double a, double b);
-    void setPt(double a, double b);
-    vector<vector<double>> setPtBinEdgesFromHadron();
-    vector<vector<double>> setPtBinEdgesSorted(vector<vector<double>> x);
-    template <typename T> int writeOutputToFile(T* obj);
+    // Utilities
+    double GetEvtXsec();
+    TFile* GetFile();
+    template <typename T> T* GetHist(string name);
+    template <typename T> T* GetHist(typeutils::histtypes htype);
+    string GetHistName(typeutils::histtypes htype);
+    double GetNevts();
+    double GetNjets(double ptmin, double ptmax);
+    void SetInputFileNameFromTrain();
+    string GetNameFromPtJet(string prefix, string suffix);
 };
 
-double InputSettings::getMass() {
-  if (this->hadron == "K0S")
-    return MassK0S;
-  if (this->hadron == "Lambda" || this->hadron == "AntiLambda")
-    return MassLambda;
-
-  return -1.;
-}
-
-string InputSettings::getNameFromJetPt(string prefix, string suffix = "") {
-  string s = TString::Format("%s_jetpt%.f-%.f%s", prefix.c_str(), lowptjet, highptjet, suffix.c_str()).Data();
-  return s;
-}
-
-string InputSettings::getNameFromPt(string prefix, string suffix = "") {
-  string s = TString::Format("%s_pt%.1f-%.1f%s", prefix.c_str(), lowpt, highpt, suffix.c_str()).Data();
-  return s;
-}
-
-bool InputSettings::passVerbosityCheck(VerbosityLevels::Verbosity verbThreshold) {
-  return (verbosity >= verbThreshold);
-}
-
-string InputSettings::printLog(string message, VerbosityLevels::Verbosity verbThreshold) {
-  if (!passVerbosityCheck(verbThreshold))
-    return "";
-
-  cout << message << endl;
-  return message;
-}
-
-int InputSettings::setHadron(string h) {
-  if (h == "K0S" || h == "Lambda" || h == "AntiLambda") {
-    hadron = h;
-    return 0;
-  } else {
-    printLog(TString::Format("InputSettings::setHadron() Error: requested invalid hadron %s", h.c_str()).Data(), VerbosityLevels::kErrors);
-    return 1;
+TFile* InputSettings::GetFile() {
+  TFile* f = TFile::Open(_inputFileName.c_str());
+  if (!f) {
+    printLog("InputSettings::GetFile() Could not open file " + _inputFileName, verbosityutils::kErrors);
+    return nullptr;
   }
-}
-
-string InputSettings::setInputFileNameFromTrain() {
-  string s = "~/cernbox/TrainOutput/" + to_string(this->train) + "/AnalysisResults.root";
-  this->inputFileName = s;
-  return s;
-}
-
-void InputSettings::setEta(double a, double b) {
-  if (a > b) {
-    printLog("InputSettings::setEta() Error: etamin > etamax", VerbosityLevels::kErrors);
-    return;
-  }
-  this->etamin = a;
-  this->etamax = b;
-}
-
-void InputSettings::setPt(double a, double b) {
-  if (a > b) {
-    printLog("InputSettings::setPt() Error: ptmin > ptmax", VerbosityLevels::kErrors);
-    return;
-  }
-  this->ptmin = a;
-  this->ptmax = b;
-  this->lowpt = a;
-  this->highpt = b;
-}
-
-void InputSettings::setJetPt(double a, double b) {
-  if (a > b) {
-    printLog("InputSettings::setJetPt() Error: ptjetmin > ptjetmax", VerbosityLevels::kErrors);
-    return;
-  }
-  this->ptjetmin = a;
-  this->ptjetmax = b;
-  this->lowptjet = a;
-  this->highptjet = b;
-}
-
-vector<vector<double>> InputSettings::setPtBinEdgesFromHadron() {
-  vector<vector<double>> x;
-
-  x.push_back({0., 1.});
-  x.push_back({1., 2.});
-  x.push_back({2., 3.});
-  x.push_back({3., 4.});
-  x.push_back({4., 5.});
-  x.push_back({5., 10.});
-  x.push_back({10., 15.});
-  x.push_back({15., 20.});
-  if (this->hadron == "K0S") {
-    x.push_back({20., 25.});
-    x.push_back({25., 30.});
-    x.push_back({30., 40.});
-  } else {
-    x.push_back({20., 30.});
-    x.push_back({30., 40.});
-  }
-  x = this->setPtBinEdgesSorted(x);
-  return x;
-}
-
-vector<vector<double>> InputSettings::setPtBinEdgesSorted(vector<vector<double>> x) {
-  sort(x.begin(), x.end());
-  this->ptBinEdges = x;
-  return x;
+  return f;
 }
 
 template <typename T>
-int InputSettings::writeOutputToFile(T* obj) {
-  if (!obj)
-    return 1;
+T* InputSettings::GetHist(string name) {
+  TFile* file = GetFile();
+  if (!file)
+    return nullptr;
 
-  TFile* file = TFile::Open(this->outputFileName.c_str(), "UPDATE");
-  obj->Write(obj->GetName(), TObject::kOverwrite);
-  file->Close();
-  return 0;
-}
-
-// -------------------------------------------------------------------------------------------------
-//
-// Struct for plotting
-//
-// -------------------------------------------------------------------------------------------------
-
-struct Plotter {
-  private:
-    string drawOption; // Private because it requires caution with spaces
-
-  public:
-    InputSettings* inputs;
-
-    TCanvas* canvas = nullptr;
-    TH1F* frame = nullptr;
-    TLegend* legend = nullptr;
-    vector<TH1*> hists = {};
-    vector<TObject*> objects = {};
-
-    double textSize = 0.04;
-    const string sGevC = "GeV/#it{c}";
-    const string sGevCC = "GeV/#it{c}^{2}";
-    const string sNjets = "#it{N}_{jets}";
-    const string sPtJet = "#it{p}_{T, jet} (GeV/#it{c})";
-    const string sRatio = "Ratio";
-    const string sZV0 = "#it{z}_{V0}";
-
-    Plotter() { inputs = new InputSettings(); }
-    Plotter(InputSettings& x) { inputs = &x; }
-
-    void addLatex(double x, double y, string s);
-    void addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle, int lineWidth);
-    void makeCanvas(string s, double x, double y);
-    void makeFrame(string sx, string sy);
-    void makeFrame(double x0, double x1, double y0, double y1, string sx, string sy);
-    void makeLegend(double x0, double x1, double y0, double y1, string s);
-    void plot();
-    void reset();
-    void setHistStyles();
-
-    string getMassString();
-    string setDrawOption(string s);
-};
-
-void Plotter::addLatex(double x, double y, string s) {
-  TLatex* l = plotutils::CreateLatex(x, y, s.c_str(), textSize);
-  objects.push_back(l);
-}
-void Plotter::addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
-  TLine* l = new TLine(x0, y0, x1, y1);
-  plotutils::setStyle(l, styleNumber, lineStyle, lineWidth);
-  objects.push_back(l);
-}
-void Plotter::makeCanvas(string s = "canvas", double x = 800, double y = 600) {
-  canvas = new TCanvas(s.c_str(), s.c_str(), x, y);
-  canvas->SetLogy(inputs->logplot);
-}
-void Plotter::makeFrame(string sx, string sy) {
-  if (hists.empty()) {
-    inputs->printLog("Plotter::makeFrame() hists vector is empty! Aborting", VerbosityLevels::kErrors);
-    return;
-  }
-  if (!canvas) makeCanvas();
-
-  double xMinFrame = hists[0]->GetXaxis()->GetXmin();
-  double xMaxFrame = hists[0]->GetXaxis()->GetXmax();
-  double yMinFrame = getLowerBound(hists, 0, 0) * 0.9;
-  double yMaxFrame = getUpperBound(hists, 0, 0) * 1.2;
-
-  inputs->printLog(TString::Format("Plotter::makeFrame() x: %.2f, %.2f \ny: %.2f, %.2f", xMinFrame, xMaxFrame, yMinFrame, yMaxFrame).Data(), VerbosityLevels::kDebug);
-
-  if (inputs->logplot) {
-    roundToNextPowerOfTen(yMaxFrame);
-    if (yMinFrame < 1e-12) {
-      int xBin = hists[0]->FindLastBinAbove(0.);
-      yMinFrame = hists[0]->GetBinContent(xBin) * 0.5;
-      yMaxFrame *= 1.75;
-      roundToPrevPowerOfTen(yMinFrame);
-    }
-  }
-  inputs->printLog(TString::Format("Plotter::makeFrame() x: %.2f, %.2f \ny: %.2f, %.2f", xMinFrame, xMaxFrame, yMinFrame, yMaxFrame).Data(), VerbosityLevels::kDebug);
-  makeFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, sx, sy);
-}
-void Plotter::makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
-  if (!canvas) makeCanvas();
-  frame = plotutils::DrawFrame(x0, x1, y0, y1, sx, sy);
-}
-void Plotter::makeLegend(double x0, double x1, double y0, double y1, string s) {
-  legend = plotutils::CreateLegend(x0, x1, y0, y1, s.c_str(), textSize);
-}
-
-void Plotter::plot() {
-  if (hists.empty())
-    inputs->printLog("Plotter::plot(): Hist vector is empty!", VerbosityLevels::kWarnings);
-
-  if (inputs->ratioplot) {
-    TH1* baseCopy = (TH1*)hists[0]->Clone("baseCopy");
-    for (auto& h : hists) h = divideWithProtection(h, baseCopy);
-  }
-
-  if (!canvas) makeCanvas();
-  if (!frame) makeFrame("x", "y");
-
-  frame->Draw();
-  if (legend) legend->Draw("same");
-  for (auto o : objects)
-    o->Draw("same");
-
-  for (auto h : hists) {
-    h->Draw(("same" + drawOption).c_str());
-    if (inputs->passVerbosityCheck(VerbosityLevels::kDebugMax))
-      h->Print("all");
-    else if (inputs->passVerbosityCheck(VerbosityLevels::kDebug))
-      h->Print();
-  }
-  canvas->SaveAs(inputs->outputFileName.c_str());
-}
-
-void Plotter::reset() {
-  canvas = nullptr;
-  frame = nullptr;
-  legend = nullptr;
-  objects.clear();
-  hists.clear();
-}
-
-void Plotter::setHistStyles() {
-  for (unsigned int i = 0; i < hists.size(); i++)
-    plotutils::setStyle(hists[i], i);
-}
-
-string Plotter::getMassString() {
-  return TString::Format("#it{M}(%s) (%s)", formatHadronDaughters(inputs->hadron).c_str(), sGevCC.c_str()).Data();
-}
-string Plotter::setDrawOption(string s) {
-  if (s.at(0) == ' ') { // Single quotes, because checking for a char
-    drawOption = s;
-  } else {
-    drawOption = " " + s;
-  }
-  return drawOption;
-}
-
-// -------------------------------------------------------------------------------------------------
-//
-// Interface
-//
-// -------------------------------------------------------------------------------------------------
-
-struct PileUp {
-  InputSettings* inputs;
-  Plotter* plotter;
-
-  PileUp() { inputs = new InputSettings(); plotter = new Plotter(*inputs); }
-  PileUp(InputSettings& i) { inputs = &i; plotter = new Plotter(*inputs); }
-
-  void autoFrame(HistogramTypes::HistType type, ProjectionTypes::ProjType proj);
-  void autoLatex(HistogramTypes::HistType type, ProjectionTypes::ProjType proj);
-
-  string getHistName(HistogramTypes::HistType x);
-  template <typename T> T getHistFromFile(HistogramTypes::HistType type);
-  TH1* getHistProjection(HistogramTypes::HistType type, ProjectionTypes::ProjType proj, string name);
-
-  double getNevts();
-  double getNjets(double ptjetmin, double ptjetmax);
-  bool greaterThan(double a, double b, double epsilon = 1e-5) { return a - b > epsilon; }
-  bool lessThan(double a, double b, double epsilon = 1e-5) { return greaterThan(b, a, epsilon); }
-
-  void plotInclusivePt(bool doRatio);
-  void plotInJet(bool doRatio, bool doZ);
-};
-
-void PileUp::autoFrame(HistogramTypes::HistType type, ProjectionTypes::ProjType proj) {
-  plotter->frame = nullptr;
-  switch (type) {
-    case HistogramTypes::kInclusive:
-    case HistogramTypes::kInclusiveWrongCollision:
-      if (proj == ProjectionTypes::kPtV0) {
-        if (inputs->ratioplot)
-          plotter->makeFrame(0., 40., 1e-2, 1., sPtV0, sRatio);
-        else
-          plotter->makeFrame(0., 40., 1e-9, 1e-1, sPtV0, sV0PtPerEvt);
-      }
-      break;
-    case HistogramTypes::kJetPt:
-    case HistogramTypes::kJetPtWrongCollision:
-    case HistogramTypes::kJetZ:
-    case HistogramTypes::kJetZWrongCollision:
-      if (proj == ProjectionTypes::kPtV0) {
-        if (inputs->ratioplot)
-          plotter->makeFrame(0., inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
-        else
-          plotter->makeFrame(0., inputs->ptjetmax, 1e-6, 1e1, sPtV0, sV0PtPerJet);
-      } else if(proj == ProjectionTypes::kZV0) {
-        if (inputs->ratioplot) {
-          plotter->makeFrame(0., 1., 1e-3, 1., sZV0, sRatio);
-        } else {
-          plotter->makeFrame(0., 1., 5e-4, 1e1, sZV0, sV0ZPerJet);
-        }
-      }
-    default: break;
-  }
-  if (plotter->frame)
-    return;
-
-  inputs->printLog("PileUp::autoFrame() Error: invalid combination of histogram type " + to_string(type) + " and projection type " + to_string(proj), VerbosityLevels::kErrors);
-}
-
-void PileUp::autoLatex(HistogramTypes::HistType type, ProjectionTypes::ProjType proj) {
-  bool success = false;
-  switch (type) {
-    case HistogramTypes::kInclusive:
-    case HistogramTypes::kInclusiveWrongCollision:
-      if (proj == ProjectionTypes::kPtV0) {
-        success = true;
-        if (inputs->ratioplot) {
-          plotter->addLatex(0.25, 0.80, sThisThesis + ", " + sAliceData);
-          plotter->addLatex(0.25, 0.75, sSqrtS);
-        } else {
-          plotter->addLatex(0.47, 0.80, sThisThesis + ", " + sAliceData);
-          plotter->addLatex(0.47, 0.75, sSqrtS);
-        }
-      }
-      break;
-    case HistogramTypes::kJetPt:
-    case HistogramTypes::kJetPtWrongCollision:
-    case HistogramTypes::kJetZ:
-    case HistogramTypes::kJetZWrongCollision:
-      if (proj == ProjectionTypes::kPtV0 || proj == ProjectionTypes::kZV0) {
-        success = true;
-        if (inputs->ratioplot) {
-          plotter->addLatex(0.25, 0.80, sThisThesis + ", " + sAliceData);
-          plotter->addLatex(0.25, 0.75, sSqrtS);
-          plotter->addLatex(0.25, 0.70, sAntikt + " " + sChV0Jets);
-          plotter->addLatex(0.25, 0.65, sRadius + ", " + sEtaJetRange);
-          plotter->addLatex(0.25, 0.60, getPtJetRangeString(inputs->ptjetmin, inputs->ptjetmax));
-        } else {
-          plotter->addLatex(0.47, 0.83, sThisThesis + ", " + sAliceData);
-          plotter->addLatex(0.47, 0.78, sSqrtS);
-          plotter->addLatex(0.47, 0.73, sAntikt + " " + sChV0Jets);
-          plotter->addLatex(0.47, 0.68, sRadius + ", " + sEtaJetRange);
-          plotter->addLatex(0.47, 0.63, getPtJetRangeString(inputs->ptjetmin, inputs->ptjetmax));
-        }
-      }
-      break;
-    default: break;
-  }
-  if (!success)
-    inputs->printLog("PileUp::autoLatex() Error: invalid combination of histogram type " + to_string(type) + "(" + HistogramTypes::to_string(type) + ")" + " and projection type " + to_string(proj) + "(" + ProjectionTypes::to_string(proj) + ")", VerbosityLevels::kErrors);
-}
-
-string PileUp::getHistName(HistogramTypes::HistType x) {
-  string s = "jet-v0qa/";
-  switch (x) {
-    case HistogramTypes::kInclusive:
-      s += "inclusive/" + inputs->hadron + "PtEtaMass";
-      break;
-    case HistogramTypes::kInclusiveWrongCollision:
-      s += "inclusive/" + inputs->hadron + "PtEtaMassWrongCollision";
-      break;
-    case HistogramTypes::kJetPt:
-      s += "jets/JetPtEta" + inputs->hadron + "Pt";
-      break;
-    case HistogramTypes::kJetPtWrongCollision:
-      s += "jets/JetPtEta" + inputs->hadron + "PtWrongCollision";
-      break;
-    case HistogramTypes::kJetZ:
-      s += "jets/JetPtEta" + inputs->hadron + "Z";
-      break;
-    case HistogramTypes::kJetZWrongCollision:
-      s += "jets/JetPtEta" + inputs->hadron + "ZWrongCollision";
-      break;
-    case HistogramTypes::kMatchedJetPt:
-      s += "jets/JetsPtEta" + inputs->hadron + "Pt";
-      break;
-    case HistogramTypes::kMatchedJetPtWrongCollision:
-      s += "jets/JetsPtEta" + inputs->hadron + "PtWrongCollision";
-      break;
-    case HistogramTypes::kMatchedJetZ:
-      s += "jets/JetsPtEta" + inputs->hadron + "Z";
-      break;
-    case HistogramTypes::kMatchedJetZWrongCollision:
-      s += "jets/JetsPtEta" + inputs->hadron + "ZWrongCollision";
-      break;
-    default:
-      inputs->printLog("PileUp::getHistName() Error: invalid histogram type " + to_string(x), VerbosityLevels::kErrors);
-      s = "";
-  }
-  return s;
-}
-
-template <typename T>
-T PileUp::getHistFromFile(HistogramTypes::HistType type) {
-  TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
-  if (!file) {
-    inputs->printLog("PileUp::getHistFromFile() Error: could not open file " + inputs->inputFileName, VerbosityLevels::kErrors);
+  T* h = (T*)file->Get(name.c_str());
+  if (!h) {
+    printLog(TString::Format("InputSetting::GetHist() Could not find histogram %s in file %s", name.c_str(), _inputFileName.c_str()).Data(), verbosityutils::kErrors);
     return nullptr;
   }
-  T hist = (T)file->Get(getHistName(type).c_str());
-  if (!hist) {
-    inputs->printLog("PileUp::getHistFromFile() Error: could not find histogram " + getHistName(type) + " in file " + inputs->inputFileName, VerbosityLevels::kErrors);
-    return nullptr;
-  }
-  return hist;
-}
-
-TH1* PileUp::getHistProjection(HistogramTypes::HistType type, ProjectionTypes::ProjType proj, string name) {
-  if (name == "") {
-    inputs->printLog("PileUp::getHistProjection() Error: histogram name is empty", VerbosityLevels::kErrors);
-    return nullptr;
-  }
-  const int thnAxisMcpJetPt = 0, thnAxisMcdJetPt = 1, thnAxisMcdJetEta = 2, thnAxisV0 = 3;
-  array<int, 2> ptBins, etaBins;
-  TH1* h = nullptr;
-
-  switch (type) {
-    case HistogramTypes::kInclusive:
-    case HistogramTypes::kInclusiveWrongCollision: {
-      TH3* h3 = (TH3*)getHistFromFile<TH3*>(type);
-      ptBins = getProjectionBins(h3->GetXaxis(), inputs->ptmin, inputs->ptmax);
-      etaBins = getProjectionBins(h3->GetYaxis(), inputs->etamin, inputs->etamax);
-
-      if (proj == ProjectionTypes::kPtV0)
-        h = (TH1*)h3->ProjectionX(name.c_str(), etaBins[0], etaBins[1], 0, 1 + h3->GetNbinsZ());
-      else if (proj == ProjectionTypes::kMass)
-        h = (TH1*)h3->ProjectionZ(name.c_str(), ptBins[0], ptBins[1], etaBins[0], etaBins[1]);
-    } break;
-    case HistogramTypes::kJetPt:
-    case HistogramTypes::kJetPtWrongCollision:
-    case HistogramTypes::kJetZ:
-    case HistogramTypes::kJetZWrongCollision: {
-      TH3* h3 = (TH3*)getHistFromFile<TH3*>(type);
-      ptBins = getProjectionBins(h3->GetXaxis(), inputs->ptjetmin, inputs->ptjetmax);
-      etaBins = getProjectionBins(h3->GetYaxis(), inputs->etamin, inputs->etamax);
-
-      if (proj == ProjectionTypes::kPtV0 || proj == ProjectionTypes::kZV0)
-        h = (TH1*)h3->ProjectionZ(name.c_str(), ptBins[0], ptBins[1], etaBins[0], etaBins[1]);
-    } break;
-    case HistogramTypes::kMatchedJetPt:
-    case HistogramTypes::kMatchedJetPtWrongCollision:
-    case HistogramTypes::kMatchedJetZ:
-    case HistogramTypes::kMatchedJetZWrongCollision: {
-      THnSparse* hn = (THnSparse*)getHistFromFile<THnSparse*>(type);
-      ptBins = getProjectionBins(hn->GetAxis(thnAxisMcdJetPt), inputs->ptjetmin, inputs->ptjetmax);
-      etaBins = getProjectionBins(hn->GetAxis(thnAxisMcdJetEta), inputs->etamin, inputs->etamax);
-
-      hn->GetAxis(thnAxisMcdJetPt)->SetRange(ptBins[0], ptBins[1]);
-      hn->GetAxis(thnAxisMcdJetEta)->SetRange(etaBins[0], etaBins[1]);
-      if (proj == ProjectionTypes::kPtV0 || proj == ProjectionTypes::kZV0) {
-        h = (TH1*)hn->Projection(thnAxisV0);
-        h->SetName(name.c_str());
-      }
-    } break;
-    default:
-      inputs->printLog("PileUp::getHistProjection() Error: invalid histogram type " + to_string(type), VerbosityLevels::kErrors);
-      return nullptr;
-  }
-  if (!h)
-    inputs->printLog("PileUp::getHistProjection() Error: could not create projection " + to_string(proj) + " for histogram type " + to_string(type), VerbosityLevels::kErrors);
   return h;
 }
 
-double PileUp::getNevts() {
-  TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
-  if (!file) {
-    inputs->printLog("PileUp::getNevts() Error: could not open file " + inputs->inputFileName, VerbosityLevels::kErrors);
-    return -1;
-  }
-  TH1* hist = (TH1*)file->Get("jet-v0qa/inclusive/hEvents");
-  if (!hist) {
-    inputs->printLog("PileUp::getNevts() Error: could not find histogram inclusive/hEvents in file " + inputs->inputFileName, VerbosityLevels::kErrors);
-    return -1;
-  }
-  return hist->GetBinContent(2); // Should be bin 3 for sum of weights, i.e. xsec
+template <typename T>
+T* InputSettings::GetHist(typeutils::histtypes htype) {
+  T* h = GetHist<T>(GetHistName(htype));
+  return h;
 }
 
-double PileUp::getNjets(double ptjetmin, double ptjetmax) {
-  // TODO: Now only accounts for events with V0s. Need V0 spectra task for proper normalisation.
-  TFile* file = TFile::Open(inputs->inputFileName.c_str(), "READ");
-  if (!file) {
-    inputs->printLog("PileUp::getNjets() Error: could not open file " + inputs->inputFileName, VerbosityLevels::kErrors);
-    return -1;
+string InputSettings::GetHistName(typeutils::histtypes htype) {
+  string n = "jet-v0qa/";
+
+  switch (_train) {
+    case 745299:
+      if (htype == typeutils::kNevts)
+        n = "jet-fragmentation_id38322/";
+      if (htype == typeutils::kNjets)
+        n = "jet-fragmentation_id38322/";
   }
-  THnSparse* thn = (THnSparse*)file->Get("jet-finder-v0-mcd-charged/hJet");
-  if (!thn) {
-    inputs->printLog("PileUp::getNjets() Error: could not find histogram jet-finder-v0-mcd-charged/hJet in file " + inputs->inputFileName, VerbosityLevels::kErrors);
-    return -1;
+
+  switch (htype) {
+    case typeutils::kNevts:
+      n += "matching/hEvents";
+      break;
+    case typeutils::kNjets:
+      n += "mcd/jets/inclDetJetPtEtaPhi"; //FIXME: is this the right jet collection?
+      break;
+    case typeutils::kInclusiveV0s:
+      n += "collisions/K0SPtEtaMass";
+      break;
+    case typeutils::kInclusiveV0sWrongCollision:
+      n += "collisions/K0SPtEtaMassWrongColl";
+      break;
+    case typeutils::kInJetsV0Pt:
+      n += "collisions/JetPtEtaK0SPtMass";
+      break;
+    case typeutils::kInJetsV0PtWrongCollision:
+      n += "collisions/JetPtEtaK0SPtMassWrongColl";
+      break;
+    case typeutils::kInJetsV0Z:
+      n += "collisions/JetPtEtaK0SFragMass";
+      break;
+    case typeutils::kInJetsV0ZWrongCollision:
+      n += "collisions/JetPtEtaK0SFragMassWrongColl";
+      break;
+    case typeutils::kInMatchedJetsV0Pt:
+      n += "collisions/JetsPtEtaK0SPt";
+      break;
+    case typeutils::kInMatchedJetsV0PtWrongCollision:
+      n += "collisions/JetsPtEtaK0SPtWrongColl";
+      break;
+    case typeutils::kInMatchedJetsV0Z:
+      n += "collisions/JetsPtEtaK0SZ";
+      break;
+    case typeutils::kInMatchedJetsV0ZWrongCollision:
+      n += "collisions/JetsPtEtaK0SZWrongColl";
+      break;
+    default:
+      printLog("InputSettings::getHistName() invalid histtype", verbosityutils::kErrors);
   }
-  const int ptAxis = 1, etaAxis = 2;
-  array<int, 2> ptBins = getProjectionBins(thn->GetAxis(ptAxis), ptjetmin, ptjetmax);
-  array<int, 2> etaBins = getProjectionBins(thn->GetAxis(etaAxis), inputs->etamin, inputs->etamax);
-  thn->GetAxis(etaAxis)->SetRange(etaBins[0], etaBins[1]);
-  TH1* hist = (TH1*)thn->Projection(ptAxis);
-  return hist->Integral(ptBins[0], ptBins[1]);
+  return n;
 }
 
-void PileUp::plotInclusivePt(bool doRatio) {
-  inputs->logplot = true;
-  inputs->ratioplot = doRatio;
-  inputs->setEta(-0.9, 0.9);
 
-  inputs->outputFileName = "pileUp";
-  if (doRatio)
-    inputs->outputFileName += "_ratio";
-  inputs->outputFileName += ".pdf";
+void InputSettings::SetInputFileNameFromTrain() {
+  _inputFileName = "~/cernbox/TrainOutput/" + to_string(_train) + "/AnalysisResults.root";
+}
 
-  TH1* inclPt   = (TH1*)getHistProjection(HistogramTypes::kInclusive, ProjectionTypes::kPtV0, "hPt");
-  TH1* inclPtPU = (TH1*)getHistProjection(HistogramTypes::kInclusiveWrongCollision, ProjectionTypes::kPtV0, "hPtPU");
+string InputSettings::GetNameFromPtJet(string prefix, string suffix) {
+  return TString::Format("%s_ptjet%.f-%.f%s", prefix.c_str(), _ptjetmin, _ptjetmax, suffix.c_str()).Data();
+}
 
-  inclPt = rebinHist(inclPt, rebinnedV0PtHist(inputs->hadron, "hPtRebinned"));
-  inclPtPU = rebinHist(inclPtPU, rebinnedV0PtHist(inputs->hadron, "hPtPURebinned"));
+double InputSettings::GetNevts() {
+  TH1D* h = GetHist<TH1D>(typeutils::kNevts);
+  if (!h)
+    return -1;
 
-  double nEvts = getNevts();
-  if (nEvts < 0) {
-    inputs->printLog("PileUp::plotpileup() Error: could not get number of events", VerbosityLevels::kErrors);
+  return h->GetBinContent(2); // All reconstructed events
+}
+
+double InputSettings::GetEvtXsec() {
+  TH1D* h = GetHist<TH1D>(typeutils::kNevts);
+  if (!h)
+    return -1;
+
+  return h->GetBinContent(3);
+}
+double InputSettings::GetNjets(double ptmin, double ptmax) {
+  TH3D* h = GetHist<TH3D>(typeutils::kNjets);
+  if (!h)
+    return -1.;
+
+  array<int, 2> bins = histutils::getProjectionBins(h->GetYaxis(), _etamin, _etamax);
+  TH1D* hpt = h->ProjectionX("hpt", bins[0], bins[1], 0, 1 + h->GetNbinsZ());
+
+  bins = histutils::getProjectionBins(hpt->GetXaxis(), ptmin, ptmax);
+  return hpt->Integral(bins[0], bins[1]); // FIXME: Should this have option width???
+}
+
+template <typename T>
+void InputSettings::setVar(T a, T b, T& _x, T& _y, string name) {
+  if (a > b) {
+    printLog(TString::Format("%s: min > max", name.c_str()).Data(), verbosityutils::kErrors);
     return;
   }
-  inclPt->Scale(1.0 / nEvts, "width");
-  inclPtPU->Scale(1.0 / nEvts, "width");
-
-  plotter->hists.push_back(inclPt);
-  plotter->hists.push_back(inclPtPU);
-  plotter->setHistStyles();
-
-  if (!plotter->frame)
-    autoFrame(HistogramTypes::kInclusive, ProjectionTypes::kPtV0);
-  if (plotter->objects.empty())
-    autoLatex(HistogramTypes::kInclusive, ProjectionTypes::kPtV0);
-
-  if (!inputs->ratioplot) {
-    plotter->makeLegend(0.7, 0.8, 0.5, 0.6, "");
-    plotter->legend->AddEntry(inclPt, "Total");
-    plotter->legend->AddEntry(inclPtPU, "Pile-up");
-  }
-  plotter->plot();
+  _x = a;
+  _y = b;
 }
 
-void PileUp::plotInJet(bool doRatio, bool doZ) {
-  inputs->logplot = true;
-  inputs->ratioplot = doRatio;
-  inputs->setEta(-0.5, 0.5);
+// ------------------------------------------------------------------------------------
+//
+// Plot spectra of inclusive V0s matched with the wrong collision
+//
+// ------------------------------------------------------------------------------------
 
-  inputs->outputFileName = inputs->getNameFromJetPt("pileUp");
-  if (doZ)
-    inputs->outputFileName += "z";
-  if (doRatio)
-    inputs->outputFileName += "_ratio";
-  inputs->outputFileName += ".pdf";
+array<TH1D*, 2> getHistsInclusive(InputSettings& inputs) {
+  inputs.printLog(TString::Format("getHistsInclusive() Getting ptV0 histograms for eta in [%.2f, %.2f]", inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
+  array<TH1D*, 2> errResult = { nullptr, nullptr };
 
-  ProjectionTypes::ProjType proj = doZ ? ProjectionTypes::kZV0 : ProjectionTypes::kPtV0;
-  HistogramTypes::HistType histType = doZ ? HistogramTypes::kJetZ : HistogramTypes::kJetPt;
-  HistogramTypes::HistType histTypePU = doZ ? HistogramTypes::kJetZWrongCollision : HistogramTypes::kJetPtWrongCollision;
-  TH1* inclPt   = (TH1*)getHistProjection(histType, proj, "hPt");
-  TH1* inclPtPU = (TH1*)getHistProjection(histTypePU, proj, "hPtPU");
+  TFile* f = inputs.GetFile();
+  if (!f)
+    return errResult;
 
-  if (doZ) {
-    inclPt = rebinHist(inclPt, rebinnedV0ZHist("hPtRebinned"));
-    inclPtPU = rebinHist(inclPtPU, rebinnedV0ZHist("hPtPURebinned"));
-  } else {
-    inclPt = rebinHist(inclPt, rebinnedV0PtHist(inputs->hadron, "hPtRebinned"));
-    inclPtPU = rebinHist(inclPtPU, rebinnedV0PtHist(inputs->hadron, "hPtPURebinned"));
+  TH3D* h3All = inputs.GetHist<TH3D>(typeutils::kInclusiveV0s);
+  TH3D* h3WrongColl = inputs.GetHist<TH3D>(typeutils::kInclusiveV0sWrongCollision);
+  if (!h3All || !h3WrongColl)
+    return errResult;
+
+  array<int, 2> etaBins = histutils::getProjectionBins(h3All->GetYaxis(), inputs.getEtaMin(), inputs.getEtaMax());
+  TH1D* hAll = h3All->ProjectionX("hAll", etaBins[0], etaBins[1], 0, h3All->GetNbinsZ() + 1);
+
+  etaBins  = histutils::getProjectionBins(h3WrongColl->GetYaxis(), inputs.getEtaMin(), inputs.getEtaMax());
+  TH1D* hWrongColl = (TH1D*)h3WrongColl->ProjectionX("hWrongColl", etaBins[0], etaBins[1], 0, h3WrongColl->GetNbinsZ()+1);
+
+  hAll = (TH1D*)histutils::rebinHist(hAll, histutils::rebinnedV0PtHist("K0S", "hAllRebinned"));
+  hWrongColl = (TH1D*)histutils::rebinHist(hWrongColl, histutils::rebinnedV0PtHist("K0S", "hWrongCollRebinned"));
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    inputs.printLog("getHistsInclusive() Printing histograms", verbosityutils::kDebug);
+    hAll->Print("all");
+    hWrongColl->Print("all");
   }
 
-  double nJets = getNjets(inputs->ptjetmin, inputs->ptjetmax);
-  if (nJets < 0) {
-    inputs->printLog("PileUp::plotInJet() Error: could not get number of jets", VerbosityLevels::kErrors);
-    return;
-  }
-  inclPt->Scale(1.0 / nJets, "width");
-  inclPtPU->Scale(1.0 / nJets, "width");
+  double nEvts = inputs.GetNevts();
+  if (nEvts <= 0)
+    return errResult;
 
-  plotter->hists.push_back(inclPt);
-  plotter->hists.push_back(inclPtPU);
-  plotter->setHistStyles();
+  hAll->Scale(1. / nEvts, "width");
+  hWrongColl->Scale(1. / nEvts, "width");
 
-  if (!plotter->frame)
-    autoFrame(histType, proj);
-  if (plotter->objects.empty())
-    autoLatex(histType, proj);
-
-  // if (inputs->ratioplot) {
-  //   plotter->makeFrame(0., inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
-  //   if (doZ)
-  //     plotter->makeFrame(0., 1., 1e-3, 1., sZV0, sRatio);
-
-  //   plotter->addLatex(0.25, 0.80, sThisThesis + ", " + sAliceData);
-  //   plotter->addLatex(0.25, 0.75, sSqrtS);
-  //   plotter->addLatex(0.25, 0.70, sAntikt + " " + sChV0Jets);
-  //   plotter->addLatex(0.25, 0.65, sRadius + ", " + sEtaJetRange);
-  //   plotter->addLatex(0.25, 0.60, getPtJetRangeString(inputs->ptjetmin, inputs->ptjetmax));
-  // } else {
-  //   plotter->makeFrame(0., inputs->ptjetmax, 1e-6, 1e1, sPtV0, getOneOverString(sNjets) + " " + getdYdXString(sNV0, sPtV0));
-  //   if (doZ)
-  //     plotter->makeFrame(0., 1., 5e-4, 10, sZV0, getOneOverString(sNjets) + " " + getdYdXString(sNV0, sZV0));
-
-  //   plotter->makeLegend(0.7, 0.8, 0.5, 0.6, "");
-  //   plotter->legend->AddEntry(inclPt, "Total");
-  //   plotter->legend->AddEntry(inclPtPU, "Pile-up");
-
-  //   plotter->addLatex(0.47, 0.83, sThisThesis + ", " + sAliceData);
-  //   plotter->addLatex(0.47, 0.78, sSqrtS);
-  //   plotter->addLatex(0.47, 0.73, sAntikt + " " + sChV0Jets);
-  //   plotter->addLatex(0.47, 0.68, sRadius + ", " + sEtaJetRange);
-  //   plotter->addLatex(0.47, 0.63, getPtJetRangeString(inputs->ptjetmin, inputs->ptjetmax));
-  // }
-  plotter->plot();
+  return array<TH1D*, 2>{hAll, hWrongColl};
 }
 
-PileUp setuppu() {
-  PileUp pu;
-  pu.inputs->verbosity = VerbosityLevels::kDebug;
-  pu.inputs->hadron = "K0S";
-  pu.inputs->train = 496209;
-  pu.inputs->setInputFileNameFromTrain();
-  pu.inputs->logplot = true;
-  return pu;
+void plotInclusivePt(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kInfo);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.75, 0.75);
+  inputs.setPtJet(10., 20.);
+
+  array<TH1D*, 2> hists = getHistsInclusive(inputs);
+  TH1D* hInclusive = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p("pileUp.pdf", true, 0.04);
+  string xTitle = mystrings::sPtV0WithUnits;
+  string yTitle = mystrings::sV0PtPerXsec;
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-10, 0.1, xTitle, yTitle);
+
+  p.setHists({hInclusive, hPileUp});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInclusive, "Inclusive V0s");
+  p.addLegendEntry(hPileUp, "V0 pile-up");
+
+  double xLatex = 0.45, yLatex = 0.85;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sEtaV0Range075);
+  p.plot();
 }
 
-void printOptions() {
-  cout << "Histogram types:\n";
-  for (int i = 0; i < 20; i++) {
-    if (HistogramTypes::is_valid(i))
-      cout << (HistogramTypes::HistType)i << ": " << HistogramTypes::to_string((HistogramTypes::HistType)i) << endl;
-  }
-  cout << "Projection types:\n";
-  for (int i = 0; i < 10; i++) {
-    if (ProjectionTypes::is_valid(i))
-      cout << (ProjectionTypes::ProjType)i << ": " << ProjectionTypes::to_string((ProjectionTypes::ProjType)i) << endl;
-  }
+void plotInclusivePtRatio(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kInfo);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.75, 0.75);
+  inputs.setPtJet(10., 20.);
+
+  array<TH1D*, 2> hists = getHistsInclusive(inputs);
+  TH1D* hInclusive = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p("pileUp_ratio.pdf", true, 0.04);
+  string xTitle = mystrings::sPtV0WithUnits;
+  string yTitle = mystrings::sRatio;
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., xTitle, yTitle);
+
+  p.setHists({hInclusive, hPileUp});
+  p.setHistStyles();
+  p.makeRatios();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInclusive, "Inclusive V0s");
+  p.addLegendEntry(hPileUp, "V0 pile-up");
+
+  double xLatex = 0.25, yLatex = 0.70;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sEtaV0Range075);
+  p.plot();
 }
-printOptions();
 
-void printHistContents(TH1* h, string s) {
-  cout << s << "\n";
-  for (int i = 1; i <= h->GetNbinsX(); i++) {
-    cout << TString::Format("%.1f - %.1f: %f (%f)\n", h->GetXaxis()->GetBinLowEdge(i), h->GetXaxis()->GetBinUpEdge(i), 1 - h->GetBinContent(i), h->GetBinContent(i)).Data();
-  }
+void plotincl() {
+  int train = 745299;
+  plotInclusivePt(train);
+  plotInclusivePtRatio(train);
 }
 
-void plotpileup() {
-  const bool doRatio = true;
-  const bool doZ = true;
+// ------------------------------------------------------------------------------------
+//
+// Plot pt spectra of in-jet V0s matched with the wrong collision
+//
+// ------------------------------------------------------------------------------------
 
-  PileUp pu = setuppu();
-  pu.inputs->verbosity = VerbosityLevels::kErrors;
-  pu.plotter->makeFrame(0., 40., 1e-12, 1e-1, sPtV0, sV0PtPerEvt);
-  pu.plotInclusivePt(!doRatio);
-  pu.plotter->reset();
-  pu.plotInclusivePt(doRatio);
-  printHistContents(pu.plotter->hists[1], "Pile-up inclusive");
-  pu.plotter->reset();
+array<TH1D*, 2> getPtHistsInJets(InputSettings& inputs) {
+  inputs.printLog(TString::Format("getPtHistsInJets() Getting ptV0 histograms for jet pT in [%.f, %.f] GeV/c and eta in [%.2f, %.2f]", inputs.getPtJetMin(), inputs.getPtJetMax(), inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
+  array<TH1D*, 2> errResult = { nullptr, nullptr };
 
-  pu.inputs->setJetPt(10., 20.);
-  // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-7, 10, sPtV0, sV0PtPerJet);
-  // pu.plotInJet(!doRatio, !doZ);
-  // pu.plotter->reset();
-  pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
-  pu.plotInJet(doRatio, !doZ);
-  printHistContents(pu.plotter->hists[1], "Pile-up in jets 10-20 GeV/c");
-  pu.plotter->reset();
-  // pu.plotter->makeFrame(0., 1., 1e-5, 10, sZV0, sV0ZPerJet);
-  // pu.plotInJet(!doRatio, doZ);
-  // pu.plotter->reset();
-  // pu.plotter->makeFrame(0., 1., 1e-3, 1., sZV0, sRatio);
-  // pu.plotInJet(doRatio, doZ);
-  // pu.plotter->reset();
+  TFile* f = inputs.GetFile();
+  if (!f)
+    return errResult;
 
-  pu.inputs->setJetPt(20., 30.);
-  // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-7, 10, sPtV0, sV0PtPerJet);
-  // pu.plotInJet(!doRatio, !doZ);
-  // pu.plotter->reset();
-  pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
-  pu.plotInJet(doRatio, !doZ);
-  printHistContents(pu.plotter->hists[1], "Pile-up in jets 20-30 GeV/c");
-  pu.plotter->reset();
-  // pu.plotter->makeFrame(0., 1., 1e-5, 10, sZV0, sV0ZPerJet);
-  // pu.plotInJet(!doRatio, doZ);
-  // pu.plotter->reset();
-  // pu.plotInJet(doRatio, doZ);
-  // pu.plotter->reset();
+  const int axisJetPt = 0;
+  const int axisJetEta = 1;
+  const int axisV0Pt = 2;
+  const int axisV0Mass = 3;
+  THnSparse* hnAll = inputs.GetHist<THnSparse>(typeutils::kInJetsV0Pt);
+  THnSparse* hnWrongColl = inputs.GetHist<THnSparse>(typeutils::kInJetsV0PtWrongCollision);
+  if (!hnAll || !hnWrongColl)
+    return errResult;
 
-  pu.inputs->setJetPt(30., 40.);
-  // pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-7, 10, sPtV0, sV0PtPerJet);
-  // pu.plotInJet(!doRatio, !doZ);
-  // pu.plotter->reset();
-  pu.plotter->makeFrame(0., pu.inputs->ptjetmax, 1e-3, 1., sPtV0, sRatio);
-  pu.plotInJet(doRatio, !doZ);
-  printHistContents(pu.plotter->hists[1], "Pile-up in jets 30-40 GeV/c");
-  pu.plotter->reset();
-  // pu.plotter->makeFrame(0., 1., 1e-5, 10, sZV0, sV0ZPerJet);
-  // pu.plotInJet(!doRatio, doZ);
-  // pu.plotter->reset();
-  // pu.plotter->makeFrame(0., 1., 1e-3, 1., sZV0, sRatio);
-  // pu.plotInJet(doRatio, doZ);
-  // pu.plotter->reset();
+  array<int, 2> ptBins = histutils::getProjectionBins(hnAll->GetAxis(axisJetPt), inputs.getPtJetMin(), inputs.getPtJetMax());
+  array<int, 2> etaBins = histutils::getProjectionBins(hnAll->GetAxis(axisJetEta), inputs.getEtaMin(), inputs.getEtaMax());
+  hnAll->GetAxis(axisJetPt)->SetRange(ptBins[0], ptBins[1]);
+  hnAll->GetAxis(axisJetEta)->SetRange(etaBins[0], etaBins[1]);
+  TH1D* hAll = (TH1D*)hnAll->Projection(axisV0Pt);
+  hAll->SetName("hAll");
+
+  ptBins = histutils::getProjectionBins(hnWrongColl->GetAxis(axisJetPt), inputs.getPtJetMin(), inputs.getPtJetMax());
+  etaBins  = histutils::getProjectionBins(hnWrongColl->GetAxis(axisJetEta), inputs.getEtaMin(), inputs.getEtaMax());
+  hnWrongColl->GetAxis(axisJetPt)->SetRange(ptBins[0], ptBins[1]);
+  hnWrongColl->GetAxis(axisJetEta)->SetRange(etaBins[0], etaBins[1]);
+  TH1D* hWrongColl = (TH1D*)hnWrongColl->Projection(axisV0Pt);
+  hWrongColl->SetName("hWrongColl");
+
+  hAll = (TH1D*)histutils::rebinHist(hAll, histutils::rebinnedV0PtHist("K0S", "hAllRebinned"));
+  hWrongColl = (TH1D*)histutils::rebinHist(hWrongColl, histutils::rebinnedV0PtHist("K0S", "hWrongCollRebinned"));
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    inputs.printLog("getPtHistsInJets() Printing histograms", verbosityutils::kDebug);
+    hAll->Print("all");
+    hWrongColl->Print("all");
+  }
+
+  double nJets = inputs.GetNjets(inputs.getPtJetMin(), inputs.getPtJetMax());
+  if (nJets <= 0)
+    return errResult;
+
+  hAll->Scale(1. / nJets, "width");
+  hWrongColl->Scale(1. / nJets, "width");
+
+  return array<TH1D*, 2>{hAll, hWrongColl};
+}
+
+void plotInJetPt1020(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kInfo);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(10., 20.);
+
+  array<TH1D*, 2> hists = getPtHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true, 0.04);
+  string xTitle = mystrings::sPtV0WithUnits;
+  string yTitle = mystrings::sV0PtPerJetXsecWithUnits;
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-7, 0.1, xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.45, yLatex = 0.875;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetPtRatio1020(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kInfo);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(10., 20.);
+
+  array<TH1D*, 2> hists = getPtHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true, 0.04);
+  string xTitle = mystrings::sPtV0WithUnits;
+  string yTitle = mystrings::sRatio;
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+  p.makeRatios();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "Inclusive V0s");
+  p.addLegendEntry(hPileUp, "V0 pile-up");
+
+  double xLatex = 0.25, yLatex = 0.70;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetPt2030(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(20., 30.);
+
+  array<TH1D*, 2> hists = getPtHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    hInJets->Print("all");
+    hPileUp->Print("all");
+  }
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true, 0.04);
+  string xTitle = mystrings::sPtV0WithUnits;
+  string yTitle = mystrings::sV0PtPerJetXsecWithUnits;
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-7, 0.1, xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.45, yLatex = 0.875;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetPtRatio2030(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(20., 30.);
+
+  array<TH1D*, 2> hists = getPtHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    hInJets->Print("all");
+    hPileUp->Print("all");
+  }
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true, 0.04);
+  string xTitle = mystrings::sPtV0WithUnits;
+  string yTitle = mystrings::sRatio;
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+  p.makeRatios();
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    hInJets->Print("all");
+    hPileUp->Print("all");
+  }
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.25, yLatex = 0.70;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetPt3040(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(30., 40.);
+
+  array<TH1D*, 2> hists = getPtHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    hInJets->Print("all");
+    hPileUp->Print("all");
+  }
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true, 0.04);
+  string xTitle = mystrings::sPtV0WithUnits;
+  string yTitle = mystrings::sV0PtPerJetXsecWithUnits;
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-7, 0.1, xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.45, yLatex = 0.875;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetPtRatio3040(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(30., 40.);
+
+  array<TH1D*, 2> hists = getPtHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    inputs.printLog("plotInJetPtRatio3040() Printing histograms", verbosityutils::kDebug);
+    hInJets->Print("all");
+    hPileUp->Print("all");
+  }
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true, 0.04);
+  string xTitle = mystrings::sPtV0WithUnits;
+  string yTitle = mystrings::sRatio;
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+  p.makeRatios();
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    inputs.printLog("plotInJetPtRatio3040() Printing histograms after taking ratios", verbosityutils::kDebug);
+    for (auto h : p.getHists()) {
+      h->Print("all");
+    }
+  }
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.25, yLatex = 0.70;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotinjetpt() {
+  int train = 745299;
+  plotInJetPt1020(train);
+  plotInJetPtRatio1020(train);
+  plotInJetPt2030(train);
+  plotInJetPtRatio2030(train);
+  plotInJetPt3040(train);
+  plotInJetPtRatio3040(train);
+}
+
+// ------------------------------------------------------------------------------------
+//
+// Plot z spectra of in-jet V0s matched with the wrong collision
+//
+// ------------------------------------------------------------------------------------
+
+array<TH1D*, 2> getZHistsInJets(InputSettings& inputs) {
+  inputs.printLog(TString::Format("getZHistsInJets() Getting zV0 histograms for jet pT in [%.f, %.f] GeV/c and eta in [%.2f, %.2f]", inputs.getPtJetMin(), inputs.getPtJetMax(), inputs.getEtaMin(), inputs.getEtaMax()).Data(), verbosityutils::kInfo);
+  array<TH1D*, 2> errResult = { nullptr, nullptr };
+
+  TFile* f = inputs.GetFile();
+  if (!f)
+    return errResult;
+
+  const int axisJetPt = 0;
+  const int axisJetEta = 1;
+  const int axisV0Z = 2;
+  const int axisV0Mass = 3;
+  THnSparse* hnAll = inputs.GetHist<THnSparse>(typeutils::kInJetsV0Z);
+  THnSparse* hnWrongColl = inputs.GetHist<THnSparse>(typeutils::kInJetsV0ZWrongCollision);
+  if (!hnAll || !hnWrongColl)
+    return errResult;
+
+  array<int, 2> ptBins = histutils::getProjectionBins(hnAll->GetAxis(axisJetPt), inputs.getPtJetMin(), inputs.getPtJetMax());
+  array<int, 2> etaBins = histutils::getProjectionBins(hnAll->GetAxis(axisJetEta), inputs.getEtaMin(), inputs.getEtaMax());
+  hnAll->GetAxis(axisJetPt)->SetRange(ptBins[0], ptBins[1]);
+  hnAll->GetAxis(axisJetEta)->SetRange(etaBins[0], etaBins[1]);
+  TH1D* hAll = (TH1D*)hnAll->Projection(axisV0Z);
+  hAll->SetName("hAll");
+
+  ptBins = histutils::getProjectionBins(hnWrongColl->GetAxis(axisJetPt), inputs.getPtJetMin(), inputs.getPtJetMax());
+  etaBins  = histutils::getProjectionBins(hnWrongColl->GetAxis(axisJetEta), inputs.getEtaMin(), inputs.getEtaMax());
+  hnWrongColl->GetAxis(axisJetPt)->SetRange(ptBins[0], ptBins[1]);
+  hnWrongColl->GetAxis(axisJetEta)->SetRange(etaBins[0], etaBins[1]);
+  TH1D* hWrongColl = (TH1D*)hnWrongColl->Projection(axisV0Z);
+  hWrongColl->SetName("hWrongColl");
+
+  hAll = (TH1D*)histutils::rebinHist(hAll, histutils::rebinnedV0ZHist("hAllRebinned"));
+  hWrongColl = (TH1D*)histutils::rebinHist(hWrongColl, histutils::rebinnedV0ZHist("hWrongCollRebinned"));
+  if (inputs.passVerbosityCheck(verbosityutils::kDebug)) {
+    inputs.printLog("getZHistsInJets() Printing histograms", verbosityutils::kDebug);
+    hAll->Print("all");
+    hWrongColl->Print("all");
+  }
+
+  double nJets = inputs.GetNjets(inputs.getPtJetMin(), inputs.getPtJetMax());
+  if (nJets <= 0)
+    return errResult;
+
+  hAll->Scale(1. / nJets, "width");
+  hWrongColl->Scale(1. / nJets, "width");
+
+  return array<TH1D*, 2>{hAll, hWrongColl};
+}
+
+void plotInJetZ1020(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(10., 20.);
+
+  array<TH1D*, 2> hists = getZHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true, 0.04);
+  string xTitle = mystrings::sZV0;
+  string yTitle = mystrings::sV0ZPerJetXsec;
+  p.makeFrame(1e-3, 1 + 1e-3, 1e-5, 1., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.45, yLatex = 0.875;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetZRatio1020(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(10., 20.);
+
+  array<TH1D*, 2> hists = getZHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true, 0.04);
+  string xTitle = mystrings::sZV0;
+  string yTitle = mystrings::sRatio;
+  p.makeFrame(1e-3, 1 + 1e-3, 1e-3, 2., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+  p.makeRatios();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.25, yLatex = 0.70;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetZ2030(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(20., 30.);
+
+  array<TH1D*, 2> hists = getZHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true, 0.04);
+  string xTitle = mystrings::sZV0;
+  string yTitle = mystrings::sV0ZPerJetXsec;
+  p.makeFrame(1e-3, 1 + 1e-3, 1e-5, 1., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.45, yLatex = 0.875;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetZRatio2030(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(20., 30.);
+
+  array<TH1D*, 2> hists = getZHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true, 0.04);
+  string xTitle = mystrings::sZV0;
+  string yTitle = mystrings::sRatio;
+  p.makeFrame(1e-3, 1 + 1e-3, 1e-3, 2., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+  p.makeRatios();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.25, yLatex = 0.70;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetZ3040(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(30., 40.);
+
+  array<TH1D*, 2> hists = getZHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true, 0.04);
+  string xTitle = mystrings::sZV0;
+  string yTitle = mystrings::sV0ZPerJetXsec;
+  p.makeFrame(1e-3, 1 + 1e-3, 1e-5, 1., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.45, yLatex = 0.875;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotInJetZRatio3040(int train) {
+  InputSettings inputs; inputs.setVerbosity(verbosityutils::kDebug);
+  inputs.setTrain(train);
+  inputs.SetInputFileNameFromTrain();
+  inputs.setEta(-0.35, 0.35);
+  inputs.setPtJet(30., 40.);
+
+  array<TH1D*, 2> hists = getZHistsInJets(inputs);
+  TH1D* hInJets = hists[0];
+  TH1D* hPileUp = hists[1];
+
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true, 0.04);
+  string xTitle = mystrings::sZV0;
+  string yTitle = mystrings::sRatio;
+  p.makeFrame(1e-3, 1 + 1e-3, 1e-3, 2., xTitle, yTitle);
+
+  p.setHists({hInJets, hPileUp});
+  p.setHistStyles();
+  p.makeRatios();
+
+  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
+  p.addLegendEntry(hPileUp, "V0 pile-up in jets");
+
+  double xLatex = 0.25, yLatex = 0.70;
+  p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
+  p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
+  p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
+  p.addLatex(xLatex, yLatex - 0.15, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
+  p.plot();
+}
+
+void plotinjetz() {
+  int train = 745299;
+  // plotInJetZ1020(train);
+  // plotInJetZRatio1020(train);
+  // plotInJetZ2030(train);
+  // plotInJetZRatio2030(train);
+  plotInJetZ3040(train);
+  plotInJetZRatio3040(train);
 }
 
 #endif

@@ -34,7 +34,7 @@ struct InputSettings {
     double _etamin, _etamax;
     double _ptjetmin, _ptjetmax;
     string _inputFileName, _outputFileName;
-    verbosityutils::Verbosity _verbosity = verbosityutils::kInfo;
+    verbosityutils::Verbosity _verbosity = verbosityutils::kDebug;
     typeutils::histtypes _histtype;
 
     template <typename T>
@@ -219,7 +219,7 @@ void plotPerpConePtFromTrain1020(int train) {
   TH1D* hPerpCone = hists[0];
   TH1D* hInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", ".pdf"), true);
   string xTitle = mystrings::sPtK0SWithUnits;
   string sNJetsCones = mystrings::addSubscript(mystrings::sNumber, "jets, cones");
   string yTitle = mystrings::getOneOverString(sNJetsCones) + mystrings::getdYdXString(mystrings::sNK0S, mystrings::sPtK0S);
@@ -251,7 +251,7 @@ void plotPerpConePtRatioFromTrain1020(int train) {
   TH1D* hPerpCone = hists[0];
   TH1D* hInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", "_ratio.pdf"), true);
   string xTitle = mystrings::sPtK0SWithUnits;
   string sNJetsCones = mystrings::addSubscript(mystrings::sNumber, "jets, cones");
   string yTitle = mystrings::getOneOverString(sNJetsCones) + mystrings::getdYdXString(mystrings::sNK0S, mystrings::sPtK0S);
@@ -285,12 +285,12 @@ void plotPerpConePtFromTrain2030(int train) {
   TH1D* hPerpCone = hists[0];
   TH1D* hInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", ".pdf"), true);
   string xTitle = mystrings::sPtK0SWithUnits;
   string sNJetsCones = mystrings::addSubscript(mystrings::sNumber, "jets, cones");
   string yTitle = mystrings::getOneOverString(sNJetsCones) + mystrings::getdYdXString(mystrings::sNK0S, mystrings::sPtK0S);
   yTitle = mystrings::addUnits(yTitle, mystrings::sCGeV, true);
-  p.makeFrame(0., inputs.getPtJetMax(), 1e-7, 10, xTitle, yTitle);
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-8, 10, xTitle, yTitle);
 
   p.setHists({hInJets, hPerpCone});
   p.setHistStyles();
@@ -317,7 +317,7 @@ void plotPerpConePtRatioFromTrain2030(int train) {
   TH1D* hPerpCone = hists[0];
   TH1D* hInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", "_ratio.pdf"), true);
   string xTitle = mystrings::sPtK0SWithUnits;
   string sNJetsCones = mystrings::addSubscript(mystrings::sNumber, "jets, cones");
   string yTitle = mystrings::getOneOverString(sNJetsCones) + mystrings::getdYdXString(mystrings::sNK0S, mystrings::sPtK0S);
@@ -351,12 +351,12 @@ void plotPerpConePtFromTrain3040(int train) {
   TH1D* hPerpCone = hists[0];
   TH1D* hInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", ".pdf"), true);
   string xTitle = mystrings::sPtK0SWithUnits;
   string sNJetsCones = mystrings::addSubscript(mystrings::sNumber, "jets, cones");
   string yTitle = mystrings::getOneOverString(sNJetsCones) + mystrings::getdYdXString(mystrings::sNK0S, mystrings::sPtK0S);
   yTitle = mystrings::addUnits(yTitle, mystrings::sCGeV, true);
-  p.makeFrame(0., inputs.getPtJetMax(), 1e-7, 10, xTitle, yTitle);
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-8, 1, xTitle, yTitle);
 
   p.setHists({hInJets, hPerpCone});
   p.setHistStyles();
@@ -365,7 +365,7 @@ void plotPerpConePtFromTrain3040(int train) {
   p.addLegendEntry(hInJets, "V0s in jet cone");
   p.addLegendEntry(hPerpCone, "V0s in perp. cone");
 
-  double xLatex = 0.25, yLatex = 0.85;
+  double xLatex = 0.35, yLatex = 0.85;
   p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceData + ", " + mystrings::sSqrtS);
   p.addLatex(xLatex, yLatex - 0.05, mystrings::sAntiktJets + ", " + mystrings::sJetRadius04 + ", " + mystrings::sEtaJetRange035);
   p.addLatex(xLatex, yLatex - 0.10, mystrings::getPtJetRangeString(inputs.getPtJetMin(), inputs.getPtJetMax(), true));
@@ -383,12 +383,12 @@ void plotPerpConePtRatioFromTrain3040(int train) {
   TH1D* hPerpCone = hists[0];
   TH1D* hInJets = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pc", "_ratio.pdf"), true);
   string xTitle = mystrings::sPtK0SWithUnits;
   string sNJetsCones = mystrings::addSubscript(mystrings::sNumber, "jets, cones");
   string yTitle = mystrings::getOneOverString(sNJetsCones) + mystrings::getdYdXString(mystrings::sNK0S, mystrings::sPtK0S);
   yTitle = mystrings::addUnits(yTitle, mystrings::sCGeV, true);
-  p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., mystrings::sPtK0SWithUnits, mystrings::sRatio);
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-4, 2., mystrings::sPtK0SWithUnits, mystrings::sRatio);
 
   p.setHists({hInJets, hPerpCone});
   p.setHistStyles();
@@ -407,13 +407,13 @@ void plotPerpConePtRatioFromTrain3040(int train) {
 } 
 
 void plotinconept() {
-  int train = 747926;
+  int train = 767542;
   // plotPerpConePtFromTrain1020(train);
   // plotPerpConePtRatioFromTrain1020(train);
   // plotPerpConePtFromTrain2030(train);
   // plotPerpConePtRatioFromTrain2030(train);
   // plotPerpConePtFromTrain3040(train);
-  // plotPerpConePtRatioFromTrain3040(train);
+  plotPerpConePtRatioFromTrain3040(train);
 }
 
 #endif

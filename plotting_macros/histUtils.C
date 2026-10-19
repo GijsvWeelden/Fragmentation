@@ -322,31 +322,43 @@ string formatHadronDaughters(string hadron) {
 // -------------------------------------------------------------------------------------------------
 //
 // Normalise 2D histograms
+// minIntegralValue serves to ignore empty rows/cols
+// Use minIntegralValue = 1 if the hist is filled with counts
 //
 // -------------------------------------------------------------------------------------------------
 
-void normaliseHistRowByRow(TH2* hist) {
+void normaliseHistRowByRow(TH2* hist, double minIntegralValue = 1.0) {
   int firstColBin = 1, lastColBin = hist->GetNbinsX();
   int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
   for (int iRow = 1; iRow <= lastRowBin; iRow++) {
     double integral = hist->Integral(firstColBin, lastColBin, iRow, iRow);
-    if (integral < 1) { continue; }
+    if (std::isnan(integral) || integral < minIntegralValue)
+      continue;
+
     for (int iCol = 1; iCol <= lastColBin; iCol++) {
       double binContent = hist->GetBinContent(iCol, iRow);
+      if (std::isnan(binContent))
+        continue;
+
       binContent /= integral;
       hist->SetBinContent(iCol, iRow, binContent);
     }
   }
 }
 
-void normaliseHistColByCol(TH2* hist) {
+void normaliseHistColByCol(TH2* hist, double minIntegralValue = 1.0) {
   int firstColBin = 1, lastColBin = hist->GetNbinsX();
   int firstRowBin = 1, lastRowBin = hist->GetNbinsY();
   for (int iCol = 1; iCol <= lastColBin; iCol++) {
     double integral = hist->Integral(iCol, iCol, firstRowBin, lastRowBin);
-    if (integral < 1) { continue; }
+    if (std::isnan(integral) || integral < minIntegralValue)
+      continue;
+
     for (int iRow = 1; iRow <= lastRowBin; iRow++) {
       double binContent = hist->GetBinContent(iCol, iRow);
+      if (std::isnan(binContent))
+        continue;
+
       binContent /= integral;
       hist->SetBinContent(iCol, iRow, binContent);
     }
@@ -390,6 +402,7 @@ TH1* makeHistSubset(TH1* data, int minBin, int maxBin, string name = "region") {
 // Take caution: bins must match!
 //
 // -------------------------------------------------------------------------------------------------
+
 TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
   // TODO: Check if same binning
   TH1* result = (TH1*)base->Clone("result");
@@ -409,7 +422,9 @@ TH1* divideWithProtection(TH1* base, TH1* divideBy, double threshold = 1e-25) {
     double newBinContent = numerator / denominator;
     result->SetBinContent(i, newBinContent);
 
-    if (std::isnan(numError) || std::isnan(denError))
+    if (std::isnan(numError) || std::abs(numError) < threshold) 
+      continue;
+    if (std::isnan(denError) || std::abs(denError) < threshold)
       continue;
 
     double numRelError = numError / numerator;

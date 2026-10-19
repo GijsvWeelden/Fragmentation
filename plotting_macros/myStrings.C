@@ -24,6 +24,8 @@ namespace mystrings {
 
   const string sALICE      = "ALICE";
   const string sAntikt     = "Anti-#it{k}_{T}";
+  const string sArbUnits   = "Arb. units";
+  const string sAUShort    = "a. u.";
   const string sCGeV       = "#it{c}/GeV";
   const string sCharged    = "ch";
   const string sCounts     = "Counts";
@@ -111,6 +113,8 @@ namespace mystrings {
   const string sK0SPtPerEvt      = getOneOverString(sNevts) + " " + getdYdXString(sNK0S, sPtK0S);
   const string sV0ZPerEvt        = getOneOverString(sNevts) + " " + getdYdXString(sNV0, sZV0);
   const string sK0SZPerEvt       = getOneOverString(sNevts) + " " + getdYdXString(sNK0S, sZK0S);
+
+  const string sV0PtPerEvtWithUnits = addUnits(sV0PtPerEvt, sCGeV, true);
 
   const string sV0PtPerJet        = getOneOverString(sNjets) + " " + getdYdXString(sNV0, sPtV0);
   const string sK0SPtPerJet       = getOneOverString(sNjets) + " " + getdYdXString(sNK0S, sPtK0S);

@@ -10,6 +10,21 @@
 
 namespace plotutils {
 
+namespace defaultValues {
+  const double defPadMarginLeft   = 0.22;
+  const double defPadMarginRight  = 0.05;
+  const double defPadMarginBottom = 0.15;
+  const double defPadMarginTop    = 0.05;
+
+  const double defTextSize         = 0.04;
+  const double defLabelSize        = 0.05;
+  const double defTitleSize        = 0.06;
+  const double defTitleOffset      = 1.0;
+  const double defTitleOffsetLarge = 1.6;
+
+  const int defTicks = 1;
+} // namespace defaultValues
+
 static  int      myDarkRed     = TColor::GetColor(128,0,0);
 static  int      myDarkGreen   = TColor::GetColor(0,128,0);
 static  int      myDarkBlue    = TColor::GetColor(0,0,128);
@@ -21,23 +36,39 @@ void SetPadMargins(double left, double right, double bottom, double top) {
   gPad->SetTopMargin(top);
 }
 
+void SetFrameLabelSizes(TH1F* frame, double x, double y) {
+  frame->GetXaxis()->SetLabelSize(x);
+  frame->GetYaxis()->SetLabelSize(y);
+}
+
+void SetFrameTitleSizes(TH1F* frame, double x, double y) {
+  frame->GetXaxis()->SetTitleSize(x);
+  frame->GetYaxis()->SetTitleSize(y);
+}
+
+void SetFrameTitleOffsets(TH1F* frame, double x, double y) {
+  frame->GetXaxis()->SetTitleOffset(x);
+  frame->GetYaxis()->SetTitleOffset(y);
+}
+
+void SetFrameTitleCenter(TH1F* frame, bool b) {
+  frame->GetXaxis()->CenterTitle(b);
+  frame->GetYaxis()->CenterTitle(b);
+}
+
 TH1F *DrawFrame(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString xTitle = "", TString yTitle = "", bool setMargins = true) {
   if (setMargins)
-    SetPadMargins(0.22, 0.05, 0.15, 0.05);
-
+    SetPadMargins(defaultValues::defPadMarginLeft, defaultValues::defPadMarginRight, defaultValues::defPadMarginBottom, defaultValues::defPadMarginTop);
+  
   TH1F *frame = gPad->DrawFrame(xmin,ymin,xmax,ymax);
   frame->SetXTitle(xTitle.Data());
   frame->SetYTitle(yTitle.Data());
-  frame->GetXaxis()->SetLabelSize(0.05);
-  frame->GetYaxis()->SetLabelSize(0.05);
-  frame->GetXaxis()->SetTitleSize(0.06);
-  frame->GetYaxis()->SetTitleSize(0.06);
-  frame->GetXaxis()->SetTitleOffset(1.0);
-  frame->GetYaxis()->SetTitleOffset(1.6);
-  frame->GetXaxis()->CenterTitle(true);
-  frame->GetYaxis()->CenterTitle(true);
+  SetFrameLabelSizes(frame, defaultValues::defLabelSize, defaultValues::defLabelSize);
+  SetFrameTitleSizes(frame, defaultValues::defTitleSize, defaultValues::defTitleSize);
+  SetFrameTitleOffsets(frame, defaultValues::defTitleOffset, defaultValues::defTitleOffsetLarge);
+  SetFrameTitleCenter(frame, true);
 
-  gPad->SetTicks(1,1);
+  gPad->SetTicks(defaultValues::defTicks, defaultValues::defTicks);
   return frame;
 }
 
@@ -51,7 +82,7 @@ TH1F* DrawFrame(TH1* hist, bool setMargins = true) {
   return DrawFrame(xMinFrame, xMaxFrame, yMinFrame, yMaxFrame, xTitle, yTitle, setMargins);
 }
 
-TLegend *CreateLegend(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString title = "", Double_t textSize = 0.06) {
+TLegend *CreateLegend(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString title = "", Double_t textSize = defaultValues::defTextSize) {
   TLegend *leg = new TLegend(xmin,ymin,xmax,ymax,title.Data());
   leg->SetFillColor(10);
   leg->SetBorderSize(0);
@@ -61,7 +92,7 @@ TLegend *CreateLegend(Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax
   return leg;
 }
 
-TLatex* CreateLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = 0.06, Int_t color = 1, int all = 11, bool bndc = true) {
+TLatex* CreateLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = defaultValues::defTextSize, Int_t color = 1, int all = 11, bool bndc = true) {
   TLatex* text = new TLatex(x, y, strText.Data());
   if(bndc) text->SetNDC();
   text->SetTextAlign(all);
@@ -71,7 +102,7 @@ TLatex* CreateLatex(Double_t x, Double_t y, TString strText = "", Double_t textS
   return text;
 }
 
-void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = 0.06, Int_t color = 1, int all = 11, bool bndc = true) {
+void DrawLatex(Double_t x, Double_t y, TString strText = "", Double_t textSize = defaultValues::defTextSize, Int_t color = 1, int all = 11, bool bndc = true) {
   TLatex text;
   if(bndc) text.SetNDC();
   text.SetTextAlign(all);
@@ -130,9 +161,19 @@ void setStyle(TF1* f, int styleNumber, int lineStyle = 1, int lineWidth = 3) {
 struct Plotter {
   private:
     string _drawOption = ""; // Private because it requires caution with spaces
+    double _frameLabelSize    = defaultValues::defLabelSize;
+    int    _frameTicks        = defaultValues::defTicks;
+    bool   _frameTitleCenter  = true;
+    double _frameTitleSize    = defaultValues::defTitleSize;
+    double _frameTitleOffsetX = defaultValues::defTitleOffset;
+    double _frameTitleOffsetY = defaultValues::defTitleOffsetLarge;
     bool   _logx = false, _logy = false, _logz = false;
     string _outputFileName = "";
-    double _textSize = 0.04;
+    double _padMarginBottom = defaultValues::defPadMarginBottom;
+    double _padMarginLeft   = defaultValues::defPadMarginLeft;
+    double _padMarginRight  = defaultValues::defPadMarginRight;
+    double _padMarginTop    = defaultValues::defPadMarginTop;
+    double _textSize = defaultValues::defTextSize;
 
     TH1F*            _frame   = nullptr;
     TCanvas*         _canvas  = nullptr;
@@ -142,23 +183,24 @@ struct Plotter {
 
     bool isHistVectorEmpty(string origin) {
       if (_hists.empty()) {
-        std::cout << "Plotter::" << origin << "(): Hist vector is empty!" << std::endl;
+        std::cout << "plotutils::Plotter::" << origin << "(): Hist vector is empty!" << std::endl;
         return true;
       }
       return false;
     }
-    void setLogAxes() {
-      _canvas->SetLogx(_logx);
-      _canvas->SetLogy(_logy);
-      _canvas->SetLogz(_logz);
-    }
   public:
-    Plotter(string ofn = "", bool ly = false, double ts = 0.04) : _outputFileName(ofn), _logy(ly), _textSize(ts) { Plotter::reset(); }
-    Plotter(string ofn = "", bool lx = false, bool ly = false, bool lz = false, double ts = 0.04) : _outputFileName(ofn), _logx(lx), _logy(ly), _logz(lz), _textSize(ts) { Plotter::reset(); }
+    Plotter(string ofn, bool ly) : _outputFileName(ofn), _logy(ly) { Plotter::reset(); }
+    Plotter(string ofn, bool lx, bool ly, bool lz) : _outputFileName(ofn), _logx(lx), _logy(ly), _logz(lz) { Plotter::reset(); }
 
     TCanvas* getCanvas() { return _canvas; }
     string getDrawOption() { return _drawOption; }
     TH1F* getFrame() { return _frame; }
+    double getFrameLabelSize() { return _frameLabelSize; }
+    int    getFrameTicks() { return _frameTicks; }
+    bool   getFrameTitleCenter() { return _frameTitleCenter; }
+    double getFrameTitleSize() { return _frameTitleSize; }
+    double getFrameTitleOffsetX() { return _frameTitleOffsetX; }
+    double getFrameTitleOffsetY() { return _frameTitleOffsetY; }
     vector<TH1*> getHists() { return _hists; }
     TLegend* getLegend() { return _legend; }
     bool getLogX() { return _logx; }
@@ -166,6 +208,10 @@ struct Plotter {
     bool getLogZ() { return _logz; }
     vector<TObject*> getObjects() { return _objects; }
     string getOutputFileName() { return _outputFileName; }
+    double getPadMarginBottom() { return _padMarginBottom; }
+    double getPadMarginLeft() { return _padMarginLeft; }
+    double getPadMarginRight() { return _padMarginRight; }
+    double getPadMarginTop() { return _padMarginTop; }
     double getTextSize() { return _textSize; }
 
     void setDrawOption(string s) {
@@ -176,10 +222,22 @@ struct Plotter {
         _drawOption = " " + s;
       }
     }
+    void setFrameLabelSize(double x) { _frameLabelSize = x; }
+    void setFrameTitleCenter(bool b) { _frameTitleCenter = b; }
+    void setFrameTicks(int x) { _frameTicks = x; }
+    void setFrameTitleSize(double x) { _frameTitleSize = x; }
+    void setFrameTitleOffsetX(double x) { _frameTitleOffsetX = x; }
+    void setFrameTitleOffsetY(double y) { _frameTitleOffsetY = y; }
     void setLogX(bool b = true) { _logx = b; }
     void setLogY(bool b = true) { _logy = b; }
     void setLogZ(bool b = true) { _logz = b; }
     void setOutputFileName(string s) { _outputFileName = s; }
+    void setPadMargins(double left, double right, double bottom, double top) {
+      _padMarginLeft = left;
+      _padMarginRight = right;
+      _padMarginBottom = bottom;
+      _padMarginTop = top;
+    }
     void setTextSize(double x) { _textSize = x; }
     void setZAxisRange(double min, double max) {
       if (isHistVectorEmpty("setZAxisRange"))
@@ -187,7 +245,7 @@ struct Plotter {
 
       for (auto h : _hists)
         histutils::setHistMinMax(h, min, max);
-    }
+    }    
 
     // Utilities
     void addLatex(double x, double y, string s) {
@@ -203,6 +261,11 @@ struct Plotter {
     void addHistogram(TH1* h) {
       _hists.push_back(h);
     }
+    void addHists(vector<TH1*> v) {
+      for (auto h : v) {
+        _hists.push_back(h);
+      }
+    }
     void addLine(double x0, double y0, double x1, double y1, int styleNumber, int lineStyle = 9, int lineWidth = 3) {
       TLine* l = new TLine(x0, y0, x1, y1);
       setStyle(l, styleNumber, lineStyle, lineWidth);
@@ -213,11 +276,18 @@ struct Plotter {
     }
     void makeCanvas(string s = "c", double x = 800, double y = 600) {
       _canvas = new TCanvas(s.c_str(), s.c_str(), x, y);
-      setLogAxes();
+      _canvas->SetLogx(_logx);
+      _canvas->SetLogy(_logy);
+      _canvas->SetLogz(_logz);
     }
     void makeFrame(double x0, double x1, double y0, double y1, string sx, string sy) {
       if (!_canvas) makeCanvas();
       _frame = DrawFrame(x0, x1, y0, y1, sx, sy);
+      
+      SetFrameLabelSizes(_frame, _frameLabelSize, _frameLabelSize);
+      SetFrameTitleSizes(_frame, _frameTitleSize, _frameTitleSize);
+      SetFrameTitleOffsets(_frame, _frameTitleOffsetX, _frameTitleOffsetY);
+      SetFrameTitleCenter(_frame, _frameTitleCenter);
     }
     void makeFrame(string sx, string sy) {
       // Automatically determine frame ranges from hists vector
@@ -251,9 +321,14 @@ struct Plotter {
       if (!_frame)
         makeFrame("x", "y");
 
+      SetPadMargins(_padMarginLeft, _padMarginRight, _padMarginBottom, _padMarginTop);
+      gPad->SetTicks(_frameTicks, _frameTicks);
+
       _frame->Draw();
       if (_legend)
         _legend->Draw("same");
+      else
+        cout << "Warning: plotutils::Plotter::plot() no legend\n";
 
       for (auto o : _objects)
         o->Draw("same");
@@ -263,6 +338,8 @@ struct Plotter {
 
       if (_outputFileName != "")
         _canvas->SaveAs(_outputFileName.c_str());
+      else
+        cout << "Warning: plotutils::Plotter::plot() No outputfilename selected, plot not saved\n";
     }
     void resetCanvas()  { _canvas = nullptr; }
     void resetFrame()   { _frame = nullptr; }

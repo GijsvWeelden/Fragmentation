@@ -120,6 +120,13 @@ string InputSettings::GetHistName(typeutils::histtypes htype) {
         n = "jet-fragmentation_id38322/";
       if (htype == typeutils::kNjets)
         n = "jet-fragmentation_id38322/";
+      break;
+    case 767541:
+      if (htype == typeutils::kNevts)
+        n = "jet-fragmentation_id38322/";
+      if (htype == typeutils::kNjets)
+        n = "jet-fragmentation_id38322/";
+      break;
   }
 
   switch (htype) {
@@ -265,7 +272,7 @@ void plotInclusivePt(int train) {
   TH1D* hInclusive = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p("pileUp.pdf", true, 0.04);
+  plotutils::Plotter p("pileUp.pdf", true);
   string xTitle = mystrings::sPtV0WithUnits;
   string yTitle = mystrings::sV0PtPerXsec;
   p.makeFrame(0., inputs.getPtJetMax(), 1e-10, 0.1, xTitle, yTitle);
@@ -295,16 +302,17 @@ void plotInclusivePtRatio(int train) {
   TH1D* hInclusive = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p("pileUp_ratio.pdf", true, 0.04);
+  plotutils::Plotter p("pileUp_ratio.pdf", true);
   string xTitle = mystrings::sPtV0WithUnits;
   string yTitle = mystrings::sRatio;
-  p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., xTitle, yTitle);
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-2, 2., xTitle, yTitle);
 
   p.setHists({hInclusive, hPileUp});
   p.setHistStyles();
   p.makeRatios();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.40;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInclusive, "Inclusive V0s");
   p.addLegendEntry(hPileUp, "V0 pile-up");
 
@@ -316,8 +324,8 @@ void plotInclusivePtRatio(int train) {
 }
 
 void plotincl() {
-  int train = 745299;
-  plotInclusivePt(train);
+  int train = 767541;
+  // plotInclusivePt(train);
   plotInclusivePtRatio(train);
 }
 
@@ -387,7 +395,7 @@ void plotInJetPt1020(int train) {
   TH1D* hInJets = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true);
   string xTitle = mystrings::sPtV0WithUnits;
   string yTitle = mystrings::sV0PtPerJetXsecWithUnits;
   p.makeFrame(0., inputs.getPtJetMax(), 1e-7, 0.1, xTitle, yTitle);
@@ -418,7 +426,7 @@ void plotInJetPtRatio1020(int train) {
   TH1D* hInJets = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true);
   string xTitle = mystrings::sPtV0WithUnits;
   string yTitle = mystrings::sRatio;
   p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., xTitle, yTitle);
@@ -427,11 +435,12 @@ void plotInJetPtRatio1020(int train) {
   p.setHistStyles();
   p.makeRatios();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
-  p.addLegendEntry(hInJets, "Inclusive V0s");
+  double xLegend = 0.25, yLegend = 0.40;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
+  p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up");
 
-  double xLatex = 0.25, yLatex = 0.70;
+  double xLatex = 0.25, yLatex = 0.80;
   p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
   p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
   p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
@@ -454,7 +463,7 @@ void plotInJetPt2030(int train) {
     hPileUp->Print("all");
   }
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true);
   string xTitle = mystrings::sPtV0WithUnits;
   string yTitle = mystrings::sV0PtPerJetXsecWithUnits;
   p.makeFrame(0., inputs.getPtJetMax(), 1e-7, 0.1, xTitle, yTitle);
@@ -462,7 +471,8 @@ void plotInJetPt2030(int train) {
   p.setHists({hInJets, hPileUp});
   p.setHistStyles();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.20;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
@@ -489,7 +499,7 @@ void plotInJetPtRatio2030(int train) {
     hPileUp->Print("all");
   }
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true);
   string xTitle = mystrings::sPtV0WithUnits;
   string yTitle = mystrings::sRatio;
   p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., xTitle, yTitle);
@@ -502,11 +512,12 @@ void plotInJetPtRatio2030(int train) {
     hPileUp->Print("all");
   }
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.40;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
-  double xLatex = 0.25, yLatex = 0.70;
+  double xLatex = 0.25, yLatex = 0.80;
   p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
   p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
   p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
@@ -529,7 +540,7 @@ void plotInJetPt3040(int train) {
     hPileUp->Print("all");
   }
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", ".pdf"), true);
   string xTitle = mystrings::sPtV0WithUnits;
   string yTitle = mystrings::sV0PtPerJetXsecWithUnits;
   p.makeFrame(0., inputs.getPtJetMax(), 1e-7, 0.1, xTitle, yTitle);
@@ -565,10 +576,10 @@ void plotInJetPtRatio3040(int train) {
     hPileUp->Print("all");
   }
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp", "_ratio.pdf"), true);
   string xTitle = mystrings::sPtV0WithUnits;
   string yTitle = mystrings::sRatio;
-  p.makeFrame(0., inputs.getPtJetMax(), 1e-3, 2., xTitle, yTitle);
+  p.makeFrame(0., inputs.getPtJetMax(), 1e-4, 2., xTitle, yTitle);
 
   p.setHists({hInJets, hPileUp});
   p.setHistStyles();
@@ -580,11 +591,12 @@ void plotInJetPtRatio3040(int train) {
     }
   }
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.50;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
-  double xLatex = 0.25, yLatex = 0.70;
+  double xLatex = 0.25, yLatex = 0.80;
   p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
   p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
   p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
@@ -593,12 +605,12 @@ void plotInJetPtRatio3040(int train) {
 }
 
 void plotinjetpt() {
-  int train = 745299;
-  plotInJetPt1020(train);
-  plotInJetPtRatio1020(train);
-  plotInJetPt2030(train);
-  plotInJetPtRatio2030(train);
-  plotInJetPt3040(train);
+  int train = 767541;
+  // plotInJetPt1020(train);
+  // plotInJetPtRatio1020(train);
+  // plotInJetPt2030(train);
+  // plotInJetPtRatio2030(train);
+  // plotInJetPt3040(train);
   plotInJetPtRatio3040(train);
 }
 
@@ -668,7 +680,7 @@ void plotInJetZ1020(int train) {
   TH1D* hInJets = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true);
   string xTitle = mystrings::sZV0;
   string yTitle = mystrings::sV0ZPerJetXsec;
   p.makeFrame(1e-3, 1 + 1e-3, 1e-5, 1., xTitle, yTitle);
@@ -676,7 +688,8 @@ void plotInJetZ1020(int train) {
   p.setHists({hInJets, hPileUp});
   p.setHistStyles();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.20;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
@@ -699,7 +712,7 @@ void plotInJetZRatio1020(int train) {
   TH1D* hInJets = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true);
   string xTitle = mystrings::sZV0;
   string yTitle = mystrings::sRatio;
   p.makeFrame(1e-3, 1 + 1e-3, 1e-3, 2., xTitle, yTitle);
@@ -708,11 +721,12 @@ void plotInJetZRatio1020(int train) {
   p.setHistStyles();
   p.makeRatios();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.40;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
-  double xLatex = 0.25, yLatex = 0.70;
+  double xLatex = 0.25, yLatex = 0.80;
   p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
   p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
   p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
@@ -731,7 +745,7 @@ void plotInJetZ2030(int train) {
   TH1D* hInJets = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true);
   string xTitle = mystrings::sZV0;
   string yTitle = mystrings::sV0ZPerJetXsec;
   p.makeFrame(1e-3, 1 + 1e-3, 1e-5, 1., xTitle, yTitle);
@@ -739,7 +753,8 @@ void plotInJetZ2030(int train) {
   p.setHists({hInJets, hPileUp});
   p.setHistStyles();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.20;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
@@ -762,7 +777,7 @@ void plotInJetZRatio2030(int train) {
   TH1D* hInJets = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true);
   string xTitle = mystrings::sZV0;
   string yTitle = mystrings::sRatio;
   p.makeFrame(1e-3, 1 + 1e-3, 1e-3, 2., xTitle, yTitle);
@@ -771,11 +786,12 @@ void plotInJetZRatio2030(int train) {
   p.setHistStyles();
   p.makeRatios();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.40;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
-  double xLatex = 0.25, yLatex = 0.70;
+  double xLatex = 0.25, yLatex = 0.80;
   p.addLatex(xLatex, yLatex, mystrings::sThisThesisAliceSim);
   p.addLatex(xLatex, yLatex - 0.05, mystrings::sSqrtS);
   p.addLatex(xLatex, yLatex - 0.10, mystrings::sAntiktJets + ", " + mystrings::sJetR04Eta035);
@@ -794,7 +810,7 @@ void plotInJetZ3040(int train) {
   TH1D* hInJets = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", ".pdf"), true);
   string xTitle = mystrings::sZV0;
   string yTitle = mystrings::sV0ZPerJetXsec;
   p.makeFrame(1e-3, 1 + 1e-3, 1e-5, 1., xTitle, yTitle);
@@ -802,7 +818,8 @@ void plotInJetZ3040(int train) {
   p.setHists({hInJets, hPileUp});
   p.setHistStyles();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.20;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
@@ -825,7 +842,7 @@ void plotInJetZRatio3040(int train) {
   TH1D* hInJets = hists[0];
   TH1D* hPileUp = hists[1];
 
-  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true, 0.04);
+  plotutils::Plotter p(inputs.GetNameFromPtJet("pileUp_z", "_ratio.pdf"), true);
   string xTitle = mystrings::sZV0;
   string yTitle = mystrings::sRatio;
   p.makeFrame(1e-3, 1 + 1e-3, 1e-3, 2., xTitle, yTitle);
@@ -834,7 +851,8 @@ void plotInJetZRatio3040(int train) {
   p.setHistStyles();
   p.makeRatios();
 
-  p.makeLegend(0.25, 0.50, 0.20, 0.30, "");
+  double xLegend = 0.25, yLegend = 0.20;
+  p.makeLegend(xLegend, xLegend + 0.25, yLegend, yLegend + 0.10, "");
   p.addLegendEntry(hInJets, "V0s in jets");
   p.addLegendEntry(hPileUp, "V0 pile-up in jets");
 
@@ -847,12 +865,12 @@ void plotInJetZRatio3040(int train) {
 }
 
 void plotinjetz() {
-  int train = 745299;
+  int train = 767541;
   // plotInJetZ1020(train);
   // plotInJetZRatio1020(train);
   // plotInJetZ2030(train);
   // plotInJetZRatio2030(train);
-  plotInJetZ3040(train);
+  // plotInJetZ3040(train);
   plotInJetZRatio3040(train);
 }
 
